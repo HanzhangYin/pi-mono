@@ -16,8 +16,8 @@ import { chunkAuditPrompt, finalReportPrompt, outlinePrompt } from "./prompts.js
 /** @typedef {import("./prompts.js").ChunkNote} ChunkNote */
 /** @typedef {import("./task-manager.js").TaskStatus} TaskStatus */
 
-const DEFAULT_PROVIDER = "anthropic";
-const DEFAULT_MODEL_ID = "claude-sonnet-4-5";
+const DEFAULT_PROVIDER = "openrouter";
+const DEFAULT_MODEL_ID = "moonshotai/kimi-k2.6";
 const DEFAULT_CHUNK_CHAR_TARGET = 3500;
 
 /**
