@@ -1,0 +1,267 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+import { describe, expect, it } from "vitest";
+import type { ClaimStatus, CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
+import {
+	addClaim,
+	addEvidence,
+	addGoal,
+	addWarning,
+	createEmptyProjectState,
+	getDefaultStatePath,
+	isClaimSynthesisEligible,
+	loadProjectState,
+	saveProjectState,
+	serializeProjectState,
+	setClaimStatus,
+} from "../examples/extensions/co-math/storage.ts";
+
+const FIXED_NOW = "2026-06-05T12:00:00.000Z";
+
+function createProject(): CoMathProjectState {
+	return createEmptyProjectState({
+		projectId: "proj-test",
+		title: "Toy co-math project",
+		rootQuestion: "Can a co-math assistant preserve proof gaps?",
+		now: FIXED_NOW,
+	});
+}
+
+describe("co-math project state", () => {
+	it("creates an empty project state with required metadata and empty collections", () => {
+		const state = createProject();
+
+		expect(state).toEqual({
+			version: 1,
+			projectId: "proj-test",
+			title: "Toy co-math project",
+			rootQuestion: "Can a co-math assistant preserve proof gaps?",
+			approvedGoals: [],
+			workstreams: [],
+			claims: [],
+			evidence: [],
+			warnings: [],
+			reports: [],
+			reviewQueue: [],
+			updatedAt: FIXED_NOW,
+		});
+	});
+
+	it("adds a goal with deterministic id and timestamp injection", () => {
+		const initial = createProject();
+		const state = addGoal(initial, {
+			id: "goal-1",
+			text: "Separate proved claims from experimental evidence.",
+			now: FIXED_NOW,
+		});
+
+		expect(initial.approvedGoals).toEqual([]);
+		expect(state.approvedGoals).toEqual([
+			{
+				id: "goal-1",
+				text: "Separate proved claims from experimental evidence.",
+				status: "active",
+				createdAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.updatedAt).toBe(FIXED_NOW);
+	});
+
+	it("refuses to mark a claim proved without attached proof evidence", () => {
+		const state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Every synthesized theorem needs explicit proof evidence.",
+			status: "draft",
+			now: FIXED_NOW,
+		});
+
+		expect(() =>
+			setClaimStatus(state, {
+				claimId: "claim-1",
+				status: "proved",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/proof evidence/i);
+	});
+
+	it("allows proved status only after proof evidence is attached and no open warning remains", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Reviewed claims can be promoted only after proof evidence is present.",
+			status: "proof_sketch",
+			now: FIXED_NOW,
+		});
+		state = addEvidence(state, {
+			id: "evidence-1",
+			claimId: "claim-1",
+			kind: "proof",
+			summary: "A checked proof has been recorded in the project notes.",
+			now: FIXED_NOW,
+		});
+		state = setClaimStatus(state, {
+			claimId: "claim-1",
+			status: "proved",
+			now: FIXED_NOW,
+		});
+
+		expect(state.claims[0]?.status satisfies ClaimStatus).toBe("proved");
+		expect(state.claims[0]?.evidenceIds).toEqual(["evidence-1"]);
+	});
+
+	it("refuses to mark a claim proved while an attached warning remains open", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "A reviewer objection blocks promotion until it is resolved.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+		state = addEvidence(state, {
+			id: "evidence-1",
+			claimId: "claim-1",
+			kind: "proof",
+			summary: "A proof has been recorded, but the warning is still open.",
+			now: FIXED_NOW,
+		});
+		state = addWarning(state, {
+			id: "warning-1",
+			claimId: "claim-1",
+			severity: "high",
+			message: "The reviewer still sees an unresolved endpoint case.",
+			now: FIXED_NOW,
+		});
+
+		expect(() =>
+			setClaimStatus(state, {
+				claimId: "claim-1",
+				status: "proved",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/open warning/i);
+	});
+
+	it("recognizes synthesis eligibility only for proved claims with proof evidence and no open warnings", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Only fully reviewed claims enter synthesis findings.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+		expect(isClaimSynthesisEligible(state, "claim-1")).toBe(false);
+
+		state = addEvidence(state, {
+			id: "evidence-1",
+			claimId: "claim-1",
+			kind: "proof",
+			summary: "Reviewer checked the proof line by line.",
+			now: FIXED_NOW,
+		});
+		state = setClaimStatus(state, {
+			claimId: "claim-1",
+			status: "proved",
+			now: FIXED_NOW,
+		});
+
+		expect(isClaimSynthesisEligible(state, "claim-1")).toBe(true);
+	});
+
+	it("keeps open warnings attached to claims", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "A synthesis should not erase reviewer objections.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+		state = addWarning(state, {
+			id: "warning-1",
+			claimId: "claim-1",
+			severity: "high",
+			message: "The proof sketch has not handled the boundary case.",
+			now: FIXED_NOW,
+		});
+
+		expect(state.warnings).toEqual([
+			{
+				id: "warning-1",
+				claimId: "claim-1",
+				severity: "high",
+				status: "open",
+				message: "The proof sketch has not handled the boundary case.",
+				createdAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.claims[0]?.warningIds).toEqual(["warning-1"]);
+	});
+
+	it("serializes project state deterministically", () => {
+		const state = addGoal(createProject(), {
+			id: "goal-1",
+			text: "Record failed attempts as first-class project state.",
+			now: FIXED_NOW,
+		});
+
+		expect(serializeProjectState(state)).toBe(`${JSON.stringify(state, null, "	")}\n`);
+		expect(serializeProjectState(state)).toBe(serializeProjectState(state));
+	});
+
+	it("builds the default state path inside the target project directory", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-path-"));
+		try {
+			expect(getDefaultStatePath(tempDir)).toBe(path.join(tempDir, ".pi", "co-math", "state.json"));
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("writes project state and creates parent directories", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-save-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			const state = addGoal(createProject(), {
+				id: "goal-1",
+				text: "Persist goals as durable project state.",
+				now: FIXED_NOW,
+			});
+
+			await saveProjectState(statePath, state);
+
+			expect(await readFile(statePath, "utf8")).toBe(serializeProjectState(state));
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("loads saved project state exactly", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-load-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			const state = addGoal(createProject(), {
+				id: "goal-1",
+				text: "Round-trip state through JSON storage.",
+				now: FIXED_NOW,
+			});
+
+			await saveProjectState(statePath, state);
+
+			expect(await loadProjectState(statePath)).toEqual(state);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("returns undefined for missing project state", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-missing-"));
+		try {
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toBeUndefined();
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+});
