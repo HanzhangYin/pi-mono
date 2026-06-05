@@ -38,6 +38,12 @@ The extension registers:
 
 The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, and warnings, review queues, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
 
+## Structured role output
+
+Real role prompts ask for structured JSON as the final assistant message. Valid workstream JSON can create `needs_review` claims with attached evidence and warnings, so claims remain review-gated until a reviewer supplies proof-backed approval. Valid reviewer JSON can update review state, attach proof evidence, add warnings, and resolve warning ids, subject to the invariant that proof promotion requires proof evidence and no open attached warning.
+
+If a role returns malformed output, invalid enum values, or free-form prose, the extension saves it as a report only with a blocker explaining the structured-output failure. Malformed role output does not mutate claims, evidence, warnings, or review decisions. This keeps provenance, review discipline, and uncertainty visibility explicit.
+
 ## Role prompts
 
 Role prompts live under `agents/`:

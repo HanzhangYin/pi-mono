@@ -28,3 +28,38 @@ Report:
 3. WarningRecord entries to add or update.
 4. Claims safe to synthesize, if any.
 5. Claims blocked by open warnings.
+
+## Required final output
+
+Your final assistant message must be exactly one JSON object and no surrounding prose.
+Use this schema:
+
+```json
+{
+  "summary": "Concise reviewer report.",
+  "proposedClaims": [],
+  "reviewDecision": {
+    "claimId": "target-claim-id-from-the-task",
+    "status": "proved",
+    "evidence": [
+      {
+        "kind": "proof",
+        "summary": "Reviewer-checked proof evidence with exact provenance."
+      }
+    ],
+    "warnings": [
+      {
+        "severity": "medium",
+        "message": "Remaining gap or hidden assumption."
+      }
+    ],
+    "resolvedWarningIds": ["warning-id-that-was-actually-resolved"]
+  },
+  "blockers": ["Precise proof gap, failed check, or missing lemma."]
+}
+```
+
+If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
+Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
+Use `reviewDecision` for the target claim. Add warnings for proof gaps instead of smoothing them away.
+Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.

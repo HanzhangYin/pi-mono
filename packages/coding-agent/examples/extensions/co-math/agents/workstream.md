@@ -28,3 +28,45 @@ Report:
 3. Candidate claims with status labels.
 4. Evidence records and provenance for each claim.
 5. Failed attempts, blockers, and reviewer questions.
+
+## Required final output
+
+Your final assistant message must be exactly one JSON object and no surrounding prose.
+Use this schema:
+
+```json
+{
+  "summary": "Concise workstream report.",
+  "proposedClaims": [
+    {
+      "statement": "Mathematical statement proposed by this workstream.",
+      "evidence": [
+        {
+          "kind": "computation",
+          "summary": "Exact provenance for the computation, proof sketch, citation, counterexample search, or note."
+        }
+      ],
+      "warnings": [
+        {
+          "severity": "high",
+          "message": "Why this claim must remain tentative or reviewed."
+        }
+      ]
+    }
+  ],
+  "reviewDecision": {
+    "claimId": "target-claim-id-if-provided",
+    "status": "needs_review",
+    "evidence": [],
+    "warnings": [],
+    "resolvedWarningIds": []
+  },
+  "blockers": ["Precise blocker, failed attempt, or missing lemma."]
+}
+```
+
+If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
+Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
+Use `proposedClaims` for candidate mathematical claims, with provenance-rich evidence and explicit warnings when the support is empirical, partial, or conjectural.
+Preserve failed attempts, missing lemmas, and blocked calculations in `blockers`.
+Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.

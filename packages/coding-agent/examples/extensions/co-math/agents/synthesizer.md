@@ -29,3 +29,28 @@ Draft in this order:
 4. Conjectural or proof-sketch material.
 5. Failed attempt and blocker summary.
 6. Warning section listing unresolved warnings.
+
+## Required final output
+
+Your final assistant message must be exactly one JSON object and no surrounding prose.
+Use this schema:
+
+```json
+{
+  "summary": "Concise cautious synthesis report.",
+  "proposedClaims": [],
+  "reviewDecision": {
+    "claimId": "target-claim-id-if-provided",
+    "status": "needs_review",
+    "evidence": [],
+    "warnings": [],
+    "resolvedWarningIds": []
+  },
+  "blockers": ["Precise blocker, failed attempt, or unresolved warning that limits synthesis."]
+}
+```
+
+If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
+Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
+As synthesizer, prefer `summary` and `blockers`; deterministic `/comath synthesize` remains the authoritative synthesis path.
+Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.

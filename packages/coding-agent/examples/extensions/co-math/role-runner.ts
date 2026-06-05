@@ -64,6 +64,14 @@ export function createDefaultRoleRunner(extensionDir = path.dirname(fileURLToPat
 	};
 }
 
+export function parseRoleRunOutput(text: string): RoleRunResult {
+	const parsed = parseStructuredJsonText(text);
+	if (!parsed) return fallbackRoleRunResult(text);
+	const result = toRoleRunResult(parsed);
+	if (!result) return fallbackRoleRunResult(text);
+	return result;
+}
+
 async function runPiRole(input: RoleRunInput, promptPath: string): Promise<RoleRunResult> {
 	const args = ["--mode", "json", "-p", "--no-session", "--append-system-prompt", promptPath, `Task: ${input.task}`];
 	const invocation = getPiInvocation(args);
@@ -126,9 +134,145 @@ async function runPiRole(input: RoleRunInput, promptPath: string): Promise<RoleR
 		throw new Error(stderr.trim() || `Co-math role process exited with code ${exitCode}.`);
 	}
 	return {
-		summary: finalSummary || "(no role output)",
+		...parseRoleRunOutput(finalSummary),
 		stderr: stderr.trim() || undefined,
 	};
+}
+
+function parseStructuredJsonText(text: string): Record<string, unknown> | undefined {
+	const trimmed = text.trim();
+	if (trimmed.length === 0) return undefined;
+	const jsonText = getSingleFencedJsonBlock(trimmed) ?? trimmed;
+	try {
+		return getObject(JSON.parse(jsonText) as unknown);
+	} catch {
+		return undefined;
+	}
+}
+
+function getSingleFencedJsonBlock(text: string): string | undefined {
+	const match = /^```(?:json)?\s*\n?([\s\S]*?)\n?```$/.exec(text);
+	return match?.[1];
+}
+
+function toRoleRunResult(value: Record<string, unknown>): RoleRunResult | undefined {
+	if (typeof value.summary !== "string" || value.summary.trim().length === 0) return undefined;
+	const proposedClaims = parseProposedClaims(value.proposedClaims);
+	if (proposedClaims === null) return undefined;
+	const reviewDecision = parseReviewDecision(value.reviewDecision);
+	if (reviewDecision === null) return undefined;
+	const blockers = parseStringArray(value.blockers);
+	if (blockers === null) return undefined;
+
+	return {
+		summary: value.summary,
+		...(proposedClaims ? { proposedClaims } : {}),
+		...(reviewDecision ? { reviewDecision } : {}),
+		...(blockers ? { blockers } : {}),
+	};
+}
+
+function parseProposedClaims(value: unknown): ProposedClaim[] | undefined | null {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value)) return null;
+	const claims: ProposedClaim[] = [];
+	for (const item of value) {
+		const claim = getObject(item);
+		if (!claim || typeof claim.statement !== "string" || claim.statement.trim().length === 0) return null;
+		const evidence = parseProposedEvidence(claim.evidence);
+		if (evidence === null) return null;
+		const warnings = parseProposedWarnings(claim.warnings);
+		if (warnings === null) return null;
+		claims.push({
+			statement: claim.statement,
+			...(evidence ? { evidence } : {}),
+			...(warnings ? { warnings } : {}),
+		});
+	}
+	return claims;
+}
+
+function parseProposedEvidence(value: unknown): ProposedEvidence[] | undefined | null {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value)) return null;
+	const evidence: ProposedEvidence[] = [];
+	for (const item of value) {
+		const record = getObject(item);
+		if (!record || !isEvidenceKind(record.kind)) return null;
+		if (typeof record.summary !== "string" || record.summary.trim().length === 0) return null;
+		evidence.push({ kind: record.kind, summary: record.summary });
+	}
+	return evidence;
+}
+
+function parseProposedWarnings(value: unknown): ProposedWarning[] | undefined | null {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value)) return null;
+	const warnings: ProposedWarning[] = [];
+	for (const item of value) {
+		const record = getObject(item);
+		if (!record || !isWarningSeverity(record.severity)) return null;
+		if (typeof record.message !== "string" || record.message.trim().length === 0) return null;
+		warnings.push({ severity: record.severity, message: record.message });
+	}
+	return warnings;
+}
+
+function parseReviewDecision(value: unknown): ReviewDecision | undefined | null {
+	if (value === undefined) return undefined;
+	const decision = getObject(value);
+	if (!decision) return null;
+	if (typeof decision.claimId !== "string" || decision.claimId.trim().length === 0) return null;
+	if (!isReviewStatus(decision.status)) return null;
+	const evidence = parseProposedEvidence(decision.evidence);
+	if (evidence === null) return null;
+	const warnings = parseProposedWarnings(decision.warnings);
+	if (warnings === null) return null;
+	const resolvedWarningIds = parseStringArray(decision.resolvedWarningIds);
+	if (resolvedWarningIds === null) return null;
+	return {
+		claimId: decision.claimId,
+		status: decision.status,
+		...(evidence ? { evidence } : {}),
+		...(warnings ? { warnings } : {}),
+		...(resolvedWarningIds ? { resolvedWarningIds } : {}),
+	};
+}
+
+function parseStringArray(value: unknown): string[] | undefined | null {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value)) return null;
+	const strings: string[] = [];
+	for (const item of value) {
+		if (typeof item !== "string" || item.trim().length === 0) return null;
+		strings.push(item);
+	}
+	return strings;
+}
+
+function fallbackRoleRunResult(text: string): RoleRunResult {
+	return {
+		summary: text.trim() || "(no role output)",
+		blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+	};
+}
+
+function isEvidenceKind(value: unknown): value is EvidenceKind {
+	return (
+		value === "proof" ||
+		value === "computation" ||
+		value === "reference" ||
+		value === "counterexample" ||
+		value === "note"
+	);
+}
+
+function isWarningSeverity(value: unknown): value is WarningSeverity {
+	return value === "low" || value === "medium" || value === "high";
+}
+
+function isReviewStatus(value: unknown): value is ReviewDecision["status"] {
+	return value === "proved" || value === "needs_review" || value === "disproved";
 }
 
 function getPiInvocation(args: string[]): { command: string; args: string[] } {

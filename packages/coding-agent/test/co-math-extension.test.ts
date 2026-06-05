@@ -793,6 +793,10 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath synthesize");
 			expect(readme).toContain("/comath status");
 			expect(readme.toLowerCase()).toContain("does not establish any mathematical claim");
+			expect(readme).toContain("structured JSON");
+			expect(readme).toContain("report only");
+			expect(readme).toContain("malformed");
+			expect(readme).toContain("claims remain review-gated");
 		});
 
 		it("defines the four role prompts with required warning and provenance discipline", async () => {
@@ -809,6 +813,11 @@ describe("co-math extension registration", () => {
 				for (const phrase of expectedPhrases) {
 					expect(content).toContain(phrase);
 				}
+				expect(content).toContain("exactly one JSON object");
+				expect(content).toContain("summary");
+				expect(content).toContain("proposedClaims");
+				expect(content).toContain("reviewDecision");
+				expect(content).toContain("blockers");
 			}
 		});
 	});
