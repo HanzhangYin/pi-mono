@@ -54,6 +54,17 @@ Use this schema:
       ]
     }
   ],
+  "proposedArtifacts": [
+    {
+      "kind": "failed_attempt",
+      "title": "Short artifact title",
+      "summary": "What was tried, computed, cited, or observed.",
+      "provenance": "Where this came from: file path, command, citation, or role reasoning.",
+      "path": "optional/local/path/or/reference",
+      "relatedClaimIds": ["claim-1"],
+      "relatedWorkstreamIds": ["workstream-small-examples"]
+    }
+  ],
   "reviewDecision": {
     "claimId": "target-claim-id-if-provided",
     "status": "needs_review",
@@ -68,5 +79,6 @@ Use this schema:
 If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
 Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
 Use `proposedClaims` for candidate mathematical claims, with provenance-rich evidence and explicit warnings when the support is empirical, partial, or conjectural.
+Use `proposedArtifacts` for computations, counterexample searches, scripts, datasets, failed attempts, proof sketches, and references that should persist with provenance.
 Preserve failed attempts, missing lemmas, and blocked calculations in `blockers`.
 Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.

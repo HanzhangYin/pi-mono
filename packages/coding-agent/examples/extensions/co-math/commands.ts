@@ -1,12 +1,23 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "../../../src/core/extensions/types.ts";
 import { type CoMathRole, createDefaultRoleRunner, type RoleRunner, type RoleRunResult } from "./role-runner.ts";
-import type { Claim, CoMathProjectState, EvidenceKind, Warning, WarningSeverity, Workstream } from "./schema.ts";
+import type {
+	ArtifactKind,
+	Claim,
+	CoMathProjectState,
+	EvidenceKind,
+	Warning,
+	WarningSeverity,
+	Workstream,
+} from "./schema.ts";
 import {
+	addArtifact,
 	addClaim,
 	addEvidence,
 	addGoal,
 	addReport,
+	addReviewDecisionEvent,
 	addReviewQueueItem,
+	addSynthesisEvent,
 	addWarning,
 	addWorkstream,
 	attachWorkstreamReport,
@@ -28,10 +39,13 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath evidence <claim-id> <proof|computation|reference|counterexample|note>: <summary> - attach manual evidence
 /comath warning <claim-id> <low|medium|high>: <message> - attach a manual warning
 /comath resolve-warning <warning-id> - mark an attached warning resolved
+/comath artifact <kind> <title>: <summary> - manually record a workspace artifact
+/comath artifacts - list recorded artifacts
 /comath audit - check co-math state invariants without mutating state
 /comath review-queue - list claims and warnings waiting for review
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
 /comath synthesize - produce cautious markdown from reviewed state
+/comath timeline - show recent workspace events
 /comath status - summarize the current co-math project state`;
 
 export interface RegisterCoMathCommandOptions {
@@ -93,6 +107,16 @@ async function handleCoMathCommand(
 		return;
 	}
 
+	if (subcommand === "artifact") {
+		await addManualArtifact(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "artifacts") {
+		await showArtifacts(pi, ctx);
+		return;
+	}
+
 	if (subcommand === "audit") {
 		await auditProjectState(pi, ctx);
 		return;
@@ -110,6 +134,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "synthesize") {
 		await showProjectSynthesis(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "timeline") {
+		await showTimeline(pi, ctx);
 		return;
 	}
 
@@ -157,6 +186,7 @@ async function addProjectGoal(pi: ExtensionAPI, ctx: ExtensionCommandContext, te
 		id: goalId,
 		text,
 		now,
+		actor: "human",
 	});
 	await saveProjectState(statePath, state);
 	showCommandMessage(pi, ctx, `Added co-math goal ${goalId}: ${text}`);
@@ -181,6 +211,7 @@ async function addProjectWorkstream(pi: ExtensionAPI, ctx: ExtensionCommandConte
 		title: parsed.title,
 		goalIds: existing.approvedGoals.filter((goal) => goal.status === "active").map((goal) => goal.id),
 		now,
+		actor: "human",
 	});
 	await saveProjectState(statePath, state);
 	const workstream = state.workstreams[state.workstreams.length - 1];
@@ -218,6 +249,7 @@ async function addManualEvidence(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 		kind: parsed.kind,
 		summary: parsed.summary,
 		now,
+		actor: "human",
 	});
 	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
 	showCommandMessage(pi, ctx, `Added evidence ${evidenceId} to ${parsed.claimId}: ${parsed.summary}`);
@@ -247,6 +279,7 @@ async function addManualWarning(pi: ExtensionAPI, ctx: ExtensionCommandContext, 
 		severity: parsed.severity,
 		message: parsed.message,
 		now,
+		actor: "human",
 	});
 	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
 	showCommandMessage(pi, ctx, `Added warning ${warningId} to ${parsed.claimId}: ${parsed.message}`);
@@ -270,9 +303,36 @@ async function resolveManualWarning(pi: ExtensionAPI, ctx: ExtensionCommandConte
 	const state = resolveWarning(existing, {
 		warningId,
 		now: new Date().toISOString(),
+		actor: "human",
 	});
 	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
 	showCommandMessage(pi, ctx, `Resolved warning ${warningId}`);
+}
+
+async function addManualArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseArtifactText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath artifact <kind> <title>: <summary>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const artifactId = `artifact-${existing.artifacts.length + 1}`;
+	const state = addArtifact(existing, {
+		id: artifactId,
+		kind: parsed.kind,
+		title: parsed.title,
+		summary: parsed.summary,
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Recorded artifact ${artifactId}: ${parsed.title}`);
 }
 
 interface ParsedEvidenceCommand {
@@ -285,6 +345,24 @@ interface ParsedWarningCommand {
 	claimId: string;
 	severity: WarningSeverity;
 	message: string;
+}
+
+interface ParsedArtifactCommand {
+	kind: ArtifactKind;
+	title: string;
+	summary: string;
+}
+
+function parseArtifactText(text: string): ParsedArtifactCommand | undefined {
+	const [kind, ...rest] = text.trim().split(/\s+/);
+	if (!kind || !isArtifactKind(kind)) return undefined;
+	const body = rest.join(" ").trim();
+	const separatorIndex = body.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const title = body.slice(0, separatorIndex).trim();
+	const summary = body.slice(separatorIndex + 1).trim();
+	if (title.length === 0 || summary.length === 0) return undefined;
+	return { kind, title, summary };
 }
 
 function parseEvidenceText(text: string): ParsedEvidenceCommand | undefined {
@@ -329,6 +407,21 @@ function isEvidenceKind(value: string): value is EvidenceKind {
 
 function isWarningSeverity(value: string): value is WarningSeverity {
 	return value === "low" || value === "medium" || value === "high";
+}
+
+function isArtifactKind(value: string): value is ArtifactKind {
+	return (
+		value === "computation" ||
+		value === "latex_note" ||
+		value === "proof_sketch" ||
+		value === "counterexample_search" ||
+		value === "reference" ||
+		value === "dataset" ||
+		value === "script" ||
+		value === "figure" ||
+		value === "failed_attempt" ||
+		value === "human_note"
+	);
 }
 
 async function auditProjectState(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
@@ -482,7 +575,9 @@ function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInpu
 		summary: input.result.summary,
 		blockers: input.result.blockers,
 		now: input.now,
+		actor: input.role,
 	});
+	nextState = ingestProposedArtifacts(nextState, input);
 
 	if (input.targetClaim && input.result.reviewDecision) {
 		return ingestReviewerDecision(nextState, input);
@@ -504,12 +599,14 @@ function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInpu
 			statement: proposedClaim.statement,
 			status: "needs_review",
 			now: input.now,
+			actor: input.role,
 		});
 		nextState = addReviewQueueItem(nextState, {
 			id: `review-${nextState.reviewQueue.length + 1}`,
 			claimId,
 			reason: "Workstream proposed a claim that needs reviewer validation.",
 			now: input.now,
+			actor: input.role,
 		});
 
 		for (const proposedEvidence of proposedClaim.evidence ?? []) {
@@ -519,6 +616,7 @@ function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInpu
 				kind: proposedEvidence.kind,
 				summary: proposedEvidence.summary,
 				now: input.now,
+				actor: input.role,
 			});
 		}
 
@@ -529,10 +627,37 @@ function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInpu
 				severity: proposedWarning.severity,
 				message: proposedWarning.message,
 				now: input.now,
+				actor: input.role,
 			});
 		}
 	}
 
+	return nextState;
+}
+
+function ingestProposedArtifacts(state: CoMathProjectState, input: IngestRoleRunInput): CoMathProjectState {
+	let nextState = state;
+	for (const proposedArtifact of input.result.proposedArtifacts ?? []) {
+		nextState = addArtifact(nextState, {
+			id: `artifact-${nextState.artifacts.length + 1}`,
+			kind: proposedArtifact.kind,
+			title: proposedArtifact.title,
+			summary: proposedArtifact.summary,
+			provenance: proposedArtifact.provenance,
+			path: proposedArtifact.path,
+			relatedClaimIds: uniqueStrings([
+				...(proposedArtifact.relatedClaimIds ?? []),
+				...(input.targetClaim ? [input.targetClaim.id] : []),
+			]),
+			relatedWorkstreamIds: uniqueStrings([
+				...(proposedArtifact.relatedWorkstreamIds ?? []),
+				...(input.targetWorkstream ? [input.targetWorkstream.id] : []),
+			]),
+			relatedReportIds: [input.reportId],
+			now: input.now,
+			actor: input.role,
+		});
+	}
 	return nextState;
 }
 
@@ -541,11 +666,18 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 	const decision = input.result.reviewDecision;
 	if (decision.claimId !== input.targetClaim.id) return state;
 
-	let nextState = state;
+	let nextState = addReviewDecisionEvent(state, {
+		claimId: decision.claimId,
+		status: decision.status,
+		reportId: input.reportId,
+		now: input.now,
+		actor: input.role,
+	});
 	for (const warningId of decision.resolvedWarningIds ?? []) {
 		nextState = resolveWarning(nextState, {
 			warningId,
 			now: input.now,
+			actor: input.role,
 		});
 	}
 
@@ -556,6 +688,7 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 			kind: proposedEvidence.kind,
 			summary: proposedEvidence.summary,
 			now: input.now,
+			actor: input.role,
 		});
 	}
 
@@ -566,6 +699,7 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 			severity: proposedWarning.severity,
 			message: proposedWarning.message,
 			now: input.now,
+			actor: input.role,
 		});
 	}
 
@@ -575,6 +709,7 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 				claimId: decision.claimId,
 				status: "proved",
 				now: input.now,
+				actor: input.role,
 			});
 			nextState = removeReviewQueueItemsForClaim(nextState, decision.claimId, input.now);
 		} catch {
@@ -583,6 +718,7 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 				claimId: decision.claimId,
 				reason: "Reviewer left unresolved proof obligations or open warnings.",
 				now: input.now,
+				actor: input.role,
 			});
 		}
 		return nextState;
@@ -592,6 +728,7 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 		claimId: decision.claimId,
 		status: decision.status,
 		now: input.now,
+		actor: input.role,
 	});
 	if (decision.status === "needs_review") {
 		return addReviewQueueItem(nextState, {
@@ -599,9 +736,14 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 			claimId: decision.claimId,
 			reason: "Reviewer requested another review pass.",
 			now: input.now,
+			actor: input.role,
 		});
 	}
 	return removeReviewQueueItemsForClaim(nextState, decision.claimId, input.now);
+}
+
+function uniqueStrings(values: string[]): string[] {
+	return Array.from(new Set(values));
 }
 
 function formatRoleRunMessage(role: CoMathRole, reportId: string, result: RoleRunResult): string {
@@ -715,6 +857,22 @@ async function showReviewQueue(pi: ExtensionAPI, ctx: ExtensionCommandContext): 
 	);
 }
 
+async function showArtifacts(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+
+	showCommandMessage(pi, ctx, ["Co-math artifacts", ...formatArtifacts(state)].join("\n"));
+}
+
+function formatArtifacts(state: CoMathProjectState): string[] {
+	if (state.artifacts.length === 0) return ["No artifacts recorded."];
+	return state.artifacts.map(
+		(artifact) => `- ${artifact.id} [${artifact.kind}] ${artifact.title}: ${artifact.summary}`,
+	);
+}
+
 function formatQueuedClaims(state: CoMathProjectState): string[] {
 	if (state.reviewQueue.length === 0) return ["- none"];
 	return state.reviewQueue.map((item) => {
@@ -793,8 +951,25 @@ async function showProjectStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			`Workstreams: ${state.workstreams.length}`,
 			`Claims: ${state.claims.length}`,
 			`Open warnings: ${state.warnings.filter((warning) => warning.status === "open").length}`,
+			`Artifacts: ${state.artifacts.length}`,
+			`Events: ${state.events.length}`,
 		].join("\n"),
 	);
+}
+
+async function showTimeline(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+
+	showCommandMessage(pi, ctx, ["Co-math timeline", ...formatTimeline(state)].join("\n"));
+}
+
+function formatTimeline(state: CoMathProjectState): string[] {
+	const events = state.events.slice(-10);
+	if (events.length === 0) return ["No events recorded."];
+	return events.map((event) => `- ${event.id} [${event.kind}] ${event.actor}: ${event.summary}`);
 }
 
 async function showProjectSynthesis(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
@@ -803,7 +978,13 @@ async function showProjectSynthesis(pi: ExtensionAPI, ctx: ExtensionCommandConte
 		return;
 	}
 
-	showCommandMessage(pi, ctx, buildSynthesisMarkdown(state));
+	const synthesis = buildSynthesisMarkdown(state);
+	const nextState = addSynthesisEvent(state, {
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), nextState);
+	showCommandMessage(pi, ctx, synthesis);
 }
 
 function buildSynthesisMarkdown(state: CoMathProjectState): string {

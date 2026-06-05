@@ -38,6 +38,17 @@ Use this schema:
 {
   "summary": "Concise reviewer report.",
   "proposedClaims": [],
+  "proposedArtifacts": [
+    {
+      "kind": "failed_attempt",
+      "title": "Short artifact title",
+      "summary": "Checked objection, proof-gap analysis, reference, or reviewer note.",
+      "provenance": "Where this came from: file path, command, citation, or role reasoning.",
+      "path": "optional/local/path/or/reference",
+      "relatedClaimIds": ["claim-1"],
+      "relatedWorkstreamIds": ["workstream-small-examples"]
+    }
+  ],
   "reviewDecision": {
     "claimId": "target-claim-id-from-the-task",
     "status": "proved",
@@ -62,4 +73,5 @@ Use this schema:
 If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
 Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
 Use `reviewDecision` for the target claim. Add warnings for proof gaps instead of smoothing them away.
+Use `proposedArtifacts` for `proof_sketch`, `failed_attempt`, `reference`, or `human_note` records that preserve checked objections and proof-gap provenance.
 Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.

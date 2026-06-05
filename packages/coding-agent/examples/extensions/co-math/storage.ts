@@ -1,8 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import type {
+	ArtifactKind,
+	ArtifactRecord,
 	Claim,
 	ClaimStatus,
+	CoMathActor,
+	CoMathEventKind,
 	CoMathProjectState,
 	Evidence,
 	EvidenceKind,
@@ -12,6 +16,9 @@ import type {
 	WarningSeverity,
 	Workstream,
 } from "./schema.ts";
+
+type LegacyProjectState = Omit<CoMathProjectState, "artifacts" | "events"> &
+	Partial<Pick<CoMathProjectState, "artifacts" | "events">>;
 
 export interface CreateEmptyProjectStateInput {
 	projectId: string;
@@ -24,6 +31,7 @@ export interface AddGoalInput {
 	id: string;
 	text: string;
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface AddWorkstreamInput {
@@ -31,6 +39,7 @@ export interface AddWorkstreamInput {
 	title: string;
 	goalIds: string[];
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface AddClaimInput {
@@ -39,6 +48,7 @@ export interface AddClaimInput {
 	statement: string;
 	status: ClaimStatus;
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface AddEvidenceInput {
@@ -47,6 +57,7 @@ export interface AddEvidenceInput {
 	kind: EvidenceKind;
 	summary: string;
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface AddWarningInput {
@@ -55,6 +66,7 @@ export interface AddWarningInput {
 	severity: WarningSeverity;
 	message: string;
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface AddReportInput {
@@ -63,6 +75,7 @@ export interface AddReportInput {
 	summary: string;
 	blockers?: string[];
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface AttachWorkstreamReportInput {
@@ -76,16 +89,55 @@ export interface AddReviewQueueItemInput {
 	claimId: string;
 	reason: string;
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface ResolveWarningInput {
 	warningId: string;
 	now: string;
+	actor?: CoMathActor;
 }
 
 export interface SetClaimStatusInput {
 	claimId: string;
 	status: ClaimStatus;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddArtifactInput {
+	id: string;
+	kind: ArtifactKind;
+	title: string;
+	summary: string;
+	provenance?: string;
+	path?: string;
+	relatedClaimIds?: string[];
+	relatedWorkstreamIds?: string[];
+	relatedReportIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddSynthesisEventInput {
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddReviewDecisionEventInput {
+	claimId: string;
+	status: "proved" | "needs_review" | "disproved";
+	reportId: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+interface AppendEventInput {
+	kind: CoMathEventKind;
+	actor?: CoMathActor;
+	summary: string;
+	subjectId?: string;
+	relatedIds?: string[];
 	now: string;
 }
 
@@ -102,25 +154,46 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		warnings: [],
 		reports: [],
 		reviewQueue: [],
+		artifacts: [],
+		events: [
+			{
+				id: "event-1",
+				kind: "project_initialized",
+				actor: "human",
+				summary: `Initialized co-math project: ${input.rootQuestion}`,
+				subjectId: input.projectId,
+				relatedIds: [],
+				createdAt: input.now,
+			},
+		],
 		updatedAt: input.now,
 	};
 }
 
 export function addGoal(state: CoMathProjectState, input: AddGoalInput): CoMathProjectState {
-	return {
-		...state,
-		approvedGoals: [
-			...state.approvedGoals,
-			{
-				id: input.id,
-				text: input.text,
-				status: "active",
-				createdAt: input.now,
-				updatedAt: input.now,
-			},
-		],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			approvedGoals: [
+				...state.approvedGoals,
+				{
+					id: input.id,
+					text: input.text,
+					status: "active",
+					createdAt: input.now,
+					updatedAt: input.now,
+				},
+			],
+			updatedAt: input.now,
+		},
+		{
+			kind: "goal_added",
+			actor: input.actor,
+			summary: `Added goal ${input.id}: ${input.text}`,
+			subjectId: input.id,
+			now: input.now,
+		},
+	);
 }
 
 export function addWorkstream(state: CoMathProjectState, input: AddWorkstreamInput): CoMathProjectState {
@@ -139,11 +212,21 @@ export function addWorkstream(state: CoMathProjectState, input: AddWorkstreamInp
 		updatedAt: input.now,
 	};
 
-	return {
-		...state,
-		workstreams: [...state.workstreams, workstream],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			workstreams: [...state.workstreams, workstream],
+			updatedAt: input.now,
+		},
+		{
+			kind: "workstream_added",
+			actor: input.actor,
+			summary: `Added workstream ${input.id}: ${input.title}`,
+			subjectId: input.id,
+			relatedIds: input.goalIds,
+			now: input.now,
+		},
+	);
 }
 
 export function addClaim(state: CoMathProjectState, input: AddClaimInput): CoMathProjectState {
@@ -158,20 +241,30 @@ export function addClaim(state: CoMathProjectState, input: AddClaimInput): CoMat
 		updatedAt: input.now,
 	};
 
-	return {
-		...state,
-		workstreams: state.workstreams.map((workstream) =>
-			workstream.id === input.workstreamId
-				? {
-						...workstream,
-						claimIds: [...workstream.claimIds, input.id],
-						updatedAt: input.now,
-					}
-				: workstream,
-		),
-		claims: [...state.claims, claim],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			workstreams: state.workstreams.map((workstream) =>
+				workstream.id === input.workstreamId
+					? {
+							...workstream,
+							claimIds: [...workstream.claimIds, input.id],
+							updatedAt: input.now,
+						}
+					: workstream,
+			),
+			claims: [...state.claims, claim],
+			updatedAt: input.now,
+		},
+		{
+			kind: "claim_proposed",
+			actor: input.actor,
+			summary: `Proposed claim ${input.id}: ${input.statement}`,
+			subjectId: input.id,
+			relatedIds: [input.workstreamId],
+			now: input.now,
+		},
+	);
 }
 
 export function addEvidence(state: CoMathProjectState, input: AddEvidenceInput): CoMathProjectState {
@@ -186,20 +279,30 @@ export function addEvidence(state: CoMathProjectState, input: AddEvidenceInput):
 		updatedAt: input.now,
 	};
 
-	return {
-		...state,
-		claims: state.claims.map((claim) =>
-			claim.id === input.claimId
-				? {
-						...claim,
-						evidenceIds: [...claim.evidenceIds, input.id],
-						updatedAt: input.now,
-					}
-				: claim,
-		),
-		evidence: [...state.evidence, evidence],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			claims: state.claims.map((claim) =>
+				claim.id === input.claimId
+					? {
+							...claim,
+							evidenceIds: [...claim.evidenceIds, input.id],
+							updatedAt: input.now,
+						}
+					: claim,
+			),
+			evidence: [...state.evidence, evidence],
+			updatedAt: input.now,
+		},
+		{
+			kind: "evidence_added",
+			actor: input.actor,
+			summary: `Added evidence ${input.id} to ${input.claimId}: ${input.summary}`,
+			subjectId: input.id,
+			relatedIds: [input.claimId],
+			now: input.now,
+		},
+	);
 }
 
 export function addWarning(state: CoMathProjectState, input: AddWarningInput): CoMathProjectState {
@@ -215,20 +318,30 @@ export function addWarning(state: CoMathProjectState, input: AddWarningInput): C
 		updatedAt: input.now,
 	};
 
-	return {
-		...state,
-		claims: state.claims.map((claim) =>
-			claim.id === input.claimId
-				? {
-						...claim,
-						warningIds: [...claim.warningIds, input.id],
-						updatedAt: input.now,
-					}
-				: claim,
-		),
-		warnings: [...state.warnings, warning],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			claims: state.claims.map((claim) =>
+				claim.id === input.claimId
+					? {
+							...claim,
+							warningIds: [...claim.warningIds, input.id],
+							updatedAt: input.now,
+						}
+					: claim,
+			),
+			warnings: [...state.warnings, warning],
+			updatedAt: input.now,
+		},
+		{
+			kind: "warning_added",
+			actor: input.actor,
+			summary: `Added warning ${input.id} to ${input.claimId}: ${input.message}`,
+			subjectId: input.id,
+			relatedIds: [input.claimId],
+			now: input.now,
+		},
+	);
 }
 
 export function addReport(state: CoMathProjectState, input: AddReportInput): CoMathProjectState {
@@ -241,11 +354,20 @@ export function addReport(state: CoMathProjectState, input: AddReportInput): CoM
 		updatedAt: input.now,
 	};
 
-	return {
-		...state,
-		reports: [...state.reports, report],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			reports: [...state.reports, report],
+			updatedAt: input.now,
+		},
+		{
+			kind: "role_report_saved",
+			actor: input.actor,
+			summary: `Saved report ${input.id}: ${input.title}`,
+			subjectId: input.id,
+			now: input.now,
+		},
+	);
 }
 
 export function attachWorkstreamReport(
@@ -279,11 +401,21 @@ export function addReviewQueueItem(state: CoMathProjectState, input: AddReviewQu
 		createdAt: input.now,
 	};
 
-	return {
-		...state,
-		reviewQueue: [...state.reviewQueue, item],
-		updatedAt: input.now,
-	};
+	return appendEvent(
+		{
+			...state,
+			reviewQueue: [...state.reviewQueue, item],
+			updatedAt: input.now,
+		},
+		{
+			kind: "review_requested",
+			actor: input.actor,
+			summary: `Requested review for ${input.claimId}: ${input.reason}`,
+			subjectId: input.id,
+			relatedIds: [input.claimId],
+			now: input.now,
+		},
+	);
 }
 
 export function removeReviewQueueItemsForClaim(
@@ -299,19 +431,33 @@ export function removeReviewQueueItemsForClaim(
 }
 
 export function resolveWarning(state: CoMathProjectState, input: ResolveWarningInput): CoMathProjectState {
-	return {
-		...state,
-		warnings: state.warnings.map((warning) =>
-			warning.id === input.warningId
-				? {
-						...warning,
-						status: "resolved",
-						updatedAt: input.now,
-					}
-				: warning,
-		),
-		updatedAt: input.now,
-	};
+	const warning = state.warnings.find((candidate) => candidate.id === input.warningId);
+	if (!warning || warning.status === "resolved") {
+		return state;
+	}
+
+	return appendEvent(
+		{
+			...state,
+			warnings: state.warnings.map((warning) =>
+				warning.id === input.warningId
+					? {
+							...warning,
+							status: "resolved",
+							updatedAt: input.now,
+						}
+					: warning,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "warning_resolved",
+			actor: input.actor,
+			summary: `Resolved warning ${input.warningId}`,
+			subjectId: input.warningId,
+			now: input.now,
+		},
+	);
 }
 
 export function setClaimStatus(state: CoMathProjectState, input: SetClaimStatusInput): CoMathProjectState {
@@ -326,19 +472,83 @@ export function setClaimStatus(state: CoMathProjectState, input: SetClaimStatusI
 		}
 	}
 
-	return {
-		...state,
-		claims: state.claims.map((candidate) =>
-			candidate.id === input.claimId
-				? {
-						...candidate,
-						status: input.status,
-						updatedAt: input.now,
-					}
-				: candidate,
-		),
+	return appendEvent(
+		{
+			...state,
+			claims: state.claims.map((candidate) =>
+				candidate.id === input.claimId
+					? {
+							...candidate,
+							status: input.status,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "claim_status_changed",
+			actor: input.actor,
+			summary: `Set ${input.claimId} status to ${input.status}`,
+			subjectId: input.claimId,
+			now: input.now,
+		},
+	);
+}
+
+export function addArtifact(state: CoMathProjectState, input: AddArtifactInput): CoMathProjectState {
+	const artifact: ArtifactRecord = {
+		id: input.id,
+		kind: input.kind,
+		title: input.title,
+		summary: input.summary,
+		...(input.provenance ? { provenance: input.provenance } : {}),
+		...(input.path ? { path: input.path } : {}),
+		relatedClaimIds: input.relatedClaimIds ?? [],
+		relatedWorkstreamIds: input.relatedWorkstreamIds ?? [],
+		relatedReportIds: input.relatedReportIds ?? [],
+		createdAt: input.now,
 		updatedAt: input.now,
 	};
+
+	return appendEvent(
+		{
+			...state,
+			artifacts: [...state.artifacts, artifact],
+			updatedAt: input.now,
+		},
+		{
+			kind: "artifact_recorded",
+			actor: input.actor,
+			summary: `Recorded artifact ${input.id}: ${input.title}`,
+			subjectId: input.id,
+			relatedIds: [...artifact.relatedClaimIds, ...artifact.relatedWorkstreamIds, ...artifact.relatedReportIds],
+			now: input.now,
+		},
+	);
+}
+
+export function addSynthesisEvent(state: CoMathProjectState, input: AddSynthesisEventInput): CoMathProjectState {
+	return appendEvent(state, {
+		kind: "synthesis_generated",
+		actor: input.actor,
+		summary: "Generated cautious co-math synthesis from reviewed state.",
+		now: input.now,
+	});
+}
+
+export function addReviewDecisionEvent(
+	state: CoMathProjectState,
+	input: AddReviewDecisionEventInput,
+): CoMathProjectState {
+	return appendEvent(state, {
+		kind: "review_decision_recorded",
+		actor: input.actor,
+		summary: `Recorded review decision for ${input.claimId}: ${input.status}`,
+		subjectId: input.claimId,
+		relatedIds: [input.reportId],
+		now: input.now,
+	});
 }
 
 export function isClaimSynthesisEligible(state: CoMathProjectState, claimId: string): boolean {
@@ -361,13 +571,40 @@ export async function saveProjectState(statePath: string, state: CoMathProjectSt
 
 export async function loadProjectState(statePath: string): Promise<CoMathProjectState | undefined> {
 	try {
-		return JSON.parse(await readFile(statePath, "utf8")) as CoMathProjectState;
+		return normalizeProjectState(JSON.parse(await readFile(statePath, "utf8")) as LegacyProjectState);
 	} catch (error) {
 		if (isMissingFileError(error)) {
 			return undefined;
 		}
 		throw error;
 	}
+}
+
+function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
+	return {
+		...value,
+		artifacts: value.artifacts ?? [],
+		events: value.events ?? [],
+	};
+}
+
+function appendEvent(state: CoMathProjectState, input: AppendEventInput): CoMathProjectState {
+	return {
+		...state,
+		events: [
+			...state.events,
+			{
+				id: `event-${state.events.length + 1}`,
+				kind: input.kind,
+				actor: input.actor ?? "system",
+				summary: input.summary,
+				...(input.subjectId ? { subjectId: input.subjectId } : {}),
+				relatedIds: input.relatedIds ?? [],
+				createdAt: input.now,
+			},
+		],
+		updatedAt: input.now,
+	};
 }
 
 function assertClaimExists(state: CoMathProjectState, claimId: string): void {

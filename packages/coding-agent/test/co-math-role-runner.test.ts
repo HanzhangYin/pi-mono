@@ -113,6 +113,58 @@ describe("parseRoleRunOutput", () => {
 		expect(result.reviewDecision).toBeUndefined();
 	});
 
+	it("parses proposed artifacts with provenance", () => {
+		const result = parseRoleRunOutput(
+			JSON.stringify({
+				summary: "Workstream preserved a failed attempt and a computation.",
+				proposedArtifacts: [
+					{
+						kind: "failed_attempt",
+						title: "Endpoint induction attempt",
+						summary: "The induction breaks when the right arm is empty.",
+						provenance: "workstream role run",
+						path: "notes/endpoint-induction.md",
+						relatedClaimIds: ["claim-1"],
+						relatedWorkstreamIds: ["workstream-endpoints"],
+					},
+				],
+			}),
+		);
+
+		expect(result.proposedArtifacts).toEqual([
+			{
+				kind: "failed_attempt",
+				title: "Endpoint induction attempt",
+				summary: "The induction breaks when the right arm is empty.",
+				provenance: "workstream role run",
+				path: "notes/endpoint-induction.md",
+				relatedClaimIds: ["claim-1"],
+				relatedWorkstreamIds: ["workstream-endpoints"],
+			},
+		]);
+	});
+
+	it("falls back safely for invalid proposed artifact kinds", () => {
+		const invalidArtifactText = JSON.stringify({
+			summary: "Invalid artifact kind.",
+			proposedArtifacts: [
+				{
+					kind: "experiment",
+					title: "Unsupported artifact",
+					summary: "This kind should not be accepted.",
+				},
+			],
+		});
+
+		const result = parseRoleRunOutput(invalidArtifactText);
+
+		expect(result).toEqual({
+			summary: invalidArtifactText,
+			blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+		});
+		expect(result.proposedArtifacts).toBeUndefined();
+	});
+
 	it("falls back safely for invalid enum values", () => {
 		const invalidEvidenceText = JSON.stringify({
 			summary: "Invalid evidence kind.",

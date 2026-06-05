@@ -37,6 +37,17 @@ Use this schema:
 {
   "summary": "Concise coordinator report.",
   "proposedClaims": [],
+  "proposedArtifacts": [
+    {
+      "kind": "failed_attempt",
+      "title": "Short artifact title",
+      "summary": "Workspace-level observation, blocked attempt, or planning note.",
+      "provenance": "Where this came from: role reasoning, file path, command, or citation.",
+      "path": "optional/local/path/or/reference",
+      "relatedClaimIds": ["claim-1"],
+      "relatedWorkstreamIds": ["workstream-small-examples"]
+    }
+  ],
   "reviewDecision": {
     "claimId": "claim-id-if-a-review-was-requested",
     "status": "needs_review",
@@ -61,4 +72,5 @@ Use this schema:
 If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
 Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
 As coordinator, prefer `summary` and `blockers`; do not mark claims proved or propose proof promotions.
+Use `proposedArtifacts` only for workspace-level `human_note` or `failed_attempt` records with clear provenance.
 Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.

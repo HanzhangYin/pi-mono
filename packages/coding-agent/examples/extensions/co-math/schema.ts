@@ -3,6 +3,32 @@ export type ClaimStatus = "draft" | "proof_sketch" | "needs_review" | "proved" |
 export type EvidenceKind = "proof" | "computation" | "reference" | "counterexample" | "note";
 export type WarningSeverity = "low" | "medium" | "high";
 export type WarningStatus = "open" | "resolved";
+export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
+export type CoMathEventKind =
+	| "project_initialized"
+	| "goal_added"
+	| "workstream_added"
+	| "role_report_saved"
+	| "claim_proposed"
+	| "evidence_added"
+	| "warning_added"
+	| "warning_resolved"
+	| "review_requested"
+	| "review_decision_recorded"
+	| "claim_status_changed"
+	| "synthesis_generated"
+	| "artifact_recorded";
+export type ArtifactKind =
+	| "computation"
+	| "latex_note"
+	| "proof_sketch"
+	| "counterexample_search"
+	| "reference"
+	| "dataset"
+	| "script"
+	| "figure"
+	| "failed_attempt"
+	| "human_note";
 
 export interface ApprovedGoal {
 	id: string;
@@ -68,6 +94,30 @@ export interface ReviewQueueItem {
 	createdAt: string;
 }
 
+export interface CoMathEvent {
+	id: string;
+	kind: CoMathEventKind;
+	actor: CoMathActor;
+	summary: string;
+	subjectId?: string;
+	relatedIds: string[];
+	createdAt: string;
+}
+
+export interface ArtifactRecord {
+	id: string;
+	kind: ArtifactKind;
+	title: string;
+	summary: string;
+	provenance?: string;
+	path?: string;
+	relatedClaimIds: string[];
+	relatedWorkstreamIds: string[];
+	relatedReportIds: string[];
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -80,5 +130,7 @@ export interface CoMathProjectState {
 	warnings: Warning[];
 	reports: Report[];
 	reviewQueue: ReviewQueueItem[];
+	artifacts: ArtifactRecord[];
+	events: CoMathEvent[];
 	updatedAt: string;
 }

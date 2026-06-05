@@ -35,6 +35,26 @@ interface ProposedClaimForTest {
 	warnings?: ProposedWarningForTest[];
 }
 
+interface ProposedArtifactForTest {
+	kind:
+		| "computation"
+		| "latex_note"
+		| "proof_sketch"
+		| "counterexample_search"
+		| "reference"
+		| "dataset"
+		| "script"
+		| "figure"
+		| "failed_attempt"
+		| "human_note";
+	title: string;
+	summary: string;
+	provenance?: string;
+	path?: string;
+	relatedClaimIds?: string[];
+	relatedWorkstreamIds?: string[];
+}
+
 interface ReviewDecisionForTest {
 	claimId: string;
 	status: "proved" | "needs_review" | "disproved";
@@ -46,6 +66,7 @@ interface ReviewDecisionForTest {
 interface RoleRunResultForTest {
 	summary: string;
 	proposedClaims?: ProposedClaimForTest[];
+	proposedArtifacts?: ProposedArtifactForTest[];
 	reviewDecision?: ReviewDecisionForTest;
 	blockers?: string[];
 }
@@ -388,6 +409,86 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("ingests structured role artifacts linked to the saved report and target workstream", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-artifact-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream preserved a failed attempt.",
+					proposedArtifacts: [
+						{
+							kind: "failed_attempt",
+							title: "Endpoint induction attempt",
+							summary: "The induction breaks when the right arm is empty.",
+							provenance: "bounded workstream role run",
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve failed attempts", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toMatchObject([
+				{
+					id: "artifact-1",
+					kind: "failed_attempt",
+					title: "Endpoint induction attempt",
+					relatedWorkstreamIds: ["workstream-endpoints"],
+					relatedReportIds: ["report-1"],
+				},
+			]);
+			expect(state?.events.map((event) => event.kind)).toContain("artifact_recorded");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("records manual artifacts and displays artifact and timeline summaries", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-command-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler(
+				"artifact failed_attempt Endpoint induction attempt: Breaks when the right arm is empty.",
+				ctx,
+			);
+			await command?.handler("artifacts", ctx);
+			await command?.handler("timeline", ctx);
+			await command?.handler("status", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toMatchObject([
+				{
+					id: "artifact-1",
+					kind: "failed_attempt",
+					title: "Endpoint induction attempt",
+					summary: "Breaks when the right arm is empty.",
+				},
+			]);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math artifacts");
+			expect(visibleText).toContain("artifact-1 [failed_attempt] Endpoint induction attempt");
+			expect(visibleText).toContain("Co-math timeline");
+			expect(visibleText).toContain("project_initialized");
+			expect(visibleText).toContain("artifact_recorded");
+			expect(visibleText).toContain("Artifacts: 1");
+			expect(visibleText).toContain("Events:");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("lists claims and warnings waiting for review", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-review-queue-"));
 		try {
@@ -647,6 +748,58 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("records reviewer decisions even when proof promotion is blocked by invariants", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-review-decision-event-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						return {
+							summary: "Reviewer attempted promotion but left a gap.",
+							reviewDecision: {
+								claimId: "claim-1",
+								status: "proved",
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for reviewer provenance.",
+						proposedClaims: [
+							{
+								statement: "Endpoint induction should preserve review decision provenance.",
+							},
+						],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve review decisions", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.claims[0]?.status).toBe("needs_review");
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "review_decision_recorded",
+						actor: "reviewer",
+						subjectId: "claim-1",
+						relatedIds: ["report-2"],
+						summary: "Recorded review decision for claim-1: proved",
+					}),
+				]),
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("keeps reviewer-approved claims out of synthesis when review leaves an open warning", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reviewer-warning-"));
 		try {
@@ -766,6 +919,8 @@ describe("co-math extension registration", () => {
 			expect(synthesis).toContain("## Excluded unreviewed claims");
 			expect(synthesis).toContain("claim-1 [needs_review] excluded from synthesis findings pending review.");
 			expect(synthesis).not.toContain("Unreviewed finite-obstruction claim should not enter synthesis findings.");
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.events.map((event) => event.kind)).toContain("synthesis_generated");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -792,7 +947,14 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath run reviewer claim-1");
 			expect(readme).toContain("/comath synthesize");
 			expect(readme).toContain("/comath status");
+			expect(readme).toContain("/comath artifact");
+			expect(readme).toContain("/comath artifacts");
+			expect(readme).toContain("/comath timeline");
+			expect(readme).toContain("proposedArtifacts");
 			expect(readme.toLowerCase()).toContain("does not establish any mathematical claim");
+			expect(readme.toLowerCase()).toContain("event log");
+			expect(readme.toLowerCase()).toContain("artifact registry");
+			expect(readme.toLowerCase()).toContain("metadata only");
 			expect(readme).toContain("structured JSON");
 			expect(readme).toContain("report only");
 			expect(readme).toContain("malformed");
@@ -818,7 +980,17 @@ describe("co-math extension registration", () => {
 				expect(content).toContain("proposedClaims");
 				expect(content).toContain("reviewDecision");
 				expect(content).toContain("blockers");
+				expect(content).toContain("proposedArtifacts");
+				expect(content).toContain("failed_attempt");
+				expect(content).toContain("provenance");
 			}
+		});
+
+		it("documents events and artifacts in the state tool prompt", async () => {
+			const content = await readFile(join(extensionDir, "state-tool.ts"), "utf8");
+
+			expect(content).toContain("events");
+			expect(content).toContain("artifacts");
 		});
 	});
 });

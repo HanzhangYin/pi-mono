@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EvidenceKind, WarningSeverity } from "./schema.ts";
+import type { ArtifactKind, EvidenceKind, WarningSeverity } from "./schema.ts";
 
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 
@@ -16,6 +16,7 @@ export interface RoleRunInput {
 export interface RoleRunResult {
 	summary: string;
 	proposedClaims?: ProposedClaim[];
+	proposedArtifacts?: ProposedArtifact[];
 	reviewDecision?: ReviewDecision;
 	blockers?: string[];
 	stderr?: string;
@@ -35,6 +36,16 @@ export interface ProposedClaim {
 	statement: string;
 	evidence?: ProposedEvidence[];
 	warnings?: ProposedWarning[];
+}
+
+export interface ProposedArtifact {
+	kind: ArtifactKind;
+	title: string;
+	summary: string;
+	provenance?: string;
+	path?: string;
+	relatedClaimIds?: string[];
+	relatedWorkstreamIds?: string[];
 }
 
 export interface ReviewDecision {
@@ -159,6 +170,8 @@ function toRoleRunResult(value: Record<string, unknown>): RoleRunResult | undefi
 	if (typeof value.summary !== "string" || value.summary.trim().length === 0) return undefined;
 	const proposedClaims = parseProposedClaims(value.proposedClaims);
 	if (proposedClaims === null) return undefined;
+	const proposedArtifacts = parseProposedArtifacts(value.proposedArtifacts);
+	if (proposedArtifacts === null) return undefined;
 	const reviewDecision = parseReviewDecision(value.reviewDecision);
 	if (reviewDecision === null) return undefined;
 	const blockers = parseStringArray(value.blockers);
@@ -167,6 +180,7 @@ function toRoleRunResult(value: Record<string, unknown>): RoleRunResult | undefi
 	return {
 		summary: value.summary,
 		...(proposedClaims ? { proposedClaims } : {}),
+		...(proposedArtifacts ? { proposedArtifacts } : {}),
 		...(reviewDecision ? { reviewDecision } : {}),
 		...(blockers ? { blockers } : {}),
 	};
@@ -190,6 +204,36 @@ function parseProposedClaims(value: unknown): ProposedClaim[] | undefined | null
 		});
 	}
 	return claims;
+}
+
+function parseProposedArtifacts(value: unknown): ProposedArtifact[] | undefined | null {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value)) return null;
+	const artifacts: ProposedArtifact[] = [];
+	for (const item of value) {
+		const artifact = getObject(item);
+		if (!artifact || !isArtifactKind(artifact.kind)) return null;
+		if (typeof artifact.title !== "string" || artifact.title.trim().length === 0) return null;
+		if (typeof artifact.summary !== "string" || artifact.summary.trim().length === 0) return null;
+		const provenance = parseOptionalNonEmptyString(artifact.provenance);
+		if (provenance === null) return null;
+		const artifactPath = parseOptionalNonEmptyString(artifact.path);
+		if (artifactPath === null) return null;
+		const relatedClaimIds = parseStringArray(artifact.relatedClaimIds);
+		if (relatedClaimIds === null) return null;
+		const relatedWorkstreamIds = parseStringArray(artifact.relatedWorkstreamIds);
+		if (relatedWorkstreamIds === null) return null;
+		artifacts.push({
+			kind: artifact.kind,
+			title: artifact.title,
+			summary: artifact.summary,
+			...(provenance ? { provenance } : {}),
+			...(artifactPath ? { path: artifactPath } : {}),
+			...(relatedClaimIds ? { relatedClaimIds } : {}),
+			...(relatedWorkstreamIds ? { relatedWorkstreamIds } : {}),
+		});
+	}
+	return artifacts;
 }
 
 function parseProposedEvidence(value: unknown): ProposedEvidence[] | undefined | null {
@@ -250,11 +294,32 @@ function parseStringArray(value: unknown): string[] | undefined | null {
 	return strings;
 }
 
+function parseOptionalNonEmptyString(value: unknown): string | undefined | null {
+	if (value === undefined) return undefined;
+	if (typeof value !== "string" || value.trim().length === 0) return null;
+	return value;
+}
+
 function fallbackRoleRunResult(text: string): RoleRunResult {
 	return {
 		summary: text.trim() || "(no role output)",
 		blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
 	};
+}
+
+function isArtifactKind(value: unknown): value is ArtifactKind {
+	return (
+		value === "computation" ||
+		value === "latex_note" ||
+		value === "proof_sketch" ||
+		value === "counterexample_search" ||
+		value === "reference" ||
+		value === "dataset" ||
+		value === "script" ||
+		value === "figure" ||
+		value === "failed_attempt" ||
+		value === "human_note"
+	);
 }
 
 function isEvidenceKind(value: unknown): value is EvidenceKind {

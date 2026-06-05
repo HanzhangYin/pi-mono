@@ -39,6 +39,17 @@ Use this schema:
 {
   "summary": "Concise cautious synthesis report.",
   "proposedClaims": [],
+  "proposedArtifacts": [
+    {
+      "kind": "failed_attempt",
+      "title": "Short artifact title",
+      "summary": "Synthesis note, draft limitation, or unresolved warning summary.",
+      "provenance": "Where this came from: reviewed state, file path, command, citation, or role reasoning.",
+      "path": "optional/local/path/or/reference",
+      "relatedClaimIds": ["claim-1"],
+      "relatedWorkstreamIds": ["workstream-small-examples"]
+    }
+  ],
   "reviewDecision": {
     "claimId": "target-claim-id-if-provided",
     "status": "needs_review",
@@ -53,4 +64,5 @@ Use this schema:
 If you have no claims, evidence, warnings, review decision, or blockers, omit those fields or use empty arrays.
 Never invent claim ids. Reviewer decisions must use the target claim id provided in the task.
 As synthesizer, prefer `summary` and `blockers`; deterministic `/comath synthesize` remains the authoritative synthesis path.
+Use `proposedArtifacts` only for `latex_note`, `human_note`, or warning-preserving `failed_attempt` records with clear provenance; never hide open warnings.
 Do not set `reviewDecision.status` to `proved` unless proof evidence is explicit and no attached warning remains open unless it is listed in `resolvedWarningIds`.
