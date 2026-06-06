@@ -220,7 +220,7 @@ If the reviewer does not promote the finite claim despite proof evidence and res
 ```text
 /comath queue reviewer claim-1
 /comath runs
-/comath cancel-run run-1: Manual validation of queue cancellation.
+/comath cancel-run <queued-role-run-id>: Manual validation of queue cancellation.
 /comath queue synthesizer
 /comath dispatch-next --background
 /comath background-runs
