@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -163,6 +163,18 @@ async function waitForCondition(assertCondition: () => void | Promise<void>): Pr
 		throw lastError;
 	}
 	throw lastError;
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+	try {
+		await stat(filePath);
+		return true;
+	} catch (error) {
+		if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
+			return false;
+		}
+		throw error;
+	}
 }
 
 describe("co-math extension registration", () => {
@@ -1459,6 +1471,421 @@ describe("co-math extension registration", () => {
 			expect(paper).toContain("warning-1 [high] on claim-1: Boundary case remains open.");
 			expect(paper).toContain("## Open margin notes");
 			expect(paper).toContain("margin-note-1 [warning] paper-section-1: Section still relies on warning-1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper writes default markdown snapshot and records artifact", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-default-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed an open warning for export.",
+					proposedClaims: [
+						{
+							statement: "Exported paper should keep warnings visible.",
+							warnings: [{ severity: "high", message: "Boundary case remains open." }],
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("paper-section Endpoint lemma: Draft body. --sources claim-1,warning-1", ctx);
+			await command?.handler("margin-note paper-section-1 gap: Need a boundary lemma", ctx);
+			await command?.handler("export-paper", ctx);
+
+			const markdown = await readFile(join(tempDir, ".pi/co-math/exports/working-paper.md"), "utf8");
+			expect(markdown).toContain("Working-paper sections are draft workspace records, not proof certificates.");
+			expect(markdown).toContain("claim-1 [needs_review/not synthesis-eligible]");
+			expect(markdown).toContain("## Open warnings");
+			expect(markdown).toContain("warning-1 [high] on claim-1: Boundary case remains open.");
+			expect(markdown).toContain("## Open margin notes");
+			expect(markdown).toContain("margin-note-1 [gap] paper-section-1: Need a boundary lemma");
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toMatchObject([
+				{
+					id: "artifact-1",
+					kind: "working_paper_export",
+					path: ".pi/co-math/exports/working-paper.md",
+				},
+			]);
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "working_paper_exported",
+						subjectId: "artifact-1",
+					}),
+				]),
+			);
+			expect(notifications.at(-1)).toBe(
+				"Exported living working paper to .pi/co-math/exports/working-paper.md as artifact-1.",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper refuses to overwrite without force", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-overwrite-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("paper-section Endpoint lemma: Initial draft.", ctx);
+			await command?.handler("export-paper", ctx);
+			const afterFirstExport = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("export-paper", ctx);
+
+			const afterRefusal = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(afterRefusal?.artifacts).toHaveLength(afterFirstExport?.artifacts.length ?? 0);
+			expect(afterRefusal?.events).toHaveLength(afterFirstExport?.events.length ?? 0);
+			expect(notifications.at(-1)).toBe(
+				"Export target already exists: .pi/co-math/exports/working-paper.md. Use --force to overwrite.",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper --force overwrites and records a new export artifact", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-force-"));
+		try {
+			const { commands } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("paper-section Endpoint lemma: Initial draft.", ctx);
+			await command?.handler("export-paper", ctx);
+			await command?.handler("paper-section Second section: New draft section.", ctx);
+			await command?.handler("export-paper --force", ctx);
+
+			const markdown = await readFile(join(tempDir, ".pi/co-math/exports/working-paper.md"), "utf8");
+			expect(markdown).toContain("paper-section-2: Second section");
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts.filter((artifact) => artifact.kind === "working_paper_export")).toHaveLength(2);
+			expect(state?.events.filter((event) => event.kind === "working_paper_exported")).toHaveLength(2);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper rejects paths outside workspace", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-outside-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("export-paper ../outside.md", ctx);
+
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(before);
+			expect(notifications.at(-1)).toContain("Export path must stay inside the workspace.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper rejects symlinked directory escapes", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-symlink-dir-"));
+		const outsideDir = await mkdtemp(join(tmpdir(), "pi-comath-export-outside-target-"));
+		try {
+			await symlink(outsideDir, join(tempDir, "exports-link"));
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("export-paper exports-link/paper.md --force", ctx);
+
+			expect(await pathExists(join(outsideDir, "paper.md"))).toBe(false);
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(before);
+			expect(notifications.at(-1)).toMatch(/workspace|symlink/i);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+			await rm(outsideDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper rejects symlinked file targets", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-symlink-file-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const before = await loadProjectState(statePath);
+			await symlink(join(tempDir, ".pi/co-math/state.json"), join(tempDir, "state-link.md"));
+			await command?.handler("export-paper state-link.md --force", ctx);
+
+			const rawState = await readFile(statePath, "utf8");
+			expect(() => JSON.parse(rawState)).not.toThrow();
+			expect(await loadProjectState(statePath)).toEqual(before);
+			expect(notifications.at(-1)).toMatch(/state\.json|symlink/i);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper does not mutate state on overwrite refusal", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-no-mutate-"));
+		try {
+			const { commands } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("paper-section Endpoint lemma: Initial draft.", ctx);
+			await command?.handler("export-paper custom.md", ctx);
+			const beforeRefusal = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("export-paper custom.md", ctx);
+
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(beforeRefusal);
+			expect(notifications.at(-1)).toBe("Export target already exists: custom.md. Use --force to overwrite.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("artifact-file rejects symlinks to outside files", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-file-symlink-"));
+		const outsideDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-file-outside-"));
+		try {
+			await writeFile(join(outsideDir, "outside.txt"), "outside content", "utf8");
+			await symlink(join(outsideDir, "outside.txt"), join(tempDir, "outside-link.txt"));
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("artifact-file script outside-link.txt Outside file: Should reject", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toEqual([]);
+			expect(state?.claims).toEqual([]);
+			expect(state?.evidence).toEqual([]);
+			expect(state?.warnings).toEqual([]);
+			expect(notifications.at(-1)).toMatch(/symlink|workspace/i);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+			await rm(outsideDir, { recursive: true, force: true });
+		}
+	});
+
+	it("artifact-file registers existing workspace files without reading content", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-file-"));
+		try {
+			await mkdir(join(tempDir, "scripts"), { recursive: true });
+			await writeFile(join(tempDir, "scripts/check.py"), "secret content should remain file-only", "utf8");
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler(
+				"artifact-file script scripts/check.py Endpoint checker: Small n enumeration helper",
+				ctx,
+			);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toMatchObject([
+				{
+					id: "artifact-1",
+					kind: "script",
+					path: "scripts/check.py",
+					title: "Endpoint checker",
+					summary: "Small n enumeration helper",
+				},
+			]);
+			expect(state?.claims).toEqual([]);
+			expect(state?.evidence).toEqual([]);
+			expect(state?.warnings).toEqual([]);
+			expect(notifications.at(-1)).toBe(
+				"Recorded file artifact artifact-1 [script] scripts/check.py: Endpoint checker",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("artifact-file rejects missing files, directories, and outside paths", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-file-invalid-"));
+		try {
+			await mkdir(join(tempDir, "scripts"), { recursive: true });
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("artifact-file script scripts/missing.py Missing file: Should fail", ctx);
+			await command?.handler("artifact-file script scripts Directory artifact: Should fail", ctx);
+			await command?.handler("artifact-file script ../outside.py Outside path: Should fail", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toEqual([]);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Artifact file does not exist: scripts/missing.py");
+			expect(visibleText).toContain("Artifact path is not a file: scripts");
+			expect(visibleText).toContain("Artifact path must stay inside the workspace.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("artifacts output includes file paths", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifacts-path-"));
+		try {
+			await mkdir(join(tempDir, "scripts"), { recursive: true });
+			await writeFile(join(tempDir, "scripts/check.py"), "content", "utf8");
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler(
+				"artifact-file script scripts/check.py Endpoint checker: Small n enumeration helper",
+				ctx,
+			);
+			await command?.handler("artifacts", ctx);
+
+			expect(notifications.at(-1)).toContain(
+				"artifact-1 [script] Endpoint checker (scripts/check.py): Small n enumeration helper",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("audit reports symlink artifact paths without mutation", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-audit-artifact-symlink-"));
+		try {
+			await writeFile(join(tempDir, "real-script.py"), "content", "utf8");
+			await symlink(join(tempDir, "real-script.py"), join(tempDir, "script-link.py"));
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			const malformedState: CoMathProjectState = {
+				...(state as CoMathProjectState),
+				artifacts: [
+					{
+						id: "artifact-1",
+						kind: "script",
+						title: "Symlink script",
+						summary: "Audit should report symlink paths.",
+						path: "script-link.py",
+						relatedClaimIds: [],
+						relatedWorkstreamIds: [],
+						relatedReportIds: [],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+			};
+			await saveProjectState(statePath, malformedState);
+
+			await command?.handler("audit", ctx);
+
+			expect(notifications.at(-1)).toContain("artifact-1 path script-link.py is a symlink");
+			expect(await loadProjectState(statePath)).toEqual(malformedState);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("audit reports missing file-backed artifact paths without mutation", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-audit-artifact-path-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			const malformedState: CoMathProjectState = {
+				...(state as CoMathProjectState),
+				artifacts: [
+					{
+						id: "artifact-1",
+						kind: "script",
+						title: "Missing script",
+						summary: "Audit should report missing path.",
+						path: "scripts/missing.py",
+						relatedClaimIds: [],
+						relatedWorkstreamIds: [],
+						relatedReportIds: [],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+					{
+						id: "artifact-2",
+						kind: "working_paper_export",
+						title: "Bad export",
+						summary: "Export should be markdown.",
+						path: "exports/working-paper.txt",
+						relatedClaimIds: [],
+						relatedWorkstreamIds: [],
+						relatedReportIds: [],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+				events: [
+					...(state as CoMathProjectState).events,
+					{
+						id: "event-export-broken",
+						kind: "working_paper_exported",
+						actor: "human",
+						summary: "Broken export event.",
+						subjectId: "artifact-missing",
+						relatedIds: [],
+						createdAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+			};
+			await saveProjectState(statePath, malformedState);
+
+			await command?.handler("audit", ctx);
+
+			const audit = notifications.at(-1) ?? "";
+			expect(audit).toContain("artifact-1 path scripts/missing.py does not exist");
+			expect(audit).toContain("artifact-2 is a working_paper_export artifact without a .md path");
+			expect(audit).toContain("event-export-broken working_paper_exported subject artifact-missing is missing");
+			expect(await loadProjectState(statePath)).toEqual(malformedState);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -2911,6 +3338,8 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath resolve-margin-note");
 			expect(readme).toContain("/comath margin-notes");
 			expect(readme).toContain("/comath paper");
+			expect(readme).toContain("/comath export-paper");
+			expect(readme).toContain("/comath artifact-file");
 			expect(readme).toContain("/comath block");
 			expect(readme).toContain("/comath unblock");
 			expect(readme).toContain("/comath note");
@@ -2939,6 +3368,10 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("margin notes");
 			expect(readme.toLowerCase()).toContain("paper annotations");
 			expect(readme.toLowerCase()).toContain("non-synthesis-eligible");
+			expect(readme.toLowerCase()).toContain("exports are snapshots");
+			expect(readme.toLowerCase()).toContain("file-backed artifacts");
+			expect(readme.toLowerCase()).toContain("metadata and not proof evidence");
+			expect(readme).toContain("no LaTeX or PDF generation");
 			expect(readme).toContain("structured JSON");
 			expect(readme).toContain("report only");
 			expect(readme).toContain("malformed");
@@ -2990,6 +3423,7 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("margin notes");
 			expect(content).toContain("Working paper sections");
 			expect(content).toContain("Open margin notes");
+			expect(content).toContain("File-backed artifacts");
 		});
 	});
 });

@@ -40,7 +40,8 @@ export type CoMathEventKind =
 	| "claim_revised"
 	| "working_paper_section_recorded"
 	| "margin_note_recorded"
-	| "margin_note_resolved";
+	| "margin_note_resolved"
+	| "working_paper_exported";
 export type ArtifactKind =
 	| "computation"
 	| "latex_note"
@@ -51,7 +52,9 @@ export type ArtifactKind =
 	| "script"
 	| "figure"
 	| "failed_attempt"
-	| "human_note";
+	| "human_note"
+	| "working_paper_export";
+export type ExportFormat = "markdown";
 
 export interface ApprovedGoal {
 	id: string;

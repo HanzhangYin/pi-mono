@@ -46,6 +46,8 @@ The extension registers:
 /comath margin-notes
 /comath resolve-margin-note margin-note-1: Boundary lemma added to the draft section
 /comath paper
+/comath export-paper
+/comath artifact-file script scripts/check-endpoints.py Endpoint checker: Script used for endpoint enumeration
 /comath timeline
 /comath runs
 /comath run-status role-run-1
@@ -80,6 +82,10 @@ Claim revisions are human steering records. `/comath revise-claim` changes the c
 Working-paper sections are draft workspace records, not proof certificates. `/comath paper-section` stores human-authored draft text with explicit source ids; `/comath paper` renders the living working paper in command output only and does not export Markdown, LaTeX, PDF, or artifact files. Rendering preserves open warnings, open margin notes, and non-synthesis-eligible source labels so polished prose cannot hide proof gaps.
 
 Margin notes are paper annotations, not proof evidence and not mathematical warning records. `/comath margin-note` records open issues on sections or workspace subjects, and `/comath resolve-margin-note` closes those annotations with provenance without resolving mathematical warnings automatically.
+
+Working paper exports are snapshots. `/comath export-paper` writes deterministic Markdown under the workspace, refuses overwrite unless `--force` is supplied, and records the snapshot as a `working_paper_export` artifact. Exports are snapshots of state, not live state, and this prototype performs no LaTeX or PDF generation.
+
+File-backed artifacts are metadata and not proof evidence. `/comath artifact-file` registers an existing workspace file path without reading or trusting file contents; it does not create evidence, warnings, claims, or proof status changes.
 
 ## Role prompts
 

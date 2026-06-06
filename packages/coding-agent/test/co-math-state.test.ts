@@ -24,6 +24,7 @@ import {
 	loadProjectState,
 	queueRoleRun,
 	recordHumanInterventionEvent,
+	recordWorkingPaperExport,
 	resolveMarginNote,
 	resolveWarning,
 	reviseClaim,
@@ -814,6 +815,90 @@ describe("co-math project state", () => {
 			updatedAt: "2026-06-05T12:05:00.000Z",
 		});
 		expect(state.events.filter((event) => event.kind === "margin_note_resolved")).toHaveLength(1);
+	});
+
+	it("records working paper exports as artifacts and events", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Export snapshots preserve visible uncertainty.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+		state = addWarning(state, {
+			id: "warning-1",
+			claimId: "claim-1",
+			severity: "high",
+			message: "Export must preserve this open warning.",
+			now: FIXED_NOW,
+		});
+		state = addWorkingPaperSection(state, {
+			id: "paper-section-1",
+			title: "Endpoint draft",
+			body: "Draft body.",
+			sourceClaimIds: ["claim-1"],
+			sourceWarningIds: ["warning-1"],
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addMarginNote(state, {
+			id: "margin-note-1",
+			kind: "gap",
+			subjectId: "paper-section-1",
+			sectionId: "paper-section-1",
+			message: "Open note should be related to the export.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = recordWorkingPaperExport(state, {
+			artifactId: "artifact-1",
+			path: ".pi/co-math/exports/working-paper.md",
+			title: "Living working paper export",
+			summary: "Markdown snapshot of the living working paper.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.artifacts).toMatchObject([
+			{
+				id: "artifact-1",
+				kind: "working_paper_export",
+				title: "Living working paper export",
+				summary: "Markdown snapshot of the living working paper.",
+				path: ".pi/co-math/exports/working-paper.md",
+			},
+		]);
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "working_paper_exported",
+			actor: "human",
+			subjectId: "artifact-1",
+			relatedIds: ["paper-section-1", "warning-1", "margin-note-1"],
+		});
+		expect(state.evidence).toEqual([]);
+		expect(state.claims).toHaveLength(1);
+		expect(state.warnings).toHaveLength(1);
+	});
+
+	it("working paper export artifact does not affect proof synthesis eligibility", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "A needs-review claim remains excluded after export.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+		state = recordWorkingPaperExport(state, {
+			artifactId: "artifact-1",
+			path: ".pi/co-math/exports/working-paper.md",
+			title: "Living working paper export",
+			summary: "Markdown snapshot of the living working paper.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(isClaimSynthesisEligible(state, "claim-1")).toBe(false);
+		expect(state.evidence).toEqual([]);
+		expect(state.warnings).toEqual([]);
 	});
 
 	it("does not append warning resolved events for unknown warning ids", () => {

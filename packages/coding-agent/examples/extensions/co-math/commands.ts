@@ -1,3 +1,5 @@
+import { lstat, mkdir, realpath, writeFile } from "node:fs/promises";
+import * as path from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "../../../src/core/extensions/types.ts";
 import {
 	type CoMathRole,
@@ -46,6 +48,7 @@ import {
 	loadProjectState,
 	queueRoleRun,
 	recordHumanInterventionEvent,
+	recordWorkingPaperExport,
 	removeReviewQueueItemsForClaim,
 	resolveMarginNote,
 	resolveWarning,
@@ -78,6 +81,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath unblock <workstream-id>: <reason> - manually return a workstream to active with a steering note
 /comath note <subject-id>: <note> - record a human steering note as a metadata artifact
 /comath artifact <kind> <title>: <summary> - manually record a workspace artifact
+/comath artifact-file <kind> <path> <title>: <summary> - register an existing workspace file as an artifact
 /comath artifacts - list recorded artifacts
 /comath audit - check co-math state invariants without mutating state
 /comath review-queue - list claims and warnings waiting for review
@@ -98,6 +102,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath resolve-margin-note <note-id>: <resolution> - resolve an open margin note
 /comath margin-notes [open|resolved|all] - list margin notes
 /comath paper - render the current living working paper
+/comath export-paper [path] [--force] - write the living working paper markdown snapshot
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
 /comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
@@ -184,6 +189,11 @@ async function handleCoMathCommand(
 		return;
 	}
 
+	if (subcommand === "artifact-file") {
+		await addFileArtifact(pi, ctx, remainder);
+		return;
+	}
+
 	if (subcommand === "artifacts") {
 		await showArtifacts(pi, ctx);
 		return;
@@ -251,6 +261,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "paper") {
 		await showLivingWorkingPaper(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "export-paper") {
+		await exportLivingWorkingPaper(pi, ctx, remainder);
 		return;
 	}
 
@@ -604,6 +619,57 @@ async function addManualArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 	showCommandMessage(pi, ctx, `Recorded artifact ${artifactId}: ${parsed.title}`);
 }
 
+async function addFileArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseArtifactFileText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath artifact-file <kind> <path> <title>: <summary>");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const resolvedPath = resolveWorkspaceRelativePath(ctx.cwd, parsed.filePath);
+	if (!resolvedPath) {
+		showCommandMessage(pi, ctx, "Artifact path must stay inside the workspace.");
+		return;
+	}
+	const artifactPathCheck = await checkExistingArtifactFilePath(ctx.cwd, resolvedPath);
+	if (artifactPathCheck === "missing") {
+		showCommandMessage(pi, ctx, `Artifact file does not exist: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (artifactPathCheck === "directory") {
+		showCommandMessage(pi, ctx, `Artifact path is not a file: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (artifactPathCheck === "symlink") {
+		showCommandMessage(pi, ctx, `Artifact path is a symlink and is not allowed: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (artifactPathCheck === "outside_workspace") {
+		showCommandMessage(pi, ctx, "Artifact path must stay inside the workspace.");
+		return;
+	}
+
+	const artifactId = `artifact-${existing.artifacts.length + 1}`;
+	const state = addArtifact(existing, {
+		id: artifactId,
+		kind: parsed.kind,
+		title: parsed.title,
+		summary: parsed.summary,
+		path: resolvedPath.relativePath,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(
+		pi,
+		ctx,
+		`Recorded file artifact ${artifactId} [${parsed.kind}] ${resolvedPath.relativePath}: ${parsed.title}`,
+	);
+}
+
 function getHumanNoteRelatedIds(
 	state: CoMathProjectState,
 	subjectId: string,
@@ -628,6 +694,13 @@ interface ParsedWarningCommand {
 
 interface ParsedArtifactCommand {
 	kind: ArtifactKind;
+	title: string;
+	summary: string;
+}
+
+interface ParsedArtifactFileCommand {
+	kind: ArtifactKind;
+	filePath: string;
 	title: string;
 	summary: string;
 }
@@ -660,6 +733,19 @@ interface ParsedMarginNoteCommand {
 	kind: MarginNoteKind;
 	message: string;
 }
+
+interface ParsedExportPaperCommand {
+	filePath: string;
+	force: boolean;
+}
+
+interface ResolvedWorkspacePath {
+	absolutePath: string;
+	relativePath: string;
+}
+
+type ExistingArtifactPathProblem = "missing" | "directory" | "symlink" | "outside_workspace";
+type ExportTargetPathProblem = "exists" | "directory" | "symlink" | "outside_workspace" | "state_file";
 
 interface ClassifiedPaperSources {
 	claimIds: string[];
@@ -712,6 +798,18 @@ function parseMarginNoteText(text: string): ParsedMarginNoteCommand | undefined 
 	return { subjectId, kind, message };
 }
 
+function parseExportPaperText(text: string): ParsedExportPaperCommand | undefined {
+	const tokens = text.trim().length === 0 ? [] : text.trim().split(/\s+/);
+	const force = tokens.at(-1) === "--force";
+	const pathTokens = force ? tokens.slice(0, -1) : tokens;
+	if (pathTokens.some((token) => token.startsWith("--"))) return undefined;
+	if (pathTokens.length > 1) return undefined;
+	return {
+		filePath: pathTokens[0] ?? ".pi/co-math/exports/working-paper.md",
+		force,
+	};
+}
+
 function parseMarginNoteFilter(text: string): MarginNoteFilter | undefined {
 	if (text.length === 0) return "open";
 	if (text === "open" || text === "resolved" || text === "all") return text;
@@ -746,6 +844,18 @@ function parseArtifactText(text: string): ParsedArtifactCommand | undefined {
 	const summary = body.slice(separatorIndex + 1).trim();
 	if (title.length === 0 || summary.length === 0) return undefined;
 	return { kind, title, summary };
+}
+
+function parseArtifactFileText(text: string): ParsedArtifactFileCommand | undefined {
+	const [kind, filePath, ...rest] = text.trim().split(/\s+/);
+	if (!kind || !isArtifactKind(kind) || !filePath) return undefined;
+	const body = rest.join(" ").trim();
+	const separatorIndex = body.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const title = body.slice(0, separatorIndex).trim();
+	const summary = body.slice(separatorIndex + 1).trim();
+	if (title.length === 0 || summary.length === 0) return undefined;
+	return { kind, filePath, title, summary };
 }
 
 function parseReviseClaimText(text: string): ParsedReviseClaimCommand | undefined {
@@ -817,7 +927,8 @@ function isArtifactKind(value: string): value is ArtifactKind {
 		value === "script" ||
 		value === "figure" ||
 		value === "failed_attempt" ||
-		value === "human_note"
+		value === "human_note" ||
+		value === "working_paper_export"
 	);
 }
 
@@ -872,7 +983,7 @@ async function auditProjectState(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 		return;
 	}
 
-	const problems = collectAuditProblems(state);
+	const problems = await collectAuditProblems(state, ctx.cwd);
 	showCommandMessage(
 		pi,
 		ctx,
@@ -882,7 +993,7 @@ async function auditProjectState(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 	);
 }
 
-function collectAuditProblems(state: CoMathProjectState): string[] {
+async function collectAuditProblems(state: CoMathProjectState, cwd: string): Promise<string[]> {
 	const problems: string[] = [];
 	const claimIds = new Set(state.claims.map((claim) => claim.id));
 	const evidenceIds = new Set(state.evidence.map((evidence) => evidence.id));
@@ -909,6 +1020,35 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 	for (const warning of state.warnings) {
 		if (!claimIds.has(warning.claimId)) {
 			problems.push(`${warning.id} points to missing claim ${warning.claimId}`);
+		}
+	}
+
+	for (const artifact of state.artifacts) {
+		if (artifact.path) {
+			const resolvedPath = resolveWorkspaceRelativePath(cwd, artifact.path);
+			if (!resolvedPath) {
+				problems.push(`${artifact.id} path ${artifact.path} is outside workspace`);
+			} else {
+				const artifactPathProblem = await checkExistingArtifactFilePath(cwd, resolvedPath);
+				if (artifactPathProblem === "missing") {
+					problems.push(`${artifact.id} path ${artifact.path} does not exist`);
+				} else if (artifactPathProblem === "directory") {
+					problems.push(`${artifact.id} path ${artifact.path} is not a file`);
+				} else if (artifactPathProblem === "symlink") {
+					problems.push(`${artifact.id} path ${artifact.path} is a symlink`);
+				} else if (artifactPathProblem === "outside_workspace") {
+					problems.push(`${artifact.id} path ${artifact.path} is outside workspace`);
+				}
+			}
+		}
+		if (artifact.kind === "working_paper_export" && (!artifact.path || !artifact.path.endsWith(".md"))) {
+			problems.push(`${artifact.id} is a working_paper_export artifact without a .md path`);
+		}
+	}
+
+	for (const event of state.events) {
+		if (event.kind === "working_paper_exported" && event.subjectId && !artifactIds.has(event.subjectId)) {
+			problems.push(`${event.id} working_paper_exported subject ${event.subjectId} is missing`);
 		}
 	}
 
@@ -1669,6 +1809,67 @@ async function showLivingWorkingPaper(pi: ExtensionAPI, ctx: ExtensionCommandCon
 	showCommandMessage(pi, ctx, buildLivingWorkingPaperMarkdown(state));
 }
 
+async function exportLivingWorkingPaper(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseExportPaperText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath export-paper [path] [--force]");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const resolvedPath = resolveWorkspaceRelativePath(ctx.cwd, parsed.filePath);
+	if (!resolvedPath) {
+		showCommandMessage(pi, ctx, "Export path must stay inside the workspace.");
+		return;
+	}
+	if (isStatePathRelative(resolvedPath.relativePath)) {
+		showCommandMessage(pi, ctx, "Export path cannot overwrite .pi/co-math/state.json.");
+		return;
+	}
+	const exportPathCheck = await checkExportTargetPath(ctx.cwd, resolvedPath);
+	if (exportPathCheck === "outside_workspace") {
+		showCommandMessage(pi, ctx, "Export path must stay inside the workspace.");
+		return;
+	}
+	if (exportPathCheck === "symlink") {
+		showCommandMessage(pi, ctx, `Export path is a symlink and is not allowed: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (exportPathCheck === "directory") {
+		showCommandMessage(pi, ctx, `Export path is not a file: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (exportPathCheck === "state_file") {
+		showCommandMessage(pi, ctx, "Export path cannot overwrite .pi/co-math/state.json.");
+		return;
+	}
+	if (exportPathCheck === "exists" && !parsed.force) {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Export target already exists: ${resolvedPath.relativePath}. Use --force to overwrite.`,
+		);
+		return;
+	}
+
+	const markdown = buildLivingWorkingPaperMarkdown(existing);
+	await writeFile(resolvedPath.absolutePath, `${markdown}\n`, "utf8");
+
+	const artifactId = `artifact-${existing.artifacts.length + 1}`;
+	const state = recordWorkingPaperExport(existing, {
+		artifactId,
+		path: resolvedPath.relativePath,
+		title: "Living working paper export",
+		summary: "Markdown snapshot of the living working paper.",
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Exported living working paper to ${resolvedPath.relativePath} as ${artifactId}.`);
+}
+
 async function executeRunningRoleRun(
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,
@@ -2047,6 +2248,107 @@ function uniqueStrings(values: string[]): string[] {
 	return Array.from(new Set(values));
 }
 
+function resolveWorkspaceRelativePath(cwd: string, inputPath: string): ResolvedWorkspacePath | undefined {
+	if (inputPath.length === 0 || inputPath.includes("\0")) return undefined;
+	const cwdAbsolute = path.resolve(cwd);
+	const targetAbsolute = path.resolve(cwdAbsolute, inputPath);
+	const relative = path.relative(cwdAbsolute, targetAbsolute);
+	if (relative.length === 0 || relative.startsWith("..") || path.isAbsolute(relative)) return undefined;
+	return {
+		absolutePath: targetAbsolute,
+		relativePath: relative.split(path.sep).join("/"),
+	};
+}
+
+async function checkExistingArtifactFilePath(
+	cwd: string,
+	resolvedPath: ResolvedWorkspacePath,
+): Promise<ExistingArtifactPathProblem | undefined> {
+	const pathStat = await getPathLstat(resolvedPath.absolutePath);
+	if (!pathStat) return "missing";
+	if (pathStat.isSymbolicLink()) return "symlink";
+	if (!pathStat.isFile()) return "directory";
+	const cwdReal = await realpath(cwd);
+	const targetReal = await realpath(resolvedPath.absolutePath);
+	return isPathInside(cwdReal, targetReal) ? undefined : "outside_workspace";
+}
+
+async function checkExportTargetPath(
+	cwd: string,
+	resolvedPath: ResolvedWorkspacePath,
+): Promise<ExportTargetPathProblem | undefined> {
+	const cwdAbsolute = path.resolve(cwd);
+	const cwdReal = await realpath(cwdAbsolute);
+	const parentPath = path.dirname(resolvedPath.absolutePath);
+	if (!(await existingParentSegmentsAreSafe(cwdAbsolute, parentPath))) {
+		return "symlink";
+	}
+	await mkdir(parentPath, { recursive: true });
+	const parentReal = await realpath(parentPath);
+	if (!isPathInsideOrEqual(cwdReal, parentReal)) {
+		return "outside_workspace";
+	}
+	const targetStat = await getPathLstat(resolvedPath.absolutePath);
+	if (!targetStat) return undefined;
+	if (targetStat.isSymbolicLink()) return "symlink";
+	if (targetStat.isDirectory()) return "directory";
+	const stateReal = await getStatePathReal(cwd);
+	if (stateReal) {
+		const targetReal = await realpath(resolvedPath.absolutePath);
+		if (targetReal === stateReal) return "state_file";
+	}
+	return "exists";
+}
+
+async function existingParentSegmentsAreSafe(cwdAbsolute: string, parentPath: string): Promise<boolean> {
+	const relativeParent = path.relative(cwdAbsolute, parentPath);
+	if (relativeParent.length === 0) return true;
+	const segments = relativeParent.split(path.sep);
+	let currentPath = cwdAbsolute;
+	for (const segment of segments) {
+		currentPath = path.join(currentPath, segment);
+		const segmentStat = await getPathLstat(currentPath);
+		if (!segmentStat) return true;
+		if (segmentStat.isSymbolicLink() || !segmentStat.isDirectory()) return false;
+	}
+	return true;
+}
+
+async function getStatePathReal(cwd: string): Promise<string | undefined> {
+	try {
+		return await realpath(getDefaultStatePath(cwd));
+	} catch (error) {
+		if (isMissingPathError(error)) return undefined;
+		throw error;
+	}
+}
+
+async function getPathLstat(filePath: string): Promise<Awaited<ReturnType<typeof lstat>> | undefined> {
+	try {
+		return await lstat(filePath);
+	} catch (error) {
+		if (isMissingPathError(error)) return undefined;
+		throw error;
+	}
+}
+
+function isPathInside(parentReal: string, candidateReal: string): boolean {
+	const relative = path.relative(parentReal, candidateReal);
+	return relative.length > 0 && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function isPathInsideOrEqual(parentReal: string, candidateReal: string): boolean {
+	return parentReal === candidateReal || isPathInside(parentReal, candidateReal);
+}
+
+function isStatePathRelative(relativePath: string): boolean {
+	return relativePath.toLowerCase() === ".pi/co-math/state.json";
+}
+
+function isMissingPathError(error: unknown): boolean {
+	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+
 function getRoleRunErrorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
@@ -2250,9 +2552,10 @@ async function showArtifacts(pi: ExtensionAPI, ctx: ExtensionCommandContext): Pr
 
 function formatArtifacts(state: CoMathProjectState): string[] {
 	if (state.artifacts.length === 0) return ["No artifacts recorded."];
-	return state.artifacts.map(
-		(artifact) => `- ${artifact.id} [${artifact.kind}] ${artifact.title}: ${artifact.summary}`,
-	);
+	return state.artifacts.map((artifact) => {
+		const artifactPath = artifact.path ? ` (${artifact.path})` : "";
+		return `- ${artifact.id} [${artifact.kind}] ${artifact.title}${artifactPath}: ${artifact.summary}`;
+	});
 }
 
 function formatMarginNotes(notes: MarginNote[]): string[] {

@@ -286,6 +286,15 @@ export interface ResolveMarginNoteInput {
 	actor: CoMathActor;
 }
 
+export interface RecordWorkingPaperExportInput {
+	artifactId: string;
+	path: string;
+	title: string;
+	summary: string;
+	now: string;
+	actor: CoMathActor;
+}
+
 interface AppendEventInput {
 	kind: CoMathEventKind;
 	actor?: CoMathActor;
@@ -1261,6 +1270,49 @@ export function resolveMarginNote(state: CoMathProjectState, input: ResolveMargi
 			now: input.now,
 		},
 	);
+}
+
+export function recordWorkingPaperExport(
+	state: CoMathProjectState,
+	input: RecordWorkingPaperExportInput,
+): CoMathProjectState {
+	const artifactPath = input.path.trim();
+	const title = input.title.trim();
+	const summary = input.summary.trim();
+	if (!artifactPath) {
+		throw new Error("Working paper export requires a path.");
+	}
+	if (!title) {
+		throw new Error("Working paper export requires a title.");
+	}
+	if (!summary) {
+		throw new Error("Working paper export requires a summary.");
+	}
+	const withArtifact = addArtifact(state, {
+		id: input.artifactId,
+		kind: "working_paper_export",
+		title,
+		summary,
+		path: artifactPath,
+		now: input.now,
+		actor: input.actor,
+	});
+	const openWarningIds = withArtifact.warnings
+		.filter((warning) => warning.status === "open")
+		.map((warning) => warning.id);
+	const openMarginNoteIds = withArtifact.marginNotes.filter((note) => note.status === "open").map((note) => note.id);
+	return appendEvent(withArtifact, {
+		kind: "working_paper_exported",
+		actor: input.actor,
+		summary: `Exported living working paper to ${artifactPath}`,
+		subjectId: input.artifactId,
+		relatedIds: [
+			...withArtifact.workingPaperSections.map((section) => section.id),
+			...openWarningIds,
+			...openMarginNoteIds,
+		],
+		now: input.now,
+	});
 }
 
 export function isClaimSynthesisEligible(state: CoMathProjectState, claimId: string): boolean {
