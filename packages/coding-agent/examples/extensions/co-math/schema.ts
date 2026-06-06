@@ -26,7 +26,8 @@ export type CoMathEventKind =
 	| "role_run_blocked"
 	| "role_run_failed"
 	| "role_run_aborted"
-	| "workstream_status_changed";
+	| "workstream_status_changed"
+	| "human_intervention_recorded";
 export type ArtifactKind =
 	| "computation"
 	| "latex_note"

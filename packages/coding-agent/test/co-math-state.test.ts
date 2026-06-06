@@ -17,6 +17,7 @@ import {
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
+	recordHumanInterventionEvent,
 	resolveWarning,
 	saveProjectState,
 	serializeProjectState,
@@ -307,6 +308,59 @@ describe("co-math project state", () => {
 		expect(state.events.map((event) => event.kind)).toEqual(["project_initialized"]);
 	});
 
+	it("refuses to finish or fail role runs that are no longer running", () => {
+		let state = startRoleRun(createProject(), {
+			id: "role-run-1",
+			role: "coordinator",
+			task: "Role: coordinator",
+			now: FIXED_NOW,
+		});
+		state = finishRoleRun(state, {
+			runId: "role-run-1",
+			status: "completed",
+			now: FIXED_NOW,
+		});
+
+		expect(() =>
+			finishRoleRun(state, {
+				runId: "role-run-1",
+				status: "blocked",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/Cannot finish role run role-run-1 because it is completed/);
+		expect(() =>
+			failRoleRun(state, {
+				runId: "role-run-1",
+				status: "failed",
+				errorMessage: "Should not overwrite completed run.",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/Cannot fail role run role-run-1 because it is completed/);
+	});
+
+	it("refuses to finish failed role runs", () => {
+		let state = startRoleRun(createProject(), {
+			id: "role-run-1",
+			role: "coordinator",
+			task: "Role: coordinator",
+			now: FIXED_NOW,
+		});
+		state = failRoleRun(state, {
+			runId: "role-run-1",
+			status: "failed",
+			errorMessage: "Role process exited with code 1.",
+			now: FIXED_NOW,
+		});
+
+		expect(() =>
+			finishRoleRun(state, {
+				runId: "role-run-1",
+				status: "completed",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/Cannot finish role run role-run-1 because it is failed/);
+	});
+
 	it("appends provenance events for goals, claims, evidence, warnings, and status changes", () => {
 		let state = createProject();
 		state = addGoal(state, {
@@ -478,6 +532,27 @@ describe("co-math project state", () => {
 			summary: "Recorded review decision for claim-1: proved",
 			subjectId: "claim-1",
 			relatedIds: ["report-1"],
+			createdAt: FIXED_NOW,
+		});
+	});
+
+	it("records human intervention events", () => {
+		let state = createProject();
+		state = recordHumanInterventionEvent(state, {
+			summary: "Human chose the endpoint convention.",
+			subjectId: "workstream-endpoints",
+			relatedIds: ["role-run-1"],
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.events.at(-1)).toEqual({
+			id: "event-2",
+			kind: "human_intervention_recorded",
+			actor: "human",
+			summary: "Human chose the endpoint convention.",
+			subjectId: "workstream-endpoints",
+			relatedIds: ["role-run-1"],
 			createdAt: FIXED_NOW,
 		});
 	});

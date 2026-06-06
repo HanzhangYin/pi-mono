@@ -30,10 +30,12 @@ import {
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
+	recordHumanInterventionEvent,
 	removeReviewQueueItemsForClaim,
 	resolveWarning,
 	saveProjectState,
 	setClaimStatus,
+	setWorkstreamStatus,
 	startRoleRun,
 } from "./storage.ts";
 
@@ -45,6 +47,9 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath evidence <claim-id> <proof|computation|reference|counterexample|note>: <summary> - attach manual evidence
 /comath warning <claim-id> <low|medium|high>: <message> - attach a manual warning
 /comath resolve-warning <warning-id> - mark an attached warning resolved
+/comath block <workstream-id>: <reason> - manually mark a workstream blocked
+/comath unblock <workstream-id>: <reason> - manually return a workstream to active with a steering note
+/comath note <subject-id>: <note> - record a human steering note as a metadata artifact
 /comath artifact <kind> <title>: <summary> - manually record a workspace artifact
 /comath artifacts - list recorded artifacts
 /comath audit - check co-math state invariants without mutating state
@@ -52,6 +57,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
+/comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
 /comath synthesize - produce cautious markdown from reviewed state
 /comath timeline - show recent workspace events
 /comath status - summarize the current co-math project state`;
@@ -115,6 +121,21 @@ async function handleCoMathCommand(
 		return;
 	}
 
+	if (subcommand === "block") {
+		await setManualWorkstreamBlocked(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "unblock") {
+		await setManualWorkstreamUnblocked(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "note") {
+		await addHumanNote(pi, ctx, remainder);
+		return;
+	}
+
 	if (subcommand === "artifact") {
 		await addManualArtifact(pi, ctx, remainder);
 		return;
@@ -147,6 +168,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "run-status") {
 		await showRoleRunStatus(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "recover-run") {
+		await recoverStaleRoleRun(pi, ctx, remainder);
 		return;
 	}
 
@@ -327,6 +353,118 @@ async function resolveManualWarning(pi: ExtensionAPI, ctx: ExtensionCommandConte
 	showCommandMessage(pi, ctx, `Resolved warning ${warningId}`);
 }
 
+async function setManualWorkstreamBlocked(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath block <workstream-id>: <reason>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	if (!existing.workstreams.some((workstream) => workstream.id === parsed.subjectId)) {
+		showCommandMessage(pi, ctx, `Unknown workstream: ${parsed.subjectId}`);
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const summary = `Blocked workstream ${parsed.subjectId}: ${parsed.body}`;
+	let state = setWorkstreamStatus(existing, {
+		workstreamId: parsed.subjectId,
+		status: "blocked",
+		statusReason: parsed.body,
+		now,
+		actor: "human",
+	});
+	state = recordHumanInterventionEvent(state, {
+		summary,
+		subjectId: parsed.subjectId,
+		relatedIds: [parsed.subjectId],
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, summary);
+}
+
+async function setManualWorkstreamUnblocked(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	text: string,
+): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath unblock <workstream-id>: <reason>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	if (!existing.workstreams.some((workstream) => workstream.id === parsed.subjectId)) {
+		showCommandMessage(pi, ctx, `Unknown workstream: ${parsed.subjectId}`);
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const summary = `Unblocked workstream ${parsed.subjectId}: ${parsed.body}`;
+	let state = setWorkstreamStatus(existing, {
+		workstreamId: parsed.subjectId,
+		status: "active",
+		now,
+		actor: "human",
+	});
+	state = recordHumanInterventionEvent(state, {
+		summary,
+		subjectId: parsed.subjectId,
+		relatedIds: [parsed.subjectId],
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, summary);
+}
+
+async function addHumanNote(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath note <subject-id>: <note>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const artifactId = `artifact-${existing.artifacts.length + 1}`;
+	const related = getHumanNoteRelatedIds(existing, parsed.subjectId);
+	let state = addArtifact(existing, {
+		id: artifactId,
+		kind: "human_note",
+		title: `Human note for ${parsed.subjectId}`,
+		summary: parsed.body,
+		provenance: `Human steering note for ${parsed.subjectId}`,
+		relatedClaimIds: related.claimIds,
+		relatedWorkstreamIds: related.workstreamIds,
+		now,
+		actor: "human",
+	});
+	state = recordHumanInterventionEvent(state, {
+		summary: `Recorded human note for ${parsed.subjectId}: ${parsed.body}`,
+		subjectId: parsed.subjectId,
+		relatedIds: uniqueStrings([parsed.subjectId, artifactId]),
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Recorded human note artifact ${artifactId} for ${parsed.subjectId}.`);
+}
+
 async function addManualArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
 	const parsed = parseArtifactText(text);
 	if (!parsed) {
@@ -353,6 +491,16 @@ async function addManualArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 	showCommandMessage(pi, ctx, `Recorded artifact ${artifactId}: ${parsed.title}`);
 }
 
+function getHumanNoteRelatedIds(
+	state: CoMathProjectState,
+	subjectId: string,
+): { claimIds: string[]; workstreamIds: string[] } {
+	return {
+		claimIds: state.claims.some((claim) => claim.id === subjectId) ? [subjectId] : [],
+		workstreamIds: state.workstreams.some((workstream) => workstream.id === subjectId) ? [subjectId] : [],
+	};
+}
+
 interface ParsedEvidenceCommand {
 	claimId: string;
 	kind: EvidenceKind;
@@ -369,6 +517,40 @@ interface ParsedArtifactCommand {
 	kind: ArtifactKind;
 	title: string;
 	summary: string;
+}
+
+interface ParsedRecoverRunCommand {
+	runId: string;
+	status: "failed" | "aborted";
+	reason: string;
+}
+
+interface ParsedSubjectBodyCommand {
+	subjectId: string;
+	body: string;
+}
+
+function parseSubjectBodyText(text: string): ParsedSubjectBodyCommand | undefined {
+	const separatorIndex = text.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const subjectId = text.slice(0, separatorIndex).trim();
+	const body = text.slice(separatorIndex + 1).trim();
+	if (subjectId.length === 0 || body.length === 0) return undefined;
+	return { subjectId, body };
+}
+
+function parseRecoverRunText(text: string): ParsedRecoverRunCommand | undefined {
+	const separatorIndex = text.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const header = text.slice(0, separatorIndex).trim();
+	const reason = text.slice(separatorIndex + 1).trim();
+	const [runId, status] = header.split(/\s+/);
+	if (!runId || !isRecoverRunStatus(status) || reason.length === 0) return undefined;
+	return { runId, status, reason };
+}
+
+function isRecoverRunStatus(value: string | undefined): value is "failed" | "aborted" {
+	return value === "failed" || value === "aborted";
 }
 
 function parseArtifactText(text: string): ParsedArtifactCommand | undefined {
@@ -630,15 +812,16 @@ async function runProjectRole(
 	} catch (error) {
 		const errorMessage = getRoleRunErrorMessage(error);
 		const now = new Date().toISOString();
+		const status = isRoleRunAbort(ctx, errorMessage) ? "aborted" : "failed";
 		const failedState = failRoleRun(startedState, {
 			runId,
-			status: isRoleRunAbort(ctx, errorMessage) ? "aborted" : "failed",
+			status,
 			errorMessage,
 			now,
 			actor: "system",
 		});
 		await saveProjectState(statePath, failedState);
-		showCommandMessage(pi, ctx, `Co-math ${request.role} role run ${runId} failed: ${errorMessage}`);
+		showCommandMessage(pi, ctx, `Co-math ${request.role} role run ${runId} ${status}: ${errorMessage}`);
 	}
 }
 
@@ -1136,6 +1319,48 @@ async function showRoleRunStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 	showCommandMessage(pi, ctx, formatRoleRunDetails(run));
 }
 
+async function recoverStaleRoleRun(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseRecoverRunText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath recover-run <run-id> <failed|aborted>: <reason>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+
+	const run = existing.roleRuns.find((candidate) => candidate.id === parsed.runId);
+	if (!run) {
+		showCommandMessage(pi, ctx, `No role run found for ${parsed.runId}.`);
+		return;
+	}
+	if (run.status !== "running") {
+		showCommandMessage(pi, ctx, `Cannot recover ${run.id} because its status is ${run.status}.`);
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const summary = `Recovered stale role run ${run.id} as ${parsed.status}: ${parsed.reason}`;
+	let state = failRoleRun(existing, {
+		runId: run.id,
+		status: parsed.status,
+		errorMessage: parsed.reason,
+		now,
+		actor: "human",
+	});
+	state = recordHumanInterventionEvent(state, {
+		summary,
+		subjectId: run.id,
+		relatedIds: uniqueStrings([run.id, ...getRoleRunTargetRelatedIds(run)]),
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, summary);
+}
+
 function formatRoleRunDetails(run: RoleRunRecord): string {
 	return [
 		run.id,
@@ -1160,6 +1385,10 @@ function formatRoleRunTarget(run: RoleRunRecord): string {
 	if (run.targetWorkstreamId) return `${run.role} ${run.targetWorkstreamId}`;
 	if (run.targetClaimId) return `${run.role} ${run.targetClaimId}`;
 	return run.role;
+}
+
+function getRoleRunTargetRelatedIds(run: RoleRunRecord): string[] {
+	return [run.targetWorkstreamId, run.targetClaimId].filter((id) => id !== undefined);
 }
 
 function formatIdList(ids: string[]): string {

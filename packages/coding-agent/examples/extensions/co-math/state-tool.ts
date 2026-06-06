@@ -22,9 +22,9 @@ export function registerCoMathStateTool(pi: ExtensionAPI): void {
 		name: "comath_state",
 		label: "Co-math State",
 		description:
-			"Read or initialize the persistent co-math project state, including artifacts, events, roleRuns, and workstream status.",
+			"Read or initialize the persistent co-math project state, including artifacts, events, roleRuns, workstream status, human intervention, and stale running run recovery.",
 		promptSnippet:
-			"Read or initialize the persistent co-math project state before making claims about project goals, workstreams, status, latestRunIds, roleRuns, claims, evidence, warnings, artifacts, or events.",
+			"Read or initialize the persistent co-math project state before making claims about project goals, workstreams, status, latestRunIds, roleRuns, claims, evidence, warnings, artifacts, events, human intervention, or stale running runs. Human notes are not proof evidence.",
 		parameters: CoMathStateParams,
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const statePath = getDefaultStatePath(ctx.cwd);

@@ -178,6 +178,14 @@ export interface FailRoleRunInput {
 	actor?: CoMathActor;
 }
 
+export interface RecordHumanInterventionEventInput {
+	summary: string;
+	subjectId?: string;
+	relatedIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
 interface AppendEventInput {
 	kind: CoMathEventKind;
 	actor?: CoMathActor;
@@ -685,6 +693,9 @@ export function startRoleRun(state: CoMathProjectState, input: StartRoleRunInput
 
 export function finishRoleRun(state: CoMathProjectState, input: FinishRoleRunInput): CoMathProjectState {
 	const run = findRoleRun(state, input.runId);
+	if (run.status !== "running") {
+		throw new Error(`Cannot finish role run ${input.runId} because it is ${run.status}.`);
+	}
 	const blockerMessages = input.blockerMessages ?? [];
 	let nextState = appendEvent(
 		{
@@ -741,6 +752,9 @@ export function finishRoleRun(state: CoMathProjectState, input: FinishRoleRunInp
 
 export function failRoleRun(state: CoMathProjectState, input: FailRoleRunInput): CoMathProjectState {
 	const run = findRoleRun(state, input.runId);
+	if (run.status !== "running") {
+		throw new Error(`Cannot fail role run ${input.runId} because it is ${run.status}.`);
+	}
 	let nextState = appendEvent(
 		{
 			...state,
@@ -775,6 +789,20 @@ export function failRoleRun(state: CoMathProjectState, input: FailRoleRunInput):
 		});
 	}
 	return nextState;
+}
+
+export function recordHumanInterventionEvent(
+	state: CoMathProjectState,
+	input: RecordHumanInterventionEventInput,
+): CoMathProjectState {
+	return appendEvent(state, {
+		kind: "human_intervention_recorded",
+		actor: input.actor ?? "human",
+		summary: input.summary,
+		subjectId: input.subjectId,
+		relatedIds: input.relatedIds,
+		now: input.now,
+	});
 }
 
 export function isClaimSynthesisEligible(state: CoMathProjectState, claimId: string): boolean {

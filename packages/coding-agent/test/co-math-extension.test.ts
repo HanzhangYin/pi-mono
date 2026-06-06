@@ -5,7 +5,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import coMathExtension from "../examples/extensions/co-math/index.ts";
 import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
-import { getDefaultStatePath, loadProjectState, saveProjectState } from "../examples/extensions/co-math/storage.ts";
+import {
+	getDefaultStatePath,
+	loadProjectState,
+	saveProjectState,
+	startRoleRun,
+} from "../examples/extensions/co-math/storage.ts";
 import type { ExtensionAPI, ExtensionCommandContext } from "../src/core/extensions/types.ts";
 
 const extensionDir = join(dirname(fileURLToPath(import.meta.url)), "../examples/extensions/co-math");
@@ -502,6 +507,41 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("records aborted role runs with aborted notification text", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-aborted-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					throw new Error("Co-math role run was aborted.");
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					role: "workstream",
+					status: "aborted",
+					targetWorkstreamId: "workstream-endpoints",
+					errorMessage: "Co-math role run was aborted.",
+				},
+			]);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math workstream role run role-run-1 aborted");
+			expect(visibleText).not.toContain("Co-math workstream role run role-run-1 failed");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("displays role run lists, role run details, and lifecycle status counts", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-display-"));
 		try {
@@ -631,6 +671,242 @@ describe("co-math extension registration", () => {
 			expect(visibleText).toContain("artifact_recorded");
 			expect(visibleText).toContain("Artifacts: 1");
 			expect(visibleText).toContain("Events:");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("manually blocks and unblocks workstreams with human intervention events", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-block-unblock-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Steer endpoint work", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("block workstream-endpoints: Need a convention choice", ctx);
+			let state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workstreams[0]).toMatchObject({
+				id: "workstream-endpoints",
+				status: "blocked",
+				statusReason: "Need a convention choice",
+			});
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "human_intervention_recorded",
+						actor: "human",
+						subjectId: "workstream-endpoints",
+						relatedIds: ["workstream-endpoints"],
+						summary: "Blocked workstream workstream-endpoints: Need a convention choice",
+					}),
+				]),
+			);
+
+			await command?.handler("unblock workstream-endpoints: Chose predecessor-canonical convention", ctx);
+			state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workstreams[0]).toMatchObject({
+				id: "workstream-endpoints",
+				status: "active",
+			});
+			expect(state?.workstreams[0]?.statusReason).toBeUndefined();
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "human_intervention_recorded",
+						actor: "human",
+						subjectId: "workstream-endpoints",
+						relatedIds: ["workstream-endpoints"],
+						summary: "Unblocked workstream workstream-endpoints: Chose predecessor-canonical convention",
+					}),
+				]),
+			);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Blocked workstream workstream-endpoints: Need a convention choice");
+			expect(visibleText).toContain(
+				"Unblocked workstream workstream-endpoints: Chose predecessor-canonical convention",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("validates manual block and unblock commands", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-block-invalid-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("block workstream-endpoints", ctx);
+			await command?.handler("unblock workstream-endpoints:", ctx);
+			await command?.handler("block workstream-missing: Need a reason", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workstreams[0]?.status).toBe("active");
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Usage: /comath block <workstream-id>: <reason>");
+			expect(visibleText).toContain("Usage: /comath unblock <workstream-id>: <reason>");
+			expect(visibleText).toContain("Unknown workstream: workstream-missing");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("records human steering notes as metadata artifacts without proof evidence", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-human-note-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Steer endpoint work", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("note workstream-endpoints: Try the endpoint convention from draft_3", ctx);
+			await command?.handler("artifacts", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toMatchObject([
+				{
+					id: "artifact-1",
+					kind: "human_note",
+					title: "Human note for workstream-endpoints",
+					summary: "Try the endpoint convention from draft_3",
+					provenance: "Human steering note for workstream-endpoints",
+					relatedWorkstreamIds: ["workstream-endpoints"],
+				},
+			]);
+			expect(state?.evidence).toEqual([]);
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "human_intervention_recorded",
+						subjectId: "workstream-endpoints",
+						relatedIds: ["workstream-endpoints", "artifact-1"],
+						summary: "Recorded human note for workstream-endpoints: Try the endpoint convention from draft_3",
+					}),
+				]),
+			);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Recorded human note artifact artifact-1 for workstream-endpoints.");
+			expect(visibleText).toContain("artifact-1 [human_note] Human note for workstream-endpoints");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("recovers stale running role runs as failed with human intervention provenance", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-recover-failed-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			await saveProjectState(
+				statePath,
+				startRoleRun(state as CoMathProjectState, {
+					id: "role-run-1",
+					role: "workstream",
+					task: "Role: workstream",
+					targetWorkstreamId: "workstream-endpoints",
+					now: "2026-06-05T12:00:00.000Z",
+					actor: "workstream",
+				}),
+			);
+
+			await command?.handler("recover-run role-run-1 failed: Terminal crashed", ctx);
+
+			const recovered = await loadProjectState(statePath);
+			expect(recovered?.reports).toEqual([]);
+			expect(recovered?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "failed",
+				errorMessage: "Terminal crashed",
+			});
+			expect(recovered?.workstreams[0]).toMatchObject({
+				status: "blocked",
+				statusReason: "Terminal crashed",
+			});
+			expect(recovered?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "human_intervention_recorded",
+						subjectId: "role-run-1",
+						relatedIds: ["role-run-1", "workstream-endpoints"],
+						summary: "Recovered stale role run role-run-1 as failed: Terminal crashed",
+					}),
+				]),
+			);
+			expect(notifications.join("\n")).toContain("Recovered stale role run role-run-1 as failed: Terminal crashed");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("recovers stale running role runs as aborted and refuses non-running recovery", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-recover-aborted-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Completed run for recovery refusal.",
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			await saveProjectState(
+				statePath,
+				startRoleRun(state as CoMathProjectState, {
+					id: "role-run-2",
+					role: "coordinator",
+					task: "Role: coordinator",
+					now: "2026-06-05T12:00:00.000Z",
+					actor: "coordinator",
+				}),
+			);
+
+			await command?.handler("recover-run role-run-2 aborted: User stopped stale run", ctx);
+			await command?.handler("recover-run role-run-1 failed: Should not mutate completed run", ctx);
+			await command?.handler("recover-run role-run-2 completed: invalid", ctx);
+			await command?.handler("recover-run role-run-missing failed: Missing run", ctx);
+			await command?.handler("recover-run role-run-2 failed", ctx);
+
+			const recovered = await loadProjectState(statePath);
+			expect(recovered?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "completed",
+			});
+			expect(recovered?.roleRuns[1]).toMatchObject({
+				id: "role-run-2",
+				status: "aborted",
+				errorMessage: "User stopped stale run",
+			});
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Recovered stale role run role-run-2 as aborted: User stopped stale run");
+			expect(visibleText).toContain("Cannot recover role-run-1 because its status is completed.");
+			expect(visibleText).toContain("Usage: /comath recover-run <run-id> <failed|aborted>: <reason>");
+			expect(visibleText).toContain("No role run found for role-run-missing.");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -1153,6 +1429,10 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath timeline");
 			expect(readme).toContain("/comath runs");
 			expect(readme).toContain("/comath run-status");
+			expect(readme).toContain("/comath block");
+			expect(readme).toContain("/comath unblock");
+			expect(readme).toContain("/comath note");
+			expect(readme).toContain("/comath recover-run");
 			expect(readme).toContain("proposedArtifacts");
 			expect(readme.toLowerCase()).toContain("does not establish any mathematical claim");
 			expect(readme.toLowerCase()).toContain("event log");
@@ -1160,6 +1440,9 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("metadata only");
 			expect(readme.toLowerCase()).toContain("workstream lifecycle");
 			expect(readme.toLowerCase()).toContain("role run records");
+			expect(readme.toLowerCase()).toContain("human intervention");
+			expect(readme.toLowerCase()).toContain("stale running");
+			expect(readme.toLowerCase()).toContain("not proof evidence");
 			expect(readme).toContain("blocked");
 			expect(readme).toContain("not asynchronous");
 			expect(readme).toContain("structured JSON");
@@ -1201,6 +1484,9 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("roleRuns");
 			expect(content).toContain("latestRunIds");
 			expect(content).toContain("status");
+			expect(content).toContain("human intervention");
+			expect(content).toContain("stale running");
+			expect(content).toContain("not proof evidence");
 		});
 	});
 });
