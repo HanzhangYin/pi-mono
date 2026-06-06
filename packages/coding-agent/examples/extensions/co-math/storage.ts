@@ -8,17 +8,24 @@ import type {
 	CoMathActor,
 	CoMathEventKind,
 	CoMathProjectState,
+	CoMathRole,
 	Evidence,
 	EvidenceKind,
 	Report,
 	ReviewQueueItem,
+	RoleRunRecord,
 	Warning,
 	WarningSeverity,
 	Workstream,
+	WorkstreamStatus,
 } from "./schema.ts";
 
-type LegacyProjectState = Omit<CoMathProjectState, "artifacts" | "events"> &
-	Partial<Pick<CoMathProjectState, "artifacts" | "events">>;
+type LegacyWorkstream = Omit<Workstream, "latestRunIds" | "status" | "statusReason"> &
+	Partial<Pick<Workstream, "latestRunIds" | "status" | "statusReason">>;
+type LegacyProjectState = Omit<CoMathProjectState, "artifacts" | "events" | "roleRuns" | "workstreams"> &
+	Partial<Pick<CoMathProjectState, "artifacts" | "events" | "roleRuns">> & {
+		workstreams: LegacyWorkstream[];
+	};
 
 export interface CreateEmptyProjectStateInput {
 	projectId: string;
@@ -132,6 +139,45 @@ export interface AddReviewDecisionEventInput {
 	actor?: CoMathActor;
 }
 
+export interface SetWorkstreamStatusInput {
+	workstreamId: string;
+	status: WorkstreamStatus;
+	statusReason?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface StartRoleRunInput {
+	id: string;
+	role: CoMathRole;
+	task: string;
+	targetWorkstreamId?: string;
+	targetClaimId?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface FinishRoleRunInput {
+	runId: string;
+	status: "completed" | "blocked";
+	reportId?: string;
+	createdClaimIds?: string[];
+	createdEvidenceIds?: string[];
+	createdWarningIds?: string[];
+	createdArtifactIds?: string[];
+	blockerMessages?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface FailRoleRunInput {
+	runId: string;
+	status: "failed" | "aborted";
+	errorMessage: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
 interface AppendEventInput {
 	kind: CoMathEventKind;
 	actor?: CoMathActor;
@@ -155,6 +201,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		reports: [],
 		reviewQueue: [],
 		artifacts: [],
+		roleRuns: [],
 		events: [
 			{
 				id: "event-1",
@@ -205,9 +252,11 @@ export function addWorkstream(state: CoMathProjectState, input: AddWorkstreamInp
 	const workstream: Workstream = {
 		id: input.id,
 		title: input.title,
+		status: "active",
 		goalIds: input.goalIds,
 		claimIds: [],
 		latestReportIds: [],
+		latestRunIds: [],
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
@@ -551,6 +600,183 @@ export function addReviewDecisionEvent(
 	});
 }
 
+export function setWorkstreamStatus(state: CoMathProjectState, input: SetWorkstreamStatusInput): CoMathProjectState {
+	const workstream = state.workstreams.find((candidate) => candidate.id === input.workstreamId);
+	if (!workstream) return state;
+	if (workstream.status === input.status && workstream.statusReason === input.statusReason) return state;
+
+	return appendEvent(
+		{
+			...state,
+			workstreams: state.workstreams.map((candidate) => {
+				if (candidate.id !== input.workstreamId) return candidate;
+				const { statusReason: _statusReason, ...rest } = candidate;
+				return {
+					...rest,
+					status: input.status,
+					...(input.statusReason ? { statusReason: input.statusReason } : {}),
+					updatedAt: input.now,
+				};
+			}),
+			updatedAt: input.now,
+		},
+		{
+			kind: "workstream_status_changed",
+			actor: input.actor,
+			summary: `Set ${input.workstreamId} status to ${input.status}`,
+			subjectId: input.workstreamId,
+			now: input.now,
+		},
+	);
+}
+
+export function startRoleRun(state: CoMathProjectState, input: StartRoleRunInput): CoMathProjectState {
+	const run: RoleRunRecord = {
+		id: input.id,
+		role: input.role,
+		status: "running",
+		...(input.targetWorkstreamId ? { targetWorkstreamId: input.targetWorkstreamId } : {}),
+		...(input.targetClaimId ? { targetClaimId: input.targetClaimId } : {}),
+		task: input.task,
+		createdClaimIds: [],
+		createdEvidenceIds: [],
+		createdWarningIds: [],
+		createdArtifactIds: [],
+		blockerMessages: [],
+		startedAt: input.now,
+		updatedAt: input.now,
+	};
+	let nextState = appendEvent(
+		{
+			...state,
+			roleRuns: [...state.roleRuns, run],
+			workstreams: input.targetWorkstreamId
+				? state.workstreams.map((workstream) =>
+						workstream.id === input.targetWorkstreamId
+							? {
+									...workstream,
+									latestRunIds: [...workstream.latestRunIds, input.id],
+									updatedAt: input.now,
+								}
+							: workstream,
+					)
+				: state.workstreams,
+			updatedAt: input.now,
+		},
+		{
+			kind: "role_run_started",
+			actor: input.actor,
+			summary: `Started role run ${input.id}: ${input.role}`,
+			subjectId: input.id,
+			relatedIds: relatedRunTargetIds(run),
+			now: input.now,
+		},
+	);
+	if (input.targetWorkstreamId) {
+		nextState = setWorkstreamStatus(nextState, {
+			workstreamId: input.targetWorkstreamId,
+			status: "running",
+			now: input.now,
+			actor: input.actor,
+		});
+	}
+	return nextState;
+}
+
+export function finishRoleRun(state: CoMathProjectState, input: FinishRoleRunInput): CoMathProjectState {
+	const run = findRoleRun(state, input.runId);
+	const blockerMessages = input.blockerMessages ?? [];
+	let nextState = appendEvent(
+		{
+			...state,
+			roleRuns: state.roleRuns.map((candidate) =>
+				candidate.id === input.runId
+					? {
+							...candidate,
+							status: input.status,
+							...(input.reportId ? { reportId: input.reportId } : {}),
+							createdClaimIds: input.createdClaimIds ?? [],
+							createdEvidenceIds: input.createdEvidenceIds ?? [],
+							createdWarningIds: input.createdWarningIds ?? [],
+							createdArtifactIds: input.createdArtifactIds ?? [],
+							blockerMessages,
+							completedAt: input.now,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: input.status === "completed" ? "role_run_completed" : "role_run_blocked",
+			actor: input.actor,
+			summary:
+				input.status === "completed" ? `Completed role run ${input.runId}` : `Blocked role run ${input.runId}`,
+			subjectId: input.runId,
+			relatedIds: input.reportId ? [input.reportId] : [],
+			now: input.now,
+		},
+	);
+
+	if (run.targetWorkstreamId) {
+		if (input.status === "blocked") {
+			nextState = setWorkstreamStatus(nextState, {
+				workstreamId: run.targetWorkstreamId,
+				status: "blocked",
+				statusReason: blockerMessages[0] ?? "Role run reported blockers.",
+				now: input.now,
+				actor: input.actor,
+			});
+		} else {
+			nextState = setWorkstreamStatus(nextState, {
+				workstreamId: run.targetWorkstreamId,
+				status: (input.createdClaimIds?.length ?? 0) > 0 ? "needs_review" : "active",
+				now: input.now,
+				actor: input.actor,
+			});
+		}
+	}
+	return nextState;
+}
+
+export function failRoleRun(state: CoMathProjectState, input: FailRoleRunInput): CoMathProjectState {
+	const run = findRoleRun(state, input.runId);
+	let nextState = appendEvent(
+		{
+			...state,
+			roleRuns: state.roleRuns.map((candidate) =>
+				candidate.id === input.runId
+					? {
+							...candidate,
+							status: input.status,
+							errorMessage: input.errorMessage,
+							completedAt: input.now,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: input.status === "failed" ? "role_run_failed" : "role_run_aborted",
+			actor: input.actor,
+			summary: input.status === "failed" ? `Failed role run ${input.runId}` : `Aborted role run ${input.runId}`,
+			subjectId: input.runId,
+			now: input.now,
+		},
+	);
+	if (run.targetWorkstreamId) {
+		nextState = setWorkstreamStatus(nextState, {
+			workstreamId: run.targetWorkstreamId,
+			status: "blocked",
+			statusReason: input.errorMessage,
+			now: input.now,
+			actor: input.actor,
+		});
+	}
+	return nextState;
+}
+
 export function isClaimSynthesisEligible(state: CoMathProjectState, claimId: string): boolean {
 	const claim = findClaim(state, claimId);
 	return claim.status === "proved" && hasAttachedProofEvidence(state, claim) && !hasAttachedOpenWarning(state, claim);
@@ -583,8 +809,19 @@ export async function loadProjectState(statePath: string): Promise<CoMathProject
 function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 	return {
 		...value,
+		workstreams: value.workstreams.map(normalizeWorkstream),
 		artifacts: value.artifacts ?? [],
 		events: value.events ?? [],
+		roleRuns: value.roleRuns ?? [],
+	};
+}
+
+function normalizeWorkstream(value: LegacyWorkstream): Workstream {
+	return {
+		...value,
+		status: value.status ?? "active",
+		...(value.statusReason ? { statusReason: value.statusReason } : {}),
+		latestRunIds: value.latestRunIds ?? [],
 	};
 }
 
@@ -617,6 +854,18 @@ function findClaim(state: CoMathProjectState, claimId: string): Claim {
 		throw new Error(`Unknown claim: ${claimId}`);
 	}
 	return claim;
+}
+
+function findRoleRun(state: CoMathProjectState, runId: string): RoleRunRecord {
+	const run = state.roleRuns.find((candidate) => candidate.id === runId);
+	if (!run) {
+		throw new Error(`Unknown role run: ${runId}`);
+	}
+	return run;
+}
+
+function relatedRunTargetIds(run: RoleRunRecord): string[] {
+	return [run.targetWorkstreamId, run.targetClaimId].filter((id) => id !== undefined);
 }
 
 function hasAttachedProofEvidence(state: CoMathProjectState, claim: Claim): boolean {

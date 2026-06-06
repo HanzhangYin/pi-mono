@@ -1,6 +1,6 @@
 # Co-Math Extension Prototype
 
-A minimal research-workspace assistant prototype for keeping a mathematical project state explicit. The extension stores goals, workstreams, claims, evidence, warnings, reports, review queues, artifacts, and events in `.pi/co-math/state.json` under the current working directory.
+A minimal research-workspace assistant prototype for keeping a mathematical project state explicit. The extension stores goals, workstreams, claims, evidence, warnings, reports, review queues, artifacts, events, and role run records in `.pi/co-math/state.json` under the current working directory.
 
 This example is scaffolding only. It does not establish any mathematical claim, prove a theorem, or replace human review. Treat all sample text as placeholder workflow content.
 
@@ -36,10 +36,12 @@ The extension registers:
 /comath run reviewer claim-1
 /comath synthesize
 /comath timeline
+/comath runs
+/comath run-status role-run-1
 /comath status
 ```
 
-The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, an artifact registry, an event log, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
+The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, an artifact registry, an event log, workstream lifecycle status, durable role run records, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
 
 ## Structured role output
 
@@ -48,6 +50,8 @@ Real role prompts ask for structured JSON as the final assistant message. Valid 
 If a role returns malformed output, invalid enum values, or free-form prose, the extension saves it as a report only with a blocker explaining the structured-output failure. Malformed role output does not mutate claims, evidence, warnings, review decisions, or artifacts. This keeps provenance, review discipline, and uncertainty visibility explicit.
 
 The event log is provenance for workspace activity, not a proof certificate. It records actions such as project initialization, role reports, claim proposals, evidence additions, warning changes, artifact recording, and synthesis generation so users can inspect recent history with `/comath timeline`.
+
+Role run records are control-plane provenance, not mathematical proof certificates. A workstream lifecycle can be `active`, `running`, `blocked`, or `needs_review`; `blocked` means a useful mathematical or project obstruction was preserved, not an infrastructure failure. The current prototype records synchronous command runs only and is not asynchronous; background agents, queues, and schedulers are not implemented yet.
 
 ## Role prompts
 

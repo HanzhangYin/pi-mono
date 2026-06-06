@@ -10,7 +10,10 @@ import {
 	addGoal,
 	addReviewDecisionEvent,
 	addWarning,
+	addWorkstream,
 	createEmptyProjectState,
+	failRoleRun,
+	finishRoleRun,
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
@@ -18,6 +21,7 @@ import {
 	saveProjectState,
 	serializeProjectState,
 	setClaimStatus,
+	startRoleRun,
 } from "../examples/extensions/co-math/storage.ts";
 
 const FIXED_NOW = "2026-06-05T12:00:00.000Z";
@@ -59,6 +63,7 @@ describe("co-math project state", () => {
 					createdAt: FIXED_NOW,
 				},
 			],
+			roleRuns: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -82,6 +87,224 @@ describe("co-math project state", () => {
 			},
 		]);
 		expect(state.updatedAt).toBe(FIXED_NOW);
+	});
+
+	it("adds a workstream with active lifecycle defaults", () => {
+		const state = addWorkstream(createProject(), {
+			id: "workstream-endpoints",
+			title: "Analyze endpoint induction",
+			goalIds: ["goal-1"],
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.workstreams).toMatchObject([
+			{
+				id: "workstream-endpoints",
+				title: "Analyze endpoint induction",
+				status: "active",
+				goalIds: ["goal-1"],
+				claimIds: [],
+				latestReportIds: [],
+				latestRunIds: [],
+			},
+		]);
+		expect(state.workstreams[0]?.statusReason).toBeUndefined();
+	});
+
+	it("starts role runs and marks target workstreams running", () => {
+		let state = addWorkstream(createProject(), {
+			id: "workstream-endpoints",
+			title: "Analyze endpoint induction",
+			goalIds: ["goal-1"],
+			now: FIXED_NOW,
+		});
+		state = startRoleRun(state, {
+			id: "role-run-1",
+			role: "workstream",
+			task: "Role: workstream",
+			targetWorkstreamId: "workstream-endpoints",
+			now: FIXED_NOW,
+			actor: "workstream",
+		});
+
+		expect(state.roleRuns).toMatchObject([
+			{
+				id: "role-run-1",
+				role: "workstream",
+				status: "running",
+				targetWorkstreamId: "workstream-endpoints",
+				task: "Role: workstream",
+				createdClaimIds: [],
+				createdEvidenceIds: [],
+				createdWarningIds: [],
+				createdArtifactIds: [],
+				blockerMessages: [],
+				startedAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.workstreams[0]).toMatchObject({
+			id: "workstream-endpoints",
+			status: "running",
+			latestRunIds: ["role-run-1"],
+		});
+		expect(state.events.map((event) => event.kind)).toContain("role_run_started");
+		expect(state.events.map((event) => event.kind)).toContain("workstream_status_changed");
+	});
+
+	it("finishes completed role runs and marks claim-producing workstreams needs_review", () => {
+		let state = addWorkstream(createProject(), {
+			id: "workstream-endpoints",
+			title: "Analyze endpoint induction",
+			goalIds: [],
+			now: FIXED_NOW,
+		});
+		state = startRoleRun(state, {
+			id: "role-run-1",
+			role: "workstream",
+			task: "Role: workstream",
+			targetWorkstreamId: "workstream-endpoints",
+			now: FIXED_NOW,
+		});
+		state = finishRoleRun(state, {
+			runId: "role-run-1",
+			status: "completed",
+			reportId: "report-1",
+			createdClaimIds: ["claim-1"],
+			createdEvidenceIds: ["evidence-1"],
+			createdWarningIds: ["warning-1"],
+			createdArtifactIds: ["artifact-1"],
+			now: FIXED_NOW,
+			actor: "workstream",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			id: "role-run-1",
+			status: "completed",
+			reportId: "report-1",
+			createdClaimIds: ["claim-1"],
+			createdEvidenceIds: ["evidence-1"],
+			createdWarningIds: ["warning-1"],
+			createdArtifactIds: ["artifact-1"],
+			completedAt: FIXED_NOW,
+		});
+		expect(state.workstreams[0]).toMatchObject({
+			status: "needs_review",
+		});
+		expect(state.events.map((event) => event.kind)).toContain("role_run_completed");
+	});
+
+	it("finishes blocked role runs with blockers and marks workstreams blocked", () => {
+		let state = addWorkstream(createProject(), {
+			id: "workstream-endpoints",
+			title: "Analyze endpoint induction",
+			goalIds: [],
+			now: FIXED_NOW,
+		});
+		state = startRoleRun(state, {
+			id: "role-run-1",
+			role: "workstream",
+			task: "Role: workstream",
+			targetWorkstreamId: "workstream-endpoints",
+			now: FIXED_NOW,
+		});
+		state = finishRoleRun(state, {
+			runId: "role-run-1",
+			status: "blocked",
+			reportId: "report-1",
+			blockerMessages: ["Need more small-n data before conjecture is stable."],
+			now: FIXED_NOW,
+			actor: "workstream",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			status: "blocked",
+			reportId: "report-1",
+			blockerMessages: ["Need more small-n data before conjecture is stable."],
+		});
+		expect(state.workstreams[0]).toMatchObject({
+			status: "blocked",
+			statusReason: "Need more small-n data before conjecture is stable.",
+		});
+		expect(state.events.map((event) => event.kind)).toContain("role_run_blocked");
+	});
+
+	it("fails role runs and marks target workstreams blocked", () => {
+		let state = addWorkstream(createProject(), {
+			id: "workstream-endpoints",
+			title: "Analyze endpoint induction",
+			goalIds: [],
+			now: FIXED_NOW,
+		});
+		state = startRoleRun(state, {
+			id: "role-run-1",
+			role: "workstream",
+			task: "Role: workstream",
+			targetWorkstreamId: "workstream-endpoints",
+			now: FIXED_NOW,
+		});
+		state = failRoleRun(state, {
+			runId: "role-run-1",
+			status: "failed",
+			errorMessage: "Role process exited with code 1.",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			status: "failed",
+			errorMessage: "Role process exited with code 1.",
+			completedAt: FIXED_NOW,
+		});
+		expect(state.workstreams[0]).toMatchObject({
+			status: "blocked",
+			statusReason: "Role process exited with code 1.",
+		});
+		expect(state.events.map((event) => event.kind)).toContain("role_run_failed");
+	});
+
+	it("records aborted role runs", () => {
+		let state = startRoleRun(createProject(), {
+			id: "role-run-1",
+			role: "coordinator",
+			task: "Role: coordinator",
+			now: FIXED_NOW,
+		});
+		state = failRoleRun(state, {
+			runId: "role-run-1",
+			status: "aborted",
+			errorMessage: "Co-math role run was aborted.",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			status: "aborted",
+			errorMessage: "Co-math role run was aborted.",
+		});
+		expect(state.events.map((event) => event.kind)).toContain("role_run_aborted");
+	});
+
+	it("throws for missing role run ids without creating fake provenance", () => {
+		const state = createProject();
+
+		expect(() =>
+			finishRoleRun(state, {
+				runId: "role-run-missing",
+				status: "completed",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/Unknown role run/);
+		expect(() =>
+			failRoleRun(state, {
+				runId: "role-run-missing",
+				status: "failed",
+				errorMessage: "Missing run.",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/Unknown role run/);
+		expect(state.events.map((event) => event.kind)).toEqual(["project_initialized"]);
 	});
 
 	it("appends provenance events for goals, claims, evidence, warnings, and status changes", () => {
@@ -450,15 +673,38 @@ describe("co-math project state", () => {
 		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-legacy-"));
 		try {
 			const statePath = getDefaultStatePath(tempDir);
-			const legacyWithoutNewFields = { ...createProject() } as Record<string, unknown>;
+			const legacyState = addWorkstream(createProject(), {
+				id: "workstream-legacy",
+				title: "Legacy workstream",
+				goalIds: [],
+				now: FIXED_NOW,
+			});
+			const legacyWithoutNewFields = {
+				...legacyState,
+				workstreams: legacyState.workstreams.map((workstream) => {
+					const record = { ...workstream } as Record<string, unknown>;
+					delete record.status;
+					delete record.statusReason;
+					delete record.latestRunIds;
+					return record;
+				}),
+			} as Record<string, unknown>;
 			delete legacyWithoutNewFields.artifacts;
 			delete legacyWithoutNewFields.events;
+			delete legacyWithoutNewFields.roleRuns;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
 			const loaded = await loadProjectState(statePath);
 
 			expect(loaded?.artifacts).toEqual([]);
 			expect(loaded?.events).toEqual([]);
+			expect(loaded?.roleRuns).toEqual([]);
+			expect(loaded?.workstreams[0]).toMatchObject({
+				id: "workstream-legacy",
+				status: "active",
+				latestRunIds: [],
+			});
+			expect(loaded?.workstreams[0]?.statusReason).toBeUndefined();
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

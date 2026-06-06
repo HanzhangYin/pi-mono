@@ -5,9 +5,12 @@ import type {
 	Claim,
 	CoMathProjectState,
 	EvidenceKind,
+	RoleRunRecord,
+	RoleRunStatus,
 	Warning,
 	WarningSeverity,
 	Workstream,
+	WorkstreamStatus,
 } from "./schema.ts";
 import {
 	addArtifact,
@@ -22,6 +25,8 @@ import {
 	addWorkstream,
 	attachWorkstreamReport,
 	createEmptyProjectState,
+	failRoleRun,
+	finishRoleRun,
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
@@ -29,6 +34,7 @@ import {
 	resolveWarning,
 	saveProjectState,
 	setClaimStatus,
+	startRoleRun,
 } from "./storage.ts";
 
 const HELP_TEXT = `Co-math assistant commands:
@@ -44,6 +50,8 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath audit - check co-math state invariants without mutating state
 /comath review-queue - list claims and warnings waiting for review
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
+/comath runs - list recent role run records
+/comath run-status <run-id> - show one role run record
 /comath synthesize - produce cautious markdown from reviewed state
 /comath timeline - show recent workspace events
 /comath status - summarize the current co-math project state`;
@@ -129,6 +137,16 @@ async function handleCoMathCommand(
 
 	if (subcommand === "review-queue") {
 		await showReviewQueue(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "runs") {
+		await showRoleRuns(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "run-status") {
+		await showRoleRunStatus(pi, ctx, remainder);
 		return;
 	}
 
@@ -445,6 +463,10 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 	const claimIds = new Set(state.claims.map((claim) => claim.id));
 	const evidenceIds = new Set(state.evidence.map((evidence) => evidence.id));
 	const warningIds = new Set(state.warnings.map((warning) => warning.id));
+	const artifactIds = new Set(state.artifacts.map((artifact) => artifact.id));
+	const reportIds = new Set(state.reports.map((report) => report.id));
+	const roleRunIds = new Set(state.roleRuns.map((run) => run.id));
+	const workstreamIds = new Set(state.workstreams.map((workstream) => workstream.id));
 
 	for (const item of state.reviewQueue) {
 		if (!claimIds.has(item.claimId)) {
@@ -480,6 +502,54 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 		}
 	}
 
+	for (const run of state.roleRuns) {
+		if (run.targetWorkstreamId && !workstreamIds.has(run.targetWorkstreamId)) {
+			problems.push(`${run.id} points to missing workstream ${run.targetWorkstreamId}`);
+		}
+		if (run.targetClaimId && !claimIds.has(run.targetClaimId)) {
+			problems.push(`${run.id} points to missing claim ${run.targetClaimId}`);
+		}
+		if (run.reportId && !reportIds.has(run.reportId)) {
+			problems.push(`${run.id} points to missing report ${run.reportId}`);
+		}
+		for (const claimId of run.createdClaimIds) {
+			if (!claimIds.has(claimId)) {
+				problems.push(`${run.id} references missing created claim ${claimId}`);
+			}
+		}
+		for (const evidenceId of run.createdEvidenceIds) {
+			if (!evidenceIds.has(evidenceId)) {
+				problems.push(`${run.id} references missing created evidence ${evidenceId}`);
+			}
+		}
+		for (const warningId of run.createdWarningIds) {
+			if (!warningIds.has(warningId)) {
+				problems.push(`${run.id} references missing created warning ${warningId}`);
+			}
+		}
+		for (const artifactId of run.createdArtifactIds) {
+			if (!artifactIds.has(artifactId)) {
+				problems.push(`${run.id} references missing created artifact ${artifactId}`);
+			}
+		}
+	}
+
+	const runningWorkstreamIds = new Set(
+		state.roleRuns
+			.filter((run) => run.status === "running" && run.targetWorkstreamId)
+			.map((run) => run.targetWorkstreamId as string),
+	);
+	for (const workstream of state.workstreams) {
+		for (const runId of workstream.latestRunIds) {
+			if (!roleRunIds.has(runId)) {
+				problems.push(`${workstream.id} references missing role run ${runId}`);
+			}
+		}
+		if (workstream.status === "running" && !runningWorkstreamIds.has(workstream.id)) {
+			problems.push(`${workstream.id} is running but has no running role run targeting it`);
+		}
+	}
+
 	return problems;
 }
 
@@ -511,24 +581,65 @@ async function runProjectRole(
 		return;
 	}
 
-	const result = await roleRunner({
-		cwd: ctx.cwd,
+	const task = buildRoleTask(request.role, existing, targetWorkstream, targetClaim);
+	const runId = `role-run-${existing.roleRuns.length + 1}`;
+	const startedAt = new Date().toISOString();
+	const statePath = getDefaultStatePath(ctx.cwd);
+	const startedState = startRoleRun(existing, {
+		id: runId,
 		role: request.role,
-		task: buildRoleTask(request.role, existing, targetWorkstream, targetClaim),
-		signal: ctx.signal,
+		task,
+		targetWorkstreamId: targetWorkstream?.id,
+		targetClaimId: targetClaim?.id,
+		now: startedAt,
+		actor: request.role,
 	});
-	const now = new Date().toISOString();
-	const reportId = `report-${existing.reports.length + 1}`;
-	const state = ingestRoleRunResult(existing, {
-		now,
-		reportId,
-		result,
-		role: request.role,
-		targetClaim,
-		targetWorkstream,
-	});
-	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
-	showCommandMessage(pi, ctx, formatRoleRunMessage(request.role, reportId, result));
+	await saveProjectState(statePath, startedState);
+
+	try {
+		const result = await roleRunner({
+			cwd: ctx.cwd,
+			role: request.role,
+			task,
+			signal: ctx.signal,
+		});
+		const now = new Date().toISOString();
+		const reportId = `report-${startedState.reports.length + 1}`;
+		const ingestion = ingestRoleRunResult(startedState, {
+			now,
+			reportId,
+			result,
+			role: request.role,
+			targetClaim,
+			targetWorkstream,
+		});
+		const finishedState = finishRoleRun(ingestion.state, {
+			runId,
+			status: result.blockers && result.blockers.length > 0 ? "blocked" : "completed",
+			reportId,
+			createdClaimIds: ingestion.createdClaimIds,
+			createdEvidenceIds: ingestion.createdEvidenceIds,
+			createdWarningIds: ingestion.createdWarningIds,
+			createdArtifactIds: ingestion.createdArtifactIds,
+			blockerMessages: result.blockers,
+			now,
+			actor: request.role,
+		});
+		await saveProjectState(statePath, finishedState);
+		showCommandMessage(pi, ctx, formatRoleRunMessage(request.role, reportId, result));
+	} catch (error) {
+		const errorMessage = getRoleRunErrorMessage(error);
+		const now = new Date().toISOString();
+		const failedState = failRoleRun(startedState, {
+			runId,
+			status: isRoleRunAbort(ctx, errorMessage) ? "aborted" : "failed",
+			errorMessage,
+			now,
+			actor: "system",
+		});
+		await saveProjectState(statePath, failedState);
+		showCommandMessage(pi, ctx, `Co-math ${request.role} role run ${runId} failed: ${errorMessage}`);
+	}
 }
 
 interface RoleRunRequest {
@@ -543,6 +654,14 @@ interface IngestRoleRunInput {
 	role: CoMathRole;
 	targetClaim?: Claim;
 	targetWorkstream?: Workstream;
+}
+
+interface IngestRoleRunOutput {
+	state: CoMathProjectState;
+	createdClaimIds: string[];
+	createdEvidenceIds: string[];
+	createdWarningIds: string[];
+	createdArtifactIds: string[];
 }
 
 function parseRoleRunRequest(text: string): RoleRunRequest | undefined {
@@ -563,7 +682,7 @@ function getTargetClaim(state: CoMathProjectState, request: RoleRunRequest): Cla
 	return state.claims.find((claim) => claim.id === request.targetId);
 }
 
-function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInput): CoMathProjectState {
+function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInput): IngestRoleRunOutput {
 	const reportTitle = input.targetWorkstream
 		? `${input.role} role run: ${input.targetWorkstream.id}`
 		: input.targetClaim
@@ -580,10 +699,10 @@ function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInpu
 	nextState = ingestProposedArtifacts(nextState, input);
 
 	if (input.targetClaim && input.result.reviewDecision) {
-		return ingestReviewerDecision(nextState, input);
+		return buildIngestOutput(state, ingestReviewerDecision(nextState, input));
 	}
 
-	if (!input.targetWorkstream) return nextState;
+	if (!input.targetWorkstream) return buildIngestOutput(state, nextState);
 
 	nextState = attachWorkstreamReport(nextState, {
 		workstreamId: input.targetWorkstream.id,
@@ -632,7 +751,17 @@ function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInpu
 		}
 	}
 
-	return nextState;
+	return buildIngestOutput(state, nextState);
+}
+
+function buildIngestOutput(initialState: CoMathProjectState, state: CoMathProjectState): IngestRoleRunOutput {
+	return {
+		state,
+		createdClaimIds: state.claims.slice(initialState.claims.length).map((claim) => claim.id),
+		createdEvidenceIds: state.evidence.slice(initialState.evidence.length).map((evidence) => evidence.id),
+		createdWarningIds: state.warnings.slice(initialState.warnings.length).map((warning) => warning.id),
+		createdArtifactIds: state.artifacts.slice(initialState.artifacts.length).map((artifact) => artifact.id),
+	};
 }
 
 function ingestProposedArtifacts(state: CoMathProjectState, input: IngestRoleRunInput): CoMathProjectState {
@@ -744,6 +873,14 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 
 function uniqueStrings(values: string[]): string[] {
 	return Array.from(new Set(values));
+}
+
+function getRoleRunErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
+function isRoleRunAbort(ctx: ExtensionCommandContext, errorMessage: string): boolean {
+	return ctx.signal?.aborted === true || errorMessage === "Co-math role run was aborted.";
 }
 
 function formatRoleRunMessage(role: CoMathRole, reportId: string, result: RoleRunResult): string {
@@ -953,8 +1090,96 @@ async function showProjectStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			`Open warnings: ${state.warnings.filter((warning) => warning.status === "open").length}`,
 			`Artifacts: ${state.artifacts.length}`,
 			`Events: ${state.events.length}`,
+			"Workstream statuses:",
+			...formatWorkstreamStatusCounts(state),
+			"Role runs:",
+			...formatRoleRunStatusCounts(state),
 		].join("\n"),
 	);
+}
+
+async function showRoleRuns(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+
+	showCommandMessage(pi, ctx, ["Co-math role runs", ...formatRoleRunList(state)].join("\n"));
+}
+
+function formatRoleRunList(state: CoMathProjectState): string[] {
+	if (state.roleRuns.length === 0) return ["No role runs recorded."];
+	return [...state.roleRuns].reverse().map((run) => {
+		const report = run.reportId ? ` -> ${run.reportId}` : "";
+		const blockers = run.blockerMessages.length > 0 ? `\n  blockers: ${run.blockerMessages.join("; ")}` : "";
+		return `- ${run.id} [${run.status}] ${formatRoleRunTarget(run)}${report}${blockers}`;
+	});
+}
+
+async function showRoleRunStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext, runId: string): Promise<void> {
+	if (runId.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath run-status <run-id>");
+		return;
+	}
+
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+
+	const run = state.roleRuns.find((candidate) => candidate.id === runId);
+	if (!run) {
+		showCommandMessage(pi, ctx, `No role run found for ${runId}.`);
+		return;
+	}
+
+	showCommandMessage(pi, ctx, formatRoleRunDetails(run));
+}
+
+function formatRoleRunDetails(run: RoleRunRecord): string {
+	return [
+		run.id,
+		`Role: ${run.role}`,
+		`Status: ${run.status}`,
+		...(run.targetWorkstreamId ? [`Target workstream: ${run.targetWorkstreamId}`] : []),
+		...(run.targetClaimId ? [`Target claim: ${run.targetClaimId}`] : []),
+		`Report: ${run.reportId ?? "none"}`,
+		`Created claims: ${formatIdList(run.createdClaimIds)}`,
+		`Created evidence: ${formatIdList(run.createdEvidenceIds)}`,
+		`Created warnings: ${formatIdList(run.createdWarningIds)}`,
+		`Created artifacts: ${formatIdList(run.createdArtifactIds)}`,
+		"Blockers:",
+		...formatBlockerLines(run.blockerMessages),
+		...(run.errorMessage ? [`Error: ${run.errorMessage}`] : []),
+		`Started: ${run.startedAt}`,
+		`Completed: ${run.completedAt ?? "none"}`,
+	].join("\n");
+}
+
+function formatRoleRunTarget(run: RoleRunRecord): string {
+	if (run.targetWorkstreamId) return `${run.role} ${run.targetWorkstreamId}`;
+	if (run.targetClaimId) return `${run.role} ${run.targetClaimId}`;
+	return run.role;
+}
+
+function formatIdList(ids: string[]): string {
+	return ids.length === 0 ? "none" : ids.join(", ");
+}
+
+function formatBlockerLines(blockers: string[]): string[] {
+	return blockers.length === 0 ? ["- none"] : blockers.map((blocker) => `- ${blocker}`);
+}
+
+function formatWorkstreamStatusCounts(state: CoMathProjectState): string[] {
+	const statuses: WorkstreamStatus[] = ["active", "running", "blocked", "needs_review"];
+	return statuses.map(
+		(status) => `- ${status}: ${state.workstreams.filter((workstream) => workstream.status === status).length}`,
+	);
+}
+
+function formatRoleRunStatusCounts(state: CoMathProjectState): string[] {
+	const statuses: RoleRunStatus[] = ["running", "completed", "blocked", "failed", "aborted"];
+	return statuses.map((status) => `- ${status}: ${state.roleRuns.filter((run) => run.status === status).length}`);
 }
 
 async function showTimeline(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {

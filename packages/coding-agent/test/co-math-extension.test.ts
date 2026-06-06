@@ -366,11 +366,27 @@ describe("co-math extension registration", () => {
 					blockers: ["Need an exact lifting argument before any general statement."],
 				},
 			]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					role: "workstream",
+					status: "blocked",
+					targetWorkstreamId: "workstream-small-examples",
+					reportId: "report-1",
+					createdClaimIds: ["claim-1"],
+					createdEvidenceIds: ["evidence-1"],
+					createdWarningIds: ["warning-1"],
+					blockerMessages: ["Need an exact lifting argument before any general statement."],
+				},
+			]);
 			expect(state?.workstreams).toMatchObject([
 				{
 					id: "workstream-small-examples",
+					status: "blocked",
+					statusReason: "Need an exact lifting argument before any general statement.",
 					claimIds: ["claim-1"],
 					latestReportIds: ["report-1"],
+					latestRunIds: ["role-run-1"],
 				},
 			]);
 			expect(state?.claims).toMatchObject([
@@ -409,6 +425,127 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("records completed workstream role runs without created claims", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-completed-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream checked setup notes without proposing claims.",
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve run records", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					role: "workstream",
+					status: "completed",
+					targetWorkstreamId: "workstream-endpoints",
+					reportId: "report-1",
+					createdClaimIds: [],
+					blockerMessages: [],
+				},
+			]);
+			expect(state?.workstreams[0]).toMatchObject({
+				id: "workstream-endpoints",
+				status: "active",
+				latestRunIds: ["role-run-1"],
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("records failed role runs without creating reports", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-failed-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					throw new Error("Role process exited with code 1.");
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve failed runs", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					role: "workstream",
+					status: "failed",
+					targetWorkstreamId: "workstream-endpoints",
+					errorMessage: "Role process exited with code 1.",
+				},
+			]);
+			expect(state?.workstreams[0]).toMatchObject({
+				status: "blocked",
+				statusReason: "Role process exited with code 1.",
+			});
+			expect(notifications.join("\n")).toContain("Co-math workstream role run role-run-1 failed");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("displays role run lists, role run details, and lifecycle status counts", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-display-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream created one claim for run display.",
+					proposedClaims: [
+						{
+							statement: "Run records should expose created claim ids.",
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Display role runs", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("runs", ctx);
+			await command?.handler("run-status role-run-1", ctx);
+			await command?.handler("run-status role-run-missing", ctx);
+			await command?.handler("status", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math role runs");
+			expect(visibleText).toContain("role-run-1 [completed] workstream workstream-endpoints -> report-1");
+			expect(visibleText).toContain("Role: workstream");
+			expect(visibleText).toContain("Status: completed");
+			expect(visibleText).toContain("Target workstream: workstream-endpoints");
+			expect(visibleText).toContain("Report: report-1");
+			expect(visibleText).toContain("Created claims: claim-1");
+			expect(visibleText).toContain("No role run found for role-run-missing.");
+			expect(visibleText).toContain("Workstream statuses:");
+			expect(visibleText).toContain("- needs_review: 1");
+			expect(visibleText).toContain("Role runs:");
+			expect(visibleText).toContain("- completed: 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("ingests structured role artifacts linked to the saved report and target workstream", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-artifact-"));
 		try {
@@ -435,6 +572,16 @@ describe("co-math extension registration", () => {
 			await command?.handler("run workstream workstream-endpoints", ctx);
 
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns).toMatchObject([
+				expect.objectContaining({
+					id: "role-run-1",
+					role: "workstream",
+					status: "completed",
+					targetWorkstreamId: "workstream-endpoints",
+					reportId: "report-1",
+					createdArtifactIds: ["artifact-1"],
+				}),
+			]);
 			expect(state?.artifacts).toMatchObject([
 				{
 					id: "artifact-1",
@@ -619,6 +766,15 @@ describe("co-math extension registration", () => {
 			expect(state).toBeDefined();
 			const malformedState: CoMathProjectState = {
 				...(state as CoMathProjectState),
+				workstreams: (state as CoMathProjectState).workstreams.map((workstream) =>
+					workstream.id === "workstream-notes"
+						? {
+								...workstream,
+								status: "running",
+								latestRunIds: ["role-run-missing"],
+							}
+						: workstream,
+				),
 				reviewQueue: [
 					...(state as CoMathProjectState).reviewQueue,
 					{
@@ -640,6 +796,26 @@ describe("co-math extension registration", () => {
 						updatedAt: "2026-06-05T12:00:00.000Z",
 					},
 				],
+				roleRuns: [
+					...(state as CoMathProjectState).roleRuns,
+					{
+						id: "role-run-broken",
+						role: "workstream",
+						status: "completed",
+						targetWorkstreamId: "workstream-missing",
+						targetClaimId: "claim-missing",
+						task: "Role: workstream",
+						reportId: "report-missing",
+						createdClaimIds: ["claim-missing"],
+						createdEvidenceIds: ["evidence-missing"],
+						createdWarningIds: ["warning-missing"],
+						createdArtifactIds: ["artifact-missing"],
+						blockerMessages: [],
+						startedAt: "2026-06-05T12:00:00.000Z",
+						completedAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
 			};
 			await saveProjectState(getDefaultStatePath(tempDir), malformedState);
 
@@ -649,6 +825,15 @@ describe("co-math extension registration", () => {
 			expect(audit).toContain("Co-math audit");
 			expect(audit).toContain("review-ghost points to missing claim claim-missing");
 			expect(audit).toContain("warning-ghost points to missing claim claim-missing");
+			expect(audit).toContain("role-run-broken points to missing workstream workstream-missing");
+			expect(audit).toContain("role-run-broken points to missing claim claim-missing");
+			expect(audit).toContain("role-run-broken points to missing report report-missing");
+			expect(audit).toContain("role-run-broken references missing created claim claim-missing");
+			expect(audit).toContain("role-run-broken references missing created evidence evidence-missing");
+			expect(audit).toContain("role-run-broken references missing created warning warning-missing");
+			expect(audit).toContain("role-run-broken references missing created artifact artifact-missing");
+			expect(audit).toContain("workstream-notes references missing role run role-run-missing");
+			expect(audit).toContain("workstream-notes is running but has no running role run targeting it");
 			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(malformedState);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
@@ -739,6 +924,22 @@ describe("co-math extension registration", () => {
 				status: "resolved",
 			});
 			expect(state?.reviewQueue).toEqual([]);
+			expect(state?.roleRuns).toMatchObject([
+				expect.objectContaining({
+					id: "role-run-1",
+					role: "workstream",
+					targetWorkstreamId: "workstream-small-examples",
+					reportId: "report-1",
+				}),
+				expect.objectContaining({
+					id: "role-run-2",
+					role: "reviewer",
+					status: "completed",
+					targetClaimId: "claim-1",
+					reportId: "report-2",
+					createdEvidenceIds: ["evidence-2"],
+				}),
+			]);
 			const synthesis = notifications.at(-1) ?? "";
 			expect(synthesis).toContain("claim-1: Endpoint monotonicity follows for the toy class.");
 			expect(synthesis).toContain("proof: Reviewer checked the lifting argument beyond the finite cases.");
@@ -950,11 +1151,17 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath artifact");
 			expect(readme).toContain("/comath artifacts");
 			expect(readme).toContain("/comath timeline");
+			expect(readme).toContain("/comath runs");
+			expect(readme).toContain("/comath run-status");
 			expect(readme).toContain("proposedArtifacts");
 			expect(readme.toLowerCase()).toContain("does not establish any mathematical claim");
 			expect(readme.toLowerCase()).toContain("event log");
 			expect(readme.toLowerCase()).toContain("artifact registry");
 			expect(readme.toLowerCase()).toContain("metadata only");
+			expect(readme.toLowerCase()).toContain("workstream lifecycle");
+			expect(readme.toLowerCase()).toContain("role run records");
+			expect(readme).toContain("blocked");
+			expect(readme).toContain("not asynchronous");
 			expect(readme).toContain("structured JSON");
 			expect(readme).toContain("report only");
 			expect(readme).toContain("malformed");
@@ -991,6 +1198,9 @@ describe("co-math extension registration", () => {
 
 			expect(content).toContain("events");
 			expect(content).toContain("artifacts");
+			expect(content).toContain("roleRuns");
+			expect(content).toContain("latestRunIds");
+			expect(content).toContain("status");
 		});
 	});
 });

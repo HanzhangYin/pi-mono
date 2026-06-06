@@ -3,6 +3,9 @@ export type ClaimStatus = "draft" | "proof_sketch" | "needs_review" | "proved" |
 export type EvidenceKind = "proof" | "computation" | "reference" | "counterexample" | "note";
 export type WarningSeverity = "low" | "medium" | "high";
 export type WarningStatus = "open" | "resolved";
+export type WorkstreamStatus = "active" | "running" | "blocked" | "needs_review";
+export type RoleRunStatus = "running" | "completed" | "blocked" | "failed" | "aborted";
+export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -17,7 +20,13 @@ export type CoMathEventKind =
 	| "review_decision_recorded"
 	| "claim_status_changed"
 	| "synthesis_generated"
-	| "artifact_recorded";
+	| "artifact_recorded"
+	| "role_run_started"
+	| "role_run_completed"
+	| "role_run_blocked"
+	| "role_run_failed"
+	| "role_run_aborted"
+	| "workstream_status_changed";
 export type ArtifactKind =
 	| "computation"
 	| "latex_note"
@@ -41,9 +50,12 @@ export interface ApprovedGoal {
 export interface Workstream {
 	id: string;
 	title: string;
+	status: WorkstreamStatus;
+	statusReason?: string;
 	goalIds: string[];
 	claimIds: string[];
 	latestReportIds: string[];
+	latestRunIds: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -118,6 +130,25 @@ export interface ArtifactRecord {
 	updatedAt: string;
 }
 
+export interface RoleRunRecord {
+	id: string;
+	role: CoMathRole;
+	status: RoleRunStatus;
+	targetWorkstreamId?: string;
+	targetClaimId?: string;
+	task: string;
+	reportId?: string;
+	createdClaimIds: string[];
+	createdEvidenceIds: string[];
+	createdWarningIds: string[];
+	createdArtifactIds: string[];
+	blockerMessages: string[];
+	errorMessage?: string;
+	startedAt: string;
+	completedAt?: string;
+	updatedAt: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -132,5 +163,6 @@ export interface CoMathProjectState {
 	reviewQueue: ReviewQueueItem[];
 	artifacts: ArtifactRecord[];
 	events: CoMathEvent[];
+	roleRuns: RoleRunRecord[];
 	updatedAt: string;
 }
