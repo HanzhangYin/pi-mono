@@ -25,8 +25,10 @@ import type {
 
 type LegacyWorkstream = Omit<Workstream, "latestRunIds" | "status" | "statusReason"> &
 	Partial<Pick<Workstream, "latestRunIds" | "status" | "statusReason">>;
+type LegacyRoleRun = Omit<RoleRunRecord, "queuedAt"> & Partial<Pick<RoleRunRecord, "queuedAt">>;
 type LegacyProjectState = Omit<CoMathProjectState, "artifacts" | "events" | "roleRuns" | "workstreams"> &
-	Partial<Pick<CoMathProjectState, "artifacts" | "events" | "roleRuns" | "reviewRounds" | "claimRevisions">> & {
+	Partial<Omit<Pick<CoMathProjectState, "artifacts" | "events" | "reviewRounds" | "claimRevisions">, "roleRuns">> & {
+		roleRuns?: LegacyRoleRun[];
 		workstreams: LegacyWorkstream[];
 	};
 
@@ -160,6 +162,22 @@ export interface StartRoleRunInput {
 	actor?: CoMathActor;
 }
 
+export interface QueueRoleRunInput {
+	id: string;
+	role: CoMathRole;
+	task: string;
+	targetWorkstreamId?: string;
+	targetClaimId?: string;
+	now: string;
+	actor: CoMathActor;
+}
+
+export interface DispatchQueuedRoleRunInput {
+	runId: string;
+	now: string;
+	actor: CoMathActor;
+}
+
 export interface FinishRoleRunInput {
 	runId: string;
 	status: "completed" | "blocked";
@@ -179,6 +197,13 @@ export interface FailRoleRunInput {
 	errorMessage: string;
 	now: string;
 	actor?: CoMathActor;
+}
+
+export interface CancelQueuedRoleRunInput {
+	runId: string;
+	reason: string;
+	now: string;
+	actor: CoMathActor;
 }
 
 export interface RecordHumanInterventionEventInput {
@@ -679,6 +704,7 @@ export function startRoleRun(state: CoMathProjectState, input: StartRoleRunInput
 		createdWarningIds: [],
 		createdArtifactIds: [],
 		blockerMessages: [],
+		queuedAt: input.now,
 		startedAt: input.now,
 		updatedAt: input.now,
 	};
@@ -711,6 +737,93 @@ export function startRoleRun(state: CoMathProjectState, input: StartRoleRunInput
 	if (input.targetWorkstreamId) {
 		nextState = setWorkstreamStatus(nextState, {
 			workstreamId: input.targetWorkstreamId,
+			status: "running",
+			now: input.now,
+			actor: input.actor,
+		});
+	}
+	return nextState;
+}
+
+export function queueRoleRun(state: CoMathProjectState, input: QueueRoleRunInput): CoMathProjectState {
+	const run: RoleRunRecord = {
+		id: input.id,
+		role: input.role,
+		status: "queued",
+		...(input.targetWorkstreamId ? { targetWorkstreamId: input.targetWorkstreamId } : {}),
+		...(input.targetClaimId ? { targetClaimId: input.targetClaimId } : {}),
+		task: input.task,
+		createdClaimIds: [],
+		createdEvidenceIds: [],
+		createdWarningIds: [],
+		createdArtifactIds: [],
+		blockerMessages: [],
+		queuedAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			roleRuns: [...state.roleRuns, run],
+			workstreams: input.targetWorkstreamId
+				? state.workstreams.map((workstream) =>
+						workstream.id === input.targetWorkstreamId
+							? {
+									...workstream,
+									latestRunIds: [...workstream.latestRunIds, input.id],
+									updatedAt: input.now,
+								}
+							: workstream,
+					)
+				: state.workstreams,
+			updatedAt: input.now,
+		},
+		{
+			kind: "role_run_queued",
+			actor: input.actor,
+			summary: `Queued role run ${input.id}: ${input.role}`,
+			subjectId: input.id,
+			relatedIds: relatedRunTargetIds(run),
+			now: input.now,
+		},
+	);
+}
+
+export function dispatchQueuedRoleRun(
+	state: CoMathProjectState,
+	input: DispatchQueuedRoleRunInput,
+): CoMathProjectState {
+	const run = findRoleRun(state, input.runId);
+	if (run.status !== "queued") {
+		throw new Error(`Cannot dispatch role run ${input.runId} because it is ${run.status}.`);
+	}
+	let nextState = appendEvent(
+		{
+			...state,
+			roleRuns: state.roleRuns.map((candidate) =>
+				candidate.id === input.runId
+					? {
+							...candidate,
+							status: "running",
+							startedAt: input.now,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "role_run_started",
+			actor: input.actor,
+			summary: `Started role run ${input.runId}: ${run.role}`,
+			subjectId: input.runId,
+			relatedIds: relatedRunTargetIds(run),
+			now: input.now,
+		},
+	);
+	if (run.targetWorkstreamId) {
+		nextState = setWorkstreamStatus(nextState, {
+			workstreamId: run.targetWorkstreamId,
 			status: "running",
 			now: input.now,
 			actor: input.actor,
@@ -817,6 +930,43 @@ export function failRoleRun(state: CoMathProjectState, input: FailRoleRunInput):
 		});
 	}
 	return nextState;
+}
+
+export function cancelQueuedRoleRun(state: CoMathProjectState, input: CancelQueuedRoleRunInput): CoMathProjectState {
+	const run = findRoleRun(state, input.runId);
+	if (run.status !== "queued") {
+		throw new Error(`Cannot cancel role run ${input.runId} because it is ${run.status}.`);
+	}
+	const reason = input.reason.trim();
+	if (!reason) {
+		throw new Error("Cancelling a queued role run requires a reason.");
+	}
+	return appendEvent(
+		{
+			...state,
+			roleRuns: state.roleRuns.map((candidate) =>
+				candidate.id === input.runId
+					? {
+							...candidate,
+							status: "cancelled",
+							completedAt: input.now,
+							cancelledAt: input.now,
+							cancelReason: reason,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "role_run_cancelled",
+			actor: input.actor,
+			summary: `Cancelled role run ${input.runId}: ${reason}`,
+			subjectId: input.runId,
+			relatedIds: relatedRunTargetIds(run),
+			now: input.now,
+		},
+	);
 }
 
 export function recordHumanInterventionEvent(
@@ -959,7 +1109,7 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		workstreams: value.workstreams.map(normalizeWorkstream),
 		artifacts: value.artifacts ?? [],
 		events: value.events ?? [],
-		roleRuns: value.roleRuns ?? [],
+		roleRuns: (value.roleRuns ?? []).map(normalizeRoleRun),
 		reviewRounds: value.reviewRounds ?? [],
 		claimRevisions: value.claimRevisions ?? [],
 	};
@@ -971,6 +1121,13 @@ function normalizeWorkstream(value: LegacyWorkstream): Workstream {
 		status: value.status ?? "active",
 		...(value.statusReason ? { statusReason: value.statusReason } : {}),
 		latestRunIds: value.latestRunIds ?? [],
+	};
+}
+
+function normalizeRoleRun(value: LegacyRoleRun): RoleRunRecord {
+	return {
+		...value,
+		queuedAt: value.queuedAt ?? value.startedAt ?? value.updatedAt,
 	};
 }
 

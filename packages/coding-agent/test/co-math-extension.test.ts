@@ -587,6 +587,225 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("queues role runs without invoking the role runner", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-queue-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					throw new Error("role runner should not be invoked while queueing");
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("queue workstream workstream-endpoints", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					role: "workstream",
+					status: "queued",
+					targetWorkstreamId: "workstream-endpoints",
+				},
+			]);
+			expect(state?.roleRuns[0]?.startedAt).toBeUndefined();
+			expect(notifications.join("\n")).toContain("Queued co-math workstream as role-run-1 for later dispatch.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("dispatches the oldest queued role run", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-dispatch-next-"));
+		const roleInvocations: RoleRunInputForTest[] = [];
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					roleInvocations.push(input);
+					return { summary: `Dispatched ${input.role}.` };
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("queue synthesizer", ctx);
+			await command?.handler("dispatch-next", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(roleInvocations).toHaveLength(1);
+			expect(roleInvocations[0]).toMatchObject({ role: "coordinator" });
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					role: "coordinator",
+					status: "completed",
+					reportId: "report-1",
+				},
+				{
+					id: "role-run-2",
+					role: "synthesizer",
+					status: "queued",
+				},
+			]);
+			expect(notifications.join("\n")).toContain("Ran co-math coordinator and saved report report-1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("dispatches a specific queued role run by id", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-dispatch-run-"));
+		const roleInvocations: RoleRunInputForTest[] = [];
+		try {
+			const { commands } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					roleInvocations.push(input);
+					return { summary: `Dispatched ${input.role}.` };
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("queue synthesizer", ctx);
+			await command?.handler("dispatch-run role-run-2", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(roleInvocations).toHaveLength(1);
+			expect(roleInvocations[0]).toMatchObject({ role: "synthesizer" });
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					status: "queued",
+				},
+				{
+					id: "role-run-2",
+					role: "synthesizer",
+					status: "completed",
+					reportId: "report-1",
+				},
+			]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("cancels queued role runs with provenance and without invoking the role runner", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-cancel-queued-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					throw new Error("role runner should not be invoked while cancelling");
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("cancel-run role-run-1: Human chose a narrower decomposition", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "cancelled",
+				cancelReason: "Human chose a narrower decomposition",
+			});
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "role_run_cancelled",
+						actor: "human",
+						subjectId: "role-run-1",
+					}),
+					expect.objectContaining({
+						kind: "human_intervention_recorded",
+						actor: "human",
+						subjectId: "role-run-1",
+						summary: "Cancelled queued role run role-run-1: Human chose a narrower decomposition",
+					}),
+				]),
+			);
+			expect(notifications.join("\n")).toContain(
+				"Cancelled queued role run role-run-1: Human chose a narrower decomposition",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("refuses to cancel non-queued role runs", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-cancel-nonqueued-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({ summary: "Immediate run completed." }),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("run coordinator", ctx);
+			await command?.handler("cancel-run role-run-1: Should not cancel completed run", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "completed",
+				reportId: "report-1",
+			});
+			expect(notifications.join("\n")).toContain(
+				"Cannot cancel role-run-1 because its status is completed. Use /comath recover-run for stale running runs.",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("displays queued and cancelled role run status fields", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-queued-display-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("queue synthesizer", ctx);
+			await command?.handler("cancel-run role-run-2: Superseded by coordinator queue item", ctx);
+			await command?.handler("runs", ctx);
+			await command?.handler("run-status role-run-1", ctx);
+			await command?.handler("run-status role-run-2", ctx);
+			await command?.handler("status", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("role-run-1 [queued] coordinator");
+			expect(visibleText).toContain("role-run-2 [cancelled] synthesizer");
+			expect(visibleText).toContain("Queued:");
+			expect(visibleText).toContain("Started: none");
+			expect(visibleText).toContain("Cancelled:");
+			expect(visibleText).toContain("Cancel reason: Superseded by coordinator queue item");
+			expect(visibleText).toContain("- queued: 1");
+			expect(visibleText).toContain("- cancelled: 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("ingests structured role artifacts linked to the saved report and target workstream", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-artifact-"));
 		try {
@@ -1088,6 +1307,7 @@ describe("co-math extension registration", () => {
 						createdWarningIds: ["warning-missing"],
 						createdArtifactIds: ["artifact-missing"],
 						blockerMessages: [],
+						queuedAt: "2026-06-05T12:00:00.000Z",
 						startedAt: "2026-06-05T12:00:00.000Z",
 						completedAt: "2026-06-05T12:00:00.000Z",
 						updatedAt: "2026-06-05T12:00:00.000Z",
@@ -1147,6 +1367,81 @@ describe("co-math extension registration", () => {
 			expect(audit).toContain("claim-revision-broken points to missing claim claim-missing");
 			expect(audit).toContain("workstream-notes references missing role run role-run-missing");
 			expect(audit).toContain("workstream-notes is running but has no running role run targeting it");
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(malformedState);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("audits suspicious queued and cancelled role run records without mutating state", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-audit-queued-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state).toBeDefined();
+			const malformedState: CoMathProjectState = {
+				...(state as CoMathProjectState),
+				workstreams: (state as CoMathProjectState).workstreams.map((workstream) =>
+					workstream.id === "workstream-endpoints"
+						? {
+								...workstream,
+								latestRunIds: [],
+							}
+						: workstream,
+				),
+				roleRuns: [
+					{
+						id: "role-run-queued-broken",
+						role: "workstream",
+						status: "queued",
+						targetWorkstreamId: "workstream-endpoints",
+						task: "Role: workstream",
+						reportId: "report-missing",
+						createdClaimIds: ["claim-missing"],
+						createdEvidenceIds: ["evidence-missing"],
+						createdWarningIds: ["warning-missing"],
+						createdArtifactIds: ["artifact-missing"],
+						blockerMessages: [],
+						queuedAt: "2026-06-05T12:00:00.000Z",
+						startedAt: "2026-06-05T12:01:00.000Z",
+						updatedAt: "2026-06-05T12:01:00.000Z",
+					},
+					{
+						id: "role-run-cancelled-broken",
+						role: "coordinator",
+						status: "cancelled",
+						task: "Role: coordinator",
+						reportId: "report-missing",
+						createdClaimIds: ["claim-missing"],
+						createdEvidenceIds: ["evidence-missing"],
+						createdWarningIds: ["warning-missing"],
+						createdArtifactIds: ["artifact-missing"],
+						blockerMessages: [],
+						queuedAt: "2026-06-05T12:00:00.000Z",
+						cancelledAt: "2026-06-05T12:01:00.000Z",
+						completedAt: "2026-06-05T12:01:00.000Z",
+						updatedAt: "2026-06-05T12:01:00.000Z",
+					},
+				],
+			};
+			await saveProjectState(getDefaultStatePath(tempDir), malformedState);
+
+			await command?.handler("audit", ctx);
+
+			const audit = notifications.at(-1) ?? "";
+			expect(audit).toContain("role-run-queued-broken is queued but has startedAt set");
+			expect(audit).toContain("role-run-queued-broken is queued but has report or created output ids");
+			expect(audit).toContain(
+				"role-run-queued-broken targets workstream workstream-endpoints but is missing from latestRunIds",
+			);
+			expect(audit).toContain("role-run-cancelled-broken is cancelled but has no cancel reason");
+			expect(audit).toContain("role-run-cancelled-broken is cancelled but has report or created output ids");
 			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(malformedState);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
@@ -1910,6 +2205,10 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath timeline");
 			expect(readme).toContain("/comath runs");
 			expect(readme).toContain("/comath run-status");
+			expect(readme).toContain("/comath queue");
+			expect(readme).toContain("/comath dispatch-next");
+			expect(readme).toContain("/comath dispatch-run");
+			expect(readme).toContain("/comath cancel-run");
 			expect(readme).toContain("/comath block");
 			expect(readme).toContain("/comath unblock");
 			expect(readme).toContain("/comath note");
@@ -1921,6 +2220,8 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("metadata only");
 			expect(readme.toLowerCase()).toContain("workstream lifecycle");
 			expect(readme.toLowerCase()).toContain("role run records");
+			expect(readme.toLowerCase()).toContain("queued");
+			expect(readme.toLowerCase()).toContain("cancelled");
 			expect(readme.toLowerCase()).toContain("human intervention");
 			expect(readme.toLowerCase()).toContain("stale running");
 			expect(readme.toLowerCase()).toContain("not proof evidence");
@@ -1966,6 +2267,8 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("events");
 			expect(content).toContain("artifacts");
 			expect(content).toContain("roleRuns");
+			expect(content).toContain("queued");
+			expect(content).toContain("cancelled");
 			expect(content).toContain("latestRunIds");
 			expect(content).toContain("status");
 			expect(content).toContain("human intervention");

@@ -12,12 +12,15 @@ import {
 	addReviewRound,
 	addWarning,
 	addWorkstream,
+	cancelQueuedRoleRun,
 	createEmptyProjectState,
+	dispatchQueuedRoleRun,
 	failRoleRun,
 	finishRoleRun,
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
+	queueRoleRun,
 	recordHumanInterventionEvent,
 	resolveWarning,
 	reviseClaim,
@@ -156,6 +159,151 @@ describe("co-math project state", () => {
 		});
 		expect(state.events.map((event) => event.kind)).toContain("role_run_started");
 		expect(state.events.map((event) => event.kind)).toContain("workstream_status_changed");
+	});
+
+	it("queues role runs without marking target workstreams running", () => {
+		let state = addWorkstream(createProject(), {
+			id: "workstream-endpoints",
+			title: "Analyze endpoint induction",
+			goalIds: [],
+			now: FIXED_NOW,
+		});
+		state = queueRoleRun(state, {
+			id: "role-run-1",
+			role: "workstream",
+			task: "Role: workstream",
+			targetWorkstreamId: "workstream-endpoints",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.roleRuns).toMatchObject([
+			{
+				id: "role-run-1",
+				role: "workstream",
+				status: "queued",
+				targetWorkstreamId: "workstream-endpoints",
+				task: "Role: workstream",
+				queuedAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+				createdClaimIds: [],
+				createdEvidenceIds: [],
+				createdWarningIds: [],
+				createdArtifactIds: [],
+				blockerMessages: [],
+			},
+		]);
+		expect(state.roleRuns[0]?.startedAt).toBeUndefined();
+		expect(state.workstreams[0]).toMatchObject({
+			id: "workstream-endpoints",
+			status: "active",
+			latestRunIds: ["role-run-1"],
+		});
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "role_run_queued",
+			actor: "human",
+			subjectId: "role-run-1",
+			relatedIds: ["workstream-endpoints"],
+		});
+	});
+
+	it("dispatches only queued role runs", () => {
+		let state = queueRoleRun(createProject(), {
+			id: "role-run-1",
+			role: "coordinator",
+			task: "Role: coordinator",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = dispatchQueuedRoleRun(state, {
+			runId: "role-run-1",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "coordinator",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			id: "role-run-1",
+			status: "running",
+			queuedAt: FIXED_NOW,
+			startedAt: "2026-06-05T12:05:00.000Z",
+			updatedAt: "2026-06-05T12:05:00.000Z",
+		});
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "role_run_started",
+			actor: "coordinator",
+			subjectId: "role-run-1",
+		});
+		expect(() =>
+			dispatchQueuedRoleRun(state, {
+				runId: "role-run-1",
+				now: "2026-06-05T12:06:00.000Z",
+				actor: "coordinator",
+			}),
+		).toThrow(/because it is running/);
+		expect(() =>
+			dispatchQueuedRoleRun(state, {
+				runId: "role-run-missing",
+				now: "2026-06-05T12:06:00.000Z",
+				actor: "coordinator",
+			}),
+		).toThrow(/Unknown role run/);
+	});
+
+	it("cancels only queued role runs and preserves the reason", () => {
+		let state = queueRoleRun(createProject(), {
+			id: "role-run-1",
+			role: "coordinator",
+			task: "Role: coordinator",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = cancelQueuedRoleRun(state, {
+			runId: "role-run-1",
+			reason: "Human chose a different decomposition.",
+			now: "2026-06-05T12:07:00.000Z",
+			actor: "human",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			id: "role-run-1",
+			status: "cancelled",
+			queuedAt: FIXED_NOW,
+			cancelledAt: "2026-06-05T12:07:00.000Z",
+			completedAt: "2026-06-05T12:07:00.000Z",
+			cancelReason: "Human chose a different decomposition.",
+			updatedAt: "2026-06-05T12:07:00.000Z",
+		});
+		expect(state.roleRuns[0]?.startedAt).toBeUndefined();
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "role_run_cancelled",
+			actor: "human",
+			subjectId: "role-run-1",
+		});
+		expect(() =>
+			cancelQueuedRoleRun(state, {
+				runId: "role-run-1",
+				reason: "Already cancelled.",
+				now: "2026-06-05T12:08:00.000Z",
+				actor: "human",
+			}),
+		).toThrow(/because it is cancelled/);
+		expect(() =>
+			cancelQueuedRoleRun(
+				queueRoleRun(createProject(), {
+					id: "role-run-2",
+					role: "coordinator",
+					task: "Role: coordinator",
+					now: FIXED_NOW,
+					actor: "human",
+				}),
+				{
+					runId: "role-run-2",
+					reason: "",
+					now: "2026-06-05T12:08:00.000Z",
+					actor: "human",
+				},
+			),
+		).toThrow(/reason/i);
 	});
 
 	it("finishes completed role runs and marks claim-producing workstreams needs_review", () => {
@@ -933,6 +1081,43 @@ describe("co-math project state", () => {
 				latestRunIds: [],
 			});
 			expect(loaded?.workstreams[0]?.statusReason).toBeUndefined();
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes legacy role runs with queuedAt without changing status", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-legacy-runs-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			const legacyState = startRoleRun(createProject(), {
+				id: "role-run-1",
+				role: "coordinator",
+				task: "Role: coordinator",
+				now: FIXED_NOW,
+				actor: "coordinator",
+			});
+			const legacyWithoutQueuedAt = {
+				...legacyState,
+				roleRuns: legacyState.roleRuns.map((run) => {
+					const record = { ...run } as Record<string, unknown>;
+					delete record.queuedAt;
+					return record;
+				}),
+			};
+			await saveProjectState(statePath, legacyWithoutQueuedAt as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+
+			expect(loaded?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					status: "running",
+					queuedAt: FIXED_NOW,
+					startedAt: FIXED_NOW,
+				},
+			]);
+			expect(loaded?.roleRuns[0]?.status).not.toBe("queued");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

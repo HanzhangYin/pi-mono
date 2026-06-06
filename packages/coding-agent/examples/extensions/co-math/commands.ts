@@ -32,12 +32,15 @@ import {
 	addWarning,
 	addWorkstream,
 	attachWorkstreamReport,
+	cancelQueuedRoleRun,
 	createEmptyProjectState,
+	dispatchQueuedRoleRun,
 	failRoleRun,
 	finishRoleRun,
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
+	queueRoleRun,
 	recordHumanInterventionEvent,
 	removeReviewQueueItemsForClaim,
 	resolveWarning,
@@ -67,6 +70,10 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath revise-claim <claim-id>: <new statement> --reason <reason> - revise a claim and return it to review
 /comath claim-history <claim-id> - show claim revision and review history
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
+/comath queue <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - queue a bounded role run without executing it
+/comath dispatch-next - dispatch the oldest queued role run
+/comath dispatch-run <run-id> - dispatch a specific queued role run
+/comath cancel-run <run-id>: <reason> - cancel a queued role run before dispatch
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
 /comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
@@ -165,6 +172,26 @@ async function handleCoMathCommand(
 
 	if (subcommand === "run") {
 		await runProjectRole(pi, ctx, remainder, roleRunner);
+		return;
+	}
+
+	if (subcommand === "queue") {
+		await queueProjectRole(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "dispatch-next") {
+		await dispatchNextQueuedRoleRun(pi, ctx, roleRunner);
+		return;
+	}
+
+	if (subcommand === "dispatch-run") {
+		await dispatchSpecificQueuedRoleRun(pi, ctx, remainder, roleRunner);
+		return;
+	}
+
+	if (subcommand === "cancel-run") {
+		await cancelQueuedProjectRole(pi, ctx, remainder);
 		return;
 	}
 
@@ -735,6 +762,12 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 		if (run.targetWorkstreamId && !workstreamIds.has(run.targetWorkstreamId)) {
 			problems.push(`${run.id} points to missing workstream ${run.targetWorkstreamId}`);
 		}
+		if (run.status === "queued" && run.targetWorkstreamId) {
+			const workstream = state.workstreams.find((candidate) => candidate.id === run.targetWorkstreamId);
+			if (workstream && !workstream.latestRunIds.includes(run.id)) {
+				problems.push(`${run.id} targets workstream ${run.targetWorkstreamId} but is missing from latestRunIds`);
+			}
+		}
 		if (run.targetClaimId && !claimIds.has(run.targetClaimId)) {
 			problems.push(`${run.id} points to missing claim ${run.targetClaimId}`);
 		}
@@ -759,6 +792,25 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 		for (const artifactId of run.createdArtifactIds) {
 			if (!artifactIds.has(artifactId)) {
 				problems.push(`${run.id} references missing created artifact ${artifactId}`);
+			}
+		}
+		if (run.status === "queued") {
+			if (run.startedAt) {
+				problems.push(`${run.id} is queued but has startedAt set`);
+			}
+			if (hasRoleRunOutputs(run)) {
+				problems.push(`${run.id} is queued but has report or created output ids`);
+			}
+		}
+		if (isTerminalStartedStatus(run.status) && !run.startedAt) {
+			problems.push(`${run.id} is ${run.status} but has no startedAt`);
+		}
+		if (run.status === "cancelled") {
+			if (!run.cancelReason) {
+				problems.push(`${run.id} is cancelled but has no cancel reason`);
+			}
+			if (hasRoleRunOutputs(run)) {
+				problems.push(`${run.id} is cancelled but has report or created output ids`);
 			}
 		}
 	}
@@ -857,12 +909,179 @@ async function runProjectRole(
 		actor: request.role,
 	});
 	await saveProjectState(statePath, startedState);
+	const run = startedState.roleRuns.find((candidate) => candidate.id === runId);
+	if (!run) {
+		throw new Error(`Expected started role run ${runId} to exist.`);
+	}
+	await executeRunningRoleRun(pi, ctx, roleRunner, statePath, startedState, run);
+}
 
+async function queueProjectRole(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const request = parseRoleRunRequest(text);
+	if (!request) {
+		showCommandMessage(pi, ctx, "Usage: /comath queue <coordinator|workstream|reviewer|synthesizer> [workstream-id]");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const targetWorkstream = getTargetWorkstream(existing, request);
+	if (request.role === "workstream" && !targetWorkstream) {
+		showCommandMessage(pi, ctx, "Usage: /comath queue workstream <workstream-id>");
+		return;
+	}
+	const targetClaim = getTargetClaim(existing, request);
+	if (request.role === "reviewer" && !targetClaim) {
+		showCommandMessage(pi, ctx, "Usage: /comath queue reviewer <claim-id>");
+		return;
+	}
+
+	const runId = `role-run-${existing.roleRuns.length + 1}`;
+	const state = queueRoleRun(existing, {
+		id: runId,
+		role: request.role,
+		task: buildRoleTask(request.role, existing, targetWorkstream, targetClaim),
+		targetWorkstreamId: targetWorkstream?.id,
+		targetClaimId: targetClaim?.id,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Queued co-math ${request.role} as ${runId} for later dispatch.`);
+}
+
+async function dispatchNextQueuedRoleRun(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	roleRunner: RoleRunner,
+): Promise<void> {
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const queuedRun = [...existing.roleRuns]
+		.filter((run) => run.status === "queued")
+		.sort((left, right) => (left.queuedAt ?? left.updatedAt).localeCompare(right.queuedAt ?? right.updatedAt))[0];
+	if (!queuedRun) {
+		showCommandMessage(pi, ctx, "No queued co-math role runs.");
+		return;
+	}
+	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, queuedRun.id);
+}
+
+async function dispatchSpecificQueuedRoleRun(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	runId: string,
+	roleRunner: RoleRunner,
+): Promise<void> {
+	if (runId.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath dispatch-run <run-id>");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const run = existing.roleRuns.find((candidate) => candidate.id === runId);
+	if (!run) {
+		showCommandMessage(pi, ctx, `No role run found for ${runId}.`);
+		return;
+	}
+	if (run.status !== "queued") {
+		showCommandMessage(pi, ctx, `Cannot dispatch ${run.id} because its status is ${run.status}.`);
+		return;
+	}
+	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, run.id);
+}
+
+async function dispatchQueuedRoleRunById(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	roleRunner: RoleRunner,
+	existing: CoMathProjectState,
+	runId: string,
+): Promise<void> {
+	const statePath = getDefaultStatePath(ctx.cwd);
+	const dispatchingRun = existing.roleRuns.find((candidate) => candidate.id === runId);
+	if (!dispatchingRun) {
+		showCommandMessage(pi, ctx, `No role run found for ${runId}.`);
+		return;
+	}
+	const runningState = dispatchQueuedRoleRun(existing, {
+		runId,
+		now: new Date().toISOString(),
+		actor: dispatchingRun.role,
+	});
+	await saveProjectState(statePath, runningState);
+	const run = runningState.roleRuns.find((candidate) => candidate.id === runId);
+	if (!run) {
+		throw new Error(`Expected dispatched role run ${runId} to exist.`);
+	}
+	await executeRunningRoleRun(pi, ctx, roleRunner, statePath, runningState, run);
+}
+
+async function cancelQueuedProjectRole(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath cancel-run <run-id>: <reason>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const run = existing.roleRuns.find((candidate) => candidate.id === parsed.subjectId);
+	if (!run) {
+		showCommandMessage(pi, ctx, `No role run found for ${parsed.subjectId}.`);
+		return;
+	}
+	if (run.status !== "queued") {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Cannot cancel ${run.id} because its status is ${run.status}. Use /comath recover-run for stale running runs.`,
+		);
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const summary = `Cancelled queued role run ${run.id}: ${parsed.body}`;
+	let state = cancelQueuedRoleRun(existing, {
+		runId: run.id,
+		reason: parsed.body,
+		now,
+		actor: "human",
+	});
+	state = recordHumanInterventionEvent(state, {
+		summary,
+		subjectId: run.id,
+		relatedIds: uniqueStrings([run.id, ...getRoleRunTargetRelatedIds(run)]),
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, summary);
+}
+
+async function executeRunningRoleRun(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	roleRunner: RoleRunner,
+	statePath: string,
+	startedState: CoMathProjectState,
+	run: RoleRunRecord,
+): Promise<void> {
+	const targetWorkstream = getRoleRunTargetWorkstream(startedState, run);
+	const targetClaim = getRoleRunTargetClaim(startedState, run);
 	try {
 		const result = await roleRunner({
 			cwd: ctx.cwd,
-			role: request.role,
-			task,
+			role: run.role,
+			task: run.task,
 			signal: ctx.signal,
 		});
 		const now = new Date().toISOString();
@@ -871,12 +1090,12 @@ async function runProjectRole(
 			now,
 			reportId,
 			result,
-			role: request.role,
+			role: run.role,
 			targetClaim,
 			targetWorkstream,
 		});
 		const finishedState = finishRoleRun(ingestion.state, {
-			runId,
+			runId: run.id,
 			status: result.blockers && result.blockers.length > 0 ? "blocked" : "completed",
 			reportId,
 			createdClaimIds: ingestion.createdClaimIds,
@@ -885,7 +1104,7 @@ async function runProjectRole(
 			createdArtifactIds: ingestion.createdArtifactIds,
 			blockerMessages: result.blockers,
 			now,
-			actor: request.role,
+			actor: run.role,
 		});
 		const finalState = addReviewerReviewRound(finishedState, {
 			createdEvidenceIds: ingestion.createdEvidenceIds,
@@ -893,25 +1112,25 @@ async function runProjectRole(
 			decision: result.reviewDecision,
 			now,
 			reportId,
-			role: request.role,
-			roleRunId: runId,
+			role: run.role,
+			roleRunId: run.id,
 			targetClaim,
 		});
 		await saveProjectState(statePath, finalState);
-		showCommandMessage(pi, ctx, formatRoleRunMessage(request.role, reportId, result));
+		showCommandMessage(pi, ctx, formatRoleRunMessage(run.role, reportId, result));
 	} catch (error) {
 		const errorMessage = getRoleRunErrorMessage(error);
 		const now = new Date().toISOString();
 		const status = isRoleRunAbort(ctx, errorMessage) ? "aborted" : "failed";
 		const failedState = failRoleRun(startedState, {
-			runId,
+			runId: run.id,
 			status,
 			errorMessage,
 			now,
 			actor: "system",
 		});
 		await saveProjectState(statePath, failedState);
-		showCommandMessage(pi, ctx, `Co-math ${request.role} role run ${runId} ${status}: ${errorMessage}`);
+		showCommandMessage(pi, ctx, `Co-math ${run.role} role run ${run.id} ${status}: ${errorMessage}`);
 	}
 }
 
@@ -966,6 +1185,16 @@ function getTargetWorkstream(state: CoMathProjectState, request: RoleRunRequest)
 function getTargetClaim(state: CoMathProjectState, request: RoleRunRequest): Claim | undefined {
 	if (request.role !== "reviewer" || !request.targetId) return undefined;
 	return state.claims.find((claim) => claim.id === request.targetId);
+}
+
+function getRoleRunTargetWorkstream(state: CoMathProjectState, run: RoleRunRecord): Workstream | undefined {
+	if (!run.targetWorkstreamId) return undefined;
+	return state.workstreams.find((workstream) => workstream.id === run.targetWorkstreamId);
+}
+
+function getRoleRunTargetClaim(state: CoMathProjectState, run: RoleRunRecord): Claim | undefined {
+	if (!run.targetClaimId) return undefined;
+	return state.claims.find((claim) => claim.id === run.targetClaimId);
 }
 
 function ingestRoleRunResult(state: CoMathProjectState, input: IngestRoleRunInput): IngestRoleRunOutput {
@@ -1630,7 +1859,10 @@ function formatRoleRunDetails(run: RoleRunRecord): string {
 		"Blockers:",
 		...formatBlockerLines(run.blockerMessages),
 		...(run.errorMessage ? [`Error: ${run.errorMessage}`] : []),
-		`Started: ${run.startedAt}`,
+		`Queued: ${run.queuedAt ?? "none"}`,
+		`Started: ${run.startedAt ?? "none"}`,
+		`Cancelled: ${run.cancelledAt ?? "none"}`,
+		`Cancel reason: ${run.cancelReason ?? "none"}`,
 		`Completed: ${run.completedAt ?? "none"}`,
 	].join("\n");
 }
@@ -1643,6 +1875,20 @@ function formatRoleRunTarget(run: RoleRunRecord): string {
 
 function getRoleRunTargetRelatedIds(run: RoleRunRecord): string[] {
 	return [run.targetWorkstreamId, run.targetClaimId].filter((id) => id !== undefined);
+}
+
+function hasRoleRunOutputs(run: RoleRunRecord): boolean {
+	return (
+		run.reportId !== undefined ||
+		run.createdClaimIds.length > 0 ||
+		run.createdEvidenceIds.length > 0 ||
+		run.createdWarningIds.length > 0 ||
+		run.createdArtifactIds.length > 0
+	);
+}
+
+function isTerminalStartedStatus(status: RoleRunStatus): boolean {
+	return status === "completed" || status === "blocked" || status === "failed" || status === "aborted";
 }
 
 function formatIdList(ids: string[]): string {
@@ -1661,7 +1907,7 @@ function formatWorkstreamStatusCounts(state: CoMathProjectState): string[] {
 }
 
 function formatRoleRunStatusCounts(state: CoMathProjectState): string[] {
-	const statuses: RoleRunStatus[] = ["running", "completed", "blocked", "failed", "aborted"];
+	const statuses: RoleRunStatus[] = ["queued", "running", "completed", "blocked", "failed", "aborted", "cancelled"];
 	return statuses.map((status) => `- ${status}: ${state.roleRuns.filter((run) => run.status === status).length}`);
 }
 

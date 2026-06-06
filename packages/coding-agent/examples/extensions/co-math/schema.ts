@@ -4,7 +4,7 @@ export type EvidenceKind = "proof" | "computation" | "reference" | "counterexamp
 export type WarningSeverity = "low" | "medium" | "high";
 export type WarningStatus = "open" | "resolved";
 export type WorkstreamStatus = "active" | "running" | "blocked" | "needs_review";
-export type RoleRunStatus = "running" | "completed" | "blocked" | "failed" | "aborted";
+export type RoleRunStatus = "queued" | "running" | "completed" | "blocked" | "failed" | "aborted" | "cancelled";
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type ReviewRoundStatus = "open" | "completed";
 export type ReviewRoundOutcome = "accepted" | "rejected" | "revision_requested" | "blocked_by_invariant";
@@ -23,11 +23,13 @@ export type CoMathEventKind =
 	| "claim_status_changed"
 	| "synthesis_generated"
 	| "artifact_recorded"
+	| "role_run_queued"
 	| "role_run_started"
 	| "role_run_completed"
 	| "role_run_blocked"
 	| "role_run_failed"
 	| "role_run_aborted"
+	| "role_run_cancelled"
 	| "workstream_status_changed"
 	| "human_intervention_recorded"
 	| "review_round_recorded"
@@ -149,8 +151,11 @@ export interface RoleRunRecord {
 	createdArtifactIds: string[];
 	blockerMessages: string[];
 	errorMessage?: string;
-	startedAt: string;
+	queuedAt?: string;
+	startedAt?: string;
 	completedAt?: string;
+	cancelledAt?: string;
+	cancelReason?: string;
 	updatedAt: string;
 }
 

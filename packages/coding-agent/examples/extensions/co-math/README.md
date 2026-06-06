@@ -44,11 +44,15 @@ The extension registers:
 /comath timeline
 /comath runs
 /comath run-status role-run-1
+/comath queue workstream workstream-small-examples
+/comath dispatch-next
+/comath dispatch-run role-run-2
+/comath cancel-run role-run-3: Human chose a narrower decomposition
 /comath recover-run role-run-1 failed: Terminal session crashed before completion
 /comath status
 ```
 
-The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, review rounds, claim revision history, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
+The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, queued and cancelled run provenance, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, review rounds, claim revision history, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
 
 ## Structured role output
 
@@ -58,7 +62,7 @@ If a role returns malformed output, invalid enum values, or free-form prose, the
 
 The event log is provenance for workspace activity, not a proof certificate. It records actions such as project initialization, role reports, claim proposals, evidence additions, warning changes, artifact recording, and synthesis generation so users can inspect recent history with `/comath timeline`.
 
-Role run records are control-plane provenance, not mathematical proof certificates. A workstream lifecycle can be `active`, `running`, `blocked`, or `needs_review`; `blocked` means a useful mathematical or project obstruction was preserved, not an infrastructure failure. The current prototype records synchronous command runs only and is not asynchronous; background agents, queues, and schedulers are not implemented yet.
+Role run records are control-plane provenance, not mathematical proof certificates. A workstream lifecycle can be `active`, `running`, `blocked`, or `needs_review`; `blocked` means a useful mathematical or project obstruction was preserved, not an infrastructure failure. `/comath queue` records durable queued role runs without invoking a model, `/comath dispatch-next` and `/comath dispatch-run` explicitly start queued work, and `/comath cancel-run` marks queued work cancelled with a reason. The current prototype is not asynchronous and has no daemon, background worker, automatic retry loop, or hidden scheduler.
 
 Human intervention events preserve steering decisions such as manual block/unblock actions, human notes, and stale running run recovery. A human note is metadata and not proof evidence; it cannot promote a claim or satisfy the proof-backed synthesis invariant.
 
