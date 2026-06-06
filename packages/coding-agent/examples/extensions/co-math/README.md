@@ -46,7 +46,11 @@ The extension registers:
 /comath run-status role-run-1
 /comath queue workstream workstream-small-examples
 /comath dispatch-next
+/comath dispatch-next --background
 /comath dispatch-run role-run-2
+/comath dispatch-run role-run-2 --background
+/comath background-runs
+/comath abort-run role-run-2: User changed direction
 /comath cancel-run role-run-3: Human chose a narrower decomposition
 /comath recover-run role-run-1 failed: Terminal session crashed before completion
 /comath status
@@ -62,7 +66,7 @@ If a role returns malformed output, invalid enum values, or free-form prose, the
 
 The event log is provenance for workspace activity, not a proof certificate. It records actions such as project initialization, role reports, claim proposals, evidence additions, warning changes, artifact recording, and synthesis generation so users can inspect recent history with `/comath timeline`.
 
-Role run records are control-plane provenance, not mathematical proof certificates. A workstream lifecycle can be `active`, `running`, `blocked`, or `needs_review`; `blocked` means a useful mathematical or project obstruction was preserved, not an infrastructure failure. `/comath queue` records durable queued role runs without invoking a model, `/comath dispatch-next` and `/comath dispatch-run` explicitly start queued work, and `/comath cancel-run` marks queued work cancelled with a reason. The current prototype is not asynchronous and has no daemon, background worker, automatic retry loop, or hidden scheduler.
+Role run records are control-plane provenance, not mathematical proof certificates. A workstream lifecycle can be `active`, `running`, `blocked`, or `needs_review`; `blocked` means a useful mathematical or project obstruction was preserved, not an infrastructure failure. `/comath queue` records durable queued role runs without invoking a model, `/comath dispatch-next` and `/comath dispatch-run` explicitly start queued work, and `/comath cancel-run` marks queued work cancelled with a reason. `/comath dispatch-next --background` and `/comath dispatch-run <run-id> --background` start queued work asynchronously in the current process; `/comath background-runs` lists live in-process handles, and `/comath abort-run` requests interruption. Durable running records not listed as live may be stale running records; use `/comath recover-run` to close them. The current prototype has no daemon, external background worker, automatic retry loop, or hidden scheduler.
 
 Human intervention events preserve steering decisions such as manual block/unblock actions, human notes, and stale running run recovery. A human note is metadata and not proof evidence; it cannot promote a claim or satisfy the proof-backed synthesis invariant.
 

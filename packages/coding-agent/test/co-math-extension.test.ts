@@ -23,6 +23,7 @@ interface RoleRunInputForTest {
 	cwd: string;
 	role: "coordinator" | "workstream" | "reviewer" | "synthesizer";
 	task: string;
+	signal?: AbortSignal;
 }
 
 interface ProposedEvidenceForTest {
@@ -127,6 +128,41 @@ function createCommandContext(notifications: string[], cwd = "/tmp/co-math-test"
 			},
 		},
 	} as unknown as ExtensionCommandContext;
+}
+
+function createDeferred<T>() {
+	let resolve!: (value: T) => void;
+	let reject!: (reason?: unknown) => void;
+	const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+		resolve = resolvePromise;
+		reject = rejectPromise;
+	});
+	return { promise, resolve, reject };
+}
+
+async function waitForNotificationCount(notifications: string[], count: number): Promise<void> {
+	for (let attempt = 0; attempt < 50; attempt += 1) {
+		if (notifications.length >= count) return;
+		await new Promise((resolve) => setTimeout(resolve, 0));
+	}
+	expect(notifications).toHaveLength(count);
+}
+
+async function waitForCondition(assertCondition: () => void | Promise<void>): Promise<void> {
+	let lastError: unknown;
+	for (let attempt = 0; attempt < 50; attempt += 1) {
+		try {
+			await assertCondition();
+			return;
+		} catch (error) {
+			lastError = error;
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
+	}
+	if (lastError instanceof Error) {
+		throw lastError;
+	}
+	throw lastError;
 }
 
 describe("co-math extension registration", () => {
@@ -806,6 +842,309 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("dispatch-next --background saves running state before role invocation", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-next-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					const state = await loadProjectState(getDefaultStatePath(tempDir));
+					expect(state?.roleRuns[0]).toMatchObject({
+						id: "role-run-1",
+						status: "running",
+						executionMode: "background",
+					});
+					return { summary: "Background coordinator completed." };
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+
+			expect(notifications.join("\n")).toContain("Started co-math coordinator role run role-run-1 in background.");
+			await waitForNotificationCount(notifications, 4);
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "completed",
+				executionMode: "background",
+				reportId: "report-1",
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("dispatch-run --background starts the specified queued run and returns before completion", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-run-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		const roleInvocations: RoleRunInputForTest[] = [];
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					roleInvocations.push(input);
+					const state = await loadProjectState(getDefaultStatePath(tempDir));
+					const runningRun = state?.roleRuns.find((run) => run.status === "running");
+					if (runningRun?.executionMode !== "background") {
+						return { summary: "Foreground fallback completed." };
+					}
+					return deferred.promise;
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("queue synthesizer", ctx);
+			await command?.handler("dispatch-run role-run-2 --background", ctx);
+
+			await waitForCondition(() => {
+				expect(roleInvocations).toHaveLength(1);
+			});
+			expect(roleInvocations[0]).toMatchObject({ role: "synthesizer" });
+			expect(notifications.at(-1)).toBe("Started co-math synthesizer role run role-run-2 in background.");
+			let state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					status: "queued",
+				},
+				{
+					id: "role-run-2",
+					status: "running",
+					executionMode: "background",
+				},
+			]);
+
+			deferred.resolve({ summary: "Background synthesizer completed." });
+			await waitForNotificationCount(notifications, 5);
+			state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns[1]).toMatchObject({
+				id: "role-run-2",
+				status: "completed",
+				reportId: "report-1",
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("background completion preserves concurrent human notes", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-note-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					const state = await loadProjectState(getDefaultStatePath(tempDir));
+					const runningRun = state?.roleRuns.find((run) => run.status === "running");
+					if (runningRun?.executionMode !== "background") {
+						return { summary: "Foreground fallback completed." };
+					}
+					return deferred.promise;
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			await command?.handler("note project: Human note while background run is pending", ctx);
+			deferred.resolve({ summary: "Background coordinator completed after note." });
+			await waitForNotificationCount(notifications, 5);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns[0]).toMatchObject({
+				status: "completed",
+				reportId: "report-1",
+			});
+			expect(state?.artifacts).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "human_note",
+						summary: "Human note while background run is pending",
+					}),
+				]),
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("late background completion does not overwrite recovered runs", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-recovered-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					const state = await loadProjectState(getDefaultStatePath(tempDir));
+					const runningRun = state?.roleRuns.find((run) => run.status === "running");
+					if (runningRun?.executionMode !== "background") {
+						return { summary: "Foreground fallback completed." };
+					}
+					return deferred.promise;
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			await command?.handler("recover-run role-run-1 aborted: User recovered stale background run", ctx);
+			deferred.resolve({ summary: "Late success should be ignored." });
+			await waitForNotificationCount(notifications, 5);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "aborted",
+				errorMessage: "User recovered stale background run",
+			});
+			expect(notifications.join("\n")).toContain(
+				"Background role run role-run-1 finished, but durable status is aborted; skipped late completion.",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("abort-run aborts live background runs and records human provenance", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-abort-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					const state = await loadProjectState(getDefaultStatePath(tempDir));
+					const runningRun = state?.roleRuns.find((run) => run.status === "running");
+					if (runningRun?.executionMode !== "background") {
+						return { summary: "Foreground fallback completed." };
+					}
+					return new Promise<RoleRunResultForTest>((_resolve, reject) => {
+						input.signal?.addEventListener("abort", () => {
+							reject(new Error("Co-math role run was aborted."));
+						});
+					});
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			await command?.handler("abort-run role-run-1: User changed direction", ctx);
+			await waitForNotificationCount(notifications, 5);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toEqual([]);
+			expect(state?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "aborted",
+				errorMessage: "Co-math role run was aborted.",
+			});
+			expect(state?.events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						kind: "human_intervention_recorded",
+						subjectId: "role-run-1",
+						summary: "Requested abort for background role run role-run-1: User changed direction",
+					}),
+				]),
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("abort-run explains stale durable running runs when they are not live", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-stale-abort-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			await saveProjectState(statePath, {
+				...(state as CoMathProjectState),
+				roleRuns: [
+					{
+						id: "role-run-1",
+						role: "coordinator",
+						status: "running",
+						task: "Role: coordinator",
+						executionMode: "background",
+						createdClaimIds: [],
+						createdEvidenceIds: [],
+						createdWarningIds: [],
+						createdArtifactIds: [],
+						blockerMessages: [],
+						queuedAt: "2026-06-05T12:00:00.000Z",
+						startedAt: "2026-06-05T12:01:00.000Z",
+						updatedAt: "2026-06-05T12:01:00.000Z",
+					},
+				],
+			});
+
+			await command?.handler("abort-run role-run-1: User changed direction", ctx);
+
+			expect(notifications.at(-1)).toContain(
+				"role-run-1 is running but not live in this process. Use /comath recover-run role-run-1 aborted: User changed direction",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("background-runs lists live handles only", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-list-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					const state = await loadProjectState(getDefaultStatePath(tempDir));
+					const runningRun = state?.roleRuns.find((run) => run.status === "running");
+					if (runningRun?.executionMode !== "background") {
+						return { summary: "Foreground fallback completed." };
+					}
+					return deferred.promise;
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			await command?.handler("background-runs", ctx);
+
+			expect(notifications.at(-1)).toContain("Live co-math background role runs");
+			expect(notifications.at(-1)).toContain("role-run-1 [coordinator]");
+			deferred.resolve({ summary: "Background coordinator completed." });
+			await waitForNotificationCount(notifications, 5);
+			await waitForCondition(async () => {
+				await command?.handler("background-runs", ctx);
+				expect(notifications.at(-1)).toBe("No live co-math background role runs in this session.");
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("ingests structured role artifacts linked to the saved report and target workstream", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-artifact-"));
 		try {
@@ -1298,6 +1637,7 @@ describe("co-math extension registration", () => {
 						id: "role-run-broken",
 						role: "workstream",
 						status: "completed",
+						executionMode: "foreground",
 						targetWorkstreamId: "workstream-missing",
 						targetClaimId: "claim-missing",
 						task: "Role: workstream",
@@ -1443,6 +1783,51 @@ describe("co-math extension registration", () => {
 			expect(audit).toContain("role-run-cancelled-broken is cancelled but has no cancel reason");
 			expect(audit).toContain("role-run-cancelled-broken is cancelled but has report or created output ids");
 			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(malformedState);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("audits stale background running records without mutating state", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-audit-background-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			const malformedState: CoMathProjectState = {
+				...(state as CoMathProjectState),
+				roleRuns: [
+					{
+						id: "role-run-background-stale",
+						role: "coordinator",
+						status: "running",
+						task: "Role: coordinator",
+						executionMode: "background",
+						createdClaimIds: [],
+						createdEvidenceIds: [],
+						createdWarningIds: [],
+						createdArtifactIds: [],
+						blockerMessages: [],
+						queuedAt: "2026-06-05T12:00:00.000Z",
+						startedAt: "2026-06-05T12:01:00.000Z",
+						updatedAt: "2026-06-05T12:01:00.000Z",
+					},
+				],
+			};
+			await saveProjectState(statePath, malformedState);
+
+			await command?.handler("audit", ctx);
+
+			expect(notifications.at(-1)).toContain(
+				"role-run-background-stale is a background running record not live in this session",
+			);
+			expect(await loadProjectState(statePath)).toEqual(malformedState);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -2209,6 +2594,10 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath dispatch-next");
 			expect(readme).toContain("/comath dispatch-run");
 			expect(readme).toContain("/comath cancel-run");
+			expect(readme).toContain("/comath dispatch-next --background");
+			expect(readme).toContain("/comath dispatch-run role-run-2 --background");
+			expect(readme).toContain("/comath background-runs");
+			expect(readme).toContain("/comath abort-run");
 			expect(readme).toContain("/comath block");
 			expect(readme).toContain("/comath unblock");
 			expect(readme).toContain("/comath note");
@@ -2222,14 +2611,16 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("role run records");
 			expect(readme.toLowerCase()).toContain("queued");
 			expect(readme.toLowerCase()).toContain("cancelled");
+			expect(readme.toLowerCase()).toContain("background");
 			expect(readme.toLowerCase()).toContain("human intervention");
 			expect(readme.toLowerCase()).toContain("stale running");
+			expect(readme).toContain("recover-run");
 			expect(readme.toLowerCase()).toContain("not proof evidence");
 			expect(readme.toLowerCase()).toContain("review rounds");
 			expect(readme.toLowerCase()).toContain("claim revision history");
 			expect(readme.toLowerCase()).toContain("proof-promotion invariant");
 			expect(readme).toContain("blocked");
-			expect(readme).toContain("not asynchronous");
+			expect(readme).toContain("start queued work asynchronously");
 			expect(readme).toContain("structured JSON");
 			expect(readme).toContain("report only");
 			expect(readme).toContain("malformed");
@@ -2269,6 +2660,7 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("roleRuns");
 			expect(content).toContain("queued");
 			expect(content).toContain("cancelled");
+			expect(content).toContain("background");
 			expect(content).toContain("latestRunIds");
 			expect(content).toContain("status");
 			expect(content).toContain("human intervention");

@@ -249,6 +249,29 @@ describe("co-math project state", () => {
 		).toThrow(/Unknown role run/);
 	});
 
+	it("dispatches queued role runs with background execution mode", () => {
+		let state = queueRoleRun(createProject(), {
+			id: "role-run-1",
+			role: "coordinator",
+			task: "Role: coordinator",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = dispatchQueuedRoleRun(state, {
+			runId: "role-run-1",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "coordinator",
+			executionMode: "background",
+		});
+
+		expect(state.roleRuns[0]).toMatchObject({
+			id: "role-run-1",
+			status: "running",
+			executionMode: "background",
+			startedAt: "2026-06-05T12:05:00.000Z",
+		});
+	});
+
 	it("cancels only queued role runs and preserves the reason", () => {
 		let state = queueRoleRun(createProject(), {
 			id: "role-run-1",
@@ -1118,6 +1141,40 @@ describe("co-math project state", () => {
 				},
 			]);
 			expect(loaded?.roleRuns[0]?.status).not.toBe("queued");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes legacy started role runs with foreground execution mode", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-legacy-mode-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			const legacyState = startRoleRun(createProject(), {
+				id: "role-run-1",
+				role: "coordinator",
+				task: "Role: coordinator",
+				now: FIXED_NOW,
+				actor: "coordinator",
+			});
+			const legacyWithoutExecutionMode = {
+				...legacyState,
+				roleRuns: legacyState.roleRuns.map((run) => {
+					const record = { ...run } as Record<string, unknown>;
+					delete record.executionMode;
+					return record;
+				}),
+			};
+			await saveProjectState(statePath, legacyWithoutExecutionMode as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+
+			expect(loaded?.roleRuns[0]).toMatchObject({
+				id: "role-run-1",
+				status: "running",
+				startedAt: FIXED_NOW,
+				executionMode: "foreground",
+			});
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

@@ -5,6 +5,7 @@ export type WarningSeverity = "low" | "medium" | "high";
 export type WarningStatus = "open" | "resolved";
 export type WorkstreamStatus = "active" | "running" | "blocked" | "needs_review";
 export type RoleRunStatus = "queued" | "running" | "completed" | "blocked" | "failed" | "aborted" | "cancelled";
+export type RoleRunExecutionMode = "foreground" | "background";
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type ReviewRoundStatus = "open" | "completed";
 export type ReviewRoundOutcome = "accepted" | "rejected" | "revision_requested" | "blocked_by_invariant";
@@ -144,6 +145,7 @@ export interface RoleRunRecord {
 	targetWorkstreamId?: string;
 	targetClaimId?: string;
 	task: string;
+	executionMode?: RoleRunExecutionMode;
 	reportId?: string;
 	createdClaimIds: string[];
 	createdEvidenceIds: string[];

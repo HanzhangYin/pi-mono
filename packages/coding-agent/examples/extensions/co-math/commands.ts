@@ -51,6 +51,16 @@ import {
 	startRoleRun,
 } from "./storage.ts";
 
+interface BackgroundRoleRunHandle {
+	runId: string;
+	role: CoMathRole;
+	startedAt: string;
+	controller: AbortController;
+	completion: Promise<void>;
+}
+
+const backgroundRoleRuns = new Map<string, BackgroundRoleRunHandle>();
+
 const HELP_TEXT = `Co-math assistant commands:
 /comath help - show this help
 /comath init <root question> - create a co-math project state
@@ -72,8 +82,12 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
 /comath queue <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - queue a bounded role run without executing it
 /comath dispatch-next - dispatch the oldest queued role run
+/comath dispatch-next --background - start the oldest queued role run asynchronously
 /comath dispatch-run <run-id> - dispatch a specific queued role run
+/comath dispatch-run <run-id> --background - start a specific queued role run asynchronously
 /comath cancel-run <run-id>: <reason> - cancel a queued role run before dispatch
+/comath background-runs - list live in-process background role runs
+/comath abort-run <run-id>: <reason> - request abort for a live background role run
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
 /comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
@@ -181,7 +195,7 @@ async function handleCoMathCommand(
 	}
 
 	if (subcommand === "dispatch-next") {
-		await dispatchNextQueuedRoleRun(pi, ctx, roleRunner);
+		await dispatchNextQueuedRoleRun(pi, ctx, remainder, roleRunner);
 		return;
 	}
 
@@ -192,6 +206,16 @@ async function handleCoMathCommand(
 
 	if (subcommand === "cancel-run") {
 		await cancelQueuedProjectRole(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "background-runs") {
+		showBackgroundRoleRuns(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "abort-run") {
+		await abortBackgroundRoleRun(pi, ctx, remainder);
 		return;
 	}
 
@@ -798,9 +822,20 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 			if (run.startedAt) {
 				problems.push(`${run.id} is queued but has startedAt set`);
 			}
+			if (run.executionMode) {
+				problems.push(`${run.id} is queued but has executionMode set`);
+			}
 			if (hasRoleRunOutputs(run)) {
 				problems.push(`${run.id} is queued but has report or created output ids`);
 			}
+		}
+		if (run.executionMode === "background" && (run.status === "running" || isTerminalStartedStatus(run.status))) {
+			if (!run.startedAt) {
+				problems.push(`${run.id} is ${run.status} background run but has no startedAt`);
+			}
+		}
+		if (run.executionMode === "background" && run.status === "running" && !backgroundRoleRuns.has(run.id)) {
+			problems.push(`${run.id} is a background running record not live in this session`);
 		}
 		if (isTerminalStartedStatus(run.status) && !run.startedAt) {
 			problems.push(`${run.id} is ${run.status} but has no startedAt`);
@@ -955,8 +990,14 @@ async function queueProjectRole(pi: ExtensionAPI, ctx: ExtensionCommandContext, 
 async function dispatchNextQueuedRoleRun(
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,
+	text: string,
 	roleRunner: RoleRunner,
 ): Promise<void> {
+	const background = parseBackgroundFlag(text);
+	if (background === undefined) {
+		showCommandMessage(pi, ctx, "Usage: /comath dispatch-next [--background]");
+		return;
+	}
 	const existing = await loadProjectStateOrNotify(pi, ctx);
 	if (!existing) {
 		return;
@@ -968,7 +1009,7 @@ async function dispatchNextQueuedRoleRun(
 		showCommandMessage(pi, ctx, "No queued co-math role runs.");
 		return;
 	}
-	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, queuedRun.id);
+	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, queuedRun.id, background);
 }
 
 async function dispatchSpecificQueuedRoleRun(
@@ -977,24 +1018,25 @@ async function dispatchSpecificQueuedRoleRun(
 	runId: string,
 	roleRunner: RoleRunner,
 ): Promise<void> {
-	if (runId.length === 0) {
-		showCommandMessage(pi, ctx, "Usage: /comath dispatch-run <run-id>");
+	const parsed = parseDispatchRunText(runId);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath dispatch-run <run-id> [--background]");
 		return;
 	}
 	const existing = await loadProjectStateOrNotify(pi, ctx);
 	if (!existing) {
 		return;
 	}
-	const run = existing.roleRuns.find((candidate) => candidate.id === runId);
+	const run = existing.roleRuns.find((candidate) => candidate.id === parsed.runId);
 	if (!run) {
-		showCommandMessage(pi, ctx, `No role run found for ${runId}.`);
+		showCommandMessage(pi, ctx, `No role run found for ${parsed.runId}.`);
 		return;
 	}
 	if (run.status !== "queued") {
 		showCommandMessage(pi, ctx, `Cannot dispatch ${run.id} because its status is ${run.status}.`);
 		return;
 	}
-	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, run.id);
+	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, run.id, parsed.background);
 }
 
 async function dispatchQueuedRoleRunById(
@@ -1003,6 +1045,7 @@ async function dispatchQueuedRoleRunById(
 	roleRunner: RoleRunner,
 	existing: CoMathProjectState,
 	runId: string,
+	background: boolean,
 ): Promise<void> {
 	const statePath = getDefaultStatePath(ctx.cwd);
 	const dispatchingRun = existing.roleRuns.find((candidate) => candidate.id === runId);
@@ -1014,11 +1057,17 @@ async function dispatchQueuedRoleRunById(
 		runId,
 		now: new Date().toISOString(),
 		actor: dispatchingRun.role,
+		executionMode: background ? "background" : "foreground",
 	});
 	await saveProjectState(statePath, runningState);
 	const run = runningState.roleRuns.find((candidate) => candidate.id === runId);
 	if (!run) {
 		throw new Error(`Expected dispatched role run ${runId} to exist.`);
+	}
+	if (background) {
+		startBackgroundRoleRun(pi, ctx, roleRunner, statePath, run);
+		showCommandMessage(pi, ctx, `Started co-math ${run.role} role run ${run.id} in background.`);
+		return;
 	}
 	await executeRunningRoleRun(pi, ctx, roleRunner, statePath, runningState, run);
 }
@@ -1065,6 +1114,221 @@ async function cancelQueuedProjectRole(pi: ExtensionAPI, ctx: ExtensionCommandCo
 	});
 	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
 	showCommandMessage(pi, ctx, summary);
+}
+
+function startBackgroundRoleRun(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	roleRunner: RoleRunner,
+	statePath: string,
+	run: RoleRunRecord,
+): void {
+	if (backgroundRoleRuns.has(run.id)) return;
+	const controller = new AbortController();
+	const handle: BackgroundRoleRunHandle = {
+		runId: run.id,
+		role: run.role,
+		startedAt: run.startedAt ?? new Date().toISOString(),
+		controller,
+		completion: Promise.resolve(),
+	};
+	backgroundRoleRuns.set(run.id, handle);
+	handle.completion = executeBackgroundRoleRun(pi, roleRunner, {
+		cwd: ctx.cwd,
+		runId: run.id,
+		signal: controller.signal,
+		statePath,
+	})
+		.catch((error) => {
+			sendBackgroundMessage(
+				pi,
+				`Background role run ${run.id} had an unexpected error: ${getRoleRunErrorMessage(error)}`,
+			);
+		})
+		.finally(() => {
+			backgroundRoleRuns.delete(run.id);
+		});
+}
+
+interface ExecuteBackgroundRoleRunInput {
+	cwd: string;
+	runId: string;
+	signal: AbortSignal;
+	statePath: string;
+}
+
+async function executeBackgroundRoleRun(
+	pi: ExtensionAPI,
+	roleRunner: RoleRunner,
+	input: ExecuteBackgroundRoleRunInput,
+): Promise<void> {
+	const invocationState = await loadProjectState(input.statePath);
+	const run = invocationState?.roleRuns.find((candidate) => candidate.id === input.runId);
+	if (!invocationState || !run || run.status !== "running") {
+		sendBackgroundMessage(pi, `Background role run ${input.runId} is no longer running; skipped invocation.`);
+		return;
+	}
+	try {
+		const result = await roleRunner({
+			cwd: input.cwd,
+			role: run.role,
+			task: run.task,
+			signal: input.signal,
+		});
+		await finalizeBackgroundRoleRunResult(pi, input.statePath, run.id, result);
+	} catch (error) {
+		await finalizeBackgroundRoleRunError(pi, input.statePath, run.id, error, input.signal);
+	}
+}
+
+async function finalizeBackgroundRoleRunResult(
+	pi: ExtensionAPI,
+	statePath: string,
+	runId: string,
+	result: RoleRunResult,
+): Promise<void> {
+	const latestState = await loadProjectState(statePath);
+	const latestRun = latestState?.roleRuns.find((candidate) => candidate.id === runId);
+	if (!latestState || !latestRun) {
+		sendBackgroundMessage(pi, `Background role run ${runId} finished, but the durable run record is missing.`);
+		return;
+	}
+	if (latestRun.status !== "running") {
+		sendBackgroundMessage(
+			pi,
+			`Background role run ${runId} finished, but durable status is ${latestRun.status}; skipped late completion.`,
+		);
+		return;
+	}
+	const targetWorkstream = getRoleRunTargetWorkstream(latestState, latestRun);
+	const targetClaim = getRoleRunTargetClaim(latestState, latestRun);
+	const now = new Date().toISOString();
+	const reportId = `report-${latestState.reports.length + 1}`;
+	const ingestion = ingestRoleRunResult(latestState, {
+		now,
+		reportId,
+		result,
+		role: latestRun.role,
+		targetClaim,
+		targetWorkstream,
+	});
+	const finishedState = finishRoleRun(ingestion.state, {
+		runId,
+		status: result.blockers && result.blockers.length > 0 ? "blocked" : "completed",
+		reportId,
+		createdClaimIds: ingestion.createdClaimIds,
+		createdEvidenceIds: ingestion.createdEvidenceIds,
+		createdWarningIds: ingestion.createdWarningIds,
+		createdArtifactIds: ingestion.createdArtifactIds,
+		blockerMessages: result.blockers,
+		now,
+		actor: latestRun.role,
+	});
+	const finalState = addReviewerReviewRound(finishedState, {
+		createdEvidenceIds: ingestion.createdEvidenceIds,
+		createdWarningIds: ingestion.createdWarningIds,
+		decision: result.reviewDecision,
+		now,
+		reportId,
+		role: latestRun.role,
+		roleRunId: runId,
+		targetClaim,
+	});
+	await saveProjectState(statePath, finalState);
+	sendBackgroundMessage(pi, `Background ${formatRoleRunMessage(latestRun.role, reportId, result)}`);
+}
+
+async function finalizeBackgroundRoleRunError(
+	pi: ExtensionAPI,
+	statePath: string,
+	runId: string,
+	error: unknown,
+	signal: AbortSignal,
+): Promise<void> {
+	const latestState = await loadProjectState(statePath);
+	const latestRun = latestState?.roleRuns.find((candidate) => candidate.id === runId);
+	if (!latestState || !latestRun) {
+		sendBackgroundMessage(pi, `Background role run ${runId} failed, but the durable run record is missing.`);
+		return;
+	}
+	if (latestRun.status !== "running") {
+		sendBackgroundMessage(
+			pi,
+			`Background role run ${runId} finished, but durable status is ${latestRun.status}; skipped late completion.`,
+		);
+		return;
+	}
+	const errorMessage = getRoleRunErrorMessage(error);
+	const status = signal.aborted || errorMessage === "Co-math role run was aborted." ? "aborted" : "failed";
+	const failedState = failRoleRun(latestState, {
+		runId,
+		status,
+		errorMessage,
+		now: new Date().toISOString(),
+		actor: "system",
+	});
+	await saveProjectState(statePath, failedState);
+	sendBackgroundMessage(pi, `Co-math ${latestRun.role} role run ${runId} ${status}: ${errorMessage}`);
+}
+
+async function abortBackgroundRoleRun(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath abort-run <run-id>: <reason>");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const run = existing.roleRuns.find((candidate) => candidate.id === parsed.subjectId);
+	if (!run) {
+		showCommandMessage(pi, ctx, `No role run found for ${parsed.subjectId}.`);
+		return;
+	}
+	const handle = backgroundRoleRuns.get(run.id);
+	if (handle && run.status === "running") {
+		const now = new Date().toISOString();
+		const summary = `Requested abort for background role run ${run.id}: ${parsed.body}`;
+		const state = recordHumanInterventionEvent(existing, {
+			summary,
+			subjectId: run.id,
+			relatedIds: uniqueStrings([run.id, ...getRoleRunTargetRelatedIds(run)]),
+			now,
+			actor: "human",
+		});
+		await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+		handle.controller.abort();
+		showCommandMessage(pi, ctx, summary);
+		return;
+	}
+	if (run.status === "running") {
+		showCommandMessage(
+			pi,
+			ctx,
+			`${run.id} is running but not live in this process. Use /comath recover-run ${run.id} aborted: ${parsed.body}`,
+		);
+		return;
+	}
+	showCommandMessage(pi, ctx, `Cannot abort ${run.id} because its status is ${run.status}.`);
+}
+
+function showBackgroundRoleRuns(pi: ExtensionAPI, ctx: ExtensionCommandContext): void {
+	if (backgroundRoleRuns.size === 0) {
+		showCommandMessage(pi, ctx, "No live co-math background role runs in this session.");
+		return;
+	}
+	showCommandMessage(
+		pi,
+		ctx,
+		[
+			"Live co-math background role runs",
+			...Array.from(backgroundRoleRuns.values()).map(
+				(handle) => `- ${handle.runId} [${handle.role}] started ${handle.startedAt}`,
+			),
+			"Durable running records that are not listed here may be stale; use /comath recover-run if needed.",
+		].join("\n"),
+	);
 }
 
 async function executeRunningRoleRun(
@@ -1139,6 +1403,11 @@ interface RoleRunRequest {
 	targetId?: string;
 }
 
+interface DispatchRunRequest {
+	runId: string;
+	background: boolean;
+}
+
 interface IngestRoleRunInput {
 	now: string;
 	reportId: string;
@@ -1175,6 +1444,19 @@ function parseRoleRunRequest(text: string): RoleRunRequest | undefined {
 		return { role, targetId };
 	}
 	return undefined;
+}
+
+function parseBackgroundFlag(text: string): boolean | undefined {
+	if (text.length === 0) return false;
+	return text === "--background" ? true : undefined;
+}
+
+function parseDispatchRunText(text: string): DispatchRunRequest | undefined {
+	const [runId, flag, ...extra] = text.trim().split(/\s+/);
+	if (!runId || extra.length > 0) return undefined;
+	const background = flag ? parseBackgroundFlag(flag) : false;
+	if (background === undefined) return undefined;
+	return { runId, background };
 }
 
 function getTargetWorkstream(state: CoMathProjectState, request: RoleRunRequest): Workstream | undefined {
@@ -1756,6 +2038,7 @@ async function showProjectStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			`Open warnings: ${state.warnings.filter((warning) => warning.status === "open").length}`,
 			`Artifacts: ${state.artifacts.length}`,
 			`Events: ${state.events.length}`,
+			`Live background runs: ${backgroundRoleRuns.size}`,
 			"Workstream statuses:",
 			...formatWorkstreamStatusCounts(state),
 			"Role runs:",
@@ -1778,7 +2061,7 @@ function formatRoleRunList(state: CoMathProjectState): string[] {
 	return [...state.roleRuns].reverse().map((run) => {
 		const report = run.reportId ? ` -> ${run.reportId}` : "";
 		const blockers = run.blockerMessages.length > 0 ? `\n  blockers: ${run.blockerMessages.join("; ")}` : "";
-		return `- ${run.id} [${run.status}] ${formatRoleRunTarget(run)}${report}${blockers}`;
+		return `- ${run.id} [${formatRoleRunStatus(run)}] ${formatRoleRunTarget(run)}${report}${blockers}`;
 	});
 }
 
@@ -1851,6 +2134,10 @@ function formatRoleRunDetails(run: RoleRunRecord): string {
 		`Status: ${run.status}`,
 		...(run.targetWorkstreamId ? [`Target workstream: ${run.targetWorkstreamId}`] : []),
 		...(run.targetClaimId ? [`Target claim: ${run.targetClaimId}`] : []),
+		`Execution mode: ${run.executionMode ?? "none"}`,
+		...(run.executionMode === "background"
+			? [`Live in this session: ${backgroundRoleRuns.has(run.id) ? "yes" : "no; use /comath recover-run if stale"}`]
+			: []),
 		`Report: ${run.reportId ?? "none"}`,
 		`Created claims: ${formatIdList(run.createdClaimIds)}`,
 		`Created evidence: ${formatIdList(run.createdEvidenceIds)}`,
@@ -1871,6 +2158,10 @@ function formatRoleRunTarget(run: RoleRunRecord): string {
 	if (run.targetWorkstreamId) return `${run.role} ${run.targetWorkstreamId}`;
 	if (run.targetClaimId) return `${run.role} ${run.targetClaimId}`;
 	return run.role;
+}
+
+function formatRoleRunStatus(run: RoleRunRecord): string {
+	return run.executionMode === "background" ? `${run.status}/background` : run.status;
 }
 
 function getRoleRunTargetRelatedIds(run: RoleRunRecord): string[] {
@@ -2008,5 +2299,14 @@ function showCommandMessage(pi: ExtensionAPI, ctx: ExtensionCommandContext, text
 		content: text,
 		display: true,
 		details: { kind: "command" },
+	});
+}
+
+function sendBackgroundMessage(pi: ExtensionAPI, text: string): void {
+	pi.sendMessage({
+		customType: "co-math",
+		content: text,
+		display: true,
+		details: { kind: "background" },
 	});
 }

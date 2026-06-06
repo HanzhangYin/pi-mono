@@ -16,6 +16,7 @@ import type {
 	ReviewQueueItem,
 	ReviewRoundOutcome,
 	ReviewRoundRecord,
+	RoleRunExecutionMode,
 	RoleRunRecord,
 	Warning,
 	WarningSeverity,
@@ -176,6 +177,7 @@ export interface DispatchQueuedRoleRunInput {
 	runId: string;
 	now: string;
 	actor: CoMathActor;
+	executionMode?: RoleRunExecutionMode;
 }
 
 export interface FinishRoleRunInput {
@@ -706,6 +708,7 @@ export function startRoleRun(state: CoMathProjectState, input: StartRoleRunInput
 		blockerMessages: [],
 		queuedAt: input.now,
 		startedAt: input.now,
+		executionMode: "foreground",
 		updatedAt: input.now,
 	};
 	let nextState = appendEvent(
@@ -806,6 +809,7 @@ export function dispatchQueuedRoleRun(
 							...candidate,
 							status: "running",
 							startedAt: input.now,
+							executionMode: input.executionMode ?? "foreground",
 							updatedAt: input.now,
 						}
 					: candidate,
@@ -1128,6 +1132,11 @@ function normalizeRoleRun(value: LegacyRoleRun): RoleRunRecord {
 	return {
 		...value,
 		queuedAt: value.queuedAt ?? value.startedAt ?? value.updatedAt,
+		...(value.executionMode
+			? { executionMode: value.executionMode }
+			: value.startedAt && value.status !== "queued" && value.status !== "cancelled"
+				? { executionMode: "foreground" as const }
+				: {}),
 	};
 }
 
