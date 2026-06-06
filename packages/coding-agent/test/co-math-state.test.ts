@@ -8,9 +8,11 @@ import {
 	addClaim,
 	addEvidence,
 	addGoal,
+	addMarginNote,
 	addReviewDecisionEvent,
 	addReviewRound,
 	addWarning,
+	addWorkingPaperSection,
 	addWorkstream,
 	cancelQueuedRoleRun,
 	createEmptyProjectState,
@@ -22,6 +24,7 @@ import {
 	loadProjectState,
 	queueRoleRun,
 	recordHumanInterventionEvent,
+	resolveMarginNote,
 	resolveWarning,
 	reviseClaim,
 	saveProjectState,
@@ -72,6 +75,8 @@ describe("co-math project state", () => {
 			roleRuns: [],
 			reviewRounds: [],
 			claimRevisions: [],
+			workingPaperSections: [],
+			marginNotes: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -646,6 +651,171 @@ describe("co-math project state", () => {
 		});
 	});
 
+	it("adds working paper sections with source provenance and event", () => {
+		let state = createProject();
+		state = addClaim(state, {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Endpoint monotonicity has a draft formulation.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+		state = addEvidence(state, {
+			id: "evidence-1",
+			claimId: "claim-1",
+			kind: "proof",
+			summary: "Proof note.",
+			now: FIXED_NOW,
+		});
+		state = addWarning(state, {
+			id: "warning-1",
+			claimId: "claim-1",
+			severity: "high",
+			message: "Boundary case remains open.",
+			now: FIXED_NOW,
+		});
+		state = addArtifact(state, {
+			id: "artifact-1",
+			kind: "failed_attempt",
+			title: "Endpoint attempt",
+			summary: "Attempt breaks at the endpoint.",
+			now: FIXED_NOW,
+		});
+		state = startRoleRun(state, {
+			id: "role-run-1",
+			role: "reviewer",
+			task: "Role: reviewer",
+			now: FIXED_NOW,
+		});
+		state = addReviewRound(state, {
+			id: "review-round-1",
+			claimId: "claim-1",
+			roleRunId: "role-run-1",
+			reportId: "report-1",
+			decisionStatus: "needs_review",
+			outcome: "revision_requested",
+			now: FIXED_NOW,
+		});
+		state = addWorkingPaperSection(state, {
+			id: "paper-section-1",
+			title: " Endpoint draft ",
+			body: " Draft body with visible uncertainty. ",
+			sourceClaimIds: ["claim-1", "claim-1"],
+			sourceEvidenceIds: ["evidence-1"],
+			sourceWarningIds: ["warning-1"],
+			sourceArtifactIds: ["artifact-1"],
+			sourceReviewRoundIds: ["review-round-1"],
+			sourceRoleRunIds: ["role-run-1"],
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.workingPaperSections).toEqual([
+			{
+				id: "paper-section-1",
+				title: "Endpoint draft",
+				body: "Draft body with visible uncertainty.",
+				status: "draft",
+				sourceClaimIds: ["claim-1"],
+				sourceEvidenceIds: ["evidence-1"],
+				sourceWarningIds: ["warning-1"],
+				sourceArtifactIds: ["artifact-1"],
+				sourceReviewRoundIds: ["review-round-1"],
+				sourceRoleRunIds: ["role-run-1"],
+				marginNoteIds: [],
+				createdAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "working_paper_section_recorded",
+			actor: "human",
+			subjectId: "paper-section-1",
+			relatedIds: ["claim-1", "evidence-1", "warning-1", "artifact-1", "review-round-1", "role-run-1"],
+		});
+	});
+
+	it("adds margin notes and links them to sections", () => {
+		let state = addWorkingPaperSection(createProject(), {
+			id: "paper-section-1",
+			title: "Endpoint draft",
+			body: "Draft body.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addMarginNote(state, {
+			id: "margin-note-1",
+			kind: "gap",
+			subjectId: "paper-section-1",
+			sectionId: "paper-section-1",
+			message: " Need a lemma for the endpoint boundary case. ",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.marginNotes).toEqual([
+			{
+				id: "margin-note-1",
+				kind: "gap",
+				status: "open",
+				subjectId: "paper-section-1",
+				sectionId: "paper-section-1",
+				message: "Need a lemma for the endpoint boundary case.",
+				createdAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.workingPaperSections[0]?.marginNoteIds).toEqual(["margin-note-1"]);
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "margin_note_recorded",
+			actor: "human",
+			subjectId: "margin-note-1",
+			relatedIds: ["paper-section-1", "paper-section-1"],
+		});
+	});
+
+	it("resolving missing or already resolved margin notes does not create false provenance", () => {
+		let state = addMarginNote(createProject(), {
+			id: "margin-note-1",
+			kind: "todo",
+			subjectId: "project",
+			message: "Add a clearer introduction.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		expect(() =>
+			resolveMarginNote(state, {
+				noteId: "margin-note-missing",
+				resolution: "Cannot resolve a missing note.",
+				now: FIXED_NOW,
+				actor: "human",
+			}),
+		).toThrow(/Unknown margin note/);
+
+		state = resolveMarginNote(state, {
+			noteId: "margin-note-1",
+			resolution: "Introduction now names the convention.",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "human",
+		});
+		const afterDuplicate = resolveMarginNote(state, {
+			noteId: "margin-note-1",
+			resolution: "Duplicate resolution should not create provenance.",
+			now: "2026-06-05T12:06:00.000Z",
+			actor: "human",
+		});
+
+		expect(afterDuplicate).toBe(state);
+		expect(state.marginNotes[0]).toMatchObject({
+			id: "margin-note-1",
+			status: "resolved",
+			resolution: "Introduction now names the convention.",
+			resolvedAt: "2026-06-05T12:05:00.000Z",
+			updatedAt: "2026-06-05T12:05:00.000Z",
+		});
+		expect(state.events.filter((event) => event.kind === "margin_note_resolved")).toHaveLength(1);
+	});
+
 	it("does not append warning resolved events for unknown warning ids", () => {
 		const state = createProject();
 		const nextState = resolveWarning(state, {
@@ -1089,6 +1259,8 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.roleRuns;
 			delete legacyWithoutNewFields.reviewRounds;
 			delete legacyWithoutNewFields.claimRevisions;
+			delete legacyWithoutNewFields.workingPaperSections;
+			delete legacyWithoutNewFields.marginNotes;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
 			const loaded = await loadProjectState(statePath);
@@ -1098,6 +1270,8 @@ describe("co-math project state", () => {
 			expect(loaded?.roleRuns).toEqual([]);
 			expect(loaded?.reviewRounds).toEqual([]);
 			expect(loaded?.claimRevisions).toEqual([]);
+			expect(loaded?.workingPaperSections).toEqual([]);
+			expect(loaded?.marginNotes).toEqual([]);
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",
 				status: "active",

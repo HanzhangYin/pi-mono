@@ -9,6 +9,9 @@ export type RoleRunExecutionMode = "foreground" | "background";
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type ReviewRoundStatus = "open" | "completed";
 export type ReviewRoundOutcome = "accepted" | "rejected" | "revision_requested" | "blocked_by_invariant";
+export type WorkingPaperSectionStatus = "draft" | "needs_revision" | "reviewed";
+export type MarginNoteKind = "gap" | "todo" | "warning" | "provenance" | "comment";
+export type MarginNoteStatus = "open" | "resolved";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -34,7 +37,10 @@ export type CoMathEventKind =
 	| "workstream_status_changed"
 	| "human_intervention_recorded"
 	| "review_round_recorded"
-	| "claim_revised";
+	| "claim_revised"
+	| "working_paper_section_recorded"
+	| "margin_note_recorded"
+	| "margin_note_resolved";
 export type ArtifactKind =
 	| "computation"
 	| "latex_note"
@@ -186,6 +192,35 @@ export interface ClaimRevisionRecord {
 	createdAt: string;
 }
 
+export interface WorkingPaperSection {
+	id: string;
+	title: string;
+	body: string;
+	status: WorkingPaperSectionStatus;
+	sourceClaimIds: string[];
+	sourceEvidenceIds: string[];
+	sourceWarningIds: string[];
+	sourceArtifactIds: string[];
+	sourceReviewRoundIds: string[];
+	sourceRoleRunIds: string[];
+	marginNoteIds: string[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface MarginNote {
+	id: string;
+	kind: MarginNoteKind;
+	status: MarginNoteStatus;
+	subjectId: string;
+	sectionId?: string;
+	message: string;
+	resolution?: string;
+	createdAt: string;
+	updatedAt: string;
+	resolvedAt?: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -203,5 +238,7 @@ export interface CoMathProjectState {
 	roleRuns: RoleRunRecord[];
 	reviewRounds: ReviewRoundRecord[];
 	claimRevisions: ClaimRevisionRecord[];
+	workingPaperSections: WorkingPaperSection[];
+	marginNotes: MarginNote[];
 	updatedAt: string;
 }

@@ -11,6 +11,8 @@ import type {
 	Claim,
 	CoMathProjectState,
 	EvidenceKind,
+	MarginNote,
+	MarginNoteKind,
 	ReviewRoundOutcome,
 	RoleRunRecord,
 	RoleRunStatus,
@@ -24,12 +26,14 @@ import {
 	addClaim,
 	addEvidence,
 	addGoal,
+	addMarginNote,
 	addReport,
 	addReviewDecisionEvent,
 	addReviewQueueItem,
 	addReviewRound,
 	addSynthesisEvent,
 	addWarning,
+	addWorkingPaperSection,
 	addWorkstream,
 	attachWorkstreamReport,
 	cancelQueuedRoleRun,
@@ -43,6 +47,7 @@ import {
 	queueRoleRun,
 	recordHumanInterventionEvent,
 	removeReviewQueueItemsForClaim,
+	resolveMarginNote,
 	resolveWarning,
 	reviseClaim,
 	saveProjectState,
@@ -88,6 +93,11 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath cancel-run <run-id>: <reason> - cancel a queued role run before dispatch
 /comath background-runs - list live in-process background role runs
 /comath abort-run <run-id>: <reason> - request abort for a live background role run
+/comath paper-section <title>: <body> [--sources id1,id2] - record a working-paper section draft
+/comath margin-note <subject-id> <gap|todo|warning|provenance|comment>: <note> - attach a margin note
+/comath resolve-margin-note <note-id>: <resolution> - resolve an open margin note
+/comath margin-notes [open|resolved|all] - list margin notes
+/comath paper - render the current living working paper
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
 /comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
@@ -216,6 +226,31 @@ async function handleCoMathCommand(
 
 	if (subcommand === "abort-run") {
 		await abortBackgroundRoleRun(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "paper-section") {
+		await addPaperSection(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "margin-note") {
+		await addPaperMarginNote(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "resolve-margin-note") {
+		await resolvePaperMarginNote(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "margin-notes") {
+		await showMarginNotes(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "paper") {
+		await showLivingWorkingPaper(pi, ctx);
 		return;
 	}
 
@@ -614,6 +649,30 @@ interface ParsedReviseClaimCommand {
 	reason: string;
 }
 
+interface ParsedPaperSectionCommand {
+	title: string;
+	body: string;
+	sourceIds: string[];
+}
+
+interface ParsedMarginNoteCommand {
+	subjectId: string;
+	kind: MarginNoteKind;
+	message: string;
+}
+
+interface ClassifiedPaperSources {
+	claimIds: string[];
+	evidenceIds: string[];
+	warningIds: string[];
+	artifactIds: string[];
+	reviewRoundIds: string[];
+	roleRunIds: string[];
+	unknownIds: string[];
+}
+
+type MarginNoteFilter = "open" | "resolved" | "all";
+
 function parseSubjectBodyText(text: string): ParsedSubjectBodyCommand | undefined {
 	const separatorIndex = text.indexOf(":");
 	if (separatorIndex === -1) return undefined;
@@ -621,6 +680,46 @@ function parseSubjectBodyText(text: string): ParsedSubjectBodyCommand | undefine
 	const body = text.slice(separatorIndex + 1).trim();
 	if (subjectId.length === 0 || body.length === 0) return undefined;
 	return { subjectId, body };
+}
+
+function parsePaperSectionText(text: string): ParsedPaperSectionCommand | undefined {
+	const sourceMarker = " --sources ";
+	const sourceIndex = text.indexOf(sourceMarker);
+	const sectionText = sourceIndex === -1 ? text : text.slice(0, sourceIndex).trim();
+	const sourceText = sourceIndex === -1 ? "" : text.slice(sourceIndex + sourceMarker.length).trim();
+	const separatorIndex = sectionText.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const title = sectionText.slice(0, separatorIndex).trim();
+	const body = sectionText.slice(separatorIndex + 1).trim();
+	if (title.length === 0 || body.length === 0) return undefined;
+	return {
+		title,
+		body,
+		sourceIds: sourceText
+			.split(",")
+			.map((sourceId) => sourceId.trim())
+			.filter((sourceId) => sourceId.length > 0),
+	};
+}
+
+function parseMarginNoteText(text: string): ParsedMarginNoteCommand | undefined {
+	const separatorIndex = text.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const header = text.slice(0, separatorIndex).trim();
+	const message = text.slice(separatorIndex + 1).trim();
+	const [subjectId, kind, ...extra] = header.split(/\s+/);
+	if (!subjectId || !kind || extra.length > 0 || message.length === 0 || !isMarginNoteKind(kind)) return undefined;
+	return { subjectId, kind, message };
+}
+
+function parseMarginNoteFilter(text: string): MarginNoteFilter | undefined {
+	if (text.length === 0) return "open";
+	if (text === "open" || text === "resolved" || text === "all") return text;
+	return undefined;
+}
+
+function isMarginNoteKind(value: string): value is MarginNoteKind {
+	return value === "gap" || value === "todo" || value === "warning" || value === "provenance" || value === "comment";
 }
 
 function parseRecoverRunText(text: string): ParsedRecoverRunCommand | undefined {
@@ -722,6 +821,51 @@ function isArtifactKind(value: string): value is ArtifactKind {
 	);
 }
 
+function classifyPaperSources(state: CoMathProjectState, sourceIds: string[]): ClassifiedPaperSources {
+	const sources: ClassifiedPaperSources = {
+		claimIds: [],
+		evidenceIds: [],
+		warningIds: [],
+		artifactIds: [],
+		reviewRoundIds: [],
+		roleRunIds: [],
+		unknownIds: [],
+	};
+	for (const sourceId of uniqueStrings(sourceIds)) {
+		if (state.claims.some((claim) => claim.id === sourceId)) {
+			sources.claimIds.push(sourceId);
+		} else if (state.evidence.some((evidence) => evidence.id === sourceId)) {
+			sources.evidenceIds.push(sourceId);
+		} else if (state.warnings.some((warning) => warning.id === sourceId)) {
+			sources.warningIds.push(sourceId);
+		} else if (state.artifacts.some((artifact) => artifact.id === sourceId)) {
+			sources.artifactIds.push(sourceId);
+		} else if (state.reviewRounds.some((round) => round.id === sourceId)) {
+			sources.reviewRoundIds.push(sourceId);
+		} else if (state.roleRuns.some((run) => run.id === sourceId)) {
+			sources.roleRunIds.push(sourceId);
+		} else {
+			sources.unknownIds.push(sourceId);
+		}
+	}
+	return sources;
+}
+
+function paperSubjectExists(state: CoMathProjectState, subjectId: string): boolean {
+	return (
+		subjectId === "project" ||
+		state.workstreams.some((workstream) => workstream.id === subjectId) ||
+		state.claims.some((claim) => claim.id === subjectId) ||
+		state.evidence.some((evidence) => evidence.id === subjectId) ||
+		state.warnings.some((warning) => warning.id === subjectId) ||
+		state.artifacts.some((artifact) => artifact.id === subjectId) ||
+		state.reviewRounds.some((round) => round.id === subjectId) ||
+		state.roleRuns.some((run) => run.id === subjectId) ||
+		state.reports.some((report) => report.id === subjectId) ||
+		state.workingPaperSections.some((section) => section.id === subjectId)
+	);
+}
+
 async function auditProjectState(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
 	const state = await loadProjectStateOrNotify(pi, ctx);
 	if (!state) {
@@ -746,7 +890,9 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 	const artifactIds = new Set(state.artifacts.map((artifact) => artifact.id));
 	const reportIds = new Set(state.reports.map((report) => report.id));
 	const roleRunIds = new Set(state.roleRuns.map((run) => run.id));
+	const reviewRoundIds = new Set(state.reviewRounds.map((round) => round.id));
 	const workstreamIds = new Set(state.workstreams.map((workstream) => workstream.id));
+	const marginNoteIds = new Set(state.marginNotes.map((note) => note.id));
 
 	for (const item of state.reviewQueue) {
 		if (!claimIds.has(item.claimId)) {
@@ -880,6 +1026,71 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 	for (const revision of state.claimRevisions) {
 		if (!claimIds.has(revision.claimId)) {
 			problems.push(`${revision.id} points to missing claim ${revision.claimId}`);
+		}
+	}
+
+	for (const section of state.workingPaperSections) {
+		for (const claimId of section.sourceClaimIds) {
+			if (!claimIds.has(claimId)) {
+				problems.push(`${section.id} sources missing claim ${claimId}`);
+			} else if (!isClaimSynthesisEligible(state, claimId)) {
+				problems.push(`${section.id} sources ${claimId} which is not synthesis-eligible`);
+			}
+		}
+		for (const evidenceId of section.sourceEvidenceIds) {
+			if (!evidenceIds.has(evidenceId)) {
+				problems.push(`${section.id} sources missing evidence ${evidenceId}`);
+			}
+		}
+		for (const warningId of section.sourceWarningIds) {
+			if (!warningIds.has(warningId)) {
+				problems.push(`${section.id} sources missing warning ${warningId}`);
+			}
+		}
+		for (const artifactId of section.sourceArtifactIds) {
+			if (!artifactIds.has(artifactId)) {
+				problems.push(`${section.id} sources missing artifact ${artifactId}`);
+			}
+		}
+		for (const roundId of section.sourceReviewRoundIds) {
+			if (!reviewRoundIds.has(roundId)) {
+				problems.push(`${section.id} sources missing review round ${roundId}`);
+			}
+		}
+		for (const runId of section.sourceRoleRunIds) {
+			if (!roleRunIds.has(runId)) {
+				problems.push(`${section.id} sources missing role run ${runId}`);
+			}
+		}
+		for (const noteId of section.marginNoteIds) {
+			if (!marginNoteIds.has(noteId)) {
+				problems.push(`${section.id} references missing margin note ${noteId}`);
+			}
+		}
+	}
+
+	for (const note of state.marginNotes) {
+		if (!paperSubjectExists(state, note.subjectId)) {
+			problems.push(`${note.id} points to missing subject ${note.subjectId}`);
+		}
+		if (note.sectionId) {
+			const section = state.workingPaperSections.find((candidate) => candidate.id === note.sectionId);
+			if (!section) {
+				problems.push(`${note.id} points to missing section ${note.sectionId}`);
+			} else if (!section.marginNoteIds.includes(note.id)) {
+				problems.push(`${note.id} has sectionId ${note.sectionId} but section does not include it`);
+			}
+		}
+		if (note.status === "resolved") {
+			if (!note.resolution || note.resolution.trim().length === 0) {
+				problems.push(`${note.id} is resolved but has no resolution`);
+			}
+			if (!note.resolvedAt) {
+				problems.push(`${note.id} is resolved but has no resolvedAt`);
+			}
+		}
+		if (note.status === "open" && note.resolvedAt) {
+			problems.push(`${note.id} is open but has resolvedAt set`);
 		}
 	}
 
@@ -1168,6 +1379,16 @@ async function executeBackgroundRoleRun(
 		sendBackgroundMessage(pi, `Background role run ${input.runId} is no longer running; skipped invocation.`);
 		return;
 	}
+	if (input.signal.aborted) {
+		await finalizeBackgroundRoleRunError(
+			pi,
+			input.statePath,
+			run.id,
+			new Error("Co-math role run was aborted."),
+			input.signal,
+		);
+		return;
+	}
 	try {
 		const result = await roleRunner({
 			cwd: input.cwd,
@@ -1329,6 +1550,123 @@ function showBackgroundRoleRuns(pi: ExtensionAPI, ctx: ExtensionCommandContext):
 			"Durable running records that are not listed here may be stale; use /comath recover-run if needed.",
 		].join("\n"),
 	);
+}
+
+async function addPaperSection(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parsePaperSectionText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath paper-section <title>: <body> [--sources id1,id2]");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const sources = classifyPaperSources(existing, parsed.sourceIds);
+	if (sources.unknownIds.length > 0) {
+		showCommandMessage(pi, ctx, `Unknown paper section source ids: ${sources.unknownIds.join(", ")}`);
+		return;
+	}
+	const sectionId = `paper-section-${existing.workingPaperSections.length + 1}`;
+	const state = addWorkingPaperSection(existing, {
+		id: sectionId,
+		title: parsed.title,
+		body: parsed.body,
+		sourceClaimIds: sources.claimIds,
+		sourceEvidenceIds: sources.evidenceIds,
+		sourceWarningIds: sources.warningIds,
+		sourceArtifactIds: sources.artifactIds,
+		sourceReviewRoundIds: sources.reviewRoundIds,
+		sourceRoleRunIds: sources.roleRunIds,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Recorded working-paper section ${sectionId}: ${parsed.title}`);
+}
+
+async function addPaperMarginNote(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseMarginNoteText(text);
+	if (!parsed) {
+		showCommandMessage(
+			pi,
+			ctx,
+			"Usage: /comath margin-note <subject-id> <gap|todo|warning|provenance|comment>: <note>",
+		);
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	if (!paperSubjectExists(existing, parsed.subjectId)) {
+		showCommandMessage(pi, ctx, `Unknown margin note subject: ${parsed.subjectId}`);
+		return;
+	}
+	const section = existing.workingPaperSections.find((candidate) => candidate.id === parsed.subjectId);
+	const noteId = `margin-note-${existing.marginNotes.length + 1}`;
+	const state = addMarginNote(existing, {
+		id: noteId,
+		kind: parsed.kind,
+		subjectId: parsed.subjectId,
+		sectionId: section?.id,
+		message: parsed.message,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Recorded margin note ${noteId} for ${parsed.subjectId}.`);
+}
+
+async function resolvePaperMarginNote(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath resolve-margin-note <note-id>: <resolution>");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const note = existing.marginNotes.find((candidate) => candidate.id === parsed.subjectId);
+	if (!note) {
+		showCommandMessage(pi, ctx, `No margin note found for ${parsed.subjectId}.`);
+		return;
+	}
+	if (note.status === "resolved") {
+		showCommandMessage(pi, ctx, `Margin note ${note.id} is already resolved.`);
+		return;
+	}
+	const state = resolveMarginNote(existing, {
+		noteId: note.id,
+		resolution: parsed.body,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Resolved margin note ${note.id}: ${parsed.body}`);
+}
+
+async function showMarginNotes(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const filter = parseMarginNoteFilter(text);
+	if (!filter) {
+		showCommandMessage(pi, ctx, "Usage: /comath margin-notes [open|resolved|all]");
+		return;
+	}
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+	const notes = filter === "all" ? state.marginNotes : state.marginNotes.filter((note) => note.status === filter);
+	showCommandMessage(pi, ctx, [`Co-math margin notes [${filter}]`, ...formatMarginNotes(notes)].join("\n"));
+}
+
+async function showLivingWorkingPaper(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+	showCommandMessage(pi, ctx, buildLivingWorkingPaperMarkdown(state));
 }
 
 async function executeRunningRoleRun(
@@ -1917,6 +2255,137 @@ function formatArtifacts(state: CoMathProjectState): string[] {
 	);
 }
 
+function formatMarginNotes(notes: MarginNote[]): string[] {
+	if (notes.length === 0) return ["No margin notes recorded for this filter."];
+	return notes.map(formatMarginNote);
+}
+
+function formatMarginNote(note: MarginNote): string {
+	const subject = note.sectionId ?? note.subjectId;
+	const resolution = note.status === "resolved" && note.resolution ? ` (resolved: ${note.resolution})` : "";
+	return `- ${note.id} [${note.kind}/${note.status}] ${subject}: ${note.message}${resolution}`;
+}
+
+function buildLivingWorkingPaperMarkdown(state: CoMathProjectState): string {
+	return [
+		`# ${state.title}`,
+		"",
+		`Root question: ${state.rootQuestion}`,
+		"",
+		"Working-paper sections are draft workspace records, not proof certificates.",
+		"",
+		"## Working paper sections",
+		...formatWorkingPaperSections(state),
+		"",
+		"## Reviewed findings not yet in paper",
+		...formatReviewedFindingsNotInPaper(state),
+		"",
+		"## Open warnings",
+		...formatOpenWarnings(state),
+		"",
+		"## Open margin notes",
+		...formatOpenMarginNotes(state),
+	].join("\n");
+}
+
+function formatWorkingPaperSections(state: CoMathProjectState): string[] {
+	if (state.workingPaperSections.length === 0) return ["No working-paper sections recorded."];
+	return state.workingPaperSections.flatMap((section) => [
+		`### ${section.id}: ${section.title} [${section.status}]`,
+		section.body,
+		"",
+		"Sources:",
+		...formatPaperSectionSources(state, section),
+		"Margin notes:",
+		...formatPaperSectionMarginNotes(state, section),
+		"",
+	]);
+}
+
+function formatPaperSectionSources(
+	state: CoMathProjectState,
+	section: CoMathProjectState["workingPaperSections"][number],
+): string[] {
+	const lines = [
+		...section.sourceClaimIds.map((claimId) => formatPaperClaimSource(state, claimId)),
+		...section.sourceEvidenceIds.map((evidenceId) => formatPaperEvidenceSource(state, evidenceId)),
+		...section.sourceWarningIds.map((warningId) => formatPaperWarningSource(state, warningId)),
+		...section.sourceArtifactIds.map((artifactId) => formatPaperArtifactSource(state, artifactId)),
+		...section.sourceReviewRoundIds.map((roundId) => formatPaperReviewRoundSource(state, roundId)),
+		...section.sourceRoleRunIds.map((runId) => formatPaperRoleRunSource(state, runId)),
+	];
+	return lines.length === 0 ? ["- none"] : lines;
+}
+
+function formatPaperClaimSource(state: CoMathProjectState, claimId: string): string {
+	const claim = state.claims.find((candidate) => candidate.id === claimId);
+	if (!claim) return `- ${claimId} [missing claim]`;
+	const label = isClaimSynthesisEligible(state, claim.id)
+		? `${claim.status}/synthesis-eligible`
+		: `${claim.status}/not synthesis-eligible`;
+	return `- ${claim.id} [${label}]: ${claim.statement}`;
+}
+
+function formatPaperEvidenceSource(state: CoMathProjectState, evidenceId: string): string {
+	const evidence = state.evidence.find((candidate) => candidate.id === evidenceId);
+	if (!evidence) return `- ${evidenceId} [missing evidence]`;
+	return `- ${evidence.id} [${evidence.kind}] on ${evidence.claimId}: ${evidence.summary}`;
+}
+
+function formatPaperWarningSource(state: CoMathProjectState, warningId: string): string {
+	const warning = state.warnings.find((candidate) => candidate.id === warningId);
+	if (!warning) return `- ${warningId} [missing warning]`;
+	return `- ${warning.id} [${warning.status}] ${warning.severity} on ${warning.claimId}: ${warning.message}`;
+}
+
+function formatPaperArtifactSource(state: CoMathProjectState, artifactId: string): string {
+	const artifact = state.artifacts.find((candidate) => candidate.id === artifactId);
+	if (!artifact) return `- ${artifactId} [missing artifact]`;
+	return `- ${artifact.id} [${artifact.kind}]: ${artifact.title}`;
+}
+
+function formatPaperReviewRoundSource(state: CoMathProjectState, roundId: string): string {
+	const round = state.reviewRounds.find((candidate) => candidate.id === roundId);
+	if (!round) return `- ${roundId} [missing review round]`;
+	return `- ${round.id} [${round.outcome}] ${round.claimId}: ${round.decisionStatus}`;
+}
+
+function formatPaperRoleRunSource(state: CoMathProjectState, runId: string): string {
+	const run = state.roleRuns.find((candidate) => candidate.id === runId);
+	if (!run) return `- ${runId} [missing role run]`;
+	return `- ${run.id} [${formatRoleRunStatus(run)}]: ${formatRoleRunTarget(run)}`;
+}
+
+function formatPaperSectionMarginNotes(
+	state: CoMathProjectState,
+	section: CoMathProjectState["workingPaperSections"][number],
+): string[] {
+	const notes = section.marginNoteIds
+		.map((noteId) => state.marginNotes.find((note) => note.id === noteId))
+		.filter((note) => note !== undefined);
+	return notes.length === 0
+		? ["- none"]
+		: notes.map((note) => `- ${note.id} [${note.kind}/${note.status}]: ${note.message}`);
+}
+
+function formatReviewedFindingsNotInPaper(state: CoMathProjectState): string[] {
+	const paperClaimIds = new Set(state.workingPaperSections.flatMap((section) => section.sourceClaimIds));
+	const findings = state.claims.filter(
+		(claim) => isClaimSynthesisEligible(state, claim.id) && !paperClaimIds.has(claim.id),
+	);
+	if (findings.length === 0) return ["No reviewed findings are waiting to be added to paper sections."];
+	return findings.map((claim) => `- ${claim.id}: ${claim.statement}${formatClaimEvidence(state, claim)}`);
+}
+
+function formatOpenMarginNotes(state: CoMathProjectState): string[] {
+	const openNotes = state.marginNotes.filter((note) => note.status === "open");
+	if (openNotes.length === 0) return ["No open margin notes are recorded."];
+	return openNotes.map((note) => {
+		const section = note.sectionId ? ` ${note.sectionId}` : "";
+		return `- ${note.id} [${note.kind}]${section}: ${note.message}`;
+	});
+}
+
 function formatReviewRounds(rounds: CoMathProjectState["reviewRounds"]): string[] {
 	return [...rounds].reverse().map(formatReviewRound);
 }
@@ -2037,6 +2506,8 @@ async function showProjectStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			`Claims: ${state.claims.length}`,
 			`Open warnings: ${state.warnings.filter((warning) => warning.status === "open").length}`,
 			`Artifacts: ${state.artifacts.length}`,
+			`Working paper sections: ${state.workingPaperSections.length}`,
+			`Open margin notes: ${state.marginNotes.filter((note) => note.status === "open").length}`,
 			`Events: ${state.events.length}`,
 			`Live background runs: ${backgroundRoleRuns.size}`,
 			"Workstream statuses:",

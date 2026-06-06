@@ -12,6 +12,8 @@ import type {
 	CoMathRole,
 	Evidence,
 	EvidenceKind,
+	MarginNote,
+	MarginNoteKind,
 	Report,
 	ReviewQueueItem,
 	ReviewRoundOutcome,
@@ -20,6 +22,8 @@ import type {
 	RoleRunRecord,
 	Warning,
 	WarningSeverity,
+	WorkingPaperSection,
+	WorkingPaperSectionStatus,
 	Workstream,
 	WorkstreamStatus,
 } from "./schema.ts";
@@ -27,8 +31,19 @@ import type {
 type LegacyWorkstream = Omit<Workstream, "latestRunIds" | "status" | "statusReason"> &
 	Partial<Pick<Workstream, "latestRunIds" | "status" | "statusReason">>;
 type LegacyRoleRun = Omit<RoleRunRecord, "queuedAt"> & Partial<Pick<RoleRunRecord, "queuedAt">>;
-type LegacyProjectState = Omit<CoMathProjectState, "artifacts" | "events" | "roleRuns" | "workstreams"> &
-	Partial<Omit<Pick<CoMathProjectState, "artifacts" | "events" | "reviewRounds" | "claimRevisions">, "roleRuns">> & {
+type LegacyProjectState = Omit<
+	CoMathProjectState,
+	"artifacts" | "events" | "roleRuns" | "workstreams" | "workingPaperSections" | "marginNotes"
+> &
+	Partial<
+		Omit<
+			Pick<
+				CoMathProjectState,
+				"artifacts" | "events" | "reviewRounds" | "claimRevisions" | "workingPaperSections" | "marginNotes"
+			>,
+			"roleRuns"
+		>
+	> & {
 		roleRuns?: LegacyRoleRun[];
 		workstreams: LegacyWorkstream[];
 	};
@@ -239,6 +254,38 @@ export interface ReviseClaimInput {
 	actor?: CoMathActor;
 }
 
+export interface AddWorkingPaperSectionInput {
+	id: string;
+	title: string;
+	body: string;
+	status?: WorkingPaperSectionStatus;
+	sourceClaimIds?: string[];
+	sourceEvidenceIds?: string[];
+	sourceWarningIds?: string[];
+	sourceArtifactIds?: string[];
+	sourceReviewRoundIds?: string[];
+	sourceRoleRunIds?: string[];
+	now: string;
+	actor: CoMathActor;
+}
+
+export interface AddMarginNoteInput {
+	id: string;
+	kind: MarginNoteKind;
+	subjectId: string;
+	sectionId?: string;
+	message: string;
+	now: string;
+	actor: CoMathActor;
+}
+
+export interface ResolveMarginNoteInput {
+	noteId: string;
+	resolution: string;
+	now: string;
+	actor: CoMathActor;
+}
+
 interface AppendEventInput {
 	kind: CoMathEventKind;
 	actor?: CoMathActor;
@@ -265,6 +312,8 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		roleRuns: [],
 		reviewRounds: [],
 		claimRevisions: [],
+		workingPaperSections: [],
+		marginNotes: [],
 		events: [
 			{
 				id: "event-1",
@@ -1078,6 +1127,142 @@ export function reviseClaim(state: CoMathProjectState, input: ReviseClaimInput):
 	});
 }
 
+export function addWorkingPaperSection(
+	state: CoMathProjectState,
+	input: AddWorkingPaperSectionInput,
+): CoMathProjectState {
+	const title = input.title.trim();
+	const body = input.body.trim();
+	if (!title) {
+		throw new Error("Working paper section requires a title.");
+	}
+	if (!body) {
+		throw new Error("Working paper section requires a body.");
+	}
+	const section: WorkingPaperSection = {
+		id: input.id,
+		title,
+		body,
+		status: input.status ?? "draft",
+		sourceClaimIds: uniqueStrings(input.sourceClaimIds ?? []),
+		sourceEvidenceIds: uniqueStrings(input.sourceEvidenceIds ?? []),
+		sourceWarningIds: uniqueStrings(input.sourceWarningIds ?? []),
+		sourceArtifactIds: uniqueStrings(input.sourceArtifactIds ?? []),
+		sourceReviewRoundIds: uniqueStrings(input.sourceReviewRoundIds ?? []),
+		sourceRoleRunIds: uniqueStrings(input.sourceRoleRunIds ?? []),
+		marginNoteIds: [],
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			workingPaperSections: [...state.workingPaperSections, section],
+			updatedAt: input.now,
+		},
+		{
+			kind: "working_paper_section_recorded",
+			actor: input.actor,
+			summary: `Recorded working-paper section ${input.id}: ${title}`,
+			subjectId: input.id,
+			relatedIds: [
+				...section.sourceClaimIds,
+				...section.sourceEvidenceIds,
+				...section.sourceWarningIds,
+				...section.sourceArtifactIds,
+				...section.sourceReviewRoundIds,
+				...section.sourceRoleRunIds,
+			],
+			now: input.now,
+		},
+	);
+}
+
+export function addMarginNote(state: CoMathProjectState, input: AddMarginNoteInput): CoMathProjectState {
+	const subjectId = input.subjectId.trim();
+	const message = input.message.trim();
+	if (!subjectId) {
+		throw new Error("Margin note requires a subject id.");
+	}
+	if (!message) {
+		throw new Error("Margin note requires a message.");
+	}
+	const note: MarginNote = {
+		id: input.id,
+		kind: input.kind,
+		status: "open",
+		subjectId,
+		...(input.sectionId ? { sectionId: input.sectionId } : {}),
+		message,
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	const nextSections = state.workingPaperSections.map((section) =>
+		section.id === input.sectionId
+			? {
+					...section,
+					marginNoteIds: uniqueStrings([...section.marginNoteIds, input.id]),
+					updatedAt: input.now,
+				}
+			: section,
+	);
+	return appendEvent(
+		{
+			...state,
+			workingPaperSections: nextSections,
+			marginNotes: [...state.marginNotes, note],
+			updatedAt: input.now,
+		},
+		{
+			kind: "margin_note_recorded",
+			actor: input.actor,
+			summary: `Recorded margin note ${input.id} for ${subjectId}: ${message}`,
+			subjectId: input.id,
+			relatedIds: input.sectionId ? [subjectId, input.sectionId] : [subjectId],
+			now: input.now,
+		},
+	);
+}
+
+export function resolveMarginNote(state: CoMathProjectState, input: ResolveMarginNoteInput): CoMathProjectState {
+	const note = state.marginNotes.find((candidate) => candidate.id === input.noteId);
+	if (!note) {
+		throw new Error(`Unknown margin note: ${input.noteId}`);
+	}
+	if (note.status === "resolved") {
+		return state;
+	}
+	const resolution = input.resolution.trim();
+	if (!resolution) {
+		throw new Error("Resolving a margin note requires a resolution.");
+	}
+	return appendEvent(
+		{
+			...state,
+			marginNotes: state.marginNotes.map((candidate) =>
+				candidate.id === input.noteId
+					? {
+							...candidate,
+							status: "resolved",
+							resolution,
+							resolvedAt: input.now,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "margin_note_resolved",
+			actor: input.actor,
+			summary: `Resolved margin note ${input.noteId}: ${resolution}`,
+			subjectId: input.noteId,
+			relatedIds: [note.subjectId, ...(note.sectionId ? [note.sectionId] : [])],
+			now: input.now,
+		},
+	);
+}
+
 export function isClaimSynthesisEligible(state: CoMathProjectState, claimId: string): boolean {
 	const claim = findClaim(state, claimId);
 	return claim.status === "proved" && hasAttachedProofEvidence(state, claim) && !hasAttachedOpenWarning(state, claim);
@@ -1116,6 +1301,8 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		roleRuns: (value.roleRuns ?? []).map(normalizeRoleRun),
 		reviewRounds: value.reviewRounds ?? [],
 		claimRevisions: value.claimRevisions ?? [],
+		workingPaperSections: value.workingPaperSections ?? [],
+		marginNotes: value.marginNotes ?? [],
 	};
 }
 
@@ -1181,6 +1368,10 @@ function findRoleRun(state: CoMathProjectState, runId: string): RoleRunRecord {
 
 function relatedRunTargetIds(run: RoleRunRecord): string[] {
 	return [run.targetWorkstreamId, run.targetClaimId].filter((id) => id !== undefined);
+}
+
+function uniqueStrings(values: string[]): string[] {
+	return Array.from(new Set(values));
 }
 
 function hasAttachedProofEvidence(state: CoMathProjectState, claim: Claim): boolean {

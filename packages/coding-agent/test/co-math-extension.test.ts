@@ -1235,6 +1235,235 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("records paper sections with classified source ids", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-paper-section-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed a claim for paper provenance.",
+					proposedClaims: [
+						{
+							statement: "Endpoint monotonicity has a draft formulation.",
+							evidence: [{ kind: "computation", summary: "Checked examples through n = 5." }],
+							warnings: [{ severity: "high", message: "Boundary case still needs a lemma." }],
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("artifact failed_attempt Endpoint attempt: Breaks at the right endpoint.", ctx);
+			await command?.handler(
+				"paper-section Endpoint lemma: Draft text with visible uncertainty. --sources claim-1,evidence-1,warning-1,artifact-1",
+				ctx,
+			);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workingPaperSections).toMatchObject([
+				{
+					id: "paper-section-1",
+					title: "Endpoint lemma",
+					body: "Draft text with visible uncertainty.",
+					status: "draft",
+					sourceClaimIds: ["claim-1"],
+					sourceEvidenceIds: ["evidence-1"],
+					sourceWarningIds: ["warning-1"],
+					sourceArtifactIds: ["artifact-1"],
+				},
+			]);
+			expect(notifications.join("\n")).toContain("Recorded working-paper section paper-section-1: Endpoint lemma");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("paper-section rejects unknown source ids", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-paper-section-unknown-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("paper-section Endpoint lemma: Draft text. --sources claim-missing", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workingPaperSections).toEqual([]);
+			expect(notifications.at(-1)).toContain("Unknown paper section source ids: claim-missing");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("margin-note records open notes without creating mathematical warnings", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-margin-note-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("paper-section Endpoint lemma: Draft body.", ctx);
+			await command?.handler("margin-note paper-section-1 gap: Need a proof of the boundary lemma", ctx);
+			await command?.handler("margin-notes", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.marginNotes).toMatchObject([
+				{
+					id: "margin-note-1",
+					kind: "gap",
+					status: "open",
+					subjectId: "paper-section-1",
+					sectionId: "paper-section-1",
+					message: "Need a proof of the boundary lemma",
+				},
+			]);
+			expect(state?.workingPaperSections[0]?.marginNoteIds).toEqual(["margin-note-1"]);
+			expect(state?.warnings).toEqual([]);
+			expect(notifications.at(-1)).toContain(
+				"margin-note-1 [gap/open] paper-section-1: Need a proof of the boundary lemma",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("resolve-margin-note records one real resolution event only", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-margin-note-resolve-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("margin-note project todo: Add a clearer introduction", ctx);
+			await command?.handler("resolve-margin-note margin-note-1: Introduction now states the convention", ctx);
+			await command?.handler("resolve-margin-note margin-note-1: Duplicate resolution", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.marginNotes[0]).toMatchObject({
+				id: "margin-note-1",
+				status: "resolved",
+				resolution: "Introduction now states the convention",
+			});
+			expect(state?.events.filter((event) => event.kind === "margin_note_resolved")).toHaveLength(1);
+			expect(notifications.at(-1)).toBe("Margin note margin-note-1 is already resolved.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("paper render marks non-synthesis-eligible claim sources", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-paper-noneligible-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed an unreviewed claim.",
+					proposedClaims: [{ statement: "Unreviewed endpoint statement." }],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("paper-section Endpoint lemma: Draft body. --sources claim-1", ctx);
+			await command?.handler("paper", ctx);
+
+			const paper = notifications.at(-1) ?? "";
+			expect(paper).toContain("claim-1 [needs_review/not synthesis-eligible]");
+			expect(paper).toContain("## Reviewed findings not yet in paper");
+			expect(paper).not.toContain("- claim-1: Unreviewed endpoint statement.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("paper render includes reviewed findings not yet in paper", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-paper-reviewed-finding-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						return {
+							summary: "Reviewer proves the claim.",
+							reviewDecision: {
+								claimId: "claim-1",
+								status: "proved",
+								evidence: [{ kind: "proof", summary: "Checked the endpoint proof." }],
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for the living paper.",
+						proposedClaims: [{ statement: "Reviewed endpoint finding." }],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+			await command?.handler("paper", ctx);
+
+			const paper = notifications.at(-1) ?? "";
+			expect(paper).toContain("## Reviewed findings not yet in paper");
+			expect(paper).toContain("- claim-1: Reviewed endpoint finding.");
+			expect(paper).toContain("proof: Checked the endpoint proof.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("paper render always includes open warnings and open margin notes", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-paper-open-issues-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed a warning-bearing claim.",
+					proposedClaims: [
+						{
+							statement: "Endpoint warning stays visible.",
+							warnings: [{ severity: "high", message: "Boundary case remains open." }],
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("paper-section Endpoint lemma: Draft body. --sources warning-1", ctx);
+			await command?.handler("margin-note paper-section-1 warning: Section still relies on warning-1", ctx);
+			await command?.handler("paper", ctx);
+
+			const paper = notifications.at(-1) ?? "";
+			expect(paper).toContain("## Open warnings");
+			expect(paper).toContain("warning-1 [high] on claim-1: Boundary case remains open.");
+			expect(paper).toContain("## Open margin notes");
+			expect(paper).toContain("margin-note-1 [warning] paper-section-1: Section still relies on warning-1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("manually blocks and unblocks workstreams with human intervention events", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-block-unblock-"));
 		try {
@@ -1827,6 +2056,85 @@ describe("co-math extension registration", () => {
 			expect(notifications.at(-1)).toContain(
 				"role-run-background-stale is a background running record not live in this session",
 			);
+			expect(await loadProjectState(statePath)).toEqual(malformedState);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("audit reports dangling paper section and margin note references without mutation", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-audit-paper-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			const statePath = getDefaultStatePath(tempDir);
+			const state = await loadProjectState(statePath);
+			expect(state).toBeDefined();
+			const malformedState: CoMathProjectState = {
+				...(state as CoMathProjectState),
+				workingPaperSections: [
+					{
+						id: "paper-section-broken",
+						title: "Broken section",
+						body: "Malformed state fixture.",
+						status: "draft",
+						sourceClaimIds: ["claim-missing"],
+						sourceEvidenceIds: ["evidence-missing"],
+						sourceWarningIds: ["warning-missing"],
+						sourceArtifactIds: ["artifact-missing"],
+						sourceReviewRoundIds: ["review-round-missing"],
+						sourceRoleRunIds: ["role-run-missing"],
+						marginNoteIds: ["margin-note-missing"],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+				marginNotes: [
+					{
+						id: "margin-note-broken",
+						kind: "gap",
+						status: "open",
+						subjectId: "subject-missing",
+						sectionId: "paper-section-broken",
+						message: "Dangling note fixture.",
+						resolvedAt: "2026-06-05T12:01:00.000Z",
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:01:00.000Z",
+					},
+					{
+						id: "margin-note-resolved-broken",
+						kind: "todo",
+						status: "resolved",
+						subjectId: "project",
+						message: "Resolved without resolution metadata.",
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:01:00.000Z",
+					},
+				],
+			};
+			await saveProjectState(statePath, malformedState);
+
+			await command?.handler("audit", ctx);
+
+			const audit = notifications.at(-1) ?? "";
+			expect(audit).toContain("paper-section-broken sources missing claim claim-missing");
+			expect(audit).toContain("paper-section-broken sources missing evidence evidence-missing");
+			expect(audit).toContain("paper-section-broken sources missing warning warning-missing");
+			expect(audit).toContain("paper-section-broken sources missing artifact artifact-missing");
+			expect(audit).toContain("paper-section-broken sources missing review round review-round-missing");
+			expect(audit).toContain("paper-section-broken sources missing role run role-run-missing");
+			expect(audit).toContain("paper-section-broken references missing margin note margin-note-missing");
+			expect(audit).toContain("margin-note-broken points to missing subject subject-missing");
+			expect(audit).toContain(
+				"margin-note-broken has sectionId paper-section-broken but section does not include it",
+			);
+			expect(audit).toContain("margin-note-broken is open but has resolvedAt set");
+			expect(audit).toContain("margin-note-resolved-broken is resolved but has no resolution");
+			expect(audit).toContain("margin-note-resolved-broken is resolved but has no resolvedAt");
 			expect(await loadProjectState(statePath)).toEqual(malformedState);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
@@ -2598,6 +2906,11 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath dispatch-run role-run-2 --background");
 			expect(readme).toContain("/comath background-runs");
 			expect(readme).toContain("/comath abort-run");
+			expect(readme).toContain("/comath paper-section");
+			expect(readme).toContain("/comath margin-note");
+			expect(readme).toContain("/comath resolve-margin-note");
+			expect(readme).toContain("/comath margin-notes");
+			expect(readme).toContain("/comath paper");
 			expect(readme).toContain("/comath block");
 			expect(readme).toContain("/comath unblock");
 			expect(readme).toContain("/comath note");
@@ -2621,6 +2934,11 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("proof-promotion invariant");
 			expect(readme).toContain("blocked");
 			expect(readme).toContain("start queued work asynchronously");
+			expect(readme.toLowerCase()).toContain("working-paper sections");
+			expect(readme.toLowerCase()).toContain("draft workspace records");
+			expect(readme.toLowerCase()).toContain("margin notes");
+			expect(readme.toLowerCase()).toContain("paper annotations");
+			expect(readme.toLowerCase()).toContain("non-synthesis-eligible");
 			expect(readme).toContain("structured JSON");
 			expect(readme).toContain("report only");
 			expect(readme).toContain("malformed");
@@ -2668,6 +2986,10 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("not proof evidence");
 			expect(content).toContain("reviewRounds");
 			expect(content).toContain("claimRevisions");
+			expect(content).toContain("working paper");
+			expect(content).toContain("margin notes");
+			expect(content).toContain("Working paper sections");
+			expect(content).toContain("Open margin notes");
 		});
 	});
 });

@@ -41,6 +41,11 @@ The extension registers:
 /comath revise-claim claim-1: Endpoint monotonicity holds under the predecessor-canonical convention. --reason Human clarified endpoint convention
 /comath claim-history claim-1
 /comath synthesize
+/comath paper-section Endpoint lemma: Draft text preserving the unresolved boundary issue. --sources claim-1,evidence-1,warning-1
+/comath margin-note paper-section-1 gap: Need a written lemma for the endpoint boundary case
+/comath margin-notes
+/comath resolve-margin-note margin-note-1: Boundary lemma added to the draft section
+/comath paper
 /comath timeline
 /comath runs
 /comath run-status role-run-1
@@ -56,7 +61,7 @@ The extension registers:
 /comath status
 ```
 
-The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, queued and cancelled run provenance, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, review rounds, claim revision history, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
+The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, queued and cancelled run provenance, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, review rounds, claim revision history, targeted reviewer runs, cautious synthesis markdown, and a living working-paper layer. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs and paper commands do not promote anything to `proved` without proof evidence and resolved warnings.
 
 ## Structured role output
 
@@ -71,6 +76,10 @@ Role run records are control-plane provenance, not mathematical proof certificat
 Human intervention events preserve steering decisions such as manual block/unblock actions, human notes, and stale running run recovery. A human note is metadata and not proof evidence; it cannot promote a claim or satisfy the proof-backed synthesis invariant.
 
 Claim revisions are human steering records. `/comath revise-claim` changes the claim statement, preserves attached evidence and warnings, records the previous and revised statements with a reason, and returns the claim to review. `/comath claim-history` shows the current claim, open warning count, claim revision history, and review rounds.
+
+Working-paper sections are draft workspace records, not proof certificates. `/comath paper-section` stores human-authored draft text with explicit source ids; `/comath paper` renders the living working paper in command output only and does not export Markdown, LaTeX, PDF, or artifact files. Rendering preserves open warnings, open margin notes, and non-synthesis-eligible source labels so polished prose cannot hide proof gaps.
+
+Margin notes are paper annotations, not proof evidence and not mathematical warning records. `/comath margin-note` records open issues on sections or workspace subjects, and `/comath resolve-margin-note` closes those annotations with provenance without resolving mathematical warnings automatically.
 
 ## Role prompts
 
