@@ -6,6 +6,8 @@ export type WarningStatus = "open" | "resolved";
 export type WorkstreamStatus = "active" | "running" | "blocked" | "needs_review";
 export type RoleRunStatus = "running" | "completed" | "blocked" | "failed" | "aborted";
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
+export type ReviewRoundStatus = "open" | "completed";
+export type ReviewRoundOutcome = "accepted" | "rejected" | "revision_requested" | "blocked_by_invariant";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -27,7 +29,9 @@ export type CoMathEventKind =
 	| "role_run_failed"
 	| "role_run_aborted"
 	| "workstream_status_changed"
-	| "human_intervention_recorded";
+	| "human_intervention_recorded"
+	| "review_round_recorded"
+	| "claim_revised";
 export type ArtifactKind =
 	| "computation"
 	| "latex_note"
@@ -150,6 +154,31 @@ export interface RoleRunRecord {
 	updatedAt: string;
 }
 
+export interface ReviewRoundRecord {
+	id: string;
+	claimId: string;
+	roleRunId: string;
+	reportId: string;
+	status: ReviewRoundStatus;
+	decisionStatus: ClaimStatus;
+	outcome: ReviewRoundOutcome;
+	createdEvidenceIds: string[];
+	createdWarningIds: string[];
+	resolvedWarningIds: string[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ClaimRevisionRecord {
+	id: string;
+	claimId: string;
+	previousStatement: string;
+	revisedStatement: string;
+	reason: string;
+	actor: CoMathActor;
+	createdAt: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -165,5 +194,7 @@ export interface CoMathProjectState {
 	artifacts: ArtifactRecord[];
 	events: CoMathEvent[];
 	roleRuns: RoleRunRecord[];
+	reviewRounds: ReviewRoundRecord[];
+	claimRevisions: ClaimRevisionRecord[];
 	updatedAt: string;
 }

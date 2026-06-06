@@ -9,6 +9,7 @@ import {
 	addEvidence,
 	addGoal,
 	addReviewDecisionEvent,
+	addReviewRound,
 	addWarning,
 	addWorkstream,
 	createEmptyProjectState,
@@ -19,6 +20,7 @@ import {
 	loadProjectState,
 	recordHumanInterventionEvent,
 	resolveWarning,
+	reviseClaim,
 	saveProjectState,
 	serializeProjectState,
 	setClaimStatus,
@@ -65,6 +67,8 @@ describe("co-math project state", () => {
 				},
 			],
 			roleRuns: [],
+			reviewRounds: [],
+			claimRevisions: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -557,6 +561,151 @@ describe("co-math project state", () => {
 		});
 	});
 
+	it("records review rounds with linked provenance", () => {
+		let state = createProject();
+		state = addReviewRound(state, {
+			id: "review-round-1",
+			claimId: "claim-1",
+			roleRunId: "role-run-1",
+			reportId: "report-1",
+			decisionStatus: "proved",
+			outcome: "blocked_by_invariant",
+			createdEvidenceIds: ["evidence-1"],
+			createdWarningIds: ["warning-1"],
+			resolvedWarningIds: ["warning-2"],
+			now: FIXED_NOW,
+			actor: "reviewer",
+		});
+
+		expect(state.reviewRounds).toEqual([
+			{
+				id: "review-round-1",
+				claimId: "claim-1",
+				roleRunId: "role-run-1",
+				reportId: "report-1",
+				status: "completed",
+				decisionStatus: "proved",
+				outcome: "blocked_by_invariant",
+				createdEvidenceIds: ["evidence-1"],
+				createdWarningIds: ["warning-1"],
+				resolvedWarningIds: ["warning-2"],
+				createdAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.events.at(-1)).toMatchObject({
+			id: "event-2",
+			kind: "review_round_recorded",
+			actor: "reviewer",
+			subjectId: "review-round-1",
+			relatedIds: ["claim-1", "role-run-1", "report-1", "evidence-1", "warning-1", "warning-2"],
+		});
+	});
+
+	it("revises claims while preserving provenance and returning them to review", () => {
+		let state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Initial endpoint monotonicity statement.",
+			status: "proved",
+			now: FIXED_NOW,
+			actor: "workstream",
+		});
+		state = addEvidence(state, {
+			id: "evidence-1",
+			claimId: "claim-1",
+			kind: "proof",
+			summary: "Prior proof evidence remains attached.",
+			now: FIXED_NOW,
+			actor: "reviewer",
+		});
+		state = addWarning(state, {
+			id: "warning-1",
+			claimId: "claim-1",
+			severity: "medium",
+			message: "Prior warning remains attached.",
+			now: FIXED_NOW,
+			actor: "reviewer",
+		});
+		state = reviseClaim(state, {
+			id: "claim-revision-1",
+			claimId: "claim-1",
+			revisedStatement: "Revised endpoint monotonicity statement.",
+			reason: "Human clarified endpoint convention.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.claims[0]).toMatchObject({
+			id: "claim-1",
+			statement: "Revised endpoint monotonicity statement.",
+			status: "needs_review",
+			evidenceIds: ["evidence-1"],
+			warningIds: ["warning-1"],
+		});
+		expect(state.claimRevisions).toEqual([
+			{
+				id: "claim-revision-1",
+				claimId: "claim-1",
+				previousStatement: "Initial endpoint monotonicity statement.",
+				revisedStatement: "Revised endpoint monotonicity statement.",
+				reason: "Human clarified endpoint convention.",
+				actor: "human",
+				createdAt: FIXED_NOW,
+			},
+		]);
+		expect(state.reviewQueue).toMatchObject([
+			{
+				claimId: "claim-1",
+				reason: "Claim was revised and needs reviewer validation.",
+			},
+		]);
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "claim_revised",
+			actor: "human",
+			subjectId: "claim-1",
+			relatedIds: ["claim-revision-1"],
+		});
+	});
+
+	it("rejects invalid claim revisions", () => {
+		const state = addClaim(createProject(), {
+			id: "claim-1",
+			workstreamId: "workstream-1",
+			statement: "Initial claim.",
+			status: "needs_review",
+			now: FIXED_NOW,
+		});
+
+		expect(() =>
+			reviseClaim(state, {
+				id: "claim-revision-1",
+				claimId: "claim-missing",
+				revisedStatement: "Revised.",
+				reason: "Reason.",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/Unknown claim/);
+		expect(() =>
+			reviseClaim(state, {
+				id: "claim-revision-1",
+				claimId: "claim-1",
+				revisedStatement: "",
+				reason: "Reason.",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/revised statement/i);
+		expect(() =>
+			reviseClaim(state, {
+				id: "claim-revision-1",
+				claimId: "claim-1",
+				revisedStatement: "Revised.",
+				reason: "",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/reason/i);
+	});
+
 	it("refuses to mark a claim proved without attached proof evidence", () => {
 		const state = addClaim(createProject(), {
 			id: "claim-1",
@@ -767,6 +916,8 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.artifacts;
 			delete legacyWithoutNewFields.events;
 			delete legacyWithoutNewFields.roleRuns;
+			delete legacyWithoutNewFields.reviewRounds;
+			delete legacyWithoutNewFields.claimRevisions;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
 			const loaded = await loadProjectState(statePath);
@@ -774,6 +925,8 @@ describe("co-math project state", () => {
 			expect(loaded?.artifacts).toEqual([]);
 			expect(loaded?.events).toEqual([]);
 			expect(loaded?.roleRuns).toEqual([]);
+			expect(loaded?.reviewRounds).toEqual([]);
+			expect(loaded?.claimRevisions).toEqual([]);
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",
 				status: "active",

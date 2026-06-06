@@ -1,10 +1,17 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "../../../src/core/extensions/types.ts";
-import { type CoMathRole, createDefaultRoleRunner, type RoleRunner, type RoleRunResult } from "./role-runner.ts";
+import {
+	type CoMathRole,
+	createDefaultRoleRunner,
+	type ReviewDecision,
+	type RoleRunner,
+	type RoleRunResult,
+} from "./role-runner.ts";
 import type {
 	ArtifactKind,
 	Claim,
 	CoMathProjectState,
 	EvidenceKind,
+	ReviewRoundOutcome,
 	RoleRunRecord,
 	RoleRunStatus,
 	Warning,
@@ -20,6 +27,7 @@ import {
 	addReport,
 	addReviewDecisionEvent,
 	addReviewQueueItem,
+	addReviewRound,
 	addSynthesisEvent,
 	addWarning,
 	addWorkstream,
@@ -33,6 +41,7 @@ import {
 	recordHumanInterventionEvent,
 	removeReviewQueueItemsForClaim,
 	resolveWarning,
+	reviseClaim,
 	saveProjectState,
 	setClaimStatus,
 	setWorkstreamStatus,
@@ -54,6 +63,9 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath artifacts - list recorded artifacts
 /comath audit - check co-math state invariants without mutating state
 /comath review-queue - list claims and warnings waiting for review
+/comath reviews [claim-id] - list recorded reviewer rounds
+/comath revise-claim <claim-id>: <new statement> --reason <reason> - revise a claim and return it to review
+/comath claim-history <claim-id> - show claim revision and review history
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
@@ -158,6 +170,21 @@ async function handleCoMathCommand(
 
 	if (subcommand === "review-queue") {
 		await showReviewQueue(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "reviews") {
+		await showReviewRounds(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "revise-claim") {
+		await reviseProjectClaim(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "claim-history") {
+		await showClaimHistory(pi, ctx, remainder);
 		return;
 	}
 
@@ -530,6 +557,12 @@ interface ParsedSubjectBodyCommand {
 	body: string;
 }
 
+interface ParsedReviseClaimCommand {
+	claimId: string;
+	revisedStatement: string;
+	reason: string;
+}
+
 function parseSubjectBodyText(text: string): ParsedSubjectBodyCommand | undefined {
 	const separatorIndex = text.indexOf(":");
 	if (separatorIndex === -1) return undefined;
@@ -563,6 +596,20 @@ function parseArtifactText(text: string): ParsedArtifactCommand | undefined {
 	const summary = body.slice(separatorIndex + 1).trim();
 	if (title.length === 0 || summary.length === 0) return undefined;
 	return { kind, title, summary };
+}
+
+function parseReviseClaimText(text: string): ParsedReviseClaimCommand | undefined {
+	const reasonMarker = " --reason ";
+	const reasonIndex = text.indexOf(reasonMarker);
+	if (reasonIndex === -1) return undefined;
+	const claimText = text.slice(0, reasonIndex).trim();
+	const reason = text.slice(reasonIndex + reasonMarker.length).trim();
+	const separatorIndex = claimText.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const claimId = claimText.slice(0, separatorIndex).trim();
+	const revisedStatement = claimText.slice(separatorIndex + 1).trim();
+	if (claimId.length === 0 || revisedStatement.length === 0 || reason.length === 0) return undefined;
+	return { claimId, revisedStatement, reason };
 }
 
 function parseEvidenceText(text: string): ParsedEvidenceCommand | undefined {
@@ -716,6 +763,39 @@ function collectAuditProblems(state: CoMathProjectState): string[] {
 		}
 	}
 
+	for (const round of state.reviewRounds) {
+		if (!claimIds.has(round.claimId)) {
+			problems.push(`${round.id} points to missing claim ${round.claimId}`);
+		}
+		if (!roleRunIds.has(round.roleRunId)) {
+			problems.push(`${round.id} points to missing role run ${round.roleRunId}`);
+		}
+		if (!reportIds.has(round.reportId)) {
+			problems.push(`${round.id} points to missing report ${round.reportId}`);
+		}
+		for (const evidenceId of round.createdEvidenceIds) {
+			if (!evidenceIds.has(evidenceId)) {
+				problems.push(`${round.id} references missing created evidence ${evidenceId}`);
+			}
+		}
+		for (const warningId of round.createdWarningIds) {
+			if (!warningIds.has(warningId)) {
+				problems.push(`${round.id} references missing created warning ${warningId}`);
+			}
+		}
+		for (const warningId of round.resolvedWarningIds) {
+			if (!warningIds.has(warningId)) {
+				problems.push(`${round.id} references missing resolved warning ${warningId}`);
+			}
+		}
+	}
+
+	for (const revision of state.claimRevisions) {
+		if (!claimIds.has(revision.claimId)) {
+			problems.push(`${revision.id} points to missing claim ${revision.claimId}`);
+		}
+	}
+
 	const runningWorkstreamIds = new Set(
 		state.roleRuns
 			.filter((run) => run.status === "running" && run.targetWorkstreamId)
@@ -807,7 +887,17 @@ async function runProjectRole(
 			now,
 			actor: request.role,
 		});
-		await saveProjectState(statePath, finishedState);
+		const finalState = addReviewerReviewRound(finishedState, {
+			createdEvidenceIds: ingestion.createdEvidenceIds,
+			createdWarningIds: ingestion.createdWarningIds,
+			decision: result.reviewDecision,
+			now,
+			reportId,
+			role: request.role,
+			roleRunId: runId,
+			targetClaim,
+		});
+		await saveProjectState(statePath, finalState);
 		showCommandMessage(pi, ctx, formatRoleRunMessage(request.role, reportId, result));
 	} catch (error) {
 		const errorMessage = getRoleRunErrorMessage(error);
@@ -846,6 +936,19 @@ interface IngestRoleRunOutput {
 	createdWarningIds: string[];
 	createdArtifactIds: string[];
 }
+
+interface AddReviewerReviewRoundInput {
+	createdEvidenceIds: string[];
+	createdWarningIds: string[];
+	decision?: ReviewDecision;
+	now: string;
+	reportId: string;
+	role: CoMathRole;
+	roleRunId: string;
+	targetClaim?: Claim;
+}
+
+type ReviewDecisionEventStatus = "proved" | "needs_review" | "disproved";
 
 function parseRoleRunRequest(text: string): RoleRunRequest | undefined {
 	const [role, targetId] = text.trim().split(/\s+/);
@@ -980,7 +1083,7 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 
 	let nextState = addReviewDecisionEvent(state, {
 		claimId: decision.claimId,
-		status: decision.status,
+		status: getReviewDecisionEventStatus(decision.status),
 		reportId: input.reportId,
 		now: input.now,
 		actor: input.role,
@@ -1052,6 +1155,43 @@ function ingestReviewerDecision(state: CoMathProjectState, input: IngestRoleRunI
 		});
 	}
 	return removeReviewQueueItemsForClaim(nextState, decision.claimId, input.now);
+}
+
+function addReviewerReviewRound(state: CoMathProjectState, input: AddReviewerReviewRoundInput): CoMathProjectState {
+	if (input.role !== "reviewer" || !input.targetClaim || !input.decision) return state;
+	if (input.decision.claimId !== input.targetClaim.id) return state;
+	return addReviewRound(state, {
+		id: `review-round-${state.reviewRounds.length + 1}`,
+		claimId: input.decision.claimId,
+		roleRunId: input.roleRunId,
+		reportId: input.reportId,
+		decisionStatus: input.decision.status,
+		outcome: getReviewRoundOutcome(state, input.decision),
+		createdEvidenceIds: input.createdEvidenceIds,
+		createdWarningIds: input.createdWarningIds,
+		resolvedWarningIds: getResolvedReviewWarningIds(state, input.decision),
+		now: input.now,
+		actor: input.role,
+	});
+}
+
+function getReviewRoundOutcome(state: CoMathProjectState, decision: ReviewDecision): ReviewRoundOutcome {
+	if (decision.status === "proved") {
+		return isClaimSynthesisEligible(state, decision.claimId) ? "accepted" : "blocked_by_invariant";
+	}
+	if (decision.status === "disproved") return "rejected";
+	return "revision_requested";
+}
+
+function getReviewDecisionEventStatus(status: ReviewDecision["status"]): ReviewDecisionEventStatus {
+	return status === "proof_sketch" ? "needs_review" : status;
+}
+
+function getResolvedReviewWarningIds(state: CoMathProjectState, decision: ReviewDecision): string[] {
+	return uniqueStrings(decision.resolvedWarningIds ?? []).filter((warningId) => {
+		const warning = state.warnings.find((candidate) => candidate.id === warningId);
+		return warning?.status === "resolved";
+	});
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -1177,6 +1317,79 @@ async function showReviewQueue(pi: ExtensionAPI, ctx: ExtensionCommandContext): 
 	);
 }
 
+async function showReviewRounds(pi: ExtensionAPI, ctx: ExtensionCommandContext, claimId: string): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+
+	const trimmedClaimId = claimId.trim();
+	const rounds = trimmedClaimId
+		? state.reviewRounds.filter((round) => round.claimId === trimmedClaimId)
+		: state.reviewRounds;
+	if (rounds.length === 0) {
+		showCommandMessage(
+			pi,
+			ctx,
+			trimmedClaimId
+				? `No review rounds recorded for ${trimmedClaimId}.`
+				: "Co-math review rounds\nNo review rounds recorded.",
+		);
+		return;
+	}
+
+	showCommandMessage(pi, ctx, ["Co-math review rounds", ...formatReviewRounds(rounds)].join("\n"));
+}
+
+async function reviseProjectClaim(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseReviseClaimText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath revise-claim <claim-id>: <new statement> --reason <reason>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	if (!existing.claims.some((claim) => claim.id === parsed.claimId)) {
+		showCommandMessage(pi, ctx, `Unknown claim: ${parsed.claimId}`);
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const state = reviseClaim(existing, {
+		id: `claim-revision-${existing.claimRevisions.length + 1}`,
+		claimId: parsed.claimId,
+		revisedStatement: parsed.revisedStatement,
+		reason: parsed.reason,
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Revised claim ${parsed.claimId} and returned it to review: ${parsed.reason}`);
+}
+
+async function showClaimHistory(pi: ExtensionAPI, ctx: ExtensionCommandContext, claimId: string): Promise<void> {
+	const trimmedClaimId = claimId.trim();
+	if (trimmedClaimId.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath claim-history <claim-id>");
+		return;
+	}
+
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+	const claim = state.claims.find((candidate) => candidate.id === trimmedClaimId);
+	if (!claim) {
+		showCommandMessage(pi, ctx, `Unknown claim: ${trimmedClaimId}`);
+		return;
+	}
+
+	showCommandMessage(pi, ctx, formatClaimHistory(state, claim));
+}
+
 async function showArtifacts(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
 	const state = await loadProjectStateOrNotify(pi, ctx);
 	if (!state) {
@@ -1191,6 +1404,47 @@ function formatArtifacts(state: CoMathProjectState): string[] {
 	return state.artifacts.map(
 		(artifact) => `- ${artifact.id} [${artifact.kind}] ${artifact.title}: ${artifact.summary}`,
 	);
+}
+
+function formatReviewRounds(rounds: CoMathProjectState["reviewRounds"]): string[] {
+	return [...rounds].reverse().map(formatReviewRound);
+}
+
+function formatClaimHistory(state: CoMathProjectState, claim: Claim): string {
+	const revisions = state.claimRevisions.filter((revision) => revision.claimId === claim.id);
+	const rounds = state.reviewRounds.filter((round) => round.claimId === claim.id);
+	const openWarningCount = claim.warningIds.filter((warningId) => {
+		const warning = state.warnings.find((candidate) => candidate.id === warningId);
+		return warning?.status === "open";
+	}).length;
+	return [
+		`Claim history for ${claim.id}`,
+		`Current [${claim.status}]: ${claim.statement}`,
+		`Evidence: ${formatIdList(claim.evidenceIds)}`,
+		`Warnings: ${formatIdList(claim.warningIds)}`,
+		`Open warnings: ${openWarningCount}`,
+		"Revisions:",
+		...formatClaimRevisionsChronologically(revisions),
+		"Review rounds:",
+		...formatReviewRoundsChronologically(rounds),
+	].join("\n");
+}
+
+function formatReviewRoundsChronologically(rounds: CoMathProjectState["reviewRounds"]): string[] {
+	return rounds.length === 0 ? ["- none"] : rounds.map(formatReviewRound);
+}
+
+function formatReviewRound(round: CoMathProjectState["reviewRounds"][number]): string {
+	return `- ${round.id} ${round.claimId} [${round.outcome}] decision=${round.decisionStatus} run=${round.roleRunId} report=${round.reportId} evidence+${round.createdEvidenceIds.length} warnings+${round.createdWarningIds.length} resolved=${round.resolvedWarningIds.length}`;
+}
+
+function formatClaimRevisionsChronologically(revisions: CoMathProjectState["claimRevisions"]): string[] {
+	if (revisions.length === 0) return ["- none"];
+	return revisions.map(formatClaimRevision);
+}
+
+function formatClaimRevision(revision: CoMathProjectState["claimRevisions"][number]): string {
+	return `- ${revision.id} ${revision.actor}: ${revision.reason}\n  previous: ${revision.previousStatement}\n  revised: ${revision.revisedStatement}`;
 }
 
 function formatQueuedClaims(state: CoMathProjectState): string[] {

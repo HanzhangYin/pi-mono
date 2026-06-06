@@ -4,6 +4,7 @@ import type {
 	ArtifactKind,
 	ArtifactRecord,
 	Claim,
+	ClaimRevisionRecord,
 	ClaimStatus,
 	CoMathActor,
 	CoMathEventKind,
@@ -13,6 +14,8 @@ import type {
 	EvidenceKind,
 	Report,
 	ReviewQueueItem,
+	ReviewRoundOutcome,
+	ReviewRoundRecord,
 	RoleRunRecord,
 	Warning,
 	WarningSeverity,
@@ -23,7 +26,7 @@ import type {
 type LegacyWorkstream = Omit<Workstream, "latestRunIds" | "status" | "statusReason"> &
 	Partial<Pick<Workstream, "latestRunIds" | "status" | "statusReason">>;
 type LegacyProjectState = Omit<CoMathProjectState, "artifacts" | "events" | "roleRuns" | "workstreams"> &
-	Partial<Pick<CoMathProjectState, "artifacts" | "events" | "roleRuns">> & {
+	Partial<Pick<CoMathProjectState, "artifacts" | "events" | "roleRuns" | "reviewRounds" | "claimRevisions">> & {
 		workstreams: LegacyWorkstream[];
 	};
 
@@ -186,6 +189,29 @@ export interface RecordHumanInterventionEventInput {
 	actor?: CoMathActor;
 }
 
+export interface AddReviewRoundInput {
+	id: string;
+	claimId: string;
+	roleRunId: string;
+	reportId: string;
+	decisionStatus: ClaimStatus;
+	outcome: ReviewRoundOutcome;
+	createdEvidenceIds?: string[];
+	createdWarningIds?: string[];
+	resolvedWarningIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface ReviseClaimInput {
+	id: string;
+	claimId: string;
+	revisedStatement: string;
+	reason: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
 interface AppendEventInput {
 	kind: CoMathEventKind;
 	actor?: CoMathActor;
@@ -210,6 +236,8 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		reviewQueue: [],
 		artifacts: [],
 		roleRuns: [],
+		reviewRounds: [],
+		claimRevisions: [],
 		events: [
 			{
 				id: "event-1",
@@ -805,6 +833,97 @@ export function recordHumanInterventionEvent(
 	});
 }
 
+export function addReviewRound(state: CoMathProjectState, input: AddReviewRoundInput): CoMathProjectState {
+	const reviewRound: ReviewRoundRecord = {
+		id: input.id,
+		claimId: input.claimId,
+		roleRunId: input.roleRunId,
+		reportId: input.reportId,
+		status: "completed",
+		decisionStatus: input.decisionStatus,
+		outcome: input.outcome,
+		createdEvidenceIds: input.createdEvidenceIds ?? [],
+		createdWarningIds: input.createdWarningIds ?? [],
+		resolvedWarningIds: input.resolvedWarningIds ?? [],
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			reviewRounds: [...state.reviewRounds, reviewRound],
+			updatedAt: input.now,
+		},
+		{
+			kind: "review_round_recorded",
+			actor: input.actor,
+			summary: `Recorded review round ${input.id} for ${input.claimId}: ${input.outcome}`,
+			subjectId: input.id,
+			relatedIds: [
+				input.claimId,
+				input.roleRunId,
+				input.reportId,
+				...reviewRound.createdEvidenceIds,
+				...reviewRound.createdWarningIds,
+				...reviewRound.resolvedWarningIds,
+			],
+			now: input.now,
+		},
+	);
+}
+
+export function reviseClaim(state: CoMathProjectState, input: ReviseClaimInput): CoMathProjectState {
+	const claim = findClaim(state, input.claimId);
+	const revisedStatement = input.revisedStatement.trim();
+	const reason = input.reason.trim();
+	if (!revisedStatement) {
+		throw new Error("Claim revision requires a revised statement.");
+	}
+	if (!reason) {
+		throw new Error("Claim revision requires a reason.");
+	}
+
+	const revision: ClaimRevisionRecord = {
+		id: input.id,
+		claimId: input.claimId,
+		previousStatement: claim.statement,
+		revisedStatement,
+		reason,
+		actor: input.actor ?? "human",
+		createdAt: input.now,
+	};
+	let nextState: CoMathProjectState = {
+		...state,
+		claims: state.claims.map((candidate) =>
+			candidate.id === input.claimId
+				? {
+						...candidate,
+						statement: revisedStatement,
+						status: "needs_review",
+						updatedAt: input.now,
+					}
+				: candidate,
+		),
+		claimRevisions: [...state.claimRevisions, revision],
+		updatedAt: input.now,
+	};
+	nextState = addReviewQueueItem(nextState, {
+		id: `review-${state.reviewQueue.length + 1}`,
+		claimId: input.claimId,
+		reason: "Claim was revised and needs reviewer validation.",
+		now: input.now,
+		actor: input.actor,
+	});
+	return appendEvent(nextState, {
+		kind: "claim_revised",
+		actor: input.actor,
+		summary: `Revised claim ${input.claimId}: ${reason}`,
+		subjectId: input.claimId,
+		relatedIds: [input.id],
+		now: input.now,
+	});
+}
+
 export function isClaimSynthesisEligible(state: CoMathProjectState, claimId: string): boolean {
 	const claim = findClaim(state, claimId);
 	return claim.status === "proved" && hasAttachedProofEvidence(state, claim) && !hasAttachedOpenWarning(state, claim);
@@ -841,6 +960,8 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		artifacts: value.artifacts ?? [],
 		events: value.events ?? [],
 		roleRuns: value.roleRuns ?? [],
+		reviewRounds: value.reviewRounds ?? [],
+		claimRevisions: value.claimRevisions ?? [],
 	};
 }
 

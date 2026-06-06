@@ -37,6 +37,9 @@ The extension registers:
 /comath audit
 /comath review-queue
 /comath run reviewer claim-1
+/comath reviews
+/comath revise-claim claim-1: Endpoint monotonicity holds under the predecessor-canonical convention. --reason Human clarified endpoint convention
+/comath claim-history claim-1
 /comath synthesize
 /comath timeline
 /comath runs
@@ -45,11 +48,11 @@ The extension registers:
 /comath status
 ```
 
-The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
+The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, review rounds, claim revision history, targeted reviewer runs, and cautious synthesis markdown. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs do not promote anything to `proved` without proof evidence and resolved warnings.
 
 ## Structured role output
 
-Real role prompts ask for structured JSON as the final assistant message. Valid workstream JSON can create `needs_review` claims with attached evidence and warnings, so claims remain review-gated until a reviewer supplies proof-backed approval. Valid JSON can also include `proposedArtifacts` for computations, proof sketches, references, datasets, scripts, figures, failed attempts, and human notes. Artifact paths are metadata only; the extension does not read or write those paths. Valid reviewer JSON can update review state, attach proof evidence, add warnings, and resolve warning ids, subject to the invariant that proof promotion requires proof evidence and no open attached warning.
+Real role prompts ask for structured JSON as the final assistant message. Valid workstream JSON can create `needs_review` claims with attached evidence and warnings, so claims remain review-gated until a reviewer supplies proof-backed approval. Valid JSON can also include `proposedArtifacts` for computations, proof sketches, references, datasets, scripts, figures, failed attempts, and human notes. Artifact paths are metadata only; the extension does not read or write those paths. Valid reviewer JSON can update review state, attach proof evidence, add warnings, resolve warning ids, and create a review round, subject to the proof-promotion invariant that proof promotion requires proof evidence and no open attached warning.
 
 If a role returns malformed output, invalid enum values, or free-form prose, the extension saves it as a report only with a blocker explaining the structured-output failure. Malformed role output does not mutate claims, evidence, warnings, review decisions, or artifacts. This keeps provenance, review discipline, and uncertainty visibility explicit.
 
@@ -58,6 +61,8 @@ The event log is provenance for workspace activity, not a proof certificate. It 
 Role run records are control-plane provenance, not mathematical proof certificates. A workstream lifecycle can be `active`, `running`, `blocked`, or `needs_review`; `blocked` means a useful mathematical or project obstruction was preserved, not an infrastructure failure. The current prototype records synchronous command runs only and is not asynchronous; background agents, queues, and schedulers are not implemented yet.
 
 Human intervention events preserve steering decisions such as manual block/unblock actions, human notes, and stale running run recovery. A human note is metadata and not proof evidence; it cannot promote a claim or satisfy the proof-backed synthesis invariant.
+
+Claim revisions are human steering records. `/comath revise-claim` changes the claim statement, preserves attached evidence and warnings, records the previous and revised statements with a reason, and returns the claim to review. `/comath claim-history` shows the current claim, open warning count, claim revision history, and review rounds.
 
 ## Role prompts
 

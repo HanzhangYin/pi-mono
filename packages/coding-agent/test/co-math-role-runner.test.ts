@@ -102,6 +102,23 @@ describe("parseRoleRunOutput", () => {
 		});
 	});
 
+	it("parses proof sketch reviewer decisions", () => {
+		const result = parseRoleRunOutput(
+			JSON.stringify({
+				summary: "Reviewer found a useful proof sketch but wants another pass.",
+				reviewDecision: {
+					claimId: "claim-1",
+					status: "proof_sketch",
+				},
+			}),
+		);
+
+		expect(result.reviewDecision).toEqual({
+			claimId: "claim-1",
+			status: "proof_sketch",
+		});
+	});
+
 	it("falls back safely for non-JSON prose", () => {
 		const result = parseRoleRunOutput("This is a free-form role report.");
 

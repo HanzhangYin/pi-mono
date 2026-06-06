@@ -50,7 +50,7 @@ export interface ProposedArtifact {
 
 export interface ReviewDecision {
 	claimId: string;
-	status: "proved" | "needs_review" | "disproved";
+	status: "proved" | "proof_sketch" | "needs_review" | "disproved";
 	evidence?: ProposedEvidence[];
 	warnings?: ProposedWarning[];
 	resolvedWarningIds?: string[];
@@ -337,7 +337,7 @@ function isWarningSeverity(value: unknown): value is WarningSeverity {
 }
 
 function isReviewStatus(value: unknown): value is ReviewDecision["status"] {
-	return value === "proved" || value === "needs_review" || value === "disproved";
+	return value === "proved" || value === "proof_sketch" || value === "needs_review" || value === "disproved";
 }
 
 function getPiInvocation(args: string[]): { command: string; args: string[] } {

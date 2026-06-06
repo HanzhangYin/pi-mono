@@ -7,6 +7,7 @@ import coMathExtension from "../examples/extensions/co-math/index.ts";
 import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
 import {
 	getDefaultStatePath,
+	isClaimSynthesisEligible,
 	loadProjectState,
 	saveProjectState,
 	startRoleRun,
@@ -62,7 +63,7 @@ interface ProposedArtifactForTest {
 
 interface ReviewDecisionForTest {
 	claimId: string;
-	status: "proved" | "needs_review" | "disproved";
+	status: "proved" | "proof_sketch" | "needs_review" | "disproved";
 	evidence?: ProposedEvidenceForTest[];
 	warnings?: ProposedWarningForTest[];
 	resolvedWarningIds?: string[];
@@ -1092,6 +1093,35 @@ describe("co-math extension registration", () => {
 						updatedAt: "2026-06-05T12:00:00.000Z",
 					},
 				],
+				reviewRounds: [
+					...(state as CoMathProjectState).reviewRounds,
+					{
+						id: "review-round-broken",
+						claimId: "claim-missing",
+						roleRunId: "role-run-missing",
+						reportId: "report-missing",
+						status: "completed",
+						decisionStatus: "proved",
+						outcome: "accepted",
+						createdEvidenceIds: ["evidence-missing"],
+						createdWarningIds: ["warning-missing"],
+						resolvedWarningIds: ["warning-missing"],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+				claimRevisions: [
+					...(state as CoMathProjectState).claimRevisions,
+					{
+						id: "claim-revision-broken",
+						claimId: "claim-missing",
+						previousStatement: "Old statement.",
+						revisedStatement: "New statement.",
+						reason: "Malformed fixture should be reported.",
+						actor: "human",
+						createdAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
 			};
 			await saveProjectState(getDefaultStatePath(tempDir), malformedState);
 
@@ -1108,6 +1138,13 @@ describe("co-math extension registration", () => {
 			expect(audit).toContain("role-run-broken references missing created evidence evidence-missing");
 			expect(audit).toContain("role-run-broken references missing created warning warning-missing");
 			expect(audit).toContain("role-run-broken references missing created artifact artifact-missing");
+			expect(audit).toContain("review-round-broken points to missing claim claim-missing");
+			expect(audit).toContain("review-round-broken points to missing role run role-run-missing");
+			expect(audit).toContain("review-round-broken points to missing report report-missing");
+			expect(audit).toContain("review-round-broken references missing created evidence evidence-missing");
+			expect(audit).toContain("review-round-broken references missing created warning warning-missing");
+			expect(audit).toContain("review-round-broken references missing resolved warning warning-missing");
+			expect(audit).toContain("claim-revision-broken points to missing claim claim-missing");
 			expect(audit).toContain("workstream-notes references missing role run role-run-missing");
 			expect(audit).toContain("workstream-notes is running but has no running role run targeting it");
 			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(malformedState);
@@ -1169,6 +1206,9 @@ describe("co-math extension registration", () => {
 			await command?.handler("workstream small-examples: enumerate exact small n examples", ctx);
 			await command?.handler("run workstream workstream-small-examples", ctx);
 			await command?.handler("run reviewer claim-1", ctx);
+			await command?.handler("reviews", ctx);
+			await command?.handler("reviews claim-1", ctx);
+			await command?.handler("reviews claim-missing", ctx);
 			await command?.handler("synthesize", ctx);
 
 			expect(roleInvocations).toHaveLength(2);
@@ -1216,7 +1256,27 @@ describe("co-math extension registration", () => {
 					createdEvidenceIds: ["evidence-2"],
 				}),
 			]);
+			expect(state?.reviewRounds).toMatchObject([
+				{
+					id: "review-round-1",
+					claimId: "claim-1",
+					roleRunId: "role-run-2",
+					reportId: "report-2",
+					status: "completed",
+					decisionStatus: "proved",
+					outcome: "accepted",
+					createdEvidenceIds: ["evidence-2"],
+					createdWarningIds: [],
+					resolvedWarningIds: ["warning-1"],
+				},
+			]);
 			const synthesis = notifications.at(-1) ?? "";
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math review rounds");
+			expect(visibleText).toContain(
+				"review-round-1 claim-1 [accepted] decision=proved run=role-run-2 report=report-2 evidence+1 warnings+0 resolved=1",
+			);
+			expect(visibleText).toContain("No review rounds recorded for claim-missing.");
 			expect(synthesis).toContain("claim-1: Endpoint monotonicity follows for the toy class.");
 			expect(synthesis).toContain("proof: Reviewer checked the lifting argument beyond the finite cases.");
 			expect(synthesis).toContain("No open warnings are recorded.");
@@ -1261,6 +1321,20 @@ describe("co-math extension registration", () => {
 
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(state?.claims[0]?.status).toBe("needs_review");
+			expect(state?.reviewRounds).toMatchObject([
+				{
+					id: "review-round-1",
+					claimId: "claim-1",
+					roleRunId: "role-run-2",
+					reportId: "report-2",
+					status: "completed",
+					decisionStatus: "proved",
+					outcome: "blocked_by_invariant",
+					createdEvidenceIds: [],
+					createdWarningIds: [],
+					resolvedWarningIds: [],
+				},
+			]);
 			expect(state?.events).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({
@@ -1349,6 +1423,410 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("records invariant-blocked review rounds when an already proved claim receives a new open warning", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reviewer-proved-new-warning-"));
+		let reviewerRunCount = 0;
+		try {
+			const { commands } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						reviewerRunCount += 1;
+						if (reviewerRunCount === 1) {
+							return {
+								summary: "Reviewer proves the claim.",
+								reviewDecision: {
+									claimId: "claim-1",
+									status: "proved",
+									evidence: [
+										{
+											kind: "proof",
+											summary: "Checked the proof for the first review.",
+										},
+									],
+								},
+							};
+						}
+						return {
+							summary: "Reviewer finds a new unresolved gap in an already proved claim.",
+							reviewDecision: {
+								claimId: "claim-1",
+								status: "proved",
+								evidence: [
+									{
+										kind: "proof",
+										summary: "Partial proof remains useful but does not close the new gap.",
+									},
+								],
+								warnings: [
+									{
+										severity: "high",
+										message: "New gap",
+									},
+								],
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for repeated review.",
+						proposedClaims: [
+							{
+								statement: "A previously proved claim can become blocked by new obligations.",
+							},
+						],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+			let state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state).toBeDefined();
+			expect(isClaimSynthesisEligible(state as CoMathProjectState, "claim-1")).toBe(true);
+
+			await command?.handler("run reviewer claim-1", ctx);
+
+			state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reviewRounds).toHaveLength(2);
+			expect(state?.reviewRounds[1]).toMatchObject({
+				id: "review-round-2",
+				claimId: "claim-1",
+				decisionStatus: "proved",
+				outcome: "blocked_by_invariant",
+				createdEvidenceIds: ["evidence-2"],
+				createdWarningIds: ["warning-1"],
+			});
+			expect(state?.reviewRounds[1]?.outcome).not.toBe("accepted");
+			expect(state?.warnings).toMatchObject([
+				{
+					id: "warning-1",
+					claimId: "claim-1",
+					status: "open",
+					message: "New gap",
+				},
+			]);
+			expect(isClaimSynthesisEligible(state as CoMathProjectState, "claim-1")).toBe(false);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("records proof sketch reviewer decisions as revision-requested review rounds", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reviewer-proof-sketch-"));
+		try {
+			const { commands } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						return {
+							summary: "Reviewer found a proof sketch that needs another pass.",
+							reviewDecision: {
+								claimId: "claim-1",
+								status: "proof_sketch",
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for proof-sketch review.",
+						proposedClaims: [
+							{
+								statement: "A proof sketch should stay review-gated.",
+							},
+						],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.claims[0]?.status).toBe("proof_sketch");
+			expect(state?.reviewRounds).toHaveLength(1);
+			expect(state?.reviewRounds[0]).toMatchObject({
+				id: "review-round-1",
+				claimId: "claim-1",
+				decisionStatus: "proof_sketch",
+				outcome: "revision_requested",
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("records rejected and needs-review reviewer outcomes", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reviewer-outcomes-"));
+		let reviewerRunCount = 0;
+		try {
+			const { commands } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						reviewerRunCount += 1;
+						return {
+							summary:
+								reviewerRunCount === 1 ? "Reviewer requests another pass." : "Reviewer disproves the claim.",
+							reviewDecision: {
+								claimId: "claim-1",
+								status: reviewerRunCount === 1 ? "needs_review" : "disproved",
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for outcome coverage.",
+						proposedClaims: [
+							{
+								statement: "Reviewer outcomes should be recorded faithfully.",
+							},
+						],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reviewRounds).toHaveLength(2);
+			expect(state?.reviewRounds[0]).toMatchObject({
+				decisionStatus: "needs_review",
+				outcome: "revision_requested",
+			});
+			expect(state?.reviewRounds[1]).toMatchObject({
+				decisionStatus: "disproved",
+				outcome: "rejected",
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("does not record review rounds for mismatched reviewer decisions", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reviewer-mismatch-"));
+		try {
+			const { commands } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						return {
+							summary: "Reviewer returned a decision for the wrong claim.",
+							reviewDecision: {
+								claimId: "claim-999",
+								status: "needs_review",
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for mismatch coverage.",
+						proposedClaims: [
+							{
+								statement: "Mismatched decisions should not create rounds.",
+							},
+						],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reports).toHaveLength(2);
+			expect(state?.roleRuns).toMatchObject([
+				expect.objectContaining({ id: "role-run-1", reportId: "report-1" }),
+				expect.objectContaining({ id: "role-run-2", reportId: "report-2", targetClaimId: "claim-1" }),
+			]);
+			expect(state?.reviewRounds).toEqual([]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("revises claims through a human command and displays claim history", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-revise-claim-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed a claim that needs human statement cleanup.",
+					proposedClaims: [
+						{
+							statement: "Endpoint monotonicity holds before conventions are fixed.",
+							evidence: [
+								{
+									kind: "computation",
+									summary: "Checked examples through n = 5.",
+								},
+							],
+							warnings: [
+								{
+									severity: "medium",
+									message: "Endpoint convention is ambiguous.",
+								},
+							],
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler(
+				"revise-claim claim-1: Endpoint monotonicity holds under the predecessor-canonical convention. --reason Human clarified endpoint convention.",
+				ctx,
+			);
+			await command?.handler("claim-history claim-1", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.claims[0]).toMatchObject({
+				id: "claim-1",
+				statement: "Endpoint monotonicity holds under the predecessor-canonical convention.",
+				status: "needs_review",
+				evidenceIds: ["evidence-1"],
+				warningIds: ["warning-1"],
+			});
+			expect(state?.claimRevisions).toMatchObject([
+				{
+					id: "claim-revision-1",
+					claimId: "claim-1",
+					previousStatement: "Endpoint monotonicity holds before conventions are fixed.",
+					revisedStatement: "Endpoint monotonicity holds under the predecessor-canonical convention.",
+					reason: "Human clarified endpoint convention.",
+					actor: "human",
+				},
+			]);
+			expect(state?.reviewQueue).toMatchObject([
+				{
+					claimId: "claim-1",
+					reason: "Workstream proposed a claim that needs reviewer validation.",
+				},
+			]);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Revised claim claim-1 and returned it to review");
+			expect(visibleText).toContain("Claim history for claim-1");
+			expect(visibleText).toContain(
+				"Current [needs_review]: Endpoint monotonicity holds under the predecessor-canonical convention.",
+			);
+			expect(visibleText).toContain("claim-revision-1 human: Human clarified endpoint convention.");
+			expect(visibleText).toContain("Open warnings: 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("displays claim history revisions and review rounds oldest first", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-claim-history-order-"));
+		let reviewerRunCount = 0;
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					if (input.role === "reviewer") {
+						reviewerRunCount += 1;
+						return {
+							summary:
+								reviewerRunCount === 1
+									? "Reviewer requests a second revision."
+									: "Reviewer disproves the revised claim.",
+							reviewDecision: {
+								claimId: "claim-1",
+								status: reviewerRunCount === 1 ? "needs_review" : "disproved",
+							},
+						};
+					}
+					return {
+						summary: "Workstream proposed a claim for history ordering.",
+						proposedClaims: [
+							{
+								statement: "Initial statement for history ordering.",
+							},
+						],
+					};
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("revise-claim claim-1: First revised statement. --reason First revision.", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+			await command?.handler("revise-claim claim-1: Second revised statement. --reason Second revision.", ctx);
+			await command?.handler("run reviewer claim-1", ctx);
+			await command?.handler("claim-history claim-1", ctx);
+
+			const history = notifications.at(-1) ?? "";
+			expect(history.indexOf("claim-revision-1")).toBeLessThan(history.indexOf("claim-revision-2"));
+			expect(history.indexOf("review-round-1")).toBeLessThan(history.indexOf("review-round-2"));
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("validates claim revision and history commands", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-revise-invalid-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed a claim for revision validation.",
+					proposedClaims: [
+						{
+							statement: "Revision validation claim.",
+						},
+					],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("revise-claim claim-1: Revised statement without reason.", ctx);
+			await command?.handler("revise-claim claim-1 Revised statement --reason Missing colon.", ctx);
+			await command?.handler("revise-claim claim-missing: Revised statement. --reason Missing claim.", ctx);
+			await command?.handler("revise-claim claim-1: --reason Empty statement.", ctx);
+			await command?.handler("revise-claim claim-1: Revised statement. --reason", ctx);
+			await command?.handler("claim-history claim-missing", ctx);
+			await command?.handler("claim-history", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.claimRevisions).toEqual([]);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Usage: /comath revise-claim <claim-id>: <new statement> --reason <reason>");
+			expect(visibleText).toContain("Unknown claim: claim-missing");
+			expect(visibleText).toContain("Usage: /comath claim-history <claim-id>");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("produces cautious synthesis markdown from reviewed state with mandatory open-warning sections", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-synthesize-"));
 		try {
@@ -1421,6 +1899,9 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath resolve-warning warning-1");
 			expect(readme).toContain("/comath audit");
 			expect(readme).toContain("/comath review-queue");
+			expect(readme).toContain("/comath reviews");
+			expect(readme).toContain("/comath revise-claim");
+			expect(readme).toContain("/comath claim-history");
 			expect(readme).toContain("/comath run reviewer claim-1");
 			expect(readme).toContain("/comath synthesize");
 			expect(readme).toContain("/comath status");
@@ -1443,6 +1924,9 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("human intervention");
 			expect(readme.toLowerCase()).toContain("stale running");
 			expect(readme.toLowerCase()).toContain("not proof evidence");
+			expect(readme.toLowerCase()).toContain("review rounds");
+			expect(readme.toLowerCase()).toContain("claim revision history");
+			expect(readme.toLowerCase()).toContain("proof-promotion invariant");
 			expect(readme).toContain("blocked");
 			expect(readme).toContain("not asynchronous");
 			expect(readme).toContain("structured JSON");
@@ -1487,6 +1971,8 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("human intervention");
 			expect(content).toContain("stale running");
 			expect(content).toContain("not proof evidence");
+			expect(content).toContain("reviewRounds");
+			expect(content).toContain("claimRevisions");
 		});
 	});
 });
