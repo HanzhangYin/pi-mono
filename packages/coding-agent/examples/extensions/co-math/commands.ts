@@ -1,4 +1,6 @@
-import { lstat, mkdir, realpath, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "../../../src/core/extensions/types.ts";
 import {
@@ -68,6 +70,8 @@ interface BackgroundRoleRunHandle {
 }
 
 const backgroundRoleRuns = new Map<string, BackgroundRoleRunHandle>();
+const COMATH_COMPUTATION_TIMEOUT_MS = 60_000;
+const COMATH_COMPUTATION_PREVIEW_CHARS = 2_000;
 
 const HELP_TEXT = `Co-math assistant commands:
 /comath help - show this help
@@ -82,6 +86,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath note <subject-id>: <note> - record a human steering note as a metadata artifact
 /comath artifact <kind> <title>: <summary> - manually record a workspace artifact
 /comath artifact-file <kind> <path> <title>: <summary> - register an existing workspace file as an artifact
+/comath computation --command <command> --out <path> [--title <title>] [--summary <summary>] - run a local computation and record hashed output provenance
 /comath artifacts - list recorded artifacts
 /comath audit - check co-math state invariants without mutating state
 /comath review-queue - list claims and warnings waiting for review
@@ -191,6 +196,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "artifact-file") {
 		await addFileArtifact(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "computation") {
+		await runComputationArtifact(pi, ctx, remainder);
 		return;
 	}
 
@@ -670,6 +680,134 @@ async function addFileArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, t
 	);
 }
 
+async function runComputationArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseComputationText(text);
+	if (!parsed) {
+		showCommandMessage(
+			pi,
+			ctx,
+			"Usage: /comath computation --command <command> --out <path> [--title <title>] [--summary <summary>]",
+		);
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const resolvedPath = resolveWorkspaceRelativePath(ctx.cwd, parsed.outputPath);
+	if (!resolvedPath) {
+		showCommandMessage(pi, ctx, "Computation output path must stay inside the workspace.");
+		return;
+	}
+	if (isStatePathRelative(resolvedPath.relativePath)) {
+		showCommandMessage(pi, ctx, "Computation output path cannot overwrite .pi/co-math/state.json.");
+		return;
+	}
+	const exportPathCheck = await checkExportTargetPath(ctx.cwd, resolvedPath);
+	if (exportPathCheck === "outside_workspace") {
+		showCommandMessage(pi, ctx, "Computation output path must stay inside the workspace.");
+		return;
+	}
+	if (exportPathCheck === "symlink") {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Computation output path is a symlink and is not allowed: ${resolvedPath.relativePath}`,
+		);
+		return;
+	}
+	if (exportPathCheck === "directory") {
+		showCommandMessage(pi, ctx, `Computation output path is not a file: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (exportPathCheck === "state_file") {
+		showCommandMessage(pi, ctx, "Computation output path cannot overwrite .pi/co-math/state.json.");
+		return;
+	}
+	if (exportPathCheck === "exists") {
+		showCommandMessage(pi, ctx, `Computation output target already exists: ${resolvedPath.relativePath}.`);
+		return;
+	}
+
+	const result = await runForegroundComputation(parsed.command, ctx.cwd);
+	if (result.timedOut) {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Computation timed out after ${result.elapsedMs}ms: ${formatComputationFailurePreview(result)}`,
+		);
+		return;
+	}
+	if (result.exitCode !== 0) {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Computation failed with exit code ${result.exitCode ?? "none"} after ${result.elapsedMs}ms: ${formatComputationFailurePreview(result)}`,
+		);
+		return;
+	}
+
+	if (!(await existingParentSegmentsAreSafe(path.resolve(ctx.cwd), path.dirname(resolvedPath.absolutePath)))) {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Computation output parent path contains a symlink and is not allowed: ${resolvedPath.relativePath}`,
+		);
+		return;
+	}
+	const artifactPathCheck = await checkExistingArtifactFilePath(ctx.cwd, resolvedPath);
+	if (artifactPathCheck === "missing") {
+		showCommandMessage(pi, ctx, `Computation output file does not exist: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (artifactPathCheck === "directory") {
+		showCommandMessage(pi, ctx, `Computation output path is not a file: ${resolvedPath.relativePath}`);
+		return;
+	}
+	if (artifactPathCheck === "symlink") {
+		showCommandMessage(
+			pi,
+			ctx,
+			`Computation output path is a symlink and is not allowed: ${resolvedPath.relativePath}`,
+		);
+		return;
+	}
+	if (artifactPathCheck === "outside_workspace") {
+		showCommandMessage(pi, ctx, "Computation output path must stay inside the workspace.");
+		return;
+	}
+
+	const outputSha256 = createHash("sha256")
+		.update(await readFile(resolvedPath.absolutePath))
+		.digest("hex");
+	const artifactId = `artifact-${existing.artifacts.length + 1}`;
+	const state = addArtifact(existing, {
+		id: artifactId,
+		kind: "computation",
+		title: parsed.title ?? `Computation output: ${resolvedPath.relativePath}`,
+		summary: parsed.summary ?? `Local computation output recorded from ${resolvedPath.relativePath}.`,
+		provenance: formatComputationProvenance({
+			command: parsed.command,
+			elapsedMs: result.elapsedMs,
+			exitCode: result.exitCode,
+			outputPath: resolvedPath.relativePath,
+			outputSha256,
+			signal: result.signal,
+			stderr: result.stderr,
+			stdout: result.stdout,
+		}),
+		path: resolvedPath.relativePath,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(
+		pi,
+		ctx,
+		`Recorded computation artifact ${artifactId} ${resolvedPath.relativePath} sha256=${outputSha256} elapsedMs=${result.elapsedMs}`,
+	);
+}
+
 function getHumanNoteRelatedIds(
 	state: CoMathProjectState,
 	subjectId: string,
@@ -703,6 +841,13 @@ interface ParsedArtifactFileCommand {
 	filePath: string;
 	title: string;
 	summary: string;
+}
+
+interface ParsedComputationCommand {
+	command: string;
+	outputPath: string;
+	title?: string;
+	summary?: string;
 }
 
 interface ParsedRecoverRunCommand {
@@ -742,6 +887,36 @@ interface ParsedExportPaperCommand {
 interface ResolvedWorkspacePath {
 	absolutePath: string;
 	relativePath: string;
+}
+
+interface ShellToken {
+	value: string;
+	start: number;
+}
+
+interface OutputPreview {
+	text: string;
+	truncated: boolean;
+}
+
+interface ComputationRunResult {
+	exitCode: number | null;
+	signal: NodeJS.Signals | null;
+	elapsedMs: number;
+	stdout: OutputPreview;
+	stderr: OutputPreview;
+	timedOut: boolean;
+}
+
+interface FormatComputationProvenanceInput {
+	command: string;
+	exitCode: number | null;
+	signal: NodeJS.Signals | null;
+	elapsedMs: number;
+	outputPath: string;
+	outputSha256: string;
+	stdout: OutputPreview;
+	stderr: OutputPreview;
 }
 
 type ExistingArtifactPathProblem = "missing" | "directory" | "symlink" | "outside_workspace";
@@ -856,6 +1031,104 @@ function parseArtifactFileText(text: string): ParsedArtifactFileCommand | undefi
 	const summary = body.slice(separatorIndex + 1).trim();
 	if (title.length === 0 || summary.length === 0) return undefined;
 	return { kind, filePath, title, summary };
+}
+
+function parseComputationText(text: string): ParsedComputationCommand | undefined {
+	const tokens = tokenizeShellLike(text);
+	if (!tokens) return undefined;
+
+	let command: string | undefined;
+	let outputPath: string | undefined;
+	let title: string | undefined;
+	let summary: string | undefined;
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (!token) return undefined;
+		if (
+			token.value !== "--command" &&
+			token.value !== "--out" &&
+			token.value !== "--title" &&
+			token.value !== "--summary"
+		) {
+			return undefined;
+		}
+		const valueToken = tokens[index + 1];
+		if (!valueToken || isComputationFlag(valueToken.value)) {
+			return undefined;
+		}
+		if (token.value === "--command") {
+			command = valueToken.value;
+		} else if (token.value === "--out") {
+			outputPath = valueToken.value;
+		} else if (token.value === "--title") {
+			title = valueToken.value;
+		} else {
+			summary = valueToken.value;
+		}
+		index += 1;
+	}
+	if (!command || command.trim().length === 0) return undefined;
+	if (!outputPath) return undefined;
+	return {
+		command: command.trim(),
+		outputPath,
+		...(title !== undefined ? { title } : {}),
+		...(summary !== undefined ? { summary } : {}),
+	};
+}
+
+function tokenizeShellLike(text: string): ShellToken[] | undefined {
+	const tokens: ShellToken[] = [];
+	let current = "";
+	let tokenStart: number | undefined;
+	let quote: "'" | '"' | undefined;
+	let escaped = false;
+	for (let index = 0; index < text.length; index += 1) {
+		const char = text[index];
+		if (!char) continue;
+		if (escaped) {
+			current += char;
+			escaped = false;
+			continue;
+		}
+		if (char === "\\" && quote !== "'") {
+			if (tokenStart === undefined) tokenStart = index;
+			escaped = true;
+			continue;
+		}
+		if (quote) {
+			if (char === quote) {
+				quote = undefined;
+			} else {
+				current += char;
+			}
+			continue;
+		}
+		if (char === "'" || char === '"') {
+			if (tokenStart === undefined) tokenStart = index;
+			quote = char;
+			continue;
+		}
+		if (/\s/.test(char)) {
+			if (tokenStart !== undefined) {
+				tokens.push({ value: current, start: tokenStart });
+				current = "";
+				tokenStart = undefined;
+			}
+			continue;
+		}
+		if (tokenStart === undefined) tokenStart = index;
+		current += char;
+	}
+	if (escaped || quote) return undefined;
+	if (tokenStart !== undefined) {
+		tokens.push({ value: current, start: tokenStart });
+	}
+	return tokens;
+}
+
+function isComputationFlag(value: string): boolean {
+	return value === "--command" || value === "--out" || value === "--title" || value === "--summary";
 }
 
 function parseReviseClaimText(text: string): ParsedReviseClaimCommand | undefined {
@@ -2246,6 +2519,102 @@ function getResolvedReviewWarningIds(state: CoMathProjectState, decision: Review
 
 function uniqueStrings(values: string[]): string[] {
 	return Array.from(new Set(values));
+}
+
+async function runForegroundComputation(command: string, cwd: string): Promise<ComputationRunResult> {
+	return new Promise((resolve) => {
+		const startedAt = Date.now();
+		const stdout = createOutputPreview();
+		const stderr = createOutputPreview();
+		let timedOut = false;
+		let resolved = false;
+		const child = spawn(command, {
+			cwd,
+			shell: true,
+			windowsHide: true,
+		});
+		const timeout = setTimeout(() => {
+			timedOut = true;
+			child.kill("SIGTERM");
+		}, COMATH_COMPUTATION_TIMEOUT_MS);
+
+		const finish = (exitCode: number | null, signal: NodeJS.Signals | null): void => {
+			if (resolved) return;
+			resolved = true;
+			clearTimeout(timeout);
+			resolve({
+				exitCode,
+				signal,
+				elapsedMs: Date.now() - startedAt,
+				stdout,
+				stderr,
+				timedOut,
+			});
+		};
+
+		child.stdout.on("data", (chunk: Buffer | string) => {
+			appendOutputPreview(stdout, chunk);
+		});
+		child.stderr.on("data", (chunk: Buffer | string) => {
+			appendOutputPreview(stderr, chunk);
+		});
+		child.on("error", (error) => {
+			appendOutputPreview(stderr, error.message);
+			finish(1, null);
+		});
+		child.on("close", (exitCode, signal) => {
+			finish(exitCode, signal);
+		});
+	});
+}
+
+function createOutputPreview(): OutputPreview {
+	return { text: "", truncated: false };
+}
+
+function appendOutputPreview(preview: OutputPreview, chunk: Buffer | string): void {
+	const text = chunk.toString();
+	const remaining = COMATH_COMPUTATION_PREVIEW_CHARS - preview.text.length;
+	if (remaining <= 0) {
+		if (text.length > 0) preview.truncated = true;
+		return;
+	}
+	if (text.length > remaining) {
+		preview.text += text.slice(0, remaining);
+		preview.truncated = true;
+		return;
+	}
+	preview.text += text;
+}
+
+function formatComputationProvenance(input: FormatComputationProvenanceInput): string {
+	return [
+		`command: ${input.command}`,
+		"cwd: .",
+		`exitCode: ${input.exitCode ?? "none"}`,
+		`signal: ${input.signal ?? "none"}`,
+		`elapsedMs: ${input.elapsedMs}`,
+		`outputPath: ${input.outputPath}`,
+		`outputSha256: ${input.outputSha256}`,
+		`stdoutPreview: ${input.stdout.text.trimEnd()}`,
+		`stdoutPreviewTruncated: ${input.stdout.truncated ? "true" : "false"}`,
+		`stderrPreview: ${input.stderr.text.trimEnd()}`,
+		`stderrPreviewTruncated: ${input.stderr.truncated ? "true" : "false"}`,
+	].join("\n");
+}
+
+function formatComputationFailurePreview(result: ComputationRunResult): string {
+	const stderr = result.stderr.text.trim();
+	if (stderr.length > 0) return `stderr=${formatSingleLinePreview(stderr)}`;
+	const stdout = result.stdout.text.trim();
+	if (stdout.length > 0) return `stdout=${formatSingleLinePreview(stdout)}`;
+	if (result.signal) return `signal=${result.signal}`;
+	return "no output";
+}
+
+function formatSingleLinePreview(text: string): string {
+	const singleLine = text.replace(/\s+/g, " ");
+	return singleLine.length > 160 ? `${singleLine.slice(0, 160)}...` : singleLine;
 }
 
 function resolveWorkspaceRelativePath(cwd: string, inputPath: string): ResolvedWorkspacePath | undefined {

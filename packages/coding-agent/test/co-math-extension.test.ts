@@ -1732,6 +1732,169 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("computation runs a foreground command and records hashed output provenance", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-computation-"));
+		try {
+			await mkdir(join(tempDir, "scripts"), { recursive: true });
+			await mkdir(join(tempDir, "outputs"), { recursive: true });
+			await writeFile(
+				join(tempDir, "scripts/write-output.sh"),
+				[
+					"#!/bin/sh",
+					'if [ "$1" != "--out" ]; then',
+					"  exit 2",
+					"fi",
+					"printf 'pattern\\tcount\\n123\\t132\\n' > \"$2\"",
+					"printf 'wrote counts\\n'",
+				].join("\n"),
+				"utf8",
+			);
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Compare finite counts", ctx);
+			await command?.handler(
+				'computation --command "sh scripts/write-output.sh --out outputs/result.tsv" --out outputs/result.tsv --title "Count table" --summary "Finite count table generated locally"',
+				ctx,
+			);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.artifacts).toHaveLength(1);
+			expect(state?.artifacts[0]).toMatchObject({
+				id: "artifact-1",
+				kind: "computation",
+				path: "outputs/result.tsv",
+				title: "Count table",
+				summary: "Finite count table generated locally",
+			});
+			expect(state?.artifacts[0]?.provenance).toContain(
+				"command: sh scripts/write-output.sh --out outputs/result.tsv",
+			);
+			expect(state?.artifacts[0]?.provenance).toContain("exitCode: 0");
+			expect(state?.artifacts[0]?.provenance).toContain("signal: none");
+			expect(state?.artifacts[0]?.provenance).toContain("outputPath: outputs/result.tsv");
+			expect(state?.artifacts[0]?.provenance).toMatch(/outputSha256: [a-f0-9]{64}/);
+			expect(state?.artifacts[0]?.provenance).toContain("stdoutPreview: wrote counts");
+			expect(state?.artifacts[0]?.provenance).toContain("stderrPreview: ");
+			expect(state?.claims).toEqual([]);
+			expect(state?.evidence).toEqual([]);
+			expect(state?.warnings).toEqual([]);
+			expect(notifications.at(-1)).toMatch(
+				/Recorded computation artifact artifact-1 outputs\/result\.tsv sha256=[a-f0-9]{64} elapsedMs=\d+/,
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("computation does not mutate state when the command fails", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-computation-failed-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Compare finite counts", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler('computation --command "false" --out outputs/result.tsv', ctx);
+
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(before);
+			expect(notifications.at(-1)).toContain("Computation failed with exit code 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("computation rejects existing outputs instead of forcing overwrite", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-computation-stale-output-"));
+		try {
+			await mkdir(join(tempDir, "outputs"), { recursive: true });
+			await writeFile(join(tempDir, "outputs/result.tsv"), "stale\n", "utf8");
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Compare finite counts", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler(
+				'computation --command "printf fresh > outputs/result.tsv" --out outputs/result.tsv',
+				ctx,
+			);
+			await command?.handler(
+				'computation --command "printf forced > outputs/result.tsv" --out outputs/result.tsv --force',
+				ctx,
+			);
+
+			expect(await readFile(join(tempDir, "outputs/result.tsv"), "utf8")).toBe("stale\n");
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(before);
+			expect(notifications.join("\n")).toContain("Computation output target already exists: outputs/result.tsv.");
+			expect(notifications.at(-1)).toContain(
+				"Usage: /comath computation --command <command> --out <path> [--title <title>] [--summary <summary>]",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("computation rejects unsafe output paths before running", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-computation-path-"));
+		try {
+			await mkdir(join(tempDir, "scripts"), { recursive: true });
+			await writeFile(
+				join(tempDir, "scripts/write-output.mjs"),
+				"throw new Error('the command should not run for an unsafe output path');\n",
+				"utf8",
+			);
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Compare finite counts", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler('computation --command "node scripts/write-output.mjs" --out ../outside.tsv', ctx);
+			await command?.handler(
+				'computation --command "node scripts/write-output.mjs" --out .pi/co-math/state.json',
+				ctx,
+			);
+
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(before);
+			expect(notifications.join("\n")).toContain("Computation output path must stay inside the workspace.");
+			expect(notifications.join("\n")).toContain("Computation output path cannot overwrite .pi/co-math/state.json.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("computation rejects output paths whose parent becomes a symlink", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-computation-parent-link-"));
+		const outsideDir = await mkdtemp(join(tmpdir(), "pi-comath-computation-parent-outside-"));
+		try {
+			await mkdir(join(tempDir, "outputs"), { recursive: true });
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Compare finite counts", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler(
+				`computation --command "rm -rf outputs && ln -s ${outsideDir} outputs && printf 'count\\n1\\n' > outputs/result.tsv" --out outputs/result.tsv`,
+				ctx,
+			);
+
+			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(before);
+			expect(notifications.at(-1)).toContain("Computation output parent path contains a symlink");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+			await rm(outsideDir, { recursive: true, force: true });
+		}
+	});
+
 	it("artifact-file rejects missing files, directories, and outside paths", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-file-invalid-"));
 		try {
@@ -3340,6 +3503,7 @@ describe("co-math extension registration", () => {
 			expect(readme).toContain("/comath paper");
 			expect(readme).toContain("/comath export-paper");
 			expect(readme).toContain("/comath artifact-file");
+			expect(readme).toContain("/comath computation");
 			expect(readme).toContain("/comath block");
 			expect(readme).toContain("/comath unblock");
 			expect(readme).toContain("/comath note");
@@ -3371,6 +3535,8 @@ describe("co-math extension registration", () => {
 			expect(readme.toLowerCase()).toContain("exports are snapshots");
 			expect(readme.toLowerCase()).toContain("file-backed artifacts");
 			expect(readme.toLowerCase()).toContain("metadata and not proof evidence");
+			expect(readme.toLowerCase()).toContain("computation artifacts are provenance records");
+			expect(readme).toContain("SHA-256");
 			expect(readme).toContain("no LaTeX or PDF generation");
 			expect(readme).toContain("structured JSON");
 			expect(readme).toContain("report only");
