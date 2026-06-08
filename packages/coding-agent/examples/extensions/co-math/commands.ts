@@ -17,6 +17,7 @@ import type {
 	EvidenceKind,
 	MarginNote,
 	MarginNoteKind,
+	ReportReviewOutcome,
 	ReviewRoundOutcome,
 	RoleRunRecord,
 	RoleRunStatus,
@@ -32,6 +33,7 @@ import {
 	addGoal,
 	addMarginNote,
 	addReport,
+	addReportReviewRound,
 	addReviewDecisionEvent,
 	addReviewQueueItem,
 	addReviewRound,
@@ -57,6 +59,7 @@ import {
 	reviseClaim,
 	saveProjectState,
 	setClaimStatus,
+	setGoalStatus,
 	setWorkstreamStatus,
 	startRoleRun,
 } from "./storage.ts";
@@ -77,6 +80,9 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath help - show this help
 /comath init <root question> - create a co-math project state
 /comath goal <goal text> - add an approved active goal
+/comath propose-goal <goal text> - propose a goal for explicit approval
+/comath approve-goal <goal-id> - mark a proposed or active goal approved
+/comath defer-goal <goal-id>: <reason> - defer a goal with a human reason
 /comath workstream <slug>: <title> - add a workstream linked to active goals
 /comath evidence <claim-id> <proof|computation|reference|counterexample|note>: <summary> - attach manual evidence
 /comath warning <claim-id> <low|medium|high>: <message> - attach a manual warning
@@ -91,6 +97,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath audit - check co-math state invariants without mutating state
 /comath review-queue - list claims and warnings waiting for review
 /comath reviews [claim-id] - list recorded reviewer rounds
+/comath review-report <report-id> <accepted|revision-requested|blocked>: <summary> - record report review outcome
 /comath revise-claim <claim-id>: <new statement> --reason <reason> - revise a claim and return it to review
 /comath claim-history <claim-id> - show claim revision and review history
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
@@ -110,6 +117,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath export-paper [path] [--force] - write the living working paper markdown snapshot
 /comath runs - list recent role run records
 /comath run-status <run-id> - show one role run record
+/comath workstream-status <workstream-id> - show one workstream record
 /comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
 /comath synthesize - produce cautious markdown from reviewed state
 /comath timeline - show recent workspace events
@@ -151,6 +159,21 @@ async function handleCoMathCommand(
 
 	if (subcommand === "goal") {
 		await addProjectGoal(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "propose-goal") {
+		await proposeProjectGoal(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "approve-goal") {
+		await approveProjectGoal(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "defer-goal") {
+		await deferProjectGoal(pi, ctx, remainder);
 		return;
 	}
 
@@ -289,6 +312,11 @@ async function handleCoMathCommand(
 		return;
 	}
 
+	if (subcommand === "review-report") {
+		await reviewProjectReport(pi, ctx, remainder);
+		return;
+	}
+
 	if (subcommand === "revise-claim") {
 		await reviseProjectClaim(pi, ctx, remainder);
 		return;
@@ -306,6 +334,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "run-status") {
 		await showRoleRunStatus(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "workstream-status") {
+		await showWorkstreamStatus(pi, ctx, remainder);
 		return;
 	}
 
@@ -374,6 +407,98 @@ async function addProjectGoal(pi: ExtensionAPI, ctx: ExtensionCommandContext, te
 	showCommandMessage(pi, ctx, `Added co-math goal ${goalId}: ${text}`);
 }
 
+async function proposeProjectGoal(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	if (text.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath propose-goal <goal text>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const goalId = `goal-${existing.approvedGoals.length + 1}`;
+	const state = addGoal(existing, {
+		id: goalId,
+		text,
+		status: "proposed",
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Proposed co-math goal ${goalId}: ${text}`);
+}
+
+async function approveProjectGoal(pi: ExtensionAPI, ctx: ExtensionCommandContext, goalId: string): Promise<void> {
+	const trimmedGoalId = goalId.trim();
+	if (trimmedGoalId.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath approve-goal <goal-id>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const goal = existing.approvedGoals.find((candidate) => candidate.id === trimmedGoalId);
+	if (!goal) {
+		showCommandMessage(pi, ctx, `Unknown goal: ${trimmedGoalId}`);
+		return;
+	}
+	if (goal.status !== "proposed" && goal.status !== "active" && goal.status !== "approved") {
+		showCommandMessage(pi, ctx, `Cannot approve ${trimmedGoalId} because its status is ${goal.status}.`);
+		return;
+	}
+
+	const state = setGoalStatus(existing, {
+		goalId: trimmedGoalId,
+		status: "approved",
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Approved co-math goal ${trimmedGoalId}: ${goal.text}`);
+}
+
+async function deferProjectGoal(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSubjectBodyText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath defer-goal <goal-id>: <reason>");
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const goal = existing.approvedGoals.find((candidate) => candidate.id === parsed.subjectId);
+	if (!goal) {
+		showCommandMessage(pi, ctx, `Unknown goal: ${parsed.subjectId}`);
+		return;
+	}
+
+	const now = new Date().toISOString();
+	const summary = `Deferred co-math goal ${goal.id}: ${parsed.body}`;
+	let state = setGoalStatus(existing, {
+		goalId: goal.id,
+		status: "deferred",
+		reason: parsed.body,
+		now,
+		actor: "human",
+	});
+	state = recordHumanInterventionEvent(state, {
+		summary,
+		subjectId: goal.id,
+		relatedIds: [goal.id],
+		now,
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, summary);
+}
+
 async function addProjectWorkstream(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
 	if (text.length === 0) {
 		showCommandMessage(pi, ctx, "Usage: /comath workstream <slug>: <title>");
@@ -386,12 +511,17 @@ async function addProjectWorkstream(pi: ExtensionAPI, ctx: ExtensionCommandConte
 	}
 
 	const parsed = parseWorkstreamText(text);
+	const linkableGoalIds = getLinkableGoalIds(existing);
+	if (existing.approvedGoals.length > 0 && linkableGoalIds.length === 0) {
+		showCommandMessage(pi, ctx, "Approve at least one goal before creating workstreams.");
+		return;
+	}
 	const now = new Date().toISOString();
 	const statePath = getDefaultStatePath(ctx.cwd);
 	const state = addWorkstream(existing, {
 		id: nextWorkstreamId(existing, parsed.slug),
 		title: parsed.title,
-		goalIds: existing.approvedGoals.filter((goal) => goal.status === "active").map((goal) => goal.id),
+		goalIds: linkableGoalIds,
 		now,
 		actor: "human",
 	});
@@ -830,6 +960,12 @@ interface ParsedWarningCommand {
 	message: string;
 }
 
+interface ParsedReportReviewCommand {
+	reportId: string;
+	outcome: ReportReviewOutcome;
+	summary: string;
+}
+
 interface ParsedArtifactCommand {
 	kind: ArtifactKind;
 	title: string;
@@ -1175,6 +1311,25 @@ function parseClaimAttachedRecord(text: string): { body: string; claimId: string
 	return { body, claimId, kindOrSeverity };
 }
 
+function parseReportReviewText(text: string): ParsedReportReviewCommand | undefined {
+	const separatorIndex = text.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const header = text.slice(0, separatorIndex).trim();
+	const summary = text.slice(separatorIndex + 1).trim();
+	const [reportId, outcomeText, ...extra] = header.split(/\s+/);
+	if (!reportId || !outcomeText || extra.length > 0 || summary.length === 0) return undefined;
+	const outcome = normalizeReportReviewOutcomeText(outcomeText);
+	if (!outcome) return undefined;
+	return { reportId, outcome, summary };
+}
+
+function normalizeReportReviewOutcomeText(value: string): ReportReviewOutcome | undefined {
+	if (value === "accepted") return "accepted";
+	if (value === "revision-requested") return "revision_requested";
+	if (value === "blocked") return "blocked";
+	return undefined;
+}
+
 function isEvidenceKind(value: string): value is EvidenceKind {
 	return (
 		value === "proof" ||
@@ -1251,12 +1406,14 @@ function paperSubjectExists(state: CoMathProjectState, subjectId: string): boole
 }
 
 async function auditProjectState(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const statePath = getDefaultStatePath(ctx.cwd);
+	const rawProblems = await collectRawAuditProblems(statePath);
 	const state = await loadProjectStateOrNotify(pi, ctx);
 	if (!state) {
 		return;
 	}
 
-	const problems = await collectAuditProblems(state, ctx.cwd);
+	const problems = [...rawProblems, ...(await collectAuditProblems(state, ctx.cwd))];
 	showCommandMessage(
 		pi,
 		ctx,
@@ -1264,6 +1421,48 @@ async function auditProjectState(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			? "Co-math audit\nNo co-math audit problems found."
 			: ["Co-math audit", ...problems.map((problem) => `- ${problem}`)].join("\n"),
 	);
+}
+
+async function collectRawAuditProblems(statePath: string): Promise<string[]> {
+	let value: unknown;
+	try {
+		value = JSON.parse(await readFile(statePath, "utf8")) as unknown;
+	} catch (error) {
+		if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") {
+			return [];
+		}
+		throw error;
+	}
+	if (!isRecord(value)) return [];
+	const claims = getRawRecords(value, "claims");
+	const evidenceById = new Map(
+		getRawRecords(value, "evidence").map((evidence) => [getRawString(evidence, "id"), evidence]),
+	);
+	const warningById = new Map(
+		getRawRecords(value, "warnings").map((warning) => [getRawString(warning, "id"), warning]),
+	);
+	const problems: string[] = [];
+
+	for (const claim of claims) {
+		const claimId = getRawString(claim, "id");
+		if (!claimId) continue;
+		for (const evidenceId of getRawStringArray(claim, "evidenceIds")) {
+			const evidence = evidenceById.get(evidenceId);
+			const ownerClaimId = evidence ? getRawString(evidence, "claimId") : undefined;
+			if (ownerClaimId && ownerClaimId !== claimId) {
+				problems.push(`${claimId} references evidence ${evidenceId} owned by ${ownerClaimId}`);
+			}
+		}
+		for (const warningId of getRawStringArray(claim, "warningIds")) {
+			const warning = warningById.get(warningId);
+			const ownerClaimId = warning ? getRawString(warning, "claimId") : undefined;
+			if (ownerClaimId && ownerClaimId !== claimId) {
+				problems.push(`${claimId} references warning ${warningId} owned by ${ownerClaimId}`);
+			}
+		}
+	}
+
+	return problems;
 }
 
 async function collectAuditProblems(state: CoMathProjectState, cwd: string): Promise<string[]> {
@@ -1327,13 +1526,19 @@ async function collectAuditProblems(state: CoMathProjectState, cwd: string): Pro
 
 	for (const claim of state.claims) {
 		for (const evidenceId of claim.evidenceIds) {
+			const evidence = state.evidence.find((candidate) => candidate.id === evidenceId);
 			if (!evidenceIds.has(evidenceId)) {
 				problems.push(`${claim.id} references missing evidence ${evidenceId}`);
+			} else if (evidence && evidence.claimId !== claim.id) {
+				problems.push(`${claim.id} references evidence ${evidenceId} owned by ${evidence.claimId}`);
 			}
 		}
 		for (const warningId of claim.warningIds) {
+			const warning = state.warnings.find((candidate) => candidate.id === warningId);
 			if (!warningIds.has(warningId)) {
 				problems.push(`${claim.id} references missing warning ${warningId}`);
+			} else if (warning && warning.claimId !== claim.id) {
+				problems.push(`${claim.id} references warning ${warningId} owned by ${warning.claimId}`);
 			}
 		}
 		if (claim.status === "proved" && !isClaimSynthesisEligible(state, claim.id)) {
@@ -1436,6 +1641,20 @@ async function collectAuditProblems(state: CoMathProjectState, cwd: string): Pro
 		}
 	}
 
+	for (const round of state.reportReviewRounds) {
+		if (!round.reportId || !reportIds.has(round.reportId)) {
+			problems.push(`${round.id} points to missing report ${round.reportId || "(empty)"}`);
+		}
+		if (round.roleRunId && !roleRunIds.has(round.roleRunId)) {
+			problems.push(`${round.id} points to missing role run ${round.roleRunId}`);
+		}
+		for (const warningId of round.createdWarningIds) {
+			if (!warningIds.has(warningId)) {
+				problems.push(`${round.id} references missing created warning ${warningId}`);
+			}
+		}
+	}
+
 	for (const revision of state.claimRevisions) {
 		if (!claimIds.has(revision.claimId)) {
 			problems.push(`${revision.id} points to missing claim ${revision.claimId}`);
@@ -1524,6 +1743,27 @@ async function collectAuditProblems(state: CoMathProjectState, cwd: string): Pro
 	}
 
 	return problems;
+}
+
+function getRawRecords(value: Record<string, unknown>, key: string): Record<string, unknown>[] {
+	const field = value[key];
+	if (!Array.isArray(field)) return [];
+	return field.filter(isRecord);
+}
+
+function getRawString(value: Record<string, unknown>, key: string): string | undefined {
+	const field = value[key];
+	return typeof field === "string" ? field : undefined;
+}
+
+function getRawStringArray(value: Record<string, unknown>, key: string): string[] {
+	const field = value[key];
+	if (!Array.isArray(field)) return [];
+	return field.filter((item): item is string => typeof item === "string");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
 }
 
 async function runProjectRole(
@@ -2750,7 +2990,7 @@ function buildRoleTask(
 		`Role: ${role}`,
 		`Root question: ${state.rootQuestion}`,
 		...targetLines,
-		"Approved goals:",
+		"Goals:",
 		...formatGoals(state),
 		"Workstreams:",
 		...formatWorkstreams(state),
@@ -2758,6 +2998,8 @@ function buildRoleTask(
 		`Open warnings: ${openWarnings.length}`,
 		"Instructions:",
 		"- Do not promote any mathematical claim to proved unless proof evidence exists and no attached warning is open.",
+		"- Treat proposed goals as unapproved unless the user explicitly approves or activates them.",
+		"- Keep report review separate from claim review; accepted reports do not prove claims.",
 		"- Return proposed next steps as a concise report. Do not mutate project state directly.",
 		"- Preserve failed attempts, blockers, uncertainty labels, and provenance requirements.",
 	].join("\n");
@@ -2859,6 +3101,42 @@ async function showReviewRounds(pi: ExtensionAPI, ctx: ExtensionCommandContext, 
 	}
 
 	showCommandMessage(pi, ctx, ["Co-math review rounds", ...formatReviewRounds(rounds)].join("\n"));
+}
+
+async function reviewProjectReport(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseReportReviewText(text);
+	if (!parsed) {
+		showCommandMessage(
+			pi,
+			ctx,
+			"Usage: /comath review-report <report-id> <accepted|revision-requested|blocked>: <summary>",
+		);
+		return;
+	}
+
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const report = existing.reports.find((candidate) => candidate.id === parsed.reportId);
+	if (!report) {
+		showCommandMessage(pi, ctx, `Unknown report: ${parsed.reportId}`);
+		return;
+	}
+
+	const run = existing.roleRuns.find((candidate) => candidate.reportId === report.id);
+	const reviewRoundId = `report-review-${existing.reportReviewRounds.length + 1}`;
+	const state = addReportReviewRound(existing, {
+		id: reviewRoundId,
+		reportId: report.id,
+		roleRunId: run?.id ?? "",
+		outcome: parsed.outcome,
+		summary: parsed.summary,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Recorded report review ${reviewRoundId} for ${report.id}: ${parsed.outcome}`);
 }
 
 async function reviseProjectClaim(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
@@ -3151,6 +3429,12 @@ function nextWorkstreamId(state: CoMathProjectState, slug: string): string {
 	return `${baseId}-${suffix}`;
 }
 
+function getLinkableGoalIds(state: CoMathProjectState): string[] {
+	return state.approvedGoals
+		.filter((goal) => goal.status === "approved" || goal.status === "active")
+		.map((goal) => goal.id);
+}
+
 function slugify(text: string): string {
 	const slug = text
 		.toLowerCase()
@@ -3174,18 +3458,25 @@ async function showProjectStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			`Co-math project: ${state.title}`,
 			`Root question: ${state.rootQuestion}`,
 			`Goals: ${state.approvedGoals.length}`,
+			"Goal statuses:",
+			...formatGoalStatusCounts(state),
 			`Workstreams: ${state.workstreams.length}`,
-			`Claims: ${state.claims.length}`,
-			`Open warnings: ${state.warnings.filter((warning) => warning.status === "open").length}`,
-			`Artifacts: ${state.artifacts.length}`,
-			`Working paper sections: ${state.workingPaperSections.length}`,
-			`Open margin notes: ${state.marginNotes.filter((note) => note.status === "open").length}`,
-			`Events: ${state.events.length}`,
-			`Live background runs: ${backgroundRoleRuns.size}`,
 			"Workstream statuses:",
 			...formatWorkstreamStatusCounts(state),
+			`Claims: ${state.claims.length}`,
+			`Open warnings: ${state.warnings.filter((warning) => warning.status === "open").length}`,
+			`Open margin notes: ${state.marginNotes.filter((note) => note.status === "open").length}`,
+			`Claims eligible for synthesis: ${state.claims.filter((claim) => isClaimSynthesisEligible(state, claim.id)).length}`,
+			`Pending review queue: ${state.reviewQueue.length}`,
+			"Report reviews:",
+			...formatReportReviewCounts(state),
+			`Artifacts: ${state.artifacts.length}`,
+			`Working paper sections: ${state.workingPaperSections.length}`,
+			`Events: ${state.events.length}`,
+			`Live background runs: ${backgroundRoleRuns.size}`,
 			"Role runs:",
 			...formatRoleRunStatusCounts(state),
+			`Next safe action: ${getNextSafeAction(state)}`,
 		].join("\n"),
 	);
 }
@@ -3226,6 +3517,31 @@ async function showRoleRunStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 	}
 
 	showCommandMessage(pi, ctx, formatRoleRunDetails(run));
+}
+
+async function showWorkstreamStatus(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	workstreamId: string,
+): Promise<void> {
+	const trimmedWorkstreamId = workstreamId.trim();
+	if (trimmedWorkstreamId.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath workstream-status <workstream-id>");
+		return;
+	}
+
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+
+	const workstream = state.workstreams.find((candidate) => candidate.id === trimmedWorkstreamId);
+	if (!workstream) {
+		showCommandMessage(pi, ctx, `No workstream found for ${trimmedWorkstreamId}.`);
+		return;
+	}
+
+	showCommandMessage(pi, ctx, formatWorkstreamDetails(state, workstream));
 }
 
 async function recoverStaleRoleRun(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
@@ -3297,6 +3613,70 @@ function formatRoleRunDetails(run: RoleRunRecord): string {
 	].join("\n");
 }
 
+function formatWorkstreamDetails(state: CoMathProjectState, workstream: Workstream): string {
+	const claims = workstream.claimIds
+		.map((claimId) => state.claims.find((claim) => claim.id === claimId))
+		.filter((claim) => claim !== undefined);
+	const openWarningIds = claims.flatMap((claim) =>
+		claim.warningIds.filter((warningId) => {
+			const warning = state.warnings.find((candidate) => candidate.id === warningId);
+			return warning?.status === "open";
+		}),
+	);
+	const relatedArtifactIds = state.artifacts
+		.filter(
+			(artifact) =>
+				artifact.relatedWorkstreamIds.includes(workstream.id) ||
+				artifact.relatedClaimIds.some((claimId) => workstream.claimIds.includes(claimId)) ||
+				artifact.relatedReportIds.some((reportId) => workstream.latestReportIds.includes(reportId)),
+		)
+		.map((artifact) => artifact.id);
+	return [
+		`Workstream ${workstream.id}: ${workstream.title}`,
+		`Status: ${workstream.status}`,
+		`Status reason: ${workstream.statusReason ?? "none"}`,
+		"Linked goals:",
+		...formatLinkedGoals(state, workstream.goalIds),
+		`Latest reports: ${formatIdList(workstream.latestReportIds)}`,
+		"Latest runs:",
+		...formatWorkstreamRuns(state, workstream.latestRunIds),
+		"Claims:",
+		...formatWorkstreamClaims(claims),
+		`Attached open warnings: ${openWarningIds.length}`,
+		`Open warning ids: ${formatIdList(openWarningIds)}`,
+		`Related artifacts: ${formatIdList(relatedArtifactIds)}`,
+		`Suggested next action: ${getWorkstreamNextAction(workstream, openWarningIds.length)}`,
+	].join("\n");
+}
+
+function formatLinkedGoals(state: CoMathProjectState, goalIds: string[]): string[] {
+	if (goalIds.length === 0) return ["- none"];
+	return goalIds.map((goalId) => {
+		const goal = state.approvedGoals.find((candidate) => candidate.id === goalId);
+		return goal ? `- ${goal.id} [${goal.status}]: ${goal.text}` : `- ${goalId}: missing`;
+	});
+}
+
+function formatWorkstreamRuns(state: CoMathProjectState, runIds: string[]): string[] {
+	if (runIds.length === 0) return ["- none"];
+	return runIds.map((runId) => {
+		const run = state.roleRuns.find((candidate) => candidate.id === runId);
+		return run ? `- ${run.id} [${formatRoleRunStatus(run)}]` : `- ${runId}: missing`;
+	});
+}
+
+function formatWorkstreamClaims(claims: Claim[]): string[] {
+	if (claims.length === 0) return ["- none"];
+	return claims.map((claim) => `- ${claim.id} [${claim.status}]: ${claim.statement}`);
+}
+
+function getWorkstreamNextAction(workstream: Workstream, openWarningCount: number): string {
+	if (workstream.status === "blocked") return "/comath unblock <workstream-id>: <reason>";
+	if (openWarningCount > 0) return "/comath review-queue";
+	if (workstream.status === "needs_review") return "/comath run reviewer <claim-id>";
+	return "/comath run workstream <workstream-id>";
+}
+
 function formatRoleRunTarget(run: RoleRunRecord): string {
 	if (run.targetWorkstreamId) return `${run.role} ${run.targetWorkstreamId}`;
 	if (run.targetClaimId) return `${run.role} ${run.targetClaimId}`;
@@ -3333,11 +3713,35 @@ function formatBlockerLines(blockers: string[]): string[] {
 	return blockers.length === 0 ? ["- none"] : blockers.map((blocker) => `- ${blocker}`);
 }
 
+function formatGoalStatusCounts(state: CoMathProjectState): string[] {
+	const statuses = ["proposed", "approved", "active", "completed", "deferred"] as const;
+	return statuses.map(
+		(status) => `- ${status}: ${state.approvedGoals.filter((goal) => goal.status === status).length}`,
+	);
+}
+
 function formatWorkstreamStatusCounts(state: CoMathProjectState): string[] {
 	const statuses: WorkstreamStatus[] = ["active", "running", "blocked", "needs_review"];
 	return statuses.map(
 		(status) => `- ${status}: ${state.workstreams.filter((workstream) => workstream.status === status).length}`,
 	);
+}
+
+function formatReportReviewCounts(state: CoMathProjectState): string[] {
+	const outcomes = ["accepted", "revision_requested", "blocked"] as const;
+	return outcomes.map(
+		(outcome) => `- ${outcome}: ${state.reportReviewRounds.filter((round) => round.outcome === outcome).length}`,
+	);
+}
+
+function getNextSafeAction(state: CoMathProjectState): string {
+	const openWarningCount = state.warnings.filter((warning) => warning.status === "open").length;
+	if (state.approvedGoals.length === 0) return "/comath propose-goal <goal> or /comath goal <goal>";
+	if (getLinkableGoalIds(state).length === 0) return "/comath approve-goal <goal-id>";
+	if (state.workstreams.length === 0) return "/comath workstream <slug>: <title>";
+	if (openWarningCount > 0) return "/comath review-queue";
+	if (state.reviewQueue.length > 0) return "/comath run reviewer <claim-id>";
+	return "/comath status";
 }
 
 function formatRoleRunStatusCounts(state: CoMathProjectState): string[] {

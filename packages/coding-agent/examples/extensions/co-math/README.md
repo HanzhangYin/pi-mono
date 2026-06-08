@@ -18,11 +18,27 @@ The extension registers:
 - `/comath` for user-facing workspace commands.
 - `comath_state` for model-visible state reads and initialization.
 
+## Architecture-aligned workflow
+
+1. Initialize a workspace with `/comath init <root question>`.
+2. Propose goals with `/comath propose-goal <goal>` or add compatibility goals with `/comath goal <goal>`.
+3. Approve goals explicitly with `/comath approve-goal <goal-id>` before creating workstreams.
+4. Create narrow workstreams with `/comath workstream <slug>: <title>`.
+5. Queue or run coordinator/workstream roles.
+6. Record computations with `/comath computation --command ... --out ...` as provenance artifacts only.
+7. Review claims with `/comath run reviewer <claim-id>` and reports with `/comath review-report ...`.
+8. Preserve warnings, failed attempts, blockers, and margin notes.
+9. Use `/comath status` for top-level state and `/comath workstream-status <id>` for drill-down.
+10. Export the working paper only as a snapshot; exports are not proof certificates.
+
 ## Sample commands
 
 ```text
 /comath init Study endpoint behavior for a permutation class
+/comath propose-goal Enumerate exact small examples
+/comath approve-goal goal-1
 /comath goal Prove or refute the first nontrivial endpoint monotonicity case
+/comath defer-goal goal-2: Keep this milestone finite
 /comath workstream small-examples: enumerate exact small n examples and report obstructions
 /comath run coordinator
 /comath run workstream workstream-small-examples
@@ -38,6 +54,7 @@ The extension registers:
 /comath review-queue
 /comath run reviewer claim-1
 /comath reviews
+/comath review-report report-1 revision-requested: Add blocker context before synthesis
 /comath revise-claim claim-1: Endpoint monotonicity holds under the predecessor-canonical convention. --reason Human clarified endpoint convention
 /comath claim-history claim-1
 /comath synthesize
@@ -52,6 +69,7 @@ The extension registers:
 /comath timeline
 /comath runs
 /comath run-status role-run-1
+/comath workstream-status workstream-small-examples
 /comath queue workstream workstream-small-examples
 /comath dispatch-next
 /comath dispatch-next --background
@@ -64,7 +82,7 @@ The extension registers:
 /comath status
 ```
 
-The current prototype implements initialization, status, goal creation, workstream creation, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, queued and cancelled run provenance, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, review rounds, claim revision history, targeted reviewer runs, cautious synthesis markdown, and a living working-paper layer. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs and paper commands do not promote anything to `proved` without proof evidence and resolved warnings.
+The current prototype implements initialization, status, goal creation and explicit goal approval, workstream creation gated on approved or active goals, manual evidence and warning attachment, warning resolution, human intervention controls, stale running run recovery, an artifact registry, an event log, workstream lifecycle status, durable role run records, queued and cancelled run provenance, invariant audits, bounded coordinator runs that save advisory reports, targeted workstream runs that can ingest structured proposed claims, evidence, warnings, and artifacts, review queues, claim review rounds, report review rounds, claim revision history, targeted reviewer runs, cautious synthesis markdown, workstream status drill-downs, and a living working-paper layer. Workstream-ingested claims are review-gated as `needs_review`; reviewer decisions can attach proof evidence, resolve warnings, record a review round, and promote a claim only when proof evidence is present and no attached warning remains open. Report reviews do not promote claims. Synthesis includes only proof-backed, warning-free, reviewed proved claims as findings and always preserves an open-warning section. Role runs and paper commands do not promote anything to `proved` without proof evidence and resolved warnings.
 
 ## Structured role output
 
@@ -80,6 +98,8 @@ Human intervention events preserve steering decisions such as manual block/unblo
 
 Claim revisions are human steering records. `/comath revise-claim` changes the claim statement, preserves attached evidence and warnings, records the previous and revised statements with a reason, and returns the claim to review. `/comath claim-history` shows the current claim, open warning count, claim revision history, and review rounds.
 
+Report review rounds are process review records. `/comath review-report` records whether a report was accepted, needs revision, or is blocked. It does not create mathematical warnings or change claim status.
+
 Working-paper sections are draft workspace records, not proof certificates. `/comath paper-section` stores human-authored draft text with explicit source ids; `/comath paper` renders the living working paper in command output only and does not export Markdown, LaTeX, PDF, or artifact files. Rendering preserves open warnings, open margin notes, and non-synthesis-eligible source labels so polished prose cannot hide proof gaps.
 
 Margin notes are paper annotations, not proof evidence and not mathematical warning records. `/comath margin-note` records open issues on sections or workspace subjects, and `/comath resolve-margin-note` closes those annotations with provenance without resolving mathematical warnings automatically.
@@ -94,10 +114,10 @@ Computation artifacts are provenance records, not proof certificates. `/comath c
 
 Role prompts live under `agents/`:
 
-- `coordinator.md` breaks a root question into approved goals and workstreams.
+- `coordinator.md` distinguishes proposed goals from approved goals and workstreams.
 - `workstream.md` attacks one narrow goal and reports claims, evidence, computations, failed attempts, and blockers.
-- `reviewer.md` challenges claims and creates explicit warnings for proof gaps.
-- `synthesizer.md` turns reviewed state into cautious draft prose while preserving open warnings.
+- `reviewer.md` challenges claims, distinguishes claim review from report review, and creates explicit warnings for proof gaps.
+- `synthesizer.md` turns reviewed state into cautious draft prose while preserving open warnings and report review status.
 
 ## State location
 

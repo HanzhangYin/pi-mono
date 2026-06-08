@@ -12,9 +12,12 @@ import type {
 	CoMathRole,
 	Evidence,
 	EvidenceKind,
+	GoalStatus,
 	MarginNote,
 	MarginNoteKind,
 	Report,
+	ReportReviewOutcome,
+	ReportReviewRoundRecord,
 	ReviewQueueItem,
 	ReviewRoundOutcome,
 	ReviewRoundRecord,
@@ -33,19 +36,43 @@ type LegacyWorkstream = Omit<Workstream, "latestRunIds" | "status" | "statusReas
 type LegacyRoleRun = Omit<RoleRunRecord, "queuedAt"> & Partial<Pick<RoleRunRecord, "queuedAt">>;
 type LegacyProjectState = Omit<
 	CoMathProjectState,
-	"artifacts" | "events" | "roleRuns" | "workstreams" | "workingPaperSections" | "marginNotes"
+	| "approvedGoals"
+	| "artifacts"
+	| "claims"
+	| "events"
+	| "evidence"
+	| "reportReviewRounds"
+	| "reports"
+	| "reviewQueue"
+	| "roleRuns"
+	| "warnings"
+	| "workstreams"
+	| "workingPaperSections"
+	| "marginNotes"
 > &
 	Partial<
 		Omit<
 			Pick<
 				CoMathProjectState,
-				"artifacts" | "events" | "reviewRounds" | "claimRevisions" | "workingPaperSections" | "marginNotes"
+				| "approvedGoals"
+				| "artifacts"
+				| "claims"
+				| "events"
+				| "evidence"
+				| "reportReviewRounds"
+				| "reports"
+				| "reviewQueue"
+				| "reviewRounds"
+				| "claimRevisions"
+				| "warnings"
+				| "workingPaperSections"
+				| "marginNotes"
 			>,
 			"roleRuns"
 		>
 	> & {
 		roleRuns?: LegacyRoleRun[];
-		workstreams: LegacyWorkstream[];
+		workstreams?: LegacyWorkstream[];
 	};
 
 export interface CreateEmptyProjectStateInput {
@@ -58,6 +85,15 @@ export interface CreateEmptyProjectStateInput {
 export interface AddGoalInput {
 	id: string;
 	text: string;
+	now: string;
+	actor?: CoMathActor;
+	status?: GoalStatus;
+}
+
+export interface SetGoalStatusInput {
+	goalId: string;
+	status: GoalStatus;
+	reason?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -245,6 +281,17 @@ export interface AddReviewRoundInput {
 	actor?: CoMathActor;
 }
 
+export interface AddReportReviewRoundInput {
+	id: string;
+	reportId: string;
+	roleRunId: string;
+	outcome: ReportReviewOutcome;
+	summary: string;
+	createdWarningIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
 export interface ReviseClaimInput {
 	id: string;
 	claimId: string;
@@ -320,6 +367,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		artifacts: [],
 		roleRuns: [],
 		reviewRounds: [],
+		reportReviewRounds: [],
 		claimRevisions: [],
 		workingPaperSections: [],
 		marginNotes: [],
@@ -347,7 +395,7 @@ export function addGoal(state: CoMathProjectState, input: AddGoalInput): CoMathP
 				{
 					id: input.id,
 					text: input.text,
-					status: "active",
+					status: input.status ?? "active",
 					createdAt: input.now,
 					updatedAt: input.now,
 				},
@@ -359,6 +407,39 @@ export function addGoal(state: CoMathProjectState, input: AddGoalInput): CoMathP
 			actor: input.actor,
 			summary: `Added goal ${input.id}: ${input.text}`,
 			subjectId: input.id,
+			now: input.now,
+		},
+	);
+}
+
+export function setGoalStatus(state: CoMathProjectState, input: SetGoalStatusInput): CoMathProjectState {
+	const goal = state.approvedGoals.find((candidate) => candidate.id === input.goalId);
+	if (!goal) {
+		throw new Error(`Unknown goal: ${input.goalId}`);
+	}
+	if (goal.status === input.status) {
+		return state;
+	}
+	const reason = input.reason?.trim();
+	return appendEvent(
+		{
+			...state,
+			approvedGoals: state.approvedGoals.map((candidate) =>
+				candidate.id === input.goalId
+					? {
+							...candidate,
+							status: input.status,
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "goal_status_changed",
+			actor: input.actor,
+			summary: `Set ${input.goalId} status to ${input.status}${reason ? `: ${reason}` : ""}`,
+			subjectId: input.goalId,
 			now: input.now,
 		},
 	);
@@ -1084,6 +1165,37 @@ export function addReviewRound(state: CoMathProjectState, input: AddReviewRoundI
 	);
 }
 
+export function addReportReviewRound(state: CoMathProjectState, input: AddReportReviewRoundInput): CoMathProjectState {
+	const reportReviewRound: ReportReviewRoundRecord = {
+		id: input.id,
+		reportId: input.reportId,
+		roleRunId: input.roleRunId,
+		status: "completed",
+		outcome: input.outcome,
+		summary: input.summary,
+		createdWarningIds: input.createdWarningIds ?? [],
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			reportReviewRounds: [...state.reportReviewRounds, reportReviewRound],
+			updatedAt: input.now,
+		},
+		{
+			kind: "report_review_round_recorded",
+			actor: input.actor,
+			summary: `Recorded report review round ${input.id} for ${input.reportId}: ${input.outcome}`,
+			subjectId: input.id,
+			relatedIds: [input.reportId, input.roleRunId, ...reportReviewRound.createdWarningIds].filter(
+				(relatedId) => relatedId.length > 0,
+			),
+			now: input.now,
+		},
+	);
+}
+
 export function reviseClaim(state: CoMathProjectState, input: ReviseClaimInput): CoMathProjectState {
 	const claim = findClaim(state, input.claimId);
 	const revisedStatement = input.revisedStatement.trim();
@@ -1345,25 +1457,101 @@ export async function loadProjectState(statePath: string): Promise<CoMathProject
 }
 
 function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
-	return {
+	const updatedAt = getStringField(value, "updatedAt", new Date(0).toISOString());
+	const reports = getArrayField(value, "reports").map((record) => normalizeReport(record, updatedAt));
+	const roleRuns = (value.roleRuns ?? []).map(normalizeRoleRun);
+	const normalizedState: CoMathProjectState = {
 		...value,
-		workstreams: value.workstreams.map(normalizeWorkstream),
-		artifacts: value.artifacts ?? [],
-		events: value.events ?? [],
-		roleRuns: (value.roleRuns ?? []).map(normalizeRoleRun),
-		reviewRounds: value.reviewRounds ?? [],
-		claimRevisions: value.claimRevisions ?? [],
-		workingPaperSections: value.workingPaperSections ?? [],
-		marginNotes: value.marginNotes ?? [],
+		version: 1,
+		projectId: getStringField(value, "projectId", "co-math-legacy"),
+		title: getStringField(value, "title", getStringField(value, "rootQuestion", "Untitled co-math project")),
+		rootQuestion: getStringField(value, "rootQuestion", getStringField(value, "title", "Untitled co-math project")),
+		approvedGoals: getArrayField(value, "approvedGoals").map((record) => normalizeGoal(record, updatedAt)),
+		workstreams: (value.workstreams ?? []).map((workstream) => normalizeWorkstream(workstream, updatedAt)),
+		claims: getArrayField(value, "claims").map((record) => normalizeClaim(record, updatedAt)),
+		evidence: getArrayField(value, "evidence").map((record) => normalizeEvidence(record, updatedAt)),
+		warnings: getArrayField(value, "warnings").map((record) => normalizeWarning(record, updatedAt)),
+		reports,
+		reviewQueue: getArrayField(value, "reviewQueue").map((record) => normalizeReviewQueueItem(record, updatedAt)),
+		artifacts: getArrayField(value, "artifacts").map((record) => normalizeArtifact(record, updatedAt)),
+		events: getArrayField(value, "events").map((record) => normalizeEvent(record, updatedAt)),
+		roleRuns,
+		reviewRounds: getArrayField(value, "reviewRounds")
+			.filter(isCurrentReviewRoundRecord)
+			.map((record) => normalizeReviewRound(record, updatedAt)),
+		reportReviewRounds: [
+			...getArrayField(value, "reportReviewRounds").map((record) => normalizeReportReviewRound(record, updatedAt)),
+			...getArrayField(value, "reviewRounds")
+				.filter((record) => !isCurrentReviewRoundRecord(record))
+				.map((record) => normalizeLegacyReportReviewRound(record, reports, roleRuns, updatedAt)),
+		],
+		claimRevisions: getArrayField(value, "claimRevisions").map((record) => normalizeClaimRevision(record, updatedAt)),
+		workingPaperSections: getArrayField(value, "workingPaperSections").map((record) =>
+			normalizeWorkingPaperSection(record, updatedAt),
+		),
+		marginNotes: getArrayField(value, "marginNotes").map((record) => normalizeMarginNote(record, updatedAt)),
+		updatedAt,
+	};
+	return normalizeClaimRelationshipsAndProofStatus(normalizedState);
+}
+
+function normalizeClaimRelationshipsAndProofStatus(state: CoMathProjectState): CoMathProjectState {
+	const withRelationships: CoMathProjectState = {
+		...state,
+		claims: state.claims.map((claim) => ({
+			...claim,
+			evidenceIds: uniqueStrings([
+				...claim.evidenceIds.filter((evidenceId) =>
+					state.evidence.some((evidence) => evidence.id === evidenceId && evidence.claimId === claim.id),
+				),
+				...state.evidence.filter((evidence) => evidence.claimId === claim.id).map((evidence) => evidence.id),
+			]),
+			warningIds: uniqueStrings([
+				...claim.warningIds.filter((warningId) =>
+					state.warnings.some((warning) => warning.id === warningId && warning.claimId === claim.id),
+				),
+				...state.warnings.filter((warning) => warning.claimId === claim.id).map((warning) => warning.id),
+			]),
+		})),
+	};
+	return {
+		...withRelationships,
+		claims: withRelationships.claims.map((claim) =>
+			claim.status === "proved" &&
+			(!hasAttachedProofEvidence(withRelationships, claim) || hasAttachedOpenWarning(withRelationships, claim))
+				? { ...claim, status: "needs_review" }
+				: claim,
+		),
 	};
 }
 
-function normalizeWorkstream(value: LegacyWorkstream): Workstream {
+function normalizeGoal(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+): CoMathProjectState["approvedGoals"][number] {
 	return {
-		...value,
-		status: value.status ?? "active",
-		...(value.statusReason ? { statusReason: value.statusReason } : {}),
+		id: getStringField(value, "id", "goal-legacy"),
+		text: getStringField(value, "text", getStringField(value, "summary", "")),
+		status: normalizeGoalStatus(value.status),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeWorkstream(value: LegacyWorkstream, fallbackTime: string): Workstream {
+	return {
+		id: getStringField(value, "id", "workstream-legacy"),
+		title: getStringField(value, "title", getStringField(value, "summary", "")),
+		status: normalizeWorkstreamStatus(value.status),
+		...(getOptionalStringField(value, "statusReason")
+			? { statusReason: getOptionalStringField(value, "statusReason") }
+			: {}),
+		goalIds: getStringArrayField(value, "goalIds"),
+		claimIds: getStringArrayField(value, "claimIds"),
+		latestReportIds: getStringArrayField(value, "latestReportIds"),
 		latestRunIds: value.latestRunIds ?? [],
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
 	};
 }
 
@@ -1377,6 +1565,402 @@ function normalizeRoleRun(value: LegacyRoleRun): RoleRunRecord {
 				? { executionMode: "foreground" as const }
 				: {}),
 	};
+}
+
+function normalizeClaim(value: Record<string, unknown>, fallbackTime: string): Claim {
+	return {
+		id: getStringField(value, "id", "claim-legacy"),
+		workstreamId: getStringField(value, "workstreamId", ""),
+		statement: getStringField(value, "statement", ""),
+		status: normalizeClaimStatus(value.status),
+		evidenceIds: getStringArrayField(value, "evidenceIds"),
+		warningIds: getStringArrayField(value, "warningIds"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeEvidence(value: Record<string, unknown>, fallbackTime: string): Evidence {
+	return {
+		id: getStringField(value, "id", "evidence-legacy"),
+		claimId: getStringField(value, "claimId", getStringArrayField(value, "claimIds")[0] ?? ""),
+		kind: normalizeEvidenceKind(value.kind),
+		summary: getStringField(value, "summary", ""),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeWarning(value: Record<string, unknown>, fallbackTime: string): Warning {
+	return {
+		id: getStringField(value, "id", "warning-legacy"),
+		claimId: getStringField(value, "claimId", getStringArrayField(value, "claimIds")[0] ?? ""),
+		severity: normalizeWarningSeverity(value.severity),
+		status: normalizeWarningStatus(value.status),
+		message: getStringField(value, "message", getStringField(value, "summary", "")),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeReport(value: Record<string, unknown>, fallbackTime: string): Report {
+	return {
+		id: getStringField(value, "id", "report-legacy"),
+		title: getStringField(value, "title", "Legacy report"),
+		summary: getStringField(value, "summary", getStringField(value, "status", "")),
+		blockers: getStringArrayField(value, "blockers"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeReviewQueueItem(value: Record<string, unknown>, fallbackTime: string): ReviewQueueItem {
+	return {
+		id: getStringField(value, "id", "review-legacy"),
+		claimId: getStringField(value, "claimId", ""),
+		reason: getStringField(value, "reason", getStringField(value, "summary", "")),
+		createdAt: getStringField(value, "createdAt", fallbackTime),
+	};
+}
+
+function normalizeArtifact(value: Record<string, unknown>, fallbackTime: string): ArtifactRecord {
+	return {
+		id: getStringField(value, "id", "artifact-legacy"),
+		kind: normalizeArtifactKind(value.kind),
+		title: getStringField(value, "title", "Legacy artifact"),
+		summary: getStringField(value, "summary", getStringField(value, "sha256", "")),
+		...(getOptionalStringField(value, "provenance")
+			? { provenance: getOptionalStringField(value, "provenance") }
+			: {}),
+		...(getOptionalStringField(value, "path") ? { path: getOptionalStringField(value, "path") } : {}),
+		relatedClaimIds: getStringArrayField(value, "relatedClaimIds"),
+		relatedWorkstreamIds: getStringArrayField(value, "relatedWorkstreamIds"),
+		relatedReportIds: getStringArrayField(value, "relatedReportIds"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeEvent(value: Record<string, unknown>, fallbackTime: string): CoMathProjectState["events"][number] {
+	return {
+		id: getStringField(value, "id", "event-legacy"),
+		kind: normalizeEventKind(value.kind),
+		actor: normalizeActor(value.actor),
+		summary: getStringField(value, "summary", ""),
+		...(getOptionalStringField(value, "subjectId") ? { subjectId: getOptionalStringField(value, "subjectId") } : {}),
+		relatedIds: getStringArrayField(value, "relatedIds"),
+		createdAt: getStringField(value, "createdAt", fallbackTime),
+	};
+}
+
+function normalizeReviewRound(value: Record<string, unknown>, fallbackTime: string): ReviewRoundRecord {
+	return {
+		id: getStringField(value, "id", "review-round-legacy"),
+		claimId: getStringField(value, "claimId", ""),
+		roleRunId: getStringField(value, "roleRunId", ""),
+		reportId: getStringField(value, "reportId", ""),
+		status: normalizeReviewRoundStatus(value.status),
+		decisionStatus: normalizeClaimStatus(value.decisionStatus),
+		outcome: normalizeReviewRoundOutcome(value.outcome),
+		createdEvidenceIds: getStringArrayField(value, "createdEvidenceIds"),
+		createdWarningIds: getStringArrayField(value, "createdWarningIds"),
+		resolvedWarningIds: getStringArrayField(value, "resolvedWarningIds"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeReportReviewRound(value: Record<string, unknown>, fallbackTime: string): ReportReviewRoundRecord {
+	return {
+		id: getStringField(value, "id", "report-review-legacy"),
+		reportId: getStringField(value, "reportId", ""),
+		roleRunId: getStringField(value, "roleRunId", ""),
+		status: normalizeReportReviewStatus(value.status),
+		outcome: normalizeReportReviewOutcome(value.outcome),
+		summary: getStringField(value, "summary", ""),
+		createdWarningIds: getStringArrayField(value, "createdWarningIds"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeLegacyReportReviewRound(
+	value: Record<string, unknown>,
+	reports: Report[],
+	roleRuns: RoleRunRecord[],
+	fallbackTime: string,
+): ReportReviewRoundRecord {
+	const reportId = getStringField(value, "reportId", reports[0]?.id ?? "");
+	return {
+		id: getStringField(value, "id", "report-review-legacy"),
+		reportId,
+		roleRunId: getStringField(value, "roleRunId", roleRuns[0]?.id ?? ""),
+		status: normalizeReportReviewStatus(value.status),
+		outcome: normalizeReportReviewOutcome(value.outcome),
+		summary: getStringField(value, "summary", getStringField(value, "scope", "")),
+		createdWarningIds: getStringArrayField(value, "createdWarningIds"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeClaimRevision(value: Record<string, unknown>, fallbackTime: string): ClaimRevisionRecord {
+	return {
+		id: getStringField(value, "id", "claim-revision-legacy"),
+		claimId: getStringField(value, "claimId", ""),
+		previousStatement: getStringField(value, "previousStatement", ""),
+		revisedStatement: getStringField(value, "revisedStatement", ""),
+		reason: getStringField(value, "reason", getStringField(value, "summary", "")),
+		actor: normalizeActor(value.actor),
+		createdAt: getStringField(value, "createdAt", fallbackTime),
+	};
+}
+
+function normalizeWorkingPaperSection(value: Record<string, unknown>, fallbackTime: string): WorkingPaperSection {
+	return {
+		id: getStringField(value, "id", "paper-section-legacy"),
+		title: getStringField(value, "title", "Legacy section"),
+		body: getStringField(value, "body", getStringField(value, "summary", "")),
+		status: normalizeWorkingPaperSectionStatus(value.status),
+		sourceClaimIds: getStringArrayField(value, "sourceClaimIds"),
+		sourceEvidenceIds: getStringArrayField(value, "sourceEvidenceIds"),
+		sourceWarningIds: getStringArrayField(value, "sourceWarningIds"),
+		sourceArtifactIds: uniqueStrings([
+			...getStringArrayField(value, "sourceArtifactIds"),
+			...getStringArrayField(value, "artifactId"),
+		]),
+		sourceReviewRoundIds: getStringArrayField(value, "sourceReviewRoundIds"),
+		sourceRoleRunIds: getStringArrayField(value, "sourceRoleRunIds"),
+		marginNoteIds: getStringArrayField(value, "marginNoteIds"),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeMarginNote(value: Record<string, unknown>, fallbackTime: string): MarginNote {
+	return {
+		id: getStringField(value, "id", "margin-note-legacy"),
+		kind: normalizeMarginNoteKind(value.kind),
+		status: normalizeMarginNoteStatus(value.status),
+		subjectId: getStringField(value, "subjectId", "project"),
+		...(getOptionalStringField(value, "sectionId") ? { sectionId: getOptionalStringField(value, "sectionId") } : {}),
+		message: getStringField(value, "message", getStringField(value, "summary", "")),
+		...(getOptionalStringField(value, "resolution")
+			? { resolution: getOptionalStringField(value, "resolution") }
+			: {}),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+		...(getOptionalStringField(value, "resolvedAt")
+			? { resolvedAt: getOptionalStringField(value, "resolvedAt") }
+			: {}),
+	};
+}
+
+function isCurrentReviewRoundRecord(value: Record<string, unknown>): boolean {
+	return typeof value.claimId === "string";
+}
+
+function normalizeGoalStatus(value: unknown): GoalStatus {
+	if (
+		value === "proposed" ||
+		value === "approved" ||
+		value === "active" ||
+		value === "completed" ||
+		value === "deferred"
+	) {
+		return value;
+	}
+	if (value === "complete") return "completed";
+	return "active";
+}
+
+function normalizeClaimStatus(value: unknown): ClaimStatus {
+	if (
+		value === "draft" ||
+		value === "proof_sketch" ||
+		value === "needs_review" ||
+		value === "proved" ||
+		value === "disproved"
+	) {
+		return value;
+	}
+	if (value === "validated") return "needs_review";
+	return "draft";
+}
+
+function normalizeArtifactKind(value: unknown): ArtifactKind {
+	if (isCurrentArtifactKind(value)) return value;
+	if (value === "source") return "script";
+	if (value === "data") return "dataset";
+	if (value === "paper_export") return "working_paper_export";
+	return "human_note";
+}
+
+function normalizeEvidenceKind(value: unknown): EvidenceKind {
+	if (
+		value === "proof" ||
+		value === "computation" ||
+		value === "reference" ||
+		value === "counterexample" ||
+		value === "note"
+	) {
+		return value;
+	}
+	return "note";
+}
+
+function normalizeWarningSeverity(value: unknown): WarningSeverity {
+	if (value === "low" || value === "medium" || value === "high") return value;
+	return "medium";
+}
+
+function normalizeWarningStatus(value: unknown): Warning["status"] {
+	if (value === "open" || value === "resolved") return value;
+	return "open";
+}
+
+function normalizeWorkstreamStatus(value: unknown): WorkstreamStatus {
+	if (value === "active" || value === "running" || value === "blocked" || value === "needs_review") return value;
+	return "active";
+}
+
+function normalizeReviewRoundStatus(value: unknown): ReviewRoundRecord["status"] {
+	if (value === "open" || value === "completed") return value;
+	if (value === "complete") return "completed";
+	return "completed";
+}
+
+function normalizeReviewRoundOutcome(value: unknown): ReviewRoundOutcome {
+	if (
+		value === "accepted" ||
+		value === "rejected" ||
+		value === "revision_requested" ||
+		value === "blocked_by_invariant"
+	) {
+		return value;
+	}
+	return "revision_requested";
+}
+
+function normalizeReportReviewStatus(value: unknown): ReportReviewRoundRecord["status"] {
+	if (value === "open" || value === "completed") return value;
+	if (value === "complete") return "completed";
+	return "completed";
+}
+
+function normalizeReportReviewOutcome(value: unknown): ReportReviewOutcome {
+	if (value === "accepted" || value === "revision_requested" || value === "blocked") return value;
+	return "revision_requested";
+}
+
+function normalizeWorkingPaperSectionStatus(value: unknown): WorkingPaperSectionStatus {
+	if (value === "draft" || value === "needs_revision" || value === "reviewed") return value;
+	return "draft";
+}
+
+function normalizeMarginNoteKind(value: unknown): MarginNoteKind {
+	if (value === "gap" || value === "todo" || value === "warning" || value === "provenance" || value === "comment") {
+		return value;
+	}
+	return "comment";
+}
+
+function normalizeMarginNoteStatus(value: unknown): MarginNote["status"] {
+	if (value === "open" || value === "resolved") return value;
+	return "open";
+}
+
+function normalizeActor(value: unknown): CoMathActor {
+	if (
+		value === "human" ||
+		value === "system" ||
+		value === "coordinator" ||
+		value === "workstream" ||
+		value === "reviewer" ||
+		value === "synthesizer"
+	) {
+		return value;
+	}
+	return "system";
+}
+
+function normalizeEventKind(value: unknown): CoMathEventKind {
+	if (isCurrentEventKind(value)) return value;
+	return "human_intervention_recorded";
+}
+
+function isCurrentArtifactKind(value: unknown): value is ArtifactKind {
+	return (
+		value === "computation" ||
+		value === "latex_note" ||
+		value === "proof_sketch" ||
+		value === "counterexample_search" ||
+		value === "reference" ||
+		value === "dataset" ||
+		value === "script" ||
+		value === "figure" ||
+		value === "failed_attempt" ||
+		value === "human_note" ||
+		value === "working_paper_export"
+	);
+}
+
+function isCurrentEventKind(value: unknown): value is CoMathEventKind {
+	return (
+		value === "project_initialized" ||
+		value === "goal_added" ||
+		value === "goal_status_changed" ||
+		value === "workstream_added" ||
+		value === "role_report_saved" ||
+		value === "claim_proposed" ||
+		value === "evidence_added" ||
+		value === "warning_added" ||
+		value === "warning_resolved" ||
+		value === "review_requested" ||
+		value === "review_decision_recorded" ||
+		value === "claim_status_changed" ||
+		value === "synthesis_generated" ||
+		value === "artifact_recorded" ||
+		value === "role_run_queued" ||
+		value === "role_run_started" ||
+		value === "role_run_completed" ||
+		value === "role_run_blocked" ||
+		value === "role_run_failed" ||
+		value === "role_run_aborted" ||
+		value === "role_run_cancelled" ||
+		value === "workstream_status_changed" ||
+		value === "human_intervention_recorded" ||
+		value === "review_round_recorded" ||
+		value === "report_review_round_recorded" ||
+		value === "claim_revised" ||
+		value === "working_paper_section_recorded" ||
+		value === "margin_note_recorded" ||
+		value === "margin_note_resolved" ||
+		value === "working_paper_exported"
+	);
+}
+
+function getArrayField(value: object, key: string): Record<string, unknown>[] {
+	const field = (value as Record<string, unknown>)[key];
+	if (!Array.isArray(field)) return [];
+	return field.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
+}
+
+function getStringArrayField(value: object, key: string): string[] {
+	const field = (value as Record<string, unknown>)[key];
+	if (typeof field === "string") return [field];
+	if (!Array.isArray(field)) return [];
+	return field.filter((item): item is string => typeof item === "string");
+}
+
+function getStringField(value: object, key: string, fallback: string): string {
+	const field = (value as Record<string, unknown>)[key];
+	return typeof field === "string" ? field : fallback;
+}
+
+function getOptionalStringField(value: object, key: string): string | undefined {
+	const field = (value as Record<string, unknown>)[key];
+	return typeof field === "string" && field.length > 0 ? field : undefined;
 }
 
 function appendEvent(state: CoMathProjectState, input: AppendEventInput): CoMathProjectState {
@@ -1429,14 +2013,14 @@ function uniqueStrings(values: string[]): string[] {
 function hasAttachedProofEvidence(state: CoMathProjectState, claim: Claim): boolean {
 	return claim.evidenceIds.some((evidenceId) => {
 		const evidence = state.evidence.find((candidate) => candidate.id === evidenceId);
-		return evidence?.kind === "proof";
+		return evidence?.claimId === claim.id && evidence.kind === "proof";
 	});
 }
 
 function hasAttachedOpenWarning(state: CoMathProjectState, claim: Claim): boolean {
 	return claim.warningIds.some((warningId) => {
 		const warning = state.warnings.find((candidate) => candidate.id === warningId);
-		return warning?.status === "open";
+		return warning?.claimId === claim.id && warning.status === "open";
 	});
 }
 

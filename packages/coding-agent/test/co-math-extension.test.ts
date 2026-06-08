@@ -262,6 +262,77 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("proposes, approves, and defers goals with explicit user commands", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-goal-lifecycle-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study a finite permutation class", ctx);
+			await command?.handler("propose-goal Enumerate exact small examples", ctx);
+			await command?.handler("approve-goal goal-1", ctx);
+			await command?.handler("propose-goal Explore optional asymptotics", ctx);
+			await command?.handler("defer-goal goal-2: Keep this milestone finite", ctx);
+			const beforeUnknown = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("approve-goal goal-missing", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.approvedGoals).toMatchObject([
+				{ id: "goal-1", status: "approved", text: "Enumerate exact small examples" },
+				{ id: "goal-2", status: "deferred", text: "Explore optional asymptotics" },
+			]);
+			expect(state?.events.map((event) => event.kind)).toEqual(
+				expect.arrayContaining(["goal_added", "goal_status_changed", "human_intervention_recorded"]),
+			);
+			expect(state).toEqual(beforeUnknown);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Proposed co-math goal goal-1");
+			expect(visibleText).toContain("Approved co-math goal goal-1");
+			expect(visibleText).toContain("Deferred co-math goal goal-2: Keep this milestone finite");
+			expect(visibleText).toContain("Unknown goal: goal-missing");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("gates workstreams on approved or active goals and skips deferred goals", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-workstream-goal-gate-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study a finite permutation class", ctx);
+			await command?.handler("propose-goal Enumerate exact small examples", ctx);
+			await command?.handler("workstream premature: should be rejected", ctx);
+			await command?.handler("status", ctx);
+			let state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workstreams).toEqual([]);
+			const proposedStatus = notifications.at(-1) ?? "";
+			expect(notifications.join("\n")).toContain("Approve at least one goal before creating workstreams.");
+			expect(proposedStatus).toContain("- proposed: 1");
+			expect(proposedStatus).toContain("- approved: 0");
+			expect(proposedStatus).toContain("Next safe action: /comath approve-goal <goal-id>");
+
+			await command?.handler("approve-goal goal-1", ctx);
+			await command?.handler("propose-goal Later generalization", ctx);
+			await command?.handler("defer-goal goal-2: Not in this milestone", ctx);
+			await command?.handler("workstream small-examples: enumerate exact small n examples", ctx);
+			state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.workstreams).toMatchObject([
+				{
+					id: "workstream-small-examples",
+					goalIds: ["goal-1"],
+				},
+			]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("does not add goals or workstreams before /comath init creates state", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-command-missing-"));
 		try {
@@ -518,6 +589,57 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("records report review outcomes without changing claim status", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-review-report-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream proposed a report with one tentative claim.",
+					proposedClaims: [{ statement: "Report review should not promote this claim." }],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve report review gates", ctx);
+			await command?.handler("workstream reports: analyze report lifecycle", ctx);
+			await command?.handler("run workstream workstream-reports", ctx);
+			await command?.handler("review-report report-1 accepted: Report is clear enough to keep.", ctx);
+			await command?.handler("review-report report-1 revision-requested: Add blocker context.", ctx);
+			const beforeUnknown = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("review-report report-missing blocked: Missing report should not mutate.", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.reportReviewRounds).toMatchObject([
+				{
+					id: "report-review-1",
+					reportId: "report-1",
+					roleRunId: "role-run-1",
+					status: "completed",
+					outcome: "accepted",
+					summary: "Report is clear enough to keep.",
+				},
+				{
+					id: "report-review-2",
+					reportId: "report-1",
+					roleRunId: "role-run-1",
+					status: "completed",
+					outcome: "revision_requested",
+					summary: "Add blocker context.",
+				},
+			]);
+			expect(state?.claims[0]?.status).toBe("needs_review");
+			expect(state).toEqual(beforeUnknown);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Recorded report review report-review-1 for report-1: accepted");
+			expect(visibleText).toContain("Unknown report: report-missing");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("records failed role runs without creating reports", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-failed-"));
 		try {
@@ -630,6 +752,48 @@ describe("co-math extension registration", () => {
 			expect(visibleText).toContain("- needs_review: 1");
 			expect(visibleText).toContain("Role runs:");
 			expect(visibleText).toContain("- completed: 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("displays workstream status drill-down with goals, claims, warnings, and blockers", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-workstream-status-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Workstream found a blocked tentative claim.",
+					proposedClaims: [
+						{
+							statement: "Endpoint monotonicity needs a boundary lemma.",
+							warnings: [{ severity: "high", message: "Boundary lemma missing." }],
+						},
+					],
+					blockers: ["Need a boundary lemma."],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Analyze endpoint induction", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+			await command?.handler("workstream-status workstream-endpoints", ctx);
+			await command?.handler("workstream-status workstream-missing", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Workstream workstream-endpoints: analyze endpoint induction");
+			expect(visibleText).toContain("Status: blocked");
+			expect(visibleText).toContain("Status reason: Need a boundary lemma.");
+			expect(visibleText).toContain("goal-1 [active]: Analyze endpoint induction");
+			expect(visibleText).toContain("Latest reports: report-1");
+			expect(visibleText).toContain("role-run-1 [blocked]");
+			expect(visibleText).toContain("claim-1 [needs_review]: Endpoint monotonicity needs a boundary lemma.");
+			expect(visibleText).toContain("Attached open warnings: 1");
+			expect(visibleText).toContain("Suggested next action: /comath unblock <workstream-id>: <reason>");
+			expect(visibleText).toContain("No workstream found for workstream-missing.");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -2449,6 +2613,39 @@ describe("co-math extension registration", () => {
 						createdAt: "2026-06-05T12:00:00.000Z",
 						updatedAt: "2026-06-05T12:00:00.000Z",
 					},
+					{
+						id: "warning-owned",
+						claimId: "claim-1",
+						severity: "medium",
+						status: "open",
+						message: "Owned by claim-1.",
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+				evidence: [
+					...(state as CoMathProjectState).evidence,
+					{
+						id: "evidence-owned",
+						claimId: "claim-1",
+						kind: "proof",
+						summary: "Owned by claim-1.",
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
+				claims: [
+					...(state as CoMathProjectState).claims,
+					{
+						id: "claim-owner-mismatch",
+						workstreamId: "workstream-notes",
+						statement: "This claim references records owned by claim-1.",
+						status: "needs_review",
+						evidenceIds: ["evidence-owned"],
+						warningIds: ["warning-owned"],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
 				],
 				roleRuns: [
 					...(state as CoMathProjectState).roleRuns,
@@ -2489,6 +2686,20 @@ describe("co-math extension registration", () => {
 						updatedAt: "2026-06-05T12:00:00.000Z",
 					},
 				],
+				reportReviewRounds: [
+					...(state as CoMathProjectState).reportReviewRounds,
+					{
+						id: "report-review-broken",
+						reportId: "report-missing",
+						roleRunId: "role-run-missing",
+						status: "completed",
+						outcome: "blocked",
+						summary: "Malformed report review fixture should be reported.",
+						createdWarningIds: ["warning-missing"],
+						createdAt: "2026-06-05T12:00:00.000Z",
+						updatedAt: "2026-06-05T12:00:00.000Z",
+					},
+				],
 				claimRevisions: [
 					...(state as CoMathProjectState).claimRevisions,
 					{
@@ -2523,10 +2734,15 @@ describe("co-math extension registration", () => {
 			expect(audit).toContain("review-round-broken references missing created evidence evidence-missing");
 			expect(audit).toContain("review-round-broken references missing created warning warning-missing");
 			expect(audit).toContain("review-round-broken references missing resolved warning warning-missing");
+			expect(audit).toContain("report-review-broken points to missing report report-missing");
+			expect(audit).toContain("report-review-broken points to missing role run role-run-missing");
+			expect(audit).toContain("report-review-broken references missing created warning warning-missing");
+			expect(audit).toContain("claim-owner-mismatch references evidence evidence-owned owned by claim-1");
+			expect(audit).toContain("claim-owner-mismatch references warning warning-owned owned by claim-1");
 			expect(audit).toContain("claim-revision-broken points to missing claim claim-missing");
 			expect(audit).toContain("workstream-notes references missing role run role-run-missing");
 			expect(audit).toContain("workstream-notes is running but has no running role run targeting it");
-			expect(await loadProjectState(getDefaultStatePath(tempDir))).toEqual(malformedState);
+			expect(JSON.parse(await readFile(getDefaultStatePath(tempDir), "utf8")) as unknown).toEqual(malformedState);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

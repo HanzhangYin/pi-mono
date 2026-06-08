@@ -1,4 +1,4 @@
-export type GoalStatus = "active" | "completed" | "deferred";
+export type GoalStatus = "proposed" | "approved" | "active" | "completed" | "deferred";
 export type ClaimStatus = "draft" | "proof_sketch" | "needs_review" | "proved" | "disproved";
 export type EvidenceKind = "proof" | "computation" | "reference" | "counterexample" | "note";
 export type WarningSeverity = "low" | "medium" | "high";
@@ -9,6 +9,8 @@ export type RoleRunExecutionMode = "foreground" | "background";
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type ReviewRoundStatus = "open" | "completed";
 export type ReviewRoundOutcome = "accepted" | "rejected" | "revision_requested" | "blocked_by_invariant";
+export type ReportReviewStatus = "open" | "completed";
+export type ReportReviewOutcome = "accepted" | "revision_requested" | "blocked";
 export type WorkingPaperSectionStatus = "draft" | "needs_revision" | "reviewed";
 export type MarginNoteKind = "gap" | "todo" | "warning" | "provenance" | "comment";
 export type MarginNoteStatus = "open" | "resolved";
@@ -16,6 +18,7 @@ export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "r
 export type CoMathEventKind =
 	| "project_initialized"
 	| "goal_added"
+	| "goal_status_changed"
 	| "workstream_added"
 	| "role_report_saved"
 	| "claim_proposed"
@@ -37,6 +40,7 @@ export type CoMathEventKind =
 	| "workstream_status_changed"
 	| "human_intervention_recorded"
 	| "review_round_recorded"
+	| "report_review_round_recorded"
 	| "claim_revised"
 	| "working_paper_section_recorded"
 	| "margin_note_recorded"
@@ -185,6 +189,18 @@ export interface ReviewRoundRecord {
 	updatedAt: string;
 }
 
+export interface ReportReviewRoundRecord {
+	id: string;
+	reportId: string;
+	roleRunId: string;
+	status: ReportReviewStatus;
+	outcome: ReportReviewOutcome;
+	summary: string;
+	createdWarningIds: string[];
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface ClaimRevisionRecord {
 	id: string;
 	claimId: string;
@@ -240,6 +256,7 @@ export interface CoMathProjectState {
 	events: CoMathEvent[];
 	roleRuns: RoleRunRecord[];
 	reviewRounds: ReviewRoundRecord[];
+	reportReviewRounds: ReportReviewRoundRecord[];
 	claimRevisions: ClaimRevisionRecord[];
 	workingPaperSections: WorkingPaperSection[];
 	marginNotes: MarginNote[];

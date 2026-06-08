@@ -9,6 +9,7 @@ import {
 	addEvidence,
 	addGoal,
 	addMarginNote,
+	addReportReviewRound,
 	addReviewDecisionEvent,
 	addReviewRound,
 	addWarning,
@@ -31,6 +32,7 @@ import {
 	saveProjectState,
 	serializeProjectState,
 	setClaimStatus,
+	setGoalStatus,
 	startRoleRun,
 } from "../examples/extensions/co-math/storage.ts";
 
@@ -75,6 +77,7 @@ describe("co-math project state", () => {
 			],
 			roleRuns: [],
 			reviewRounds: [],
+			reportReviewRounds: [],
 			claimRevisions: [],
 			workingPaperSections: [],
 			marginNotes: [],
@@ -101,6 +104,34 @@ describe("co-math project state", () => {
 			},
 		]);
 		expect(state.updatedAt).toBe(FIXED_NOW);
+	});
+
+	it("stores proposed goals and approves them with provenance", () => {
+		let state = addGoal(createProject(), {
+			id: "goal-1",
+			text: "Enumerate exact small examples.",
+			status: "proposed",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = setGoalStatus(state, {
+			goalId: "goal-1",
+			status: "approved",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "human",
+		});
+
+		expect(state.approvedGoals[0]).toMatchObject({
+			id: "goal-1",
+			status: "approved",
+			updatedAt: "2026-06-05T12:05:00.000Z",
+		});
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "goal_status_changed",
+			actor: "human",
+			subjectId: "goal-1",
+			summary: "Set goal-1 status to approved",
+		});
 	});
 
 	it("adds a workstream with active lifecycle defaults", () => {
@@ -1028,6 +1059,40 @@ describe("co-math project state", () => {
 		});
 	});
 
+	it("records report review rounds with linked provenance", () => {
+		let state = createProject();
+		state = addReportReviewRound(state, {
+			id: "report-review-1",
+			reportId: "report-1",
+			roleRunId: "role-run-1",
+			outcome: "revision_requested",
+			summary: "Report needs a clearer blocker summary.",
+			createdWarningIds: ["warning-1"],
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(state.reportReviewRounds).toEqual([
+			{
+				id: "report-review-1",
+				reportId: "report-1",
+				roleRunId: "role-run-1",
+				status: "completed",
+				outcome: "revision_requested",
+				summary: "Report needs a clearer blocker summary.",
+				createdWarningIds: ["warning-1"],
+				createdAt: FIXED_NOW,
+				updatedAt: FIXED_NOW,
+			},
+		]);
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "report_review_round_recorded",
+			actor: "human",
+			subjectId: "report-review-1",
+			relatedIds: ["report-1", "role-run-1", "warning-1"],
+		});
+	});
+
 	it("revises claims while preserving provenance and returning them to review", () => {
 		let state = addClaim(createProject(), {
 			id: "claim-1",
@@ -1354,6 +1419,7 @@ describe("co-math project state", () => {
 			expect(loaded?.events).toEqual([]);
 			expect(loaded?.roleRuns).toEqual([]);
 			expect(loaded?.reviewRounds).toEqual([]);
+			expect(loaded?.reportReviewRounds).toEqual([]);
 			expect(loaded?.claimRevisions).toEqual([]);
 			expect(loaded?.workingPaperSections).toEqual([]);
 			expect(loaded?.marginNotes).toEqual([]);
@@ -1365,6 +1431,393 @@ describe("co-math project state", () => {
 			expect(loaded?.workstreams[0]?.statusReason).toBeUndefined();
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes legacy goal, claim, artifact, and broad review records conservatively", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-legacy-shapes-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, {
+				version: 1,
+				projectId: "legacy-project",
+				title: "Legacy project",
+				rootQuestion: "Can legacy state load?",
+				approvedGoals: [{ id: "goal-1", summary: "Legacy goal summary" }],
+				workstreams: [],
+				claims: [
+					{
+						id: "claim-1",
+						status: "validated",
+						statement: "Legacy validated claim.",
+						evidenceIds: ["evidence-1"],
+					},
+					{
+						id: "claim-2",
+						status: "recorded",
+						statement: "Legacy recorded claim.",
+					},
+				],
+				evidence: [
+					{
+						id: "evidence-1",
+						claimIds: ["claim-1"],
+						summary: "Legacy evidence summary.",
+					},
+				],
+				warnings: [{ id: "warning-1", status: "open", summary: "Legacy warning summary." }],
+				reports: [{ id: "report-1", title: "Legacy report", status: "exported" }],
+				reviewQueue: [],
+				artifacts: [
+					{ id: "artifact-1", kind: "source", title: "Legacy source", path: "script.py" },
+					{ id: "artifact-2", kind: "data", title: "Legacy data", path: "data.json" },
+					{ id: "artifact-3", kind: "paper_export", title: "Legacy export", path: "paper.md" },
+				],
+				events: [],
+				roleRuns: [],
+				reviewRounds: [{ id: "review-1", status: "complete", summary: "Legacy broad report review." }],
+				claimRevisions: [],
+				workingPaperSections: [],
+				marginNotes: [],
+				updatedAt: FIXED_NOW,
+			} as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+
+			expect(loaded?.approvedGoals).toMatchObject([{ id: "goal-1", text: "Legacy goal summary", status: "active" }]);
+			expect(loaded?.claims).toMatchObject([
+				{ id: "claim-1", status: "needs_review", warningIds: [] },
+				{ id: "claim-2", status: "draft", evidenceIds: [], warningIds: [] },
+			]);
+			expect(loaded?.evidence).toMatchObject([{ id: "evidence-1", claimId: "claim-1", kind: "note" }]);
+			expect(loaded?.warnings).toMatchObject([
+				{ id: "warning-1", severity: "medium", status: "open", message: "Legacy warning summary." },
+			]);
+			expect(loaded?.artifacts).toMatchObject([
+				{ id: "artifact-1", kind: "script", relatedClaimIds: [] },
+				{ id: "artifact-2", kind: "dataset", relatedWorkstreamIds: [] },
+				{ id: "artifact-3", kind: "working_paper_export", relatedReportIds: [] },
+			]);
+			expect(loaded?.reviewRounds).toEqual([]);
+			expect(loaded?.reportReviewRounds).toMatchObject([
+				{
+					id: "review-1",
+					reportId: "report-1",
+					status: "completed",
+					outcome: "revision_requested",
+					summary: "Legacy broad report review.",
+				},
+			]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("downgrades loaded proved claims that violate proof-promotion invariants", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-load-proof-invariant-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, {
+				...createProject(),
+				claims: [
+					{
+						id: "claim-1",
+						workstreamId: "workstream-1",
+						statement: "Unsupported loaded proof claim.",
+						status: "proved",
+						evidenceIds: [],
+						warningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+					{
+						id: "claim-2",
+						workstreamId: "workstream-1",
+						statement: "Warning-blocked loaded proof claim.",
+						status: "proved",
+						evidenceIds: ["evidence-1"],
+						warningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				evidence: [
+					{
+						id: "evidence-1",
+						claimId: "claim-2",
+						kind: "proof",
+						summary: "Proof evidence is present.",
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				warnings: [
+					{
+						id: "warning-1",
+						claimId: "claim-2",
+						severity: "high",
+						status: "open",
+						message: "Open warning blocks proof status.",
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+			});
+
+			const loaded = await loadProjectState(statePath);
+			expect(loaded).toBeDefined();
+			if (!loaded) return;
+
+			expect(loaded.claims).toMatchObject([
+				{ id: "claim-1", status: "needs_review" },
+				{ id: "claim-2", status: "needs_review", warningIds: ["warning-1"] },
+			]);
+			expect(isClaimSynthesisEligible(loaded, "claim-2")).toBe(false);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("reconstructs claim evidence and warning relationships from linked records during load", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-load-relationships-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, {
+				...createProject(),
+				claims: [
+					{
+						id: "claim-1",
+						workstreamId: "workstream-1",
+						statement: "Loaded relationships should become bidirectional.",
+						status: "needs_review",
+						evidenceIds: [],
+						warningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				evidence: [
+					{
+						id: "evidence-1",
+						claimId: "claim-1",
+						kind: "computation",
+						summary: "Linked by evidence.claimId only.",
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				warnings: [
+					{
+						id: "warning-1",
+						claimId: "claim-1",
+						severity: "medium",
+						status: "open",
+						message: "Linked by warning.claimId only.",
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+			});
+
+			const loaded = await loadProjectState(statePath);
+
+			expect(loaded?.claims[0]).toMatchObject({
+				id: "claim-1",
+				evidenceIds: ["evidence-1"],
+				warningIds: ["warning-1"],
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("drops mismatched parent-side evidence and warning ids during load", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-load-ownership-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, {
+				...createProject(),
+				claims: [
+					{
+						id: "claim-1",
+						workstreamId: "workstream-1",
+						statement: "Parent-side ids should not borrow another claim's proof.",
+						status: "proved",
+						evidenceIds: ["evidence-1"],
+						warningIds: ["warning-1"],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+					{
+						id: "claim-2",
+						workstreamId: "workstream-1",
+						statement: "Actual owner of the records.",
+						status: "needs_review",
+						evidenceIds: [],
+						warningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				evidence: [
+					{
+						id: "evidence-1",
+						claimId: "claim-2",
+						kind: "proof",
+						summary: "Proof belongs to claim-2.",
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				warnings: [
+					{
+						id: "warning-1",
+						claimId: "claim-2",
+						severity: "high",
+						status: "open",
+						message: "Warning belongs to claim-2.",
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+			});
+
+			const loaded = await loadProjectState(statePath);
+			expect(loaded).toBeDefined();
+			if (!loaded) return;
+
+			expect(loaded.claims).toMatchObject([
+				{
+					id: "claim-1",
+					status: "needs_review",
+					evidenceIds: [],
+					warningIds: [],
+				},
+				{
+					id: "claim-2",
+					evidenceIds: ["evidence-1"],
+					warningIds: ["warning-1"],
+				},
+			]);
+			expect(isClaimSynthesisEligible(loaded, "claim-1")).toBe(false);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps legacy claim review rounds with missing report ids as claim review rounds", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-legacy-claim-review-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, {
+				...createProject(),
+				claims: [
+					{
+						id: "claim-1",
+						workstreamId: "workstream-1",
+						statement: "Claim review should stay claim-scoped.",
+						status: "needs_review",
+						evidenceIds: [],
+						warningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+				reviewRounds: [
+					{
+						id: "review-round-1",
+						claimId: "claim-1",
+						roleRunId: "role-run-1",
+						status: "completed",
+						decisionStatus: "needs_review",
+						outcome: "revision_requested",
+						createdEvidenceIds: [],
+						createdWarningIds: [],
+						resolvedWarningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+			} as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+
+			expect(loaded?.reviewRounds).toMatchObject([
+				{
+					id: "review-round-1",
+					claimId: "claim-1",
+					reportId: "",
+				},
+			]);
+			expect(loaded?.reportReviewRounds).toEqual([]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes unknown report review outcomes conservatively", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-report-review-outcome-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, {
+				...createProject(),
+				reportReviewRounds: [
+					{
+						id: "report-review-1",
+						reportId: "report-1",
+						roleRunId: "role-run-1",
+						status: "completed",
+						outcome: "unknown",
+						summary: "Legacy unknown outcome.",
+						createdWarningIds: [],
+						createdAt: FIXED_NOW,
+						updatedAt: FIXED_NOW,
+					},
+				],
+			} as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+
+			expect(loaded?.reportReviewRounds).toMatchObject([
+				{
+					id: "report-review-1",
+					outcome: "revision_requested",
+				},
+			]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("loads the committed co-math validation state through current schema normalization", async () => {
+		const state = await loadProjectState(path.join(process.cwd(), "..", "..", ".pi", "co-math", "state.json"));
+		expect(state).toBeDefined();
+		if (!state) return;
+
+		for (const goal of state.approvedGoals) {
+			expect(goal.id).toMatch(/^goal-/);
+			expect(goal.text.length).toBeGreaterThan(0);
+			expect(["proposed", "approved", "active", "completed", "deferred"]).toContain(goal.status);
+		}
+
+		for (const claim of state.claims) {
+			expect(["draft", "proof_sketch", "needs_review", "proved", "disproved"]).toContain(claim.status);
+		}
+
+		for (const artifact of state.artifacts) {
+			expect([
+				"computation",
+				"latex_note",
+				"proof_sketch",
+				"counterexample_search",
+				"reference",
+				"dataset",
+				"script",
+				"figure",
+				"failed_attempt",
+				"human_note",
+				"working_paper_export",
+			]).toContain(artifact.kind);
 		}
 	});
 
