@@ -83,6 +83,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath propose-goal <goal text> - propose a goal for explicit approval
 /comath approve-goal <goal-id> - mark a proposed or active goal approved
 /comath defer-goal <goal-id>: <reason> - defer a goal with a human reason
+/comath goals - list goals and approval statuses
 /comath workstream <slug>: <title> - add a workstream linked to active goals
 /comath evidence <claim-id> <proof|computation|reference|counterexample|note>: <summary> - attach manual evidence
 /comath warning <claim-id> <low|medium|high>: <message> - attach a manual warning
@@ -98,6 +99,8 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath review-queue - list claims and warnings waiting for review
 /comath reviews [claim-id] - list recorded reviewer rounds
 /comath review-report <report-id> <accepted|revision-requested|blocked>: <summary> - record report review outcome
+/comath reports - list workstream reports and latest report reviews
+/comath report-status <report-id> - show one report and its review rounds
 /comath revise-claim <claim-id>: <new statement> --reason <reason> - revise a claim and return it to review
 /comath claim-history <claim-id> - show claim revision and review history
 /comath run <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - run a bounded role and save its report
@@ -121,6 +124,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath recover-run <run-id> <failed|aborted>: <reason> - close a stale running role run
 /comath synthesize - produce cautious markdown from reviewed state
 /comath timeline - show recent workspace events
+/comath next - show the next safe workflow action
 /comath status - summarize the current co-math project state`;
 
 export interface RegisterCoMathCommandOptions {
@@ -174,6 +178,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "defer-goal") {
 		await deferProjectGoal(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "goals") {
+		await showProjectGoals(pi, ctx);
 		return;
 	}
 
@@ -317,6 +326,16 @@ async function handleCoMathCommand(
 		return;
 	}
 
+	if (subcommand === "reports") {
+		await showProjectReports(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "report-status") {
+		await showReportStatus(pi, ctx, remainder);
+		return;
+	}
+
 	if (subcommand === "revise-claim") {
 		await reviseProjectClaim(pi, ctx, remainder);
 		return;
@@ -354,6 +373,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "timeline") {
 		await showTimeline(pi, ctx);
+		return;
+	}
+
+	if (subcommand === "next") {
+		await showNextSafeAction(pi, ctx);
 		return;
 	}
 
@@ -497,6 +521,14 @@ async function deferProjectGoal(pi: ExtensionAPI, ctx: ExtensionCommandContext, 
 	});
 	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
 	showCommandMessage(pi, ctx, summary);
+}
+
+async function showProjectGoals(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+	showCommandMessage(pi, ctx, ["Co-math goals", ...formatGoalList(state)].join("\n"));
 }
 
 async function addProjectWorkstream(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
@@ -3046,6 +3078,11 @@ function formatGoals(state: CoMathProjectState): string[] {
 	return state.approvedGoals.map((goal) => `- ${goal.id}: ${goal.text} [${goal.status}]`);
 }
 
+function formatGoalList(state: CoMathProjectState): string[] {
+	if (state.approvedGoals.length === 0) return ["No goals recorded."];
+	return state.approvedGoals.map((goal) => `- ${goal.id} [${goal.status}]: ${goal.text}`);
+}
+
 function formatWorkstreams(state: CoMathProjectState): string[] {
 	if (state.workstreams.length === 0) return ["- none"];
 	return state.workstreams.map((workstream) => {
@@ -3139,6 +3176,32 @@ async function reviewProjectReport(pi: ExtensionAPI, ctx: ExtensionCommandContex
 	showCommandMessage(pi, ctx, `Recorded report review ${reviewRoundId} for ${report.id}: ${parsed.outcome}`);
 }
 
+async function showProjectReports(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+	showCommandMessage(pi, ctx, ["Co-math reports", ...formatReportList(state)].join("\n"));
+}
+
+async function showReportStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext, reportId: string): Promise<void> {
+	const trimmedReportId = reportId.trim();
+	if (trimmedReportId.length === 0) {
+		showCommandMessage(pi, ctx, "Usage: /comath report-status <report-id>");
+		return;
+	}
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) {
+		return;
+	}
+	const report = state.reports.find((candidate) => candidate.id === trimmedReportId);
+	if (!report) {
+		showCommandMessage(pi, ctx, `No report found for ${trimmedReportId}.`);
+		return;
+	}
+	showCommandMessage(pi, ctx, formatReportDetails(state, report));
+}
+
 async function reviseProjectClaim(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
 	const parsed = parseReviseClaimText(text);
 	if (!parsed) {
@@ -3224,8 +3287,23 @@ function buildLivingWorkingPaperMarkdown(state: CoMathProjectState): string {
 		"",
 		"Working-paper sections are draft workspace records, not proof certificates.",
 		"",
+		"## Goals",
+		...formatGoalList(state),
+		"",
+		"## Workstreams",
+		...formatPaperWorkstreams(state),
+		"",
+		"## Claims and Evidence",
+		...formatPaperClaimsAndEvidence(state),
+		"",
 		"## Working paper sections",
 		...formatWorkingPaperSections(state),
+		"",
+		"## Report Reviews",
+		...formatPaperReportReviews(state),
+		"",
+		"## Open Warnings and Blockers",
+		...formatOpenWarningsAndBlockers(state),
 		"",
 		"## Reviewed findings not yet in paper",
 		...formatReviewedFindingsNotInPaper(state),
@@ -3235,7 +3313,61 @@ function buildLivingWorkingPaperMarkdown(state: CoMathProjectState): string {
 		"",
 		"## Open margin notes",
 		...formatOpenMarginNotes(state),
+		"",
+		"## Provenance",
+		...formatPaperProvenance(state),
 	].join("\n");
+}
+
+function formatPaperWorkstreams(state: CoMathProjectState): string[] {
+	if (state.workstreams.length === 0) return ["No workstreams recorded."];
+	return state.workstreams.map((workstream) => {
+		const reports = workstream.latestReportIds.length === 0 ? "none" : workstream.latestReportIds.join(", ");
+		const goals = workstream.goalIds.length === 0 ? "none" : workstream.goalIds.join(", ");
+		const reason = workstream.statusReason ? ` blocker=${workstream.statusReason}` : "";
+		return `- ${workstream.id} [${workstream.status}] goals=${goals} reports=${reports}: ${workstream.title}${reason}`;
+	});
+}
+
+function formatPaperClaimsAndEvidence(state: CoMathProjectState): string[] {
+	if (state.claims.length === 0) return ["No claims recorded."];
+	return state.claims.flatMap((claim) => [
+		`- ${claim.id} [${claim.status}]: ${claim.statement}`,
+		`  evidence: ${formatIdList(claim.evidenceIds)}`,
+		`  warnings: ${formatIdList(claim.warningIds)}`,
+	]);
+}
+
+function formatPaperReportReviews(state: CoMathProjectState): string[] {
+	if (state.reportReviewRounds.length === 0) return ["No report reviews recorded."];
+	return state.reportReviewRounds.map((round) => {
+		const warningText = round.createdWarningIds.length === 0 ? "" : ` warnings=${round.createdWarningIds.join(", ")}`;
+		return `- ${round.id} [${round.outcome}] report=${round.reportId} run=${round.roleRunId || "none"}${warningText}: ${round.summary}`;
+	});
+}
+
+function formatOpenWarningsAndBlockers(state: CoMathProjectState): string[] {
+	const openWarnings = state.warnings.filter((warning) => warning.status === "open").map(formatWarning);
+	const reportBlockers = state.reports.flatMap((report) =>
+		report.blockers.map((blocker) => `- ${report.id} blocker: ${blocker}`),
+	);
+	const runBlockers = state.roleRuns.flatMap((run) =>
+		run.blockerMessages.map((blocker) => `- ${run.id} blocker: ${blocker}`),
+	);
+	const workstreamBlockers = state.workstreams
+		.filter((workstream) => workstream.status === "blocked" && workstream.statusReason)
+		.map((workstream) => `- ${workstream.id} blocker: ${workstream.statusReason}`);
+	const lines = [...openWarnings, ...reportBlockers, ...runBlockers, ...workstreamBlockers];
+	return lines.length === 0 ? ["No open warnings or blockers are recorded."] : lines;
+}
+
+function formatPaperProvenance(state: CoMathProjectState): string[] {
+	return [
+		`- Reports: ${state.reports.length}`,
+		`- Role runs: ${state.roleRuns.length}`,
+		`- Artifacts: ${state.artifacts.length}`,
+		`- Events: ${state.events.length}`,
+	];
 }
 
 function formatWorkingPaperSections(state: CoMathProjectState): string[] {
@@ -3338,6 +3470,66 @@ function formatOpenMarginNotes(state: CoMathProjectState): string[] {
 
 function formatReviewRounds(rounds: CoMathProjectState["reviewRounds"]): string[] {
 	return [...rounds].reverse().map(formatReviewRound);
+}
+
+function formatReportList(state: CoMathProjectState): string[] {
+	if (state.reports.length === 0) return ["No reports recorded."];
+	return state.reports.map((report) => {
+		const run = findReportRoleRun(state, report.id);
+		const latestReview = getLatestReportReview(state, report.id);
+		const runText = run ? ` run=${run.id}` : "";
+		const reviewText = latestReview ? latestReview.outcome : "none";
+		return `- ${report.id}: ${report.title} [latest review: ${reviewText}]${runText}`;
+	});
+}
+
+function formatReportDetails(state: CoMathProjectState, report: CoMathProjectState["reports"][number]): string {
+	const run = findReportRoleRun(state, report.id);
+	const reviews = state.reportReviewRounds.filter((round) => round.reportId === report.id);
+	const createdWarningIds = uniqueStrings(reviews.flatMap((round) => round.createdWarningIds));
+	return [
+		`Report ${report.id}: ${report.title}`,
+		`Summary: ${report.summary}`,
+		"Blockers:",
+		...formatBlockerLines(report.blockers),
+		`Linked role run: ${run?.id ?? "none"}`,
+		"Report review rounds:",
+		...formatReportReviewRounds(reviews),
+		"Warnings created by report reviews:",
+		...(createdWarningIds.length === 0
+			? ["- none"]
+			: createdWarningIds.map((warningId) => formatPaperWarningSource(state, warningId))),
+		`Suggested next action: ${getReportNextAction(report, reviews)}`,
+	].join("\n");
+}
+
+function formatReportReviewRounds(rounds: CoMathProjectState["reportReviewRounds"]): string[] {
+	if (rounds.length === 0) return ["- none"];
+	return rounds.map((round) => `- ${round.id} [${round.outcome}]: ${round.summary}`);
+}
+
+function findReportRoleRun(state: CoMathProjectState, reportId: string): RoleRunRecord | undefined {
+	return state.roleRuns.find((run) => run.reportId === reportId);
+}
+
+function getLatestReportReview(
+	state: CoMathProjectState,
+	reportId: string,
+): CoMathProjectState["reportReviewRounds"][number] | undefined {
+	return [...state.reportReviewRounds]
+		.filter((round) => round.reportId === reportId)
+		.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+}
+
+function getReportNextAction(
+	report: CoMathProjectState["reports"][number],
+	reviews: CoMathProjectState["reportReviewRounds"],
+): string {
+	const latestReview = [...reviews].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+	if (!latestReview || latestReview.outcome === "revision_requested" || latestReview.outcome === "blocked") {
+		return `/comath review-report ${report.id} accepted|revision-requested|blocked: <summary>`;
+	}
+	return "/comath status";
 }
 
 function formatClaimHistory(state: CoMathProjectState, claim: Claim): string {
@@ -3476,9 +3668,20 @@ async function showProjectStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext)
 			`Live background runs: ${backgroundRoleRuns.size}`,
 			"Role runs:",
 			...formatRoleRunStatusCounts(state),
-			`Next safe action: ${getNextSafeAction(state)}`,
+			`Next safe action: ${getNextSafeActionDetails(state).action}`,
 		].join("\n"),
 	);
+}
+
+async function showNextSafeAction(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+	const state = await loadProjectState(getDefaultStatePath(ctx.cwd));
+	const details = state
+		? getNextSafeActionDetails(state)
+		: {
+				action: "/comath init <root question>",
+				reason: "no co-math project state exists.",
+			};
+	showCommandMessage(pi, ctx, ["Co-math next safe action", details.action, `Reason: ${details.reason}`].join("\n"));
 }
 
 async function showRoleRuns(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
@@ -3734,14 +3937,64 @@ function formatReportReviewCounts(state: CoMathProjectState): string[] {
 	);
 }
 
-function getNextSafeAction(state: CoMathProjectState): string {
+interface NextSafeActionDetails {
+	action: string;
+	reason: string;
+}
+
+function getNextSafeActionDetails(state: CoMathProjectState): NextSafeActionDetails {
 	const openWarningCount = state.warnings.filter((warning) => warning.status === "open").length;
-	if (state.approvedGoals.length === 0) return "/comath propose-goal <goal> or /comath goal <goal>";
-	if (getLinkableGoalIds(state).length === 0) return "/comath approve-goal <goal-id>";
-	if (state.workstreams.length === 0) return "/comath workstream <slug>: <title>";
-	if (openWarningCount > 0) return "/comath review-queue";
-	if (state.reviewQueue.length > 0) return "/comath run reviewer <claim-id>";
-	return "/comath status";
+	const firstProposedGoal = state.approvedGoals.find((goal) => goal.status === "proposed");
+	const firstUnreviewedReport = state.reports.find(
+		(report) => !state.reportReviewRounds.some((round) => round.reportId === report.id),
+	);
+	const hasWorkingPaperExport = state.artifacts.some((artifact) => artifact.kind === "working_paper_export");
+	if (state.approvedGoals.length === 0) {
+		return {
+			action: "/comath propose-goal <goal> or /comath goal <goal>",
+			reason: "no goals exist.",
+		};
+	}
+	if (getLinkableGoalIds(state).length === 0) {
+		return {
+			action: `/comath approve-goal ${firstProposedGoal?.id ?? "<goal-id>"}`,
+			reason: "proposed goals exist but none are approved.",
+		};
+	}
+	if (state.workstreams.length === 0) {
+		return {
+			action: "/comath workstream <slug>: <title>",
+			reason: "approved or active goals exist but no workstreams exist.",
+		};
+	}
+	if (openWarningCount > 0) {
+		return {
+			action: "/comath review-queue",
+			reason: "open warnings need review.",
+		};
+	}
+	if (state.reviewQueue.length > 0) {
+		return {
+			action: "/comath run reviewer <claim-id>",
+			reason: "claims are waiting in the review queue.",
+		};
+	}
+	if (firstUnreviewedReport) {
+		return {
+			action: `/comath review-report ${firstUnreviewedReport.id} accepted|revision-requested|blocked: <summary>`,
+			reason: "at least one report has no report review.",
+		};
+	}
+	if (!hasWorkingPaperExport) {
+		return {
+			action: "/comath export-paper .pi/co-math/working-paper.md --force",
+			reason: "no working-paper export artifact exists.",
+		};
+	}
+	return {
+		action: "/comath audit",
+		reason: "workflow state has goals, workstreams, reviewed reports, and an export.",
+	};
 }
 
 function formatRoleRunStatusCounts(state: CoMathProjectState): string[] {

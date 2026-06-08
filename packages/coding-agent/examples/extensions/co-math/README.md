@@ -31,6 +31,37 @@ The extension registers:
 9. Use `/comath status` for top-level state and `/comath workstream-status <id>` for drill-down.
 10. Export the working paper only as a snapshot; exports are not proof certificates.
 
+### Reference paper workflow smoke test
+
+Use this to validate the local co-math research loop against `docs/2605.06651v2.pdf`. This is workflow validation, not a proof of the paper.
+
+1. Initialize the project:
+   `/comath init Map and validate the main mathematical structure of docs/2605.06651v2.pdf`
+2. Propose goals:
+   `/comath propose-goal Extract the paper's main definitions, theorem statements, and dependency graph.`
+   `/comath propose-goal Identify which claims need proof review, computation, or external references.`
+3. Approve goals:
+   `/comath approve-goal goal-1`
+   `/comath approve-goal goal-2`
+4. Create workstreams:
+   `/comath workstream definitions-map: Definitions and theorem dependency map`
+   `/comath workstream validation-questions: Proof, computation, and reference validation questions`
+5. Run bounded roles and review reports:
+   `/comath run workstream workstream-definitions-map`
+   `/comath reports`
+   `/comath review-report report-1 revision-requested: Separate definitions from theorem claims more clearly.`
+6. Export the working paper:
+   `/comath export-paper .pi/co-math/working-paper.md --force`
+7. Audit state:
+   `/comath audit`
+
+Expected behavior:
+
+- Workstreams link only to approved goals.
+- Reports require explicit review.
+- Report acceptance does not prove claims.
+- Working-paper export preserves blockers and uncertainty.
+
 ## Sample commands
 
 ```text
@@ -39,6 +70,7 @@ The extension registers:
 /comath approve-goal goal-1
 /comath goal Prove or refute the first nontrivial endpoint monotonicity case
 /comath defer-goal goal-2: Keep this milestone finite
+/comath goals
 /comath workstream small-examples: enumerate exact small n examples and report obstructions
 /comath run coordinator
 /comath run workstream workstream-small-examples
@@ -55,6 +87,8 @@ The extension registers:
 /comath run reviewer claim-1
 /comath reviews
 /comath review-report report-1 revision-requested: Add blocker context before synthesis
+/comath reports
+/comath report-status report-1
 /comath revise-claim claim-1: Endpoint monotonicity holds under the predecessor-canonical convention. --reason Human clarified endpoint convention
 /comath claim-history claim-1
 /comath synthesize
@@ -79,6 +113,7 @@ The extension registers:
 /comath abort-run role-run-2: User changed direction
 /comath cancel-run role-run-3: Human chose a narrower decomposition
 /comath recover-run role-run-1 failed: Terminal session crashed before completion
+/comath next
 /comath status
 ```
 

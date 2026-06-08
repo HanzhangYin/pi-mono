@@ -297,6 +297,32 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("lists goals with proposed, approved, active, and deferred statuses", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-goals-list-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Map a reference paper", ctx);
+			await command?.handler("propose-goal Extract definitions and theorem statements", ctx);
+			await command?.handler("approve-goal goal-1", ctx);
+			await command?.handler("goal Preserve compatibility active goals", ctx);
+			await command?.handler("propose-goal Explore formal proof engine integration", ctx);
+			await command?.handler("defer-goal goal-3: Out of scope for this workflow validation", ctx);
+			await command?.handler("goals", ctx);
+
+			const goals = notifications.at(-1) ?? "";
+			expect(goals).toContain("Co-math goals");
+			expect(goals).toContain("goal-1 [approved]: Extract definitions and theorem statements");
+			expect(goals).toContain("goal-2 [active]: Preserve compatibility active goals");
+			expect(goals).toContain("goal-3 [deferred]: Explore formal proof engine integration");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("gates workstreams on approved or active goals and skips deferred goals", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-workstream-goal-gate-"));
 		try {
@@ -315,7 +341,7 @@ describe("co-math extension registration", () => {
 			expect(notifications.join("\n")).toContain("Approve at least one goal before creating workstreams.");
 			expect(proposedStatus).toContain("- proposed: 1");
 			expect(proposedStatus).toContain("- approved: 0");
-			expect(proposedStatus).toContain("Next safe action: /comath approve-goal <goal-id>");
+			expect(proposedStatus).toContain("Next safe action: /comath approve-goal goal-1");
 
 			await command?.handler("approve-goal goal-1", ctx);
 			await command?.handler("propose-goal Later generalization", ctx);
@@ -328,6 +354,42 @@ describe("co-math extension registration", () => {
 					goalIds: ["goal-1"],
 				},
 			]);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows deterministic next safe actions across paper workflow states", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-next-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({ summary: "Coordinator report waiting for report review." }),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("next", ctx);
+			expect(notifications.at(-1)).toContain("/comath init <root question>");
+
+			await command?.handler("init Map a reference paper", ctx);
+			await command?.handler("next", ctx);
+			expect(notifications.at(-1)).toContain("/comath propose-goal <goal> or /comath goal <goal>");
+
+			await command?.handler("propose-goal Extract definitions", ctx);
+			await command?.handler("next", ctx);
+			expect(notifications.at(-1)).toContain("/comath approve-goal goal-1");
+
+			await command?.handler("approve-goal goal-1", ctx);
+			await command?.handler("next", ctx);
+			expect(notifications.at(-1)).toContain("/comath workstream <slug>: <title>");
+
+			await command?.handler("workstream definitions-map: Definitions and theorem dependency map", ctx);
+			await command?.handler("run coordinator", ctx);
+			await command?.handler("next", ctx);
+			const next = notifications.at(-1) ?? "";
+			expect(next).toContain("/comath review-report report-1 accepted|revision-requested|blocked: <summary>");
+			expect(next).toContain("Reason: at least one report has no report review.");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -635,6 +697,142 @@ describe("co-math extension registration", () => {
 			const visibleText = notifications.join("\n");
 			expect(visibleText).toContain("Recorded report review report-review-1 for report-1: accepted");
 			expect(visibleText).toContain("Unknown report: report-missing");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("lists reports and shows report review status details", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-report-status-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Definitions map report separates definitions from theorem claims.",
+					blockers: ["Dependency edge for Lemma X needs human confirmation."],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Map a reference paper", ctx);
+			await command?.handler("goal Build a paper map", ctx);
+			await command?.handler("workstream definitions-map: Definitions and theorem dependency map", ctx);
+			await command?.handler("run workstream workstream-definitions-map", ctx);
+			await command?.handler(
+				"review-report report-1 revision-requested: Needs clearer separation between claims and definitions.",
+				ctx,
+			);
+			await command?.handler("reports", ctx);
+			await command?.handler("report-status report-1", ctx);
+			await command?.handler("report-status report-missing", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math reports");
+			expect(visibleText).toContain(
+				"report-1: workstream role run: workstream-definitions-map [latest review: revision_requested] run=role-run-1",
+			);
+			expect(visibleText).toContain("Report report-1: workstream role run: workstream-definitions-map");
+			expect(visibleText).toContain("Summary: Definitions map report separates definitions from theorem claims.");
+			expect(visibleText).toContain("- Dependency edge for Lemma X needs human confirmation.");
+			expect(visibleText).toContain(
+				"report-review-1 [revision_requested]: Needs clearer separation between claims and definitions.",
+			);
+			expect(visibleText).toContain(
+				"Suggested next action: /comath review-report report-1 accepted|revision-requested|blocked: <summary>",
+			);
+			expect(visibleText).toContain("No report found for report-missing.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("supports a paper-to-working-paper co-math workflow", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-paper-workflow-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Mapped definitions and found validation obligations for the reference paper.",
+					proposedClaims: [
+						{
+							statement:
+								"The reference-paper workflow should separate definitions, theorem statements, dependency claims, and proof obligations.",
+							evidence: [
+								{
+									kind: "note",
+									summary: "Workflow mapping note from bounded co-math role output.",
+								},
+							],
+							warnings: [
+								{
+									severity: "medium",
+									message:
+										"This is a workflow claim about mapping discipline, not a proof of paper mathematics.",
+								},
+							],
+						},
+					],
+					blockers: ["Need human review of exact theorem dependencies before synthesis."],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler(
+				"init How should we map and validate the main mathematical structure of 2605.06651v2?",
+				ctx,
+			);
+			await command?.handler(
+				"propose-goal Extract the paper's main definitions, theorem statements, and dependency graph.",
+				ctx,
+			);
+			await command?.handler(
+				"propose-goal Identify which claims need proof review, computation, or external references.",
+				ctx,
+			);
+			await command?.handler("approve-goal goal-1", ctx);
+			await command?.handler("approve-goal goal-2", ctx);
+			await command?.handler("workstream definitions-map: Definitions and theorem dependency map", ctx);
+			await command?.handler(
+				"workstream validation-questions: Proof, computation, and reference validation questions",
+				ctx,
+			);
+			await command?.handler("run workstream workstream-definitions-map", ctx);
+			await command?.handler("review-report report-1 accepted: Report is acceptable as a workflow map.", ctx);
+			await command?.handler(
+				"paper-section Reference paper map: Draft map with visible uncertainty. --sources evidence-1,warning-1,role-run-1",
+				ctx,
+			);
+			await command?.handler("export-paper .pi/co-math/working-paper.md --force", ctx);
+			await command?.handler("audit", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state).toBeDefined();
+			if (!state) return;
+			expect(
+				state.approvedGoals.filter((goal) => goal.status === "approved" || goal.status === "active"),
+			).toHaveLength(2);
+			expect(state.workstreams).toHaveLength(2);
+			expect(state.workstreams.every((workstream) => workstream.goalIds.length > 0)).toBe(true);
+			expect(state.reports).toHaveLength(1);
+			expect(state.reportReviewRounds).toHaveLength(1);
+			expect(state.claims).toMatchObject([
+				{
+					id: "claim-1",
+					status: "needs_review",
+				},
+			]);
+			expect(state.claims[0]?.status).not.toBe("proved");
+
+			const markdown = await readFile(join(tempDir, ".pi/co-math/working-paper.md"), "utf8");
+			expect(markdown).toContain("## Goals");
+			expect(markdown).toContain("## Workstreams");
+			expect(markdown).toContain("## Report Reviews");
+			expect(markdown).toContain("report-review-1 [accepted] report=report-1");
+			expect(markdown).toContain("workflow claim about mapping discipline");
+			expect(markdown).toContain("Need human review of exact theorem dependencies before synthesis.");
+			expect(notifications.at(-1)).toBe("Co-math audit\nNo co-math audit problems found.");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -1691,6 +1889,44 @@ describe("co-math extension registration", () => {
 			expect(notifications.at(-1)).toBe(
 				"Exported living working paper to .pi/co-math/exports/working-paper.md as artifact-1.",
 			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("export-paper includes goals, workstreams, report reviews, and blockers", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-export-report-review-"));
+		try {
+			const { commands } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Definitions report with a blocker.",
+					blockers: ["Need exact dependency for Proposition 2.1."],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const notifications: string[] = [];
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Map a reference paper", ctx);
+			await command?.handler("propose-goal Extract definitions and theorem statements", ctx);
+			await command?.handler("approve-goal goal-1", ctx);
+			await command?.handler("workstream definitions-map: Definitions and theorem dependency map", ctx);
+			await command?.handler("run workstream workstream-definitions-map", ctx);
+			await command?.handler("review-report report-1 blocked: Dependency blocker remains open.", ctx);
+			await command?.handler("export-paper .pi/co-math/working-paper.md --force", ctx);
+
+			const markdown = await readFile(join(tempDir, ".pi/co-math/working-paper.md"), "utf8");
+			expect(markdown).toContain("## Goals");
+			expect(markdown).toContain("goal-1 [approved]: Extract definitions and theorem statements");
+			expect(markdown).toContain("## Workstreams");
+			expect(markdown).toContain("workstream-definitions-map [blocked]");
+			expect(markdown).toContain("## Report Reviews");
+			expect(markdown).toContain("report-review-1 [blocked] report=report-1");
+			expect(markdown).toContain("Dependency blocker remains open.");
+			expect(markdown).toContain("## Open Warnings and Blockers");
+			expect(markdown).toContain("report-1 blocker: Need exact dependency for Proposition 2.1.");
+			expect(markdown).toContain("## Provenance");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
