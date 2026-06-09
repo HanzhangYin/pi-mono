@@ -75,6 +75,8 @@ interface BackgroundRoleRunHandle {
 const backgroundRoleRuns = new Map<string, BackgroundRoleRunHandle>();
 const COMATH_COMPUTATION_TIMEOUT_MS = 60_000;
 const COMATH_COMPUTATION_PREVIEW_CHARS = 2_000;
+const ROLE_RUN_HEARTBEAT_INTERVAL_MS = 15_000;
+const INVALID_STRUCTURED_JSON_BLOCKER = "Role output was not valid structured co-math JSON; saved as report only.";
 
 const HELP_TEXT = `Co-math assistant commands:
 /comath help - show this help
@@ -1844,6 +1846,7 @@ async function runProjectRole(
 	if (!run) {
 		throw new Error(`Expected started role run ${runId} to exist.`);
 	}
+	showCommandMessage(pi, ctx, formatRoleRunStartMessage(run, statePath, ctx.cwd));
 	await executeRunningRoleRun(pi, ctx, roleRunner, statePath, startedState, run);
 }
 
@@ -1962,9 +1965,10 @@ async function dispatchQueuedRoleRunById(
 	}
 	if (background) {
 		startBackgroundRoleRun(pi, ctx, roleRunner, statePath, run);
-		showCommandMessage(pi, ctx, `Started co-math ${run.role} role run ${run.id} in background.`);
+		showCommandMessage(pi, ctx, formatBackgroundRoleRunStartMessage(run));
 		return;
 	}
+	showCommandMessage(pi, ctx, formatRoleRunStartMessage(run, statePath, ctx.cwd));
 	await executeRunningRoleRun(pi, ctx, roleRunner, statePath, runningState, run);
 }
 
@@ -2426,12 +2430,14 @@ async function executeRunningRoleRun(
 	const targetWorkstream = getRoleRunTargetWorkstream(startedState, run);
 	const targetClaim = getRoleRunTargetClaim(startedState, run);
 	try {
-		const result = await roleRunner({
-			cwd: ctx.cwd,
-			role: run.role,
-			task: run.task,
-			signal: ctx.signal,
-		});
+		const result = await runWithRoleRunHeartbeat(pi, ctx, run.id, () =>
+			roleRunner({
+				cwd: ctx.cwd,
+				role: run.role,
+				task: run.task,
+				signal: ctx.signal,
+			}),
+		);
 		const now = new Date().toISOString();
 		const reportId = `report-${startedState.reports.length + 1}`;
 		const ingestion = ingestRoleRunResult(startedState, {
@@ -2442,9 +2448,10 @@ async function executeRunningRoleRun(
 			targetClaim,
 			targetWorkstream,
 		});
+		const status = result.blockers && result.blockers.length > 0 ? "blocked" : "completed";
 		const finishedState = finishRoleRun(ingestion.state, {
 			runId: run.id,
-			status: result.blockers && result.blockers.length > 0 ? "blocked" : "completed",
+			status,
 			reportId,
 			createdClaimIds: ingestion.createdClaimIds,
 			createdEvidenceIds: ingestion.createdEvidenceIds,
@@ -2465,7 +2472,7 @@ async function executeRunningRoleRun(
 			targetClaim,
 		});
 		await saveProjectState(statePath, finalState);
-		showCommandMessage(pi, ctx, formatRoleRunMessage(run.role, reportId, result));
+		showCommandMessage(pi, ctx, formatRoleRunCompletionMessage(run, reportId, status, result, ingestion));
 	} catch (error) {
 		const errorMessage = getRoleRunErrorMessage(error);
 		const now = new Date().toISOString();
@@ -2478,8 +2485,119 @@ async function executeRunningRoleRun(
 			actor: "system",
 		});
 		await saveProjectState(statePath, failedState);
-		showCommandMessage(pi, ctx, `Co-math ${run.role} role run ${run.id} ${status}: ${errorMessage}`);
+		showCommandMessage(pi, ctx, formatRoleRunFailureMessage(run.id, status, errorMessage));
 	}
+}
+
+async function runWithRoleRunHeartbeat<T>(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	runId: string,
+	operation: () => Promise<T>,
+): Promise<T> {
+	const startedAt = Date.now();
+	const interval = setInterval(() => {
+		const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1_000);
+		showCommandMessage(pi, ctx, `${runId} still running... elapsed ${elapsedSeconds}s`);
+	}, ROLE_RUN_HEARTBEAT_INTERVAL_MS);
+	try {
+		return await operation();
+	} finally {
+		clearInterval(interval);
+	}
+}
+
+function formatRoleRunStartMessage(run: RoleRunRecord, statePath: string, cwd: string): string {
+	return [
+		`Started co-math role run ${run.id}`,
+		`Role: ${run.role}`,
+		`Target: ${formatRoleRunTargetForUser(run)}`,
+		`State saved: ${formatStatePathForUser(statePath, cwd)}`,
+		"Nested Pi execution started. This may take a while.",
+	].join("\n");
+}
+
+function formatBackgroundRoleRunStartMessage(run: RoleRunRecord): string {
+	return [
+		`Started co-math role run ${run.id} in background.`,
+		`Role: ${run.role}`,
+		`Target: ${formatRoleRunTargetForUser(run)}`,
+		"Inspect:",
+		"/comath background-runs",
+		`/comath run-status ${run.id}`,
+	].join("\n");
+}
+
+function formatRoleRunCompletionMessage(
+	run: RoleRunRecord,
+	reportId: string,
+	status: "completed" | "blocked",
+	result: RoleRunResult,
+	ingestion: IngestRoleRunOutput,
+): string {
+	const lines = [
+		`Co-math role run ${run.id} ${status}.`,
+		`Saved report: ${reportId}`,
+		`Summary: ${result.summary}`,
+		...formatCreatedIdLines(ingestion),
+		...formatStructuredJsonFallbackLines(reportId, result.blockers ?? []),
+		...formatCompletionBlockerLines(result.blockers ?? []),
+		"",
+		"Inspect:",
+		`/comath run-status ${run.id}`,
+		`/comath report-status ${reportId}`,
+		"/comath next",
+	];
+	return lines.join("\n");
+}
+
+function formatRoleRunFailureMessage(runId: string, status: "failed" | "aborted", errorMessage: string): string {
+	return [
+		`Co-math role run ${runId} ${status}: ${errorMessage}`,
+		"",
+		"Inspect:",
+		`/comath run-status ${runId}`,
+		"/comath runs",
+	].join("\n");
+}
+
+function formatRoleRunTargetForUser(run: RoleRunRecord): string {
+	return run.targetWorkstreamId ?? run.targetClaimId ?? "project";
+}
+
+function formatStatePathForUser(statePath: string, cwd: string): string {
+	const relativePath = path.relative(cwd, statePath);
+	if (relativePath.length === 0 || relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+		return statePath;
+	}
+	return relativePath.split(path.sep).join("/");
+}
+
+function formatCreatedIdLines(ingestion: IngestRoleRunOutput): string[] {
+	return [
+		formatCreatedIdLine("Created claims", ingestion.createdClaimIds),
+		formatCreatedIdLine("Created evidence", ingestion.createdEvidenceIds),
+		formatCreatedIdLine("Created warnings", ingestion.createdWarningIds),
+		formatCreatedIdLine("Created artifacts", ingestion.createdArtifactIds),
+	].filter((line) => line !== undefined);
+}
+
+function formatCreatedIdLine(label: string, ids: string[]): string | undefined {
+	return ids.length > 0 ? `${label}: ${ids.join(", ")}` : undefined;
+}
+
+function formatStructuredJsonFallbackLines(reportId: string, blockers: string[]): string[] {
+	if (!blockers.includes(INVALID_STRUCTURED_JSON_BLOCKER)) return [];
+	return [
+		"Role completed, but output was not valid structured co-math JSON.",
+		`Saved raw output as ${reportId}.`,
+		"No claims were promoted from structured fields.",
+	];
+}
+
+function formatCompletionBlockerLines(blockers: string[]): string[] {
+	if (blockers.length === 0) return [];
+	return ["Blockers:", ...formatBlockerLines(blockers)];
 }
 
 interface RoleRunRequest {

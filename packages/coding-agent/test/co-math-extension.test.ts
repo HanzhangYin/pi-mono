@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import coMathExtension from "../examples/extensions/co-math/index.ts";
 import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
 import {
@@ -485,7 +485,153 @@ describe("co-math extension registration", () => {
 					summary: "Coordinator proposal: keep claims tentative and split the examples workstream.",
 				},
 			]);
-			expect(notifications.join("\n")).toContain("Ran co-math coordinator and saved report report-1");
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math role run role-run-1 completed.");
+			expect(visibleText).toContain("Saved report: report-1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("prints foreground role-run start feedback before the role runner resolves", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-start-feedback-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => deferred.promise,
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve visible run progress", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			const runPromise = command?.handler("run workstream workstream-endpoints", ctx);
+			await waitForCondition(() => {
+				const visibleText = notifications.join("\n");
+				expect(visibleText).toContain("Started co-math role run role-run-1");
+				expect(visibleText).toContain("Role: workstream");
+				expect(visibleText).toContain("Target: workstream-endpoints");
+				expect(visibleText).toContain("State saved:");
+				expect(visibleText).toContain("Nested Pi execution started. This may take a while.");
+			});
+
+			deferred.resolve({ summary: "Workstream completed after visible start feedback." });
+			await runPromise;
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("prints foreground role-run heartbeats while waiting for the role runner", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-heartbeat-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => deferred.promise,
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve visible run progress", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			vi.useFakeTimers({ shouldAdvanceTime: true });
+			const runPromise = command?.handler("run workstream workstream-endpoints", ctx);
+			await waitForCondition(() => {
+				expect(notifications.join("\n")).toContain("Started co-math role run role-run-1");
+			});
+			await vi.advanceTimersByTimeAsync(15_000);
+
+			expect(notifications.join("\n")).toContain("role-run-1 still running... elapsed 15s");
+
+			deferred.resolve({ summary: "Workstream completed after heartbeat." });
+			await runPromise;
+		} finally {
+			vi.useRealTimers();
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("prints foreground role-run completion details with report and inspect commands", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-completion-feedback-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Candidate found but proof incomplete.",
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve visible run progress", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math role run role-run-1 completed.");
+			expect(visibleText).toContain("Saved report: report-1");
+			expect(visibleText).toContain("/comath run-status role-run-1");
+			expect(visibleText).toContain("/comath report-status report-1");
+			expect(visibleText).toContain("/comath next");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("explains invalid structured JSON fallback in foreground completion feedback", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-invalid-json-feedback-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "raw invalid output",
+					blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve visible run progress", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math role run role-run-1 blocked.");
+			expect(visibleText).toContain("Role completed, but output was not valid structured co-math JSON.");
+			expect(visibleText).toContain("Saved raw output as report-1.");
+			expect(visibleText).toContain("No claims were promoted from structured fields.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("prints foreground role-run failure guidance", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-run-failure-feedback-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => {
+					throw new Error("nested Pi failed");
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve visible run progress", ctx);
+			await command?.handler("workstream endpoints: analyze endpoint induction", ctx);
+			await command?.handler("run workstream workstream-endpoints", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math role run role-run-1 failed: nested Pi failed");
+			expect(visibleText).toContain("/comath run-status role-run-1");
+			expect(visibleText).toContain("/comath runs");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -604,9 +750,10 @@ describe("co-math extension registration", () => {
 					message: "Finite enumeration is not a proof for all n.",
 				},
 			]);
-			expect(notifications.join("\n")).toContain(
-				"Ran co-math workstream and saved report report-1 with 1 proposed claim",
-			);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Co-math role run role-run-1 blocked.");
+			expect(visibleText).toContain("Saved report: report-1");
+			expect(visibleText).toContain("Created claims: claim-1");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -870,7 +1017,9 @@ describe("co-math extension registration", () => {
 				status: "blocked",
 				statusReason: "Role process exited with code 1.",
 			});
-			expect(notifications.join("\n")).toContain("Co-math workstream role run role-run-1 failed");
+			expect(notifications.join("\n")).toContain(
+				"Co-math role run role-run-1 failed: Role process exited with code 1.",
+			);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -904,8 +1053,8 @@ describe("co-math extension registration", () => {
 				},
 			]);
 			const visibleText = notifications.join("\n");
-			expect(visibleText).toContain("Co-math workstream role run role-run-1 aborted");
-			expect(visibleText).not.toContain("Co-math workstream role run role-run-1 failed");
+			expect(visibleText).toContain("Co-math role run role-run-1 aborted");
+			expect(visibleText).not.toContain("Co-math role run role-run-1 failed");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -1065,7 +1214,8 @@ describe("co-math extension registration", () => {
 					status: "queued",
 				},
 			]);
-			expect(notifications.join("\n")).toContain("Ran co-math coordinator and saved report report-1");
+			expect(notifications.join("\n")).toContain("Co-math role run role-run-1 completed.");
+			expect(notifications.join("\n")).toContain("Saved report: report-1");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -1238,7 +1388,10 @@ describe("co-math extension registration", () => {
 			await command?.handler("queue coordinator", ctx);
 			await command?.handler("dispatch-next --background", ctx);
 
-			expect(notifications.join("\n")).toContain("Started co-math coordinator role run role-run-1 in background.");
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Started co-math role run role-run-1 in background.");
+			expect(visibleText).toContain("/comath background-runs");
+			expect(visibleText).toContain("/comath run-status role-run-1");
 			await waitForNotificationCount(notifications, 4);
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(state?.roleRuns[0]).toMatchObject({
@@ -1281,7 +1434,9 @@ describe("co-math extension registration", () => {
 				expect(roleInvocations).toHaveLength(1);
 			});
 			expect(roleInvocations[0]).toMatchObject({ role: "synthesizer" });
-			expect(notifications.at(-1)).toBe("Started co-math synthesizer role run role-run-2 in background.");
+			expect(notifications.at(-1)).toContain("Started co-math role run role-run-2 in background.");
+			expect(notifications.at(-1)).toContain("/comath background-runs");
+			expect(notifications.at(-1)).toContain("/comath run-status role-run-2");
 			let state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(state?.reports).toEqual([]);
 			expect(state?.roleRuns).toMatchObject([
@@ -1332,7 +1487,13 @@ describe("co-math extension registration", () => {
 			await command?.handler("dispatch-next --background", ctx);
 			await command?.handler("note project: Human note while background run is pending", ctx);
 			deferred.resolve({ summary: "Background coordinator completed after note." });
-			await waitForNotificationCount(notifications, 5);
+			await waitForCondition(async () => {
+				const state = await loadProjectState(getDefaultStatePath(tempDir));
+				expect(state?.roleRuns[0]).toMatchObject({
+					status: "completed",
+					reportId: "report-1",
+				});
+			});
 
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(state?.roleRuns[0]).toMatchObject({
