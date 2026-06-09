@@ -1,5 +1,8 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseRoleRunOutput } from "../examples/extensions/co-math/role-runner.ts";
+import { getPiInvocation, parseRoleRunOutput } from "../examples/extensions/co-math/role-runner.ts";
 
 describe("parseRoleRunOutput", () => {
 	it("parses plain JSON role output with proposed claims", () => {
@@ -248,6 +251,30 @@ describe("parseRoleRunOutput", () => {
 				claimId: "claim-1",
 				status: "needs_review",
 			},
+		});
+	});
+});
+
+describe("getPiInvocation", () => {
+	it("uses tsx when a development TypeScript cli script is running under node", () => {
+		const root = mkdtempSync(join(tmpdir(), "co-math-role-runner-"));
+		const tsxPath = join(root, "node_modules", ".bin", "tsx");
+		const scriptPath = join(root, "packages", "coding-agent", "src", "cli.ts");
+		const tsconfigPath = join(root, "tsconfig.json");
+		mkdirSync(join(root, "node_modules", ".bin"), { recursive: true });
+		mkdirSync(join(root, "packages", "coding-agent", "src"), { recursive: true });
+		writeFileSync(tsxPath, "#!/usr/bin/env node\n");
+		writeFileSync(scriptPath, "export {};\n");
+		writeFileSync(tsconfigPath, "{}\n");
+
+		const invocation = getPiInvocation(["--mode", "json"], {
+			currentScript: scriptPath,
+			execPath: "/usr/bin/node",
+		});
+
+		expect(invocation).toEqual({
+			command: tsxPath,
+			args: ["--tsconfig", tsconfigPath, scriptPath, "--mode", "json"],
 		});
 	});
 });

@@ -340,20 +340,61 @@ function isReviewStatus(value: unknown): value is ReviewDecision["status"] {
 	return value === "proved" || value === "proof_sketch" || value === "needs_review" || value === "disproved";
 }
 
-function getPiInvocation(args: string[]): { command: string; args: string[] } {
-	const currentScript = process.argv[1];
+interface PiInvocationOptions {
+	currentScript?: string;
+	execPath?: string;
+}
+
+export function getPiInvocation(
+	args: string[],
+	options: PiInvocationOptions = {},
+): { command: string; args: string[] } {
+	const currentScript = options.currentScript ?? process.argv[1];
+	const execPath = options.execPath ?? process.execPath;
 	const isBunVirtualScript = currentScript?.startsWith("/$bunfs/root/");
 	if (currentScript && !isBunVirtualScript && fs.existsSync(currentScript)) {
-		return { command: process.execPath, args: [currentScript, ...args] };
+		const tsxInvocation = getTsxInvocation(currentScript, execPath, args);
+		if (tsxInvocation) return tsxInvocation;
+		return { command: execPath, args: [currentScript, ...args] };
 	}
 
-	const execName = path.basename(process.execPath).toLowerCase();
+	const execName = path.basename(execPath).toLowerCase();
 	const isGenericRuntime = /^(node|bun)(\.exe)?$/.test(execName);
 	if (!isGenericRuntime) {
-		return { command: process.execPath, args };
+		return { command: execPath, args };
 	}
 
 	return { command: "pi", args };
+}
+
+function getTsxInvocation(
+	currentScript: string,
+	execPath: string,
+	args: string[],
+): { command: string; args: string[] } | undefined {
+	if (path.extname(currentScript) !== ".ts") return undefined;
+	const execName = path.basename(execPath).toLowerCase();
+	if (!/^node(\.exe)?$/.test(execName)) return undefined;
+
+	const root = findAncestorWithFile(path.dirname(currentScript), path.join("node_modules", ".bin", "tsx"));
+	if (!root) return undefined;
+
+	const tsxPath = path.join(root, "node_modules", ".bin", "tsx");
+	const tsconfigPath = path.join(root, "tsconfig.json");
+	const tsxArgs = fs.existsSync(tsconfigPath)
+		? ["--tsconfig", tsconfigPath, currentScript, ...args]
+		: [currentScript, ...args];
+	return { command: tsxPath, args: tsxArgs };
+}
+
+function findAncestorWithFile(startDir: string, relativeFile: string): string | undefined {
+	let currentDir = path.resolve(startDir);
+	while (true) {
+		if (fs.existsSync(path.join(currentDir, relativeFile))) return currentDir;
+		const parentDir = path.dirname(currentDir);
+		if (parentDir === currentDir) return undefined;
+		currentDir = parentDir;
+	}
 }
 
 function parseJsonObject(line: string): Record<string, unknown> | undefined {
