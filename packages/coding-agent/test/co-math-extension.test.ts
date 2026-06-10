@@ -1731,6 +1731,65 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("ingests role output with normalized source labels instead of saving only a raw fallback report", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-normalized-role-output-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Source-backed support gap audit.",
+					proposedClaims: [
+						{
+							statement: "The proof has a support gap.",
+							evidence: [{ kind: "reference", summary: "[source_audit] docs/first-proof.md lines 890-911." }],
+							warnings: [{ severity: "high", message: "Support lemma missing." }],
+						},
+					],
+					proposedArtifacts: [
+						{
+							kind: "failed_attempt",
+							title: "No support lemma found",
+							summary: "[negative_result] Search found no vanishing lemma.",
+							provenance: "rg over docs.",
+						},
+					],
+					blockers: ["Need support lemma."],
+				}),
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("goal Preserve proof gaps", ctx);
+			await command?.handler("workstream support-gap: audit support gap", ctx);
+			await command?.handler("run workstream workstream-support-gap", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.claims).toHaveLength(1);
+			expect(state?.evidence).toMatchObject([
+				{
+					id: "evidence-1",
+					kind: "reference",
+					summary: "[source_audit] docs/first-proof.md lines 890-911.",
+				},
+			]);
+			expect(state?.artifacts).toMatchObject([
+				{
+					id: "artifact-1",
+					kind: "failed_attempt",
+					title: "No support lemma found",
+					summary: "[negative_result] Search found no vanishing lemma.",
+				},
+			]);
+			expect(state?.roleRuns[0]).toMatchObject({ status: "blocked", reportId: "report-1" });
+			expect(notifications.join("\n")).not.toContain(
+				"Role completed, but output was not valid structured co-math JSON.",
+			);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("records manual artifacts and displays artifact and timeline summaries", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-artifact-command-"));
 		try {

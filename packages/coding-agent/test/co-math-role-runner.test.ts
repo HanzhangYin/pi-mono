@@ -127,10 +127,88 @@ describe("parseRoleRunOutput", () => {
 
 		expect(result).toEqual({
 			summary: "This is a free-form role report.",
-			blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+			blockers: [
+				"Role output was not valid structured co-math JSON; saved as report only.",
+				"Structured output parse failure: output was not a single JSON object or fenced JSON object",
+			],
 		});
 		expect(result.proposedClaims).toBeUndefined();
 		expect(result.reviewDecision).toBeUndefined();
+	});
+
+	it("normalizes source and derivation evidence aliases from role output", () => {
+		const result = parseRoleRunOutput(
+			JSON.stringify({
+				summary: "Extracted source-backed definitions.",
+				proposedClaims: [
+					{
+						statement: "S_n(lambda) is the finite content sector.",
+						evidence: [
+							{ kind: "citation", summary: "docs/first-proof.md lines 730-731 define the state space." },
+							{ kind: "derivation", summary: "Stationarity follows after dividing by the normalizing sum." },
+							{ kind: "proof_obligation", summary: "Need a support lemma." },
+						],
+						warnings: [{ severity: "high", message: "Support lemma not found." }],
+					},
+				],
+			}),
+		);
+
+		expect(result.blockers).toBeUndefined();
+		expect(result.proposedClaims?.[0]?.evidence).toEqual([
+			{ kind: "reference", summary: "[citation] docs/first-proof.md lines 730-731 define the state space." },
+			{ kind: "proof", summary: "[derivation] Stationarity follows after dividing by the normalizing sum." },
+			{ kind: "proof", summary: "[proof_obligation] Need a support lemma." },
+		]);
+	});
+
+	it("normalizes source and review artifact aliases from role output", () => {
+		const result = parseRoleRunOutput(
+			JSON.stringify({
+				summary: "Audited support gap.",
+				proposedArtifacts: [
+					{
+						kind: "source_extract",
+						title: "Question 3 source definitions",
+						summary: "Key source interval is docs/first-proof.md Section B.3.",
+						provenance: "Read docs/first-proof.md.",
+						path: "docs/first-proof.md",
+					},
+					{
+						kind: "negative_result",
+						title: "No support lemma found",
+						summary: "Search found no vanishing lemma.",
+						provenance: "rg over registered files.",
+					},
+					{
+						kind: "exact_example",
+						title: "Small indexing obstruction",
+						summary: "For n=2, N^2 contains states outside S_2(lambda).",
+					},
+				],
+			}),
+		);
+
+		expect(result.blockers).toBeUndefined();
+		expect(result.proposedArtifacts).toMatchObject([
+			{
+				kind: "reference",
+				title: "Question 3 source definitions",
+				summary: "[source_extract] Key source interval is docs/first-proof.md Section B.3.",
+				provenance: "Read docs/first-proof.md.",
+				path: "docs/first-proof.md",
+			},
+			{
+				kind: "failed_attempt",
+				title: "No support lemma found",
+				summary: "[negative_result] Search found no vanishing lemma.",
+			},
+			{
+				kind: "computation",
+				title: "Small indexing obstruction",
+				summary: "[exact_example] For n=2, N^2 contains states outside S_2(lambda).",
+			},
+		]);
 	});
 
 	it("parses proposed artifacts with provenance", () => {
@@ -180,9 +258,31 @@ describe("parseRoleRunOutput", () => {
 
 		expect(result).toEqual({
 			summary: invalidArtifactText,
-			blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+			blockers: [
+				"Role output was not valid structured co-math JSON; saved as report only.",
+				"Structured output parse failure: proposedArtifacts[0] has unknown artifact kind: experiment",
+			],
 		});
 		expect(result.proposedArtifacts).toBeUndefined();
+	});
+
+	it("includes parse diagnostics when structured JSON has an unknown artifact kind", () => {
+		const result = parseRoleRunOutput(
+			JSON.stringify({
+				summary: "Report with unknown artifact kind.",
+				proposedArtifacts: [
+					{
+						kind: "brand_new_kind",
+						title: "Unknown artifact",
+						summary: "This should not be accepted silently.",
+					},
+				],
+			}),
+		);
+
+		expect(result.summary).toContain("Report with unknown artifact kind.");
+		expect(result.blockers).toContain("Role output was not valid structured co-math JSON; saved as report only.");
+		expect(result.blockers?.join("\n")).toContain("unknown artifact kind: brand_new_kind");
 	});
 
 	it("falls back safely for invalid enum values", () => {
@@ -209,13 +309,19 @@ describe("parseRoleRunOutput", () => {
 
 		expect(invalidEvidence).toEqual({
 			summary: invalidEvidenceText,
-			blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+			blockers: [
+				"Role output was not valid structured co-math JSON; saved as report only.",
+				"Structured output parse failure: proposedClaims[0].evidence[0] has unknown evidence kind: experiment",
+			],
 		});
 		expect(invalidEvidence.proposedClaims).toBeUndefined();
 		expect(invalidEvidence.reviewDecision).toBeUndefined();
 		expect(invalidWarning).toEqual({
 			summary: invalidWarningText,
-			blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+			blockers: [
+				"Role output was not valid structured co-math JSON; saved as report only.",
+				"Structured output parse failure: proposedClaims[0].warnings[0].severity is invalid: urgent",
+			],
 		});
 		expect(invalidWarning.proposedClaims).toBeUndefined();
 		expect(invalidWarning.reviewDecision).toBeUndefined();

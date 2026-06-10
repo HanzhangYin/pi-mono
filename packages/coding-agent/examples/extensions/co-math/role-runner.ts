@@ -68,6 +68,10 @@ interface AssistantMessage {
 	content?: unknown;
 }
 
+interface ParseFailure {
+	reason: string;
+}
+
 export function createDefaultRoleRunner(extensionDir = path.dirname(fileURLToPath(import.meta.url))): RoleRunner {
 	return async (input) => {
 		const promptPath = path.join(extensionDir, "agents", `${input.role}.md`);
@@ -77,9 +81,11 @@ export function createDefaultRoleRunner(extensionDir = path.dirname(fileURLToPat
 
 export function parseRoleRunOutput(text: string): RoleRunResult {
 	const parsed = parseStructuredJsonText(text);
-	if (!parsed) return fallbackRoleRunResult(text);
+	if (!parsed) {
+		return fallbackRoleRunResult(text, "output was not a single JSON object or fenced JSON object");
+	}
 	const result = toRoleRunResult(parsed);
-	if (!result) return fallbackRoleRunResult(text);
+	if (isParseFailure(result)) return fallbackRoleRunResult(text, result.reason);
 	return result;
 }
 
@@ -166,16 +172,18 @@ function getSingleFencedJsonBlock(text: string): string | undefined {
 	return match?.[1];
 }
 
-function toRoleRunResult(value: Record<string, unknown>): RoleRunResult | undefined {
-	if (typeof value.summary !== "string" || value.summary.trim().length === 0) return undefined;
+function toRoleRunResult(value: Record<string, unknown>): RoleRunResult | ParseFailure {
+	if (typeof value.summary !== "string" || value.summary.trim().length === 0) {
+		return parseFailure("missing non-empty summary");
+	}
 	const proposedClaims = parseProposedClaims(value.proposedClaims);
-	if (proposedClaims === null) return undefined;
+	if (isParseFailure(proposedClaims)) return proposedClaims;
 	const proposedArtifacts = parseProposedArtifacts(value.proposedArtifacts);
-	if (proposedArtifacts === null) return undefined;
+	if (isParseFailure(proposedArtifacts)) return proposedArtifacts;
 	const reviewDecision = parseReviewDecision(value.reviewDecision);
-	if (reviewDecision === null) return undefined;
-	const blockers = parseStringArray(value.blockers);
-	if (blockers === null) return undefined;
+	if (isParseFailure(reviewDecision)) return reviewDecision;
+	const blockers = parseStringArray(value.blockers, "blockers");
+	if (isParseFailure(blockers)) return blockers;
 
 	return {
 		summary: value.summary,
@@ -186,17 +194,20 @@ function toRoleRunResult(value: Record<string, unknown>): RoleRunResult | undefi
 	};
 }
 
-function parseProposedClaims(value: unknown): ProposedClaim[] | undefined | null {
+function parseProposedClaims(value: unknown): ProposedClaim[] | undefined | ParseFailure {
 	if (value === undefined) return undefined;
-	if (!Array.isArray(value)) return null;
+	if (!Array.isArray(value)) return parseFailure("proposedClaims must be an array");
 	const claims: ProposedClaim[] = [];
-	for (const item of value) {
+	for (const [index, item] of value.entries()) {
 		const claim = getObject(item);
-		if (!claim || typeof claim.statement !== "string" || claim.statement.trim().length === 0) return null;
-		const evidence = parseProposedEvidence(claim.evidence);
-		if (evidence === null) return null;
-		const warnings = parseProposedWarnings(claim.warnings);
-		if (warnings === null) return null;
+		if (!claim) return parseFailure(`proposedClaims[${index}] must be an object`);
+		if (typeof claim.statement !== "string" || claim.statement.trim().length === 0) {
+			return parseFailure(`proposedClaims[${index}].statement must be a non-empty string`);
+		}
+		const evidence = parseProposedEvidence(claim.evidence, `proposedClaims[${index}].evidence`);
+		if (isParseFailure(evidence)) return evidence;
+		const warnings = parseProposedWarnings(claim.warnings, `proposedClaims[${index}].warnings`);
+		if (isParseFailure(warnings)) return warnings;
 		claims.push({
 			statement: claim.statement,
 			...(evidence ? { evidence } : {}),
@@ -206,27 +217,36 @@ function parseProposedClaims(value: unknown): ProposedClaim[] | undefined | null
 	return claims;
 }
 
-function parseProposedArtifacts(value: unknown): ProposedArtifact[] | undefined | null {
+function parseProposedArtifacts(value: unknown): ProposedArtifact[] | undefined | ParseFailure {
 	if (value === undefined) return undefined;
-	if (!Array.isArray(value)) return null;
+	if (!Array.isArray(value)) return parseFailure("proposedArtifacts must be an array");
 	const artifacts: ProposedArtifact[] = [];
-	for (const item of value) {
+	for (const [index, item] of value.entries()) {
 		const artifact = getObject(item);
-		if (!artifact || !isArtifactKind(artifact.kind)) return null;
-		if (typeof artifact.title !== "string" || artifact.title.trim().length === 0) return null;
-		if (typeof artifact.summary !== "string" || artifact.summary.trim().length === 0) return null;
-		const provenance = parseOptionalNonEmptyString(artifact.provenance);
-		if (provenance === null) return null;
-		const artifactPath = parseOptionalNonEmptyString(artifact.path);
-		if (artifactPath === null) return null;
-		const relatedClaimIds = parseStringArray(artifact.relatedClaimIds);
-		if (relatedClaimIds === null) return null;
-		const relatedWorkstreamIds = parseStringArray(artifact.relatedWorkstreamIds);
-		if (relatedWorkstreamIds === null) return null;
+		if (!artifact) return parseFailure(`proposedArtifacts[${index}] must be an object`);
+		const kind = normalizeArtifactKind(artifact.kind);
+		if (!kind) return parseFailure(`proposedArtifacts[${index}] has unknown artifact kind: ${String(artifact.kind)}`);
+		if (typeof artifact.title !== "string" || artifact.title.trim().length === 0) {
+			return parseFailure(`proposedArtifacts[${index}].title must be a non-empty string`);
+		}
+		if (typeof artifact.summary !== "string" || artifact.summary.trim().length === 0) {
+			return parseFailure(`proposedArtifacts[${index}].summary must be a non-empty string`);
+		}
+		const provenance = parseOptionalNonEmptyString(artifact.provenance, `proposedArtifacts[${index}].provenance`);
+		if (isParseFailure(provenance)) return provenance;
+		const artifactPath = parseOptionalNonEmptyString(artifact.path, `proposedArtifacts[${index}].path`);
+		if (isParseFailure(artifactPath)) return artifactPath;
+		const relatedClaimIds = parseStringArray(artifact.relatedClaimIds, `proposedArtifacts[${index}].relatedClaimIds`);
+		if (isParseFailure(relatedClaimIds)) return relatedClaimIds;
+		const relatedWorkstreamIds = parseStringArray(
+			artifact.relatedWorkstreamIds,
+			`proposedArtifacts[${index}].relatedWorkstreamIds`,
+		);
+		if (isParseFailure(relatedWorkstreamIds)) return relatedWorkstreamIds;
 		artifacts.push({
-			kind: artifact.kind,
+			kind,
 			title: artifact.title,
-			summary: artifact.summary,
+			summary: prefixSummaryForNormalizedKind(artifact.kind, kind, artifact.summary),
 			...(provenance ? { provenance } : {}),
 			...(artifactPath ? { path: artifactPath } : {}),
 			...(relatedClaimIds ? { relatedClaimIds } : {}),
@@ -236,44 +256,56 @@ function parseProposedArtifacts(value: unknown): ProposedArtifact[] | undefined 
 	return artifacts;
 }
 
-function parseProposedEvidence(value: unknown): ProposedEvidence[] | undefined | null {
+function parseProposedEvidence(value: unknown, path: string): ProposedEvidence[] | undefined | ParseFailure {
 	if (value === undefined) return undefined;
-	if (!Array.isArray(value)) return null;
+	if (!Array.isArray(value)) return parseFailure(`${path} must be an array`);
 	const evidence: ProposedEvidence[] = [];
-	for (const item of value) {
+	for (const [index, item] of value.entries()) {
 		const record = getObject(item);
-		if (!record || !isEvidenceKind(record.kind)) return null;
-		if (typeof record.summary !== "string" || record.summary.trim().length === 0) return null;
-		evidence.push({ kind: record.kind, summary: record.summary });
+		if (!record) return parseFailure(`${path}[${index}] must be an object`);
+		const kind = normalizeEvidenceKind(record.kind);
+		if (!kind) return parseFailure(`${path}[${index}] has unknown evidence kind: ${String(record.kind)}`);
+		if (typeof record.summary !== "string" || record.summary.trim().length === 0) {
+			return parseFailure(`${path}[${index}].summary must be a non-empty string`);
+		}
+		evidence.push({ kind, summary: prefixSummaryForNormalizedKind(record.kind, kind, record.summary) });
 	}
 	return evidence;
 }
 
-function parseProposedWarnings(value: unknown): ProposedWarning[] | undefined | null {
+function parseProposedWarnings(value: unknown, path: string): ProposedWarning[] | undefined | ParseFailure {
 	if (value === undefined) return undefined;
-	if (!Array.isArray(value)) return null;
+	if (!Array.isArray(value)) return parseFailure(`${path} must be an array`);
 	const warnings: ProposedWarning[] = [];
-	for (const item of value) {
+	for (const [index, item] of value.entries()) {
 		const record = getObject(item);
-		if (!record || !isWarningSeverity(record.severity)) return null;
-		if (typeof record.message !== "string" || record.message.trim().length === 0) return null;
+		if (!record) return parseFailure(`${path}[${index}] must be an object`);
+		if (!isWarningSeverity(record.severity)) {
+			return parseFailure(`${path}[${index}].severity is invalid: ${String(record.severity)}`);
+		}
+		if (typeof record.message !== "string" || record.message.trim().length === 0) {
+			return parseFailure(`${path}[${index}].message must be a non-empty string`);
+		}
 		warnings.push({ severity: record.severity, message: record.message });
 	}
 	return warnings;
 }
 
-function parseReviewDecision(value: unknown): ReviewDecision | undefined | null {
+function parseReviewDecision(value: unknown): ReviewDecision | undefined | ParseFailure {
 	if (value === undefined) return undefined;
 	const decision = getObject(value);
-	if (!decision) return null;
-	if (typeof decision.claimId !== "string" || decision.claimId.trim().length === 0) return null;
-	if (!isReviewStatus(decision.status)) return null;
-	const evidence = parseProposedEvidence(decision.evidence);
-	if (evidence === null) return null;
-	const warnings = parseProposedWarnings(decision.warnings);
-	if (warnings === null) return null;
-	const resolvedWarningIds = parseStringArray(decision.resolvedWarningIds);
-	if (resolvedWarningIds === null) return null;
+	if (!decision) return parseFailure("reviewDecision must be an object");
+	if (typeof decision.claimId !== "string" || decision.claimId.trim().length === 0) {
+		return parseFailure("reviewDecision.claimId must be a non-empty string");
+	}
+	if (!isReviewStatus(decision.status))
+		return parseFailure(`reviewDecision.status is invalid: ${String(decision.status)}`);
+	const evidence = parseProposedEvidence(decision.evidence, "reviewDecision.evidence");
+	if (isParseFailure(evidence)) return evidence;
+	const warnings = parseProposedWarnings(decision.warnings, "reviewDecision.warnings");
+	if (isParseFailure(warnings)) return warnings;
+	const resolvedWarningIds = parseStringArray(decision.resolvedWarningIds, "reviewDecision.resolvedWarningIds");
+	if (isParseFailure(resolvedWarningIds)) return resolvedWarningIds;
 	return {
 		claimId: decision.claimId,
 		status: decision.status,
@@ -283,28 +315,65 @@ function parseReviewDecision(value: unknown): ReviewDecision | undefined | null 
 	};
 }
 
-function parseStringArray(value: unknown): string[] | undefined | null {
+function parseStringArray(value: unknown, path: string): string[] | undefined | ParseFailure {
 	if (value === undefined) return undefined;
-	if (!Array.isArray(value)) return null;
+	if (!Array.isArray(value)) return parseFailure(`${path} must be an array of non-empty strings`);
 	const strings: string[] = [];
-	for (const item of value) {
-		if (typeof item !== "string" || item.trim().length === 0) return null;
+	for (const [index, item] of value.entries()) {
+		if (typeof item !== "string" || item.trim().length === 0) {
+			return parseFailure(`${path}[${index}] must be a non-empty string`);
+		}
 		strings.push(item);
 	}
 	return strings;
 }
 
-function parseOptionalNonEmptyString(value: unknown): string | undefined | null {
+function parseOptionalNonEmptyString(value: unknown, path: string): string | undefined | ParseFailure {
 	if (value === undefined) return undefined;
-	if (typeof value !== "string" || value.trim().length === 0) return null;
+	if (typeof value !== "string" || value.trim().length === 0)
+		return parseFailure(`${path} must be a non-empty string`);
 	return value;
 }
 
-function fallbackRoleRunResult(text: string): RoleRunResult {
+function fallbackRoleRunResult(text: string, reason?: string): RoleRunResult {
+	const blockers = ["Role output was not valid structured co-math JSON; saved as report only."];
+	if (reason) blockers.push(`Structured output parse failure: ${reason}`);
 	return {
 		summary: text.trim() || "(no role output)",
-		blockers: ["Role output was not valid structured co-math JSON; saved as report only."],
+		blockers,
 	};
+}
+
+function parseFailure(reason: string): ParseFailure {
+	return { reason };
+}
+
+function isParseFailure(value: unknown): value is ParseFailure {
+	return typeof value === "object" && value !== null && "reason" in value && typeof value.reason === "string";
+}
+
+function prefixSummaryForNormalizedKind(originalKind: unknown, normalizedKind: string, summary: string): string {
+	if (typeof originalKind !== "string" || originalKind === normalizedKind) return summary;
+	return `[${originalKind}] ${summary}`;
+}
+
+function normalizeArtifactKind(value: unknown): ArtifactKind | undefined {
+	if (isArtifactKind(value)) return value;
+	if (value === "review_note" || value === "source_audit" || value === "blocker_list") return "human_note";
+	if (value === "source_extract") return "reference";
+	if (value === "negative_result") return "failed_attempt";
+	if (value === "exact_example") return "computation";
+	return undefined;
+}
+
+function normalizeEvidenceKind(value: unknown): EvidenceKind | undefined {
+	if (isEvidenceKind(value)) return value;
+	if (value === "citation" || value === "source_state" || value === "source_check" || value === "source_audit") {
+		return "reference";
+	}
+	if (value === "derivation" || value === "proof_sketch" || value === "proof_obligation") return "proof";
+	if (value === "failed_attempt" || value === "review_note") return "note";
+	return undefined;
 }
 
 function isArtifactKind(value: unknown): value is ArtifactKind {

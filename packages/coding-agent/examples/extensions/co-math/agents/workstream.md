@@ -38,6 +38,11 @@ Report:
 ## Required final output
 
 Your final assistant message must be exactly one JSON object and no surrounding prose.
+Allowed evidence kinds only: `proof`, `computation`, `reference`, `counterexample`, `note`.
+Allowed artifact kinds only: `computation`, `latex_note`, `proof_sketch`, `counterexample_search`, `reference`, `dataset`, `script`, `figure`, `failed_attempt`, `human_note`.
+Allowed warning severities only: `low`, `medium`, `high`.
+Allowed `reviewDecision.status` values only: `proved`, `proof_sketch`, `needs_review`, `disproved`.
+If you want to describe a citation, source extract, source audit, proof obligation, blocker list, negative result, exact example, or review note, do not invent a new kind. Use one of the allowed kinds and put the descriptive label in the title or summary: citation/source_extract/source_audit -> `reference`; derivation/proof_obligation -> `proof` evidence or `proof_sketch` artifact; negative_result/support gap -> `failed_attempt`; exact_example/algebra check -> `computation`; review_note/blocker_list -> `human_note`.
 Use this schema:
 
 ```json
