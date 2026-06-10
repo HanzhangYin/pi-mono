@@ -1830,12 +1830,14 @@ async function runProjectRole(
 
 	const task = buildRoleTask(request.role, existing, targetWorkstream, targetClaim);
 	const runId = `role-run-${existing.roleRuns.length + 1}`;
+	const transcriptPath = getRoleRunTranscriptPath(runId);
 	const startedAt = new Date().toISOString();
 	const statePath = getDefaultStatePath(ctx.cwd);
 	const startedState = startRoleRun(existing, {
 		id: runId,
 		role: request.role,
 		task,
+		transcriptPath,
 		targetWorkstreamId: targetWorkstream?.id,
 		targetClaimId: targetClaim?.id,
 		now: startedAt,
@@ -1954,6 +1956,7 @@ async function dispatchQueuedRoleRunById(
 	}
 	const runningState = dispatchQueuedRoleRun(existing, {
 		runId,
+		transcriptPath: dispatchingRun.transcriptPath ?? getRoleRunTranscriptPath(runId),
 		now: new Date().toISOString(),
 		actor: dispatchingRun.role,
 		executionMode: background ? "background" : "foreground",
@@ -2083,6 +2086,7 @@ async function executeBackgroundRoleRun(
 			cwd: input.cwd,
 			role: run.role,
 			task: run.task,
+			transcriptPath: run.transcriptPath ? resolveRoleRunTranscriptPath(input.cwd, run.transcriptPath) : undefined,
 			signal: input.signal,
 		});
 		await finalizeBackgroundRoleRunResult(pi, input.statePath, run.id, result);
@@ -2145,7 +2149,13 @@ async function finalizeBackgroundRoleRunResult(
 		targetClaim,
 	});
 	await saveProjectState(statePath, finalState);
-	sendBackgroundMessage(pi, `Background ${formatRoleRunMessage(latestRun.role, reportId, result)}`);
+	sendBackgroundMessage(
+		pi,
+		[
+			`Background ${formatRoleRunMessage(latestRun.role, reportId, result)}`,
+			...(latestRun.transcriptPath ? [`Transcript: ${latestRun.transcriptPath}`] : []),
+		].join("\n"),
+	);
 }
 
 async function finalizeBackgroundRoleRunError(
@@ -2178,7 +2188,13 @@ async function finalizeBackgroundRoleRunError(
 		actor: "system",
 	});
 	await saveProjectState(statePath, failedState);
-	sendBackgroundMessage(pi, `Co-math ${latestRun.role} role run ${runId} ${status}: ${errorMessage}`);
+	sendBackgroundMessage(
+		pi,
+		[
+			`Co-math ${latestRun.role} role run ${runId} ${status}: ${errorMessage}`,
+			...(latestRun.transcriptPath ? [`Transcript: ${latestRun.transcriptPath}`] : []),
+		].join("\n"),
+	);
 }
 
 async function abortBackgroundRoleRun(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
@@ -2435,6 +2451,7 @@ async function executeRunningRoleRun(
 				cwd: ctx.cwd,
 				role: run.role,
 				task: run.task,
+				transcriptPath: run.transcriptPath ? resolveRoleRunTranscriptPath(ctx.cwd, run.transcriptPath) : undefined,
 				signal: ctx.signal,
 			}),
 		);
@@ -2485,7 +2502,7 @@ async function executeRunningRoleRun(
 			actor: "system",
 		});
 		await saveProjectState(statePath, failedState);
-		showCommandMessage(pi, ctx, formatRoleRunFailureMessage(run.id, status, errorMessage));
+		showCommandMessage(pi, ctx, formatRoleRunFailureMessage(run, status, errorMessage));
 	}
 }
 
@@ -2513,6 +2530,7 @@ function formatRoleRunStartMessage(run: RoleRunRecord, statePath: string, cwd: s
 		`Role: ${run.role}`,
 		`Target: ${formatRoleRunTargetForUser(run)}`,
 		`State saved: ${formatStatePathForUser(statePath, cwd)}`,
+		...(run.transcriptPath ? [`Transcript: ${run.transcriptPath}`] : []),
 		"Nested Pi execution started. This may take a while.",
 	].join("\n");
 }
@@ -2522,6 +2540,7 @@ function formatBackgroundRoleRunStartMessage(run: RoleRunRecord): string {
 		`Started co-math role run ${run.id} in background.`,
 		`Role: ${run.role}`,
 		`Target: ${formatRoleRunTargetForUser(run)}`,
+		...(run.transcriptPath ? [`Transcript: ${run.transcriptPath}`] : []),
 		"Inspect:",
 		"/comath background-runs",
 		`/comath run-status ${run.id}`,
@@ -2538,6 +2557,7 @@ function formatRoleRunCompletionMessage(
 	const lines = [
 		`Co-math role run ${run.id} ${status}.`,
 		`Saved report: ${reportId}`,
+		...(run.transcriptPath ? [`Transcript: ${run.transcriptPath}`] : []),
 		`Summary: ${result.summary}`,
 		...formatCreatedIdLines(ingestion),
 		...formatStructuredJsonFallbackLines(reportId, result.blockers ?? []),
@@ -2551,12 +2571,13 @@ function formatRoleRunCompletionMessage(
 	return lines.join("\n");
 }
 
-function formatRoleRunFailureMessage(runId: string, status: "failed" | "aborted", errorMessage: string): string {
+function formatRoleRunFailureMessage(run: RoleRunRecord, status: "failed" | "aborted", errorMessage: string): string {
 	return [
-		`Co-math role run ${runId} ${status}: ${errorMessage}`,
+		`Co-math role run ${run.id} ${status}: ${errorMessage}`,
+		...(run.transcriptPath ? [`Transcript: ${run.transcriptPath}`] : []),
 		"",
 		"Inspect:",
-		`/comath run-status ${runId}`,
+		`/comath run-status ${run.id}`,
 		"/comath runs",
 	].join("\n");
 }
@@ -2571,6 +2592,14 @@ function formatStatePathForUser(statePath: string, cwd: string): string {
 		return statePath;
 	}
 	return relativePath.split(path.sep).join("/");
+}
+
+function getRoleRunTranscriptPath(runId: string): string {
+	return `.pi/co-math/transcripts/${runId}.jsonl`;
+}
+
+function resolveRoleRunTranscriptPath(cwd: string, transcriptPath: string): string {
+	return path.join(cwd, transcriptPath);
 }
 
 function formatCreatedIdLines(ingestion: IngestRoleRunOutput): string[] {
@@ -3918,6 +3947,7 @@ function formatRoleRunDetails(run: RoleRunRecord): string {
 		...(run.executionMode === "background"
 			? [`Live in this session: ${backgroundRoleRuns.has(run.id) ? "yes" : "no; use /comath recover-run if stale"}`]
 			: []),
+		...(run.transcriptPath ? [`Transcript: ${run.transcriptPath}`] : []),
 		`Report: ${run.reportId ?? "none"}`,
 		`Created claims: ${formatIdList(run.createdClaimIds)}`,
 		`Created evidence: ${formatIdList(run.createdEvidenceIds)}`,

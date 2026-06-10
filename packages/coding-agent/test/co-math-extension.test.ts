@@ -23,6 +23,7 @@ interface RoleRunInputForTest {
 	cwd: string;
 	role: "coordinator" | "workstream" | "reviewer" | "synthesizer";
 	task: string;
+	transcriptPath?: string;
 	signal?: AbortSignal;
 }
 
@@ -466,6 +467,7 @@ describe("co-math extension registration", () => {
 				expect.objectContaining({
 					cwd: tempDir,
 					role: "coordinator",
+					transcriptPath: join(tempDir, ".pi/co-math/transcripts/role-run-1.jsonl"),
 				}),
 			]);
 			const task = roleInvocations[0]?.task ?? "";
@@ -478,6 +480,12 @@ describe("co-math extension registration", () => {
 
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(state?.claims).toEqual([]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
+				},
+			]);
 			expect(state?.reports).toMatchObject([
 				{
 					id: "report-1",
@@ -514,6 +522,7 @@ describe("co-math extension registration", () => {
 				expect(visibleText).toContain("Role: workstream");
 				expect(visibleText).toContain("Target: workstream-endpoints");
 				expect(visibleText).toContain("State saved:");
+				expect(visibleText).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
 				expect(visibleText).toContain("Nested Pi execution started. This may take a while.");
 			});
 
@@ -575,6 +584,7 @@ describe("co-math extension registration", () => {
 			const visibleText = notifications.join("\n");
 			expect(visibleText).toContain("Co-math role run role-run-1 completed.");
 			expect(visibleText).toContain("Saved report: report-1");
+			expect(visibleText).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
 			expect(visibleText).toContain("/comath run-status role-run-1");
 			expect(visibleText).toContain("/comath report-status report-1");
 			expect(visibleText).toContain("/comath next");
@@ -630,8 +640,17 @@ describe("co-math extension registration", () => {
 
 			const visibleText = notifications.join("\n");
 			expect(visibleText).toContain("Co-math role run role-run-1 failed: nested Pi failed");
+			expect(visibleText).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
 			expect(visibleText).toContain("/comath run-status role-run-1");
 			expect(visibleText).toContain("/comath runs");
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					status: "failed",
+					transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
+				},
+			]);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -1092,6 +1111,7 @@ describe("co-math extension registration", () => {
 			expect(visibleText).toContain("Role: workstream");
 			expect(visibleText).toContain("Status: completed");
 			expect(visibleText).toContain("Target workstream: workstream-endpoints");
+			expect(visibleText).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
 			expect(visibleText).toContain("Report: report-1");
 			expect(visibleText).toContain("Created claims: claim-1");
 			expect(visibleText).toContain("No role run found for role-run-missing.");
@@ -1200,13 +1220,17 @@ describe("co-math extension registration", () => {
 
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(roleInvocations).toHaveLength(1);
-			expect(roleInvocations[0]).toMatchObject({ role: "coordinator" });
+			expect(roleInvocations[0]).toMatchObject({
+				role: "coordinator",
+				transcriptPath: join(tempDir, ".pi/co-math/transcripts/role-run-1.jsonl"),
+			});
 			expect(state?.roleRuns).toMatchObject([
 				{
 					id: "role-run-1",
 					role: "coordinator",
 					status: "completed",
 					reportId: "report-1",
+					transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
 				},
 				{
 					id: "role-run-2",
@@ -1243,7 +1267,10 @@ describe("co-math extension registration", () => {
 
 			const state = await loadProjectState(getDefaultStatePath(tempDir));
 			expect(roleInvocations).toHaveLength(1);
-			expect(roleInvocations[0]).toMatchObject({ role: "synthesizer" });
+			expect(roleInvocations[0]).toMatchObject({
+				role: "synthesizer",
+				transcriptPath: join(tempDir, ".pi/co-math/transcripts/role-run-2.jsonl"),
+			});
 			expect(state?.roleRuns).toMatchObject([
 				{
 					id: "role-run-1",
@@ -1254,6 +1281,7 @@ describe("co-math extension registration", () => {
 					role: "synthesizer",
 					status: "completed",
 					reportId: "report-1",
+					transcriptPath: ".pi/co-math/transcripts/role-run-2.jsonl",
 				},
 			]);
 		} finally {
@@ -1376,6 +1404,7 @@ describe("co-math extension registration", () => {
 						id: "role-run-1",
 						status: "running",
 						executionMode: "background",
+						transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
 					});
 					return { summary: "Background coordinator completed." };
 				},
@@ -1390,6 +1419,7 @@ describe("co-math extension registration", () => {
 
 			const visibleText = notifications.join("\n");
 			expect(visibleText).toContain("Started co-math role run role-run-1 in background.");
+			expect(visibleText).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
 			expect(visibleText).toContain("/comath background-runs");
 			expect(visibleText).toContain("/comath run-status role-run-1");
 			await waitForNotificationCount(notifications, 4);
@@ -1433,8 +1463,12 @@ describe("co-math extension registration", () => {
 			await waitForCondition(() => {
 				expect(roleInvocations).toHaveLength(1);
 			});
-			expect(roleInvocations[0]).toMatchObject({ role: "synthesizer" });
+			expect(roleInvocations[0]).toMatchObject({
+				role: "synthesizer",
+				transcriptPath: join(tempDir, ".pi/co-math/transcripts/role-run-2.jsonl"),
+			});
 			expect(notifications.at(-1)).toContain("Started co-math role run role-run-2 in background.");
+			expect(notifications.at(-1)).toContain("Transcript: .pi/co-math/transcripts/role-run-2.jsonl");
 			expect(notifications.at(-1)).toContain("/comath background-runs");
 			expect(notifications.at(-1)).toContain("/comath run-status role-run-2");
 			let state = await loadProjectState(getDefaultStatePath(tempDir));

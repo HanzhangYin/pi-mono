@@ -169,6 +169,7 @@ describe("co-math project state", () => {
 			role: "workstream",
 			task: "Role: workstream",
 			targetWorkstreamId: "workstream-endpoints",
+			transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
 			now: FIXED_NOW,
 			actor: "workstream",
 		});
@@ -180,6 +181,7 @@ describe("co-math project state", () => {
 				status: "running",
 				targetWorkstreamId: "workstream-endpoints",
 				task: "Role: workstream",
+				transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
 				createdClaimIds: [],
 				createdEvidenceIds: [],
 				createdWarningIds: [],
@@ -256,6 +258,7 @@ describe("co-math project state", () => {
 			runId: "role-run-1",
 			now: "2026-06-05T12:05:00.000Z",
 			actor: "coordinator",
+			transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
 		});
 
 		expect(state.roleRuns[0]).toMatchObject({
@@ -263,6 +266,7 @@ describe("co-math project state", () => {
 			status: "running",
 			queuedAt: FIXED_NOW,
 			startedAt: "2026-06-05T12:05:00.000Z",
+			transcriptPath: ".pi/co-math/transcripts/role-run-1.jsonl",
 			updatedAt: "2026-06-05T12:05:00.000Z",
 		});
 		expect(state.events.at(-1)).toMatchObject({

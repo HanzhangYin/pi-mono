@@ -1,8 +1,32 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { EventEmitter } from "node:events";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { getPiInvocation, parseRoleRunOutput } from "../examples/extensions/co-math/role-runner.ts";
+import {
+	createDefaultRoleRunner,
+	createTranscriptWriter,
+	getPiInvocation,
+	parseRoleRunOutput,
+} from "../examples/extensions/co-math/role-runner.ts";
+
+type TranscriptStreamFactoryForTest = NonNullable<Parameters<typeof createTranscriptWriter>[1]>;
+
+class ErroringTranscriptStreamForTest extends EventEmitter {
+	write(_chunk: string): boolean {
+		queueMicrotask(() => {
+			this.emit("error", new Error("async transcript write failed"));
+		});
+		return false;
+	}
+
+	end(): this {
+		queueMicrotask(() => {
+			this.emit("error", new Error("async transcript close failed"));
+		});
+		return this;
+	}
+}
 
 describe("parseRoleRunOutput", () => {
 	it("parses plain JSON role output with proposed claims", () => {
@@ -362,6 +386,77 @@ describe("parseRoleRunOutput", () => {
 });
 
 describe("getPiInvocation", () => {
+	it("contains async transcript stream errors and resolves close safely", async () => {
+		const root = mkdtempSync(join(tmpdir(), "co-math-role-transcript-error-"));
+		const writeErrorStream = new ErroringTranscriptStreamForTest();
+		const closeErrorStream = new ErroringTranscriptStreamForTest();
+		const toTranscriptStream = (
+			stream: ErroringTranscriptStreamForTest,
+		): ReturnType<TranscriptStreamFactoryForTest> => stream as unknown as ReturnType<TranscriptStreamFactoryForTest>;
+
+		const writeErrorWriter = await createTranscriptWriter(join(root, "write-error.jsonl"), () =>
+			toTranscriptStream(writeErrorStream),
+		);
+		writeErrorWriter.write({ type: "started" });
+		await new Promise<void>((resolve) => {
+			setImmediate(resolve);
+		});
+		await expect(writeErrorWriter.close()).resolves.toBeUndefined();
+
+		const closeErrorWriter = await createTranscriptWriter(join(root, "close-error.jsonl"), () =>
+			toTranscriptStream(closeErrorStream),
+		);
+		await expect(closeErrorWriter.close()).resolves.toBeUndefined();
+	});
+
+	it("writes JSONL transcript events for a controlled Pi JSON-mode process", async () => {
+		const root = mkdtempSync(join(tmpdir(), "co-math-role-transcript-"));
+		const scriptPath = join(root, "fake-pi.sh");
+		const extensionDir = join(root, "extension");
+		const transcriptPath = join(root, ".pi", "co-math", "transcripts", "role-run-1.jsonl");
+		mkdirSync(join(extensionDir, "agents"), { recursive: true });
+		writeFileSync(join(extensionDir, "agents", "workstream.md"), "fake prompt\n");
+		writeFileSync(
+			scriptPath,
+			[
+				"#!/bin/sh",
+				'printf \'%s\\n\' \'{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"{\\"summary\\":\\"ok\\",\\"blockers\\":[\\"still blocked\\"]}"}]}}\'',
+				"printf '%s\\n' 'diagnostic stderr' >&2",
+			].join("\n"),
+		);
+		chmodSync(scriptPath, 0o755);
+		const roleRunner = createDefaultRoleRunner(extensionDir, {
+			currentScript: join(root, "missing-current-script"),
+			execPath: scriptPath,
+		});
+
+		const result = await roleRunner({
+			cwd: root,
+			role: "workstream",
+			task: "Role: workstream",
+			transcriptPath,
+		});
+
+		expect(result.summary).toBe("ok");
+		expect(result.blockers).toEqual(["still blocked"]);
+		const events = readFileSync(transcriptPath, "utf8")
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line) as { type: string; [key: string]: unknown });
+		expect(events).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ type: "started", role: "workstream", command: scriptPath }),
+				expect.objectContaining({ type: "stdout", line: expect.stringContaining('"message_end"') }),
+				expect.objectContaining({ type: "stderr", text: "diagnostic stderr\n" }),
+				expect.objectContaining({
+					type: "final_assistant_text",
+					text: '{"summary":"ok","blockers":["still blocked"]}',
+				}),
+				expect.objectContaining({ type: "closed", exitCode: 0, aborted: false }),
+			]),
+		);
+	});
+
 	it("uses tsx when a development TypeScript cli script is running under node", () => {
 		const root = mkdtempSync(join(tmpdir(), "co-math-role-runner-"));
 		const tsxPath = join(root, "node_modules", ".bin", "tsx");

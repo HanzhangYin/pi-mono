@@ -210,6 +210,7 @@ export interface StartRoleRunInput {
 	task: string;
 	targetWorkstreamId?: string;
 	targetClaimId?: string;
+	transcriptPath?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -229,6 +230,7 @@ export interface DispatchQueuedRoleRunInput {
 	now: string;
 	actor: CoMathActor;
 	executionMode?: RoleRunExecutionMode;
+	transcriptPath?: string;
 }
 
 export interface FinishRoleRunInput {
@@ -848,6 +850,7 @@ export function startRoleRun(state: CoMathProjectState, input: StartRoleRunInput
 		queuedAt: input.now,
 		startedAt: input.now,
 		executionMode: "foreground",
+		...(input.transcriptPath ? { transcriptPath: input.transcriptPath } : {}),
 		updatedAt: input.now,
 	};
 	let nextState = appendEvent(
@@ -949,6 +952,7 @@ export function dispatchQueuedRoleRun(
 							status: "running",
 							startedAt: input.now,
 							executionMode: input.executionMode ?? "foreground",
+							...(input.transcriptPath ? { transcriptPath: input.transcriptPath } : {}),
 							updatedAt: input.now,
 						}
 					: candidate,
@@ -1564,6 +1568,9 @@ function normalizeRoleRun(value: LegacyRoleRun): RoleRunRecord {
 			: value.startedAt && value.status !== "queued" && value.status !== "cancelled"
 				? { executionMode: "foreground" as const }
 				: {}),
+		...(getOptionalStringField(value, "transcriptPath")
+			? { transcriptPath: getOptionalStringField(value, "transcriptPath") }
+			: {}),
 	};
 }
 

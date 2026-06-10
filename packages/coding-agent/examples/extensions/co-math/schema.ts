@@ -160,6 +160,7 @@ export interface RoleRunRecord {
 	task: string;
 	executionMode?: RoleRunExecutionMode;
 	reportId?: string;
+	transcriptPath?: string;
 	createdClaimIds: string[];
 	createdEvidenceIds: string[];
 	createdWarningIds: string[];

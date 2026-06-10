@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ArtifactKind, EvidenceKind, WarningSeverity } from "./schema.ts";
@@ -11,6 +12,7 @@ export interface RoleRunInput {
 	role: CoMathRole;
 	task: string;
 	signal?: AbortSignal;
+	transcriptPath?: string;
 }
 
 export interface RoleRunResult {
@@ -72,10 +74,20 @@ interface ParseFailure {
 	reason: string;
 }
 
-export function createDefaultRoleRunner(extensionDir = path.dirname(fileURLToPath(import.meta.url))): RoleRunner {
+interface TranscriptWriter {
+	write(value: Record<string, unknown>): void;
+	close(): Promise<void>;
+}
+
+type TranscriptStream = Pick<fs.WriteStream, "write" | "end" | "on" | "once" | "off">;
+
+export function createDefaultRoleRunner(
+	extensionDir = path.dirname(fileURLToPath(import.meta.url)),
+	invocationOptions: PiInvocationOptions = {},
+): RoleRunner {
 	return async (input) => {
 		const promptPath = path.join(extensionDir, "agents", `${input.role}.md`);
-		return runPiRole(input, promptPath);
+		return runPiRole(input, promptPath, invocationOptions);
 	};
 }
 
@@ -89,70 +101,185 @@ export function parseRoleRunOutput(text: string): RoleRunResult {
 	return result;
 }
 
-async function runPiRole(input: RoleRunInput, promptPath: string): Promise<RoleRunResult> {
+async function runPiRole(
+	input: RoleRunInput,
+	promptPath: string,
+	invocationOptions: PiInvocationOptions = {},
+): Promise<RoleRunResult> {
 	const args = ["--mode", "json", "-p", "--no-session", "--append-system-prompt", promptPath, `Task: ${input.task}`];
-	const invocation = getPiInvocation(args);
+	const invocation = getPiInvocation(args, invocationOptions);
+	const transcript = await createTranscriptWriter(input.transcriptPath);
 	let stdoutBuffer = "";
 	let stderr = "";
 	let finalSummary = "";
 	let wasAborted = false;
+	let closedEventWritten = false;
 
-	const exitCode = await new Promise<number>((resolve) => {
-		const proc = spawn(invocation.command, invocation.args, {
-			cwd: input.cwd,
-			shell: false,
-			stdio: ["ignore", "pipe", "pipe"],
-		});
-
-		const processLine = (line: string) => {
-			const event = parseJsonObject(line);
-			if (!event) return;
-			if (event.type !== "message_end") return;
-			const message = getObject(event.message);
-			if (!message) return;
-			const text = getAssistantText(message);
-			if (text.length > 0) finalSummary = text;
-		};
-
-		proc.stdout.on("data", (data: Buffer) => {
-			stdoutBuffer += data.toString();
-			const lines = stdoutBuffer.split("\n");
-			stdoutBuffer = lines.pop() ?? "";
-			for (const line of lines) processLine(line);
-		});
-
-		proc.stderr.on("data", (data: Buffer) => {
-			stderr += data.toString();
-		});
-
-		proc.on("close", (code) => {
-			if (stdoutBuffer.trim().length > 0) processLine(stdoutBuffer);
-			resolve(code ?? 0);
-		});
-
-		proc.on("error", () => {
-			resolve(1);
-		});
-
-		if (input.signal) {
-			const killProc = () => {
-				wasAborted = true;
-				proc.kill("SIGTERM");
-			};
-			if (input.signal.aborted) killProc();
-			else input.signal.addEventListener("abort", killProc, { once: true });
-		}
+	transcript.write({
+		type: "started",
+		timestamp: new Date().toISOString(),
+		role: input.role,
+		cwd: input.cwd,
+		command: invocation.command,
+		args: invocation.args,
 	});
 
-	if (wasAborted) {
-		throw new Error("Co-math role run was aborted.");
+	try {
+		const exitCode = await new Promise<number>((resolve) => {
+			const proc = spawn(invocation.command, invocation.args, {
+				cwd: input.cwd,
+				shell: false,
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+
+			const writeClosedEvent = (code: number): void => {
+				if (closedEventWritten) return;
+				closedEventWritten = true;
+				transcript.write({
+					type: "closed",
+					timestamp: new Date().toISOString(),
+					exitCode: code,
+					aborted: wasAborted,
+				});
+			};
+
+			const processLine = (line: string) => {
+				const event = parseJsonObject(line);
+				if (!event) return;
+				if (event.type !== "message_end") return;
+				const message = getObject(event.message);
+				if (!message) return;
+				const text = getAssistantText(message);
+				if (text.length > 0) {
+					finalSummary = text;
+					transcript.write({
+						type: "final_assistant_text",
+						timestamp: new Date().toISOString(),
+						text,
+					});
+				}
+			};
+
+			const processStdoutText = (text: string): void => {
+				stdoutBuffer += text;
+				const lines = stdoutBuffer.split("\n");
+				stdoutBuffer = lines.pop() ?? "";
+				for (const line of lines) {
+					transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line });
+					processLine(line);
+				}
+			};
+
+			const processStderrText = (text: string): void => {
+				stderr += text;
+				transcript.write({ type: "stderr", timestamp: new Date().toISOString(), text });
+			};
+
+			proc.stdout.on("data", (data: Buffer) => {
+				processStdoutText(data.toString());
+			});
+
+			proc.stderr.on("data", (data: Buffer) => {
+				processStderrText(data.toString());
+			});
+			proc.stdout.resume();
+			proc.stderr.resume();
+
+			proc.on("close", (code) => {
+				setImmediate(() => {
+					const remainingStdout = proc.stdout.read();
+					if (remainingStdout) processStdoutText(remainingStdout.toString());
+					const remainingStderr = proc.stderr.read();
+					if (remainingStderr) processStderrText(remainingStderr.toString());
+					if (stdoutBuffer.trim().length > 0) {
+						transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line: stdoutBuffer });
+						processLine(stdoutBuffer);
+					}
+					const resolvedCode = code ?? 0;
+					writeClosedEvent(resolvedCode);
+					resolve(resolvedCode);
+				});
+			});
+
+			proc.on("error", (error) => {
+				transcript.write({ type: "stderr", timestamp: new Date().toISOString(), text: error.message });
+				writeClosedEvent(1);
+				resolve(1);
+			});
+
+			if (input.signal) {
+				const killProc = () => {
+					wasAborted = true;
+					proc.kill("SIGTERM");
+				};
+				if (input.signal.aborted) killProc();
+				else input.signal.addEventListener("abort", killProc, { once: true });
+			}
+		});
+
+		if (wasAborted) {
+			throw new Error("Co-math role run was aborted.");
+		}
+		if (exitCode !== 0) {
+			throw new Error(stderr.trim() || `Co-math role process exited with code ${exitCode}.`);
+		}
+		return {
+			...parseRoleRunOutput(finalSummary),
+			stderr: stderr.trim() || undefined,
+		};
+	} finally {
+		await transcript.close();
 	}
-	if (exitCode !== 0) {
-		throw new Error(stderr.trim() || `Co-math role process exited with code ${exitCode}.`);
+}
+
+export async function createTranscriptWriter(
+	transcriptPath: string | undefined,
+	createStream: (targetPath: string) => TranscriptStream = (targetPath) =>
+		fs.createWriteStream(targetPath, { flags: "a" }),
+): Promise<TranscriptWriter> {
+	if (!transcriptPath) {
+		return {
+			write: () => {},
+			close: async () => {},
+		};
 	}
+	await mkdir(path.dirname(transcriptPath), { recursive: true });
+	await writeFile(transcriptPath, "", "utf8");
+	const stream = createStream(transcriptPath);
+	let closed = false;
+	let closePromise: Promise<void> | undefined;
+	let settleClose: (() => void) | undefined;
+	stream.on("error", () => {
+		closed = true;
+		settleClose?.();
+	});
 	return {
-		...parseRoleRunOutput(finalSummary),
-		stderr: stderr.trim() || undefined,
+		write(value) {
+			if (closed) return;
+			stream.write(`${JSON.stringify(value)}\n`);
+		},
+		close: async () => {
+			if (closePromise) return closePromise;
+			if (closed) return;
+			closePromise = new Promise<void>((resolve) => {
+				const settle = () => {
+					closed = true;
+					stream.off("finish", settle);
+					stream.off("error", settle);
+					settleClose = undefined;
+					resolve();
+				};
+				settleClose = settle;
+				stream.once("finish", settle);
+				stream.once("error", settle);
+				try {
+					stream.end();
+				} catch {
+					settle();
+				}
+			});
+			await closePromise;
+		},
 	};
 }
 
