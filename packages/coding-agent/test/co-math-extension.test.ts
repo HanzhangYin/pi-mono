@@ -187,6 +187,36 @@ describe("co-math extension registration", () => {
 		expect(command?.description?.toLowerCase()).toContain("co-math");
 	});
 
+	it("registers the /co natural-language slash command", () => {
+		const { commands } = createCoMathExtensionFixture();
+
+		const command = commands.get("co");
+		expect(command).toBeDefined();
+		expect(command?.description?.toLowerCase()).toContain("natural-language co-math");
+	});
+
+	it("shows natural-language help and safe unknown-intent guidance", async () => {
+		const { commands, notifications } = createCoMathExtensionFixture();
+		const command = commands.get("co");
+		expect(command).toBeDefined();
+		const ctx = createCommandContext(notifications);
+
+		await command?.handler("help", ctx);
+		await command?.handler("please solve the paper", ctx);
+		await command?.handler("looks good", ctx);
+
+		const visibleText = notifications.join("\n");
+		expect(visibleText).toContain("Natural co-math examples:");
+		expect(visibleText).toContain("/co start a project for <question or paper>");
+		expect(visibleText).toContain("Advanced/debug interface: /comath help");
+		expect(visibleText).toContain("I could not map that to a safe co-math action.");
+		expect(visibleText).toContain("/co run latest workstream");
+		expect(visibleText).toContain("Please use an explicit review action");
+		expect(visibleText).toContain(
+			"/co accept latest report: useful source-backed extraction, but keep support gap open",
+		);
+	});
+
 	it("registers the comath_state tool", () => {
 		const { tools } = createCoMathExtensionFixture();
 
@@ -258,6 +288,100 @@ describe("co-math extension registration", () => {
 			expect(visibleText).toContain("Added co-math workstream workstream-small-examples");
 			expect(visibleText).toContain("Goals: 1");
 			expect(visibleText).toContain("Workstreams: 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("runs a compact natural-language co-math workflow through /co", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-natural-flow-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({
+					summary: "Source support gap remains open.",
+					blockers: ["Need source-backed support lemma."],
+				}),
+			});
+			const command = commands.get("co");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("start a project for Q3 validation", ctx);
+			await command?.handler("set goal verify stationarity proof skeleton", ctx);
+			await command?.handler("create a workstream to audit the source support gap", ctx);
+			await command?.handler("run latest workstream", ctx);
+			await command?.handler("show latest report", ctx);
+			await command?.handler("request revision for latest report: support gap remains open", ctx);
+			await command?.handler("what next", ctx);
+
+			const state = await loadProjectState(getDefaultStatePath(tempDir));
+			expect(state?.rootQuestion).toBe("Q3 validation");
+			expect(state?.approvedGoals).toMatchObject([{ id: "goal-1", text: "verify stationarity proof skeleton" }]);
+			expect(state?.workstreams).toMatchObject([
+				{
+					id: "workstream-audit-the-source-support-gap",
+					title: "audit the source support gap",
+				},
+			]);
+			expect(state?.roleRuns).toMatchObject([
+				{
+					id: "role-run-1",
+					targetWorkstreamId: "workstream-audit-the-source-support-gap",
+					reportId: "report-1",
+				},
+			]);
+			expect(state?.reports).toMatchObject([{ id: "report-1", summary: "Source support gap remains open." }]);
+			expect(state?.reportReviewRounds).toMatchObject([
+				{
+					id: "report-review-1",
+					reportId: "report-1",
+					outcome: "revision_requested",
+					summary: "support gap remains open",
+				},
+			]);
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("Interpreted: start project");
+			expect(visibleText).toContain("Equivalent: /comath init Q3 validation");
+			expect(visibleText).toContain(
+				"Equivalent: /comath workstream audit-the-source-support-gap: audit the source support gap",
+			);
+			expect(visibleText).toContain("Equivalent: /comath run workstream workstream-audit-the-source-support-gap");
+			expect(visibleText).toContain("Equivalent: /comath report-status report-1");
+			expect(visibleText).toContain(
+				"Equivalent: /comath review-report report-1 revision-requested: support gap remains open",
+			);
+			expect(visibleText).toContain("Equivalent: /comath next");
+			expect(visibleText).not.toContain("Role completed, but output was not valid structured co-math JSON.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("resolves latest natural-language report, run, and workstream references safely", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-natural-latest-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async () => ({ summary: "Natural latest report." }),
+			});
+			const command = commands.get("co");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("start a project for latest lookup", ctx);
+			await command?.handler("show latest report", ctx);
+			await command?.handler("run latest workstream", ctx);
+			await command?.handler("set goal inspect latest records", ctx);
+			await command?.handler("create a workstream to inspect latest references", ctx);
+			await command?.handler("run latest workstream", ctx);
+			await command?.handler("show latest report", ctx);
+			await command?.handler("show latest run", ctx);
+
+			const visibleText = notifications.join("\n");
+			expect(visibleText).toContain("No reports exist yet. Try: /co run latest workstream");
+			expect(visibleText).toContain("No workstreams exist yet. Try: /co create a workstream to <specific task>");
+			expect(visibleText).toContain("Equivalent: /comath run workstream workstream-inspect-latest-references");
+			expect(visibleText).toContain("Equivalent: /comath report-status report-1");
+			expect(visibleText).toContain("Equivalent: /comath run-status role-run-1");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -4171,6 +4295,10 @@ describe("co-math extension registration", () => {
 
 			expect(readme).toContain("cd /Users/hanzhangyin/Developer/pi-mono-comath/packages/coding-agent");
 			expect(readme).toContain("pi -e examples/extensions/co-math/index.ts");
+			expect(readme).toContain("/co start a project for the reference paper");
+			expect(readme).toContain("/co run latest workstream");
+			expect(readme).toContain("/co request revision for latest report: missing source-backed support lemma");
+			expect(readme).toContain("equivalent `/comath` command");
 			expect(readme).toContain("/comath init Study endpoint behavior for a permutation class");
 			expect(readme).toContain("/comath goal Prove or refute the first nontrivial endpoint monotonicity case");
 			expect(readme).toContain(

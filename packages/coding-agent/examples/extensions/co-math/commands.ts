@@ -3,6 +3,12 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "../../../src/core/extensions/types.ts";
+import { type CoMathNaturalIntent, parseCoMathNaturalRequest } from "./natural-language.ts";
+import {
+	formatAmbiguousReviewAction,
+	formatUnknownNaturalLanguageRequest,
+	NATURAL_LANGUAGE_HELP_TEXT,
+} from "./natural-language-help.ts";
 import {
 	type CoMathRole,
 	createDefaultRoleRunner,
@@ -141,6 +147,99 @@ export function registerCoMathCommand(pi: ExtensionAPI, options: RegisterCoMathC
 			await handleCoMathCommand(pi, args, ctx, roleRunner);
 		},
 	});
+	pi.registerCommand("co", {
+		description: "Natural-language co-math assistant",
+		handler: async (args, ctx) => {
+			await handleNaturalCoMathCommand(pi, args, ctx, roleRunner);
+		},
+	});
+}
+
+async function handleNaturalCoMathCommand(
+	pi: ExtensionAPI,
+	args: string,
+	ctx: ExtensionCommandContext,
+	roleRunner: RoleRunner,
+): Promise<void> {
+	const intent = parseCoMathNaturalRequest(args);
+	if (intent.kind === "help") {
+		showCommandMessage(pi, ctx, NATURAL_LANGUAGE_HELP_TEXT);
+		return;
+	}
+	if (intent.kind === "unknown") {
+		showCommandMessage(
+			pi,
+			ctx,
+			intent.reason === "ambiguous report review action"
+				? formatAmbiguousReviewAction()
+				: formatUnknownNaturalLanguageRequest(intent.suggestions),
+		);
+		return;
+	}
+
+	const command = await translateNaturalIntent(pi, ctx, intent);
+	if (!command) return;
+	showCommandMessage(
+		pi,
+		ctx,
+		[`Interpreted: ${command.interpreted}`, `Equivalent: /comath ${command.args}`].join("\n"),
+	);
+	await handleCoMathCommand(pi, command.args, ctx, roleRunner);
+}
+
+interface TranslatedNaturalCommand {
+	interpreted: string;
+	args: string;
+}
+
+async function translateNaturalIntent(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	intent: Exclude<CoMathNaturalIntent, { kind: "help" } | { kind: "unknown" }>,
+): Promise<TranslatedNaturalCommand | undefined> {
+	if (intent.kind === "init") {
+		return { interpreted: "start project", args: `init ${intent.question}` };
+	}
+	if (intent.kind === "goal") {
+		return { interpreted: "set goal", args: `goal ${intent.text}` };
+	}
+	if (intent.kind === "workstream") {
+		return { interpreted: "create workstream", args: `workstream ${intent.slug}: ${intent.goal}` };
+	}
+	if (intent.kind === "run-workstream") {
+		const workstream = await resolveNaturalWorkstreamRef(pi, ctx, intent.workstreamRef);
+		if (!workstream) return undefined;
+		return { interpreted: `run ${intent.workstreamRef} workstream`, args: `run workstream ${workstream.id}` };
+	}
+	if (intent.kind === "show-report") {
+		const reportId = await resolveNaturalReportRef(pi, ctx, intent.reportRef);
+		if (!reportId) return undefined;
+		return { interpreted: `show ${intent.reportRef} report`, args: `report-status ${reportId}` };
+	}
+	if (intent.kind === "show-run") {
+		const runId = await resolveNaturalRunRef(pi, ctx, intent.runRef);
+		if (!runId) return undefined;
+		return { interpreted: `show ${intent.runRef} run`, args: `run-status ${runId}` };
+	}
+	if (intent.kind === "review-report") {
+		const reportId = await resolveNaturalReportRef(pi, ctx, intent.reportRef);
+		if (!reportId) return undefined;
+		return {
+			interpreted: `${intent.decision} report`,
+			args: `review-report ${reportId} ${intent.decision}: ${intent.note}`,
+		};
+	}
+	if (intent.kind === "margin-note") {
+		const subjectId = await resolveNaturalMarginNoteTargetRef(pi, ctx, intent.targetRef);
+		if (!subjectId) return undefined;
+		return { interpreted: "add margin note", args: `margin-note ${subjectId} ${intent.category}: ${intent.note}` };
+	}
+	if (intent.kind === "export-paper") {
+		const pathArg = intent.path ? ` ${intent.path}` : "";
+		const forceArg = intent.force ? " --force" : "";
+		return { interpreted: "export working paper", args: `export-paper${pathArg}${forceArg}` };
+	}
+	return { interpreted: "next safe action", args: "next" };
 }
 
 async function handleCoMathCommand(
@@ -3677,6 +3776,78 @@ function getReportNextAction(
 		return `/comath review-report ${report.id} accepted|revision-requested|blocked: <summary>`;
 	}
 	return "/comath status";
+}
+
+async function resolveNaturalReportRef(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	reportRef: "latest" | string,
+): Promise<string | undefined> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) return undefined;
+	if (reportRef !== "latest") return reportRef;
+	const report = state.reports.at(-1);
+	if (!report) {
+		showCommandMessage(pi, ctx, "No reports exist yet. Try: /co run latest workstream");
+		return undefined;
+	}
+	return report.id;
+}
+
+async function resolveNaturalRunRef(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	runRef: "latest" | string,
+): Promise<string | undefined> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) return undefined;
+	if (runRef !== "latest") return runRef;
+	const run = state.roleRuns.at(-1);
+	if (!run) {
+		showCommandMessage(pi, ctx, "No role runs exist yet. Try: /co run latest workstream");
+		return undefined;
+	}
+	return run.id;
+}
+
+async function resolveNaturalWorkstreamRef(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	workstreamRef: "latest" | string,
+): Promise<Workstream | undefined> {
+	const state = await loadProjectStateOrNotify(pi, ctx);
+	if (!state) return undefined;
+	if (workstreamRef !== "latest") {
+		const workstream =
+			state.workstreams.find((candidate) => candidate.id === workstreamRef) ??
+			state.workstreams.find((candidate) => candidate.id === `workstream-${slugify(workstreamRef)}`);
+		if (!workstream) {
+			showCommandMessage(pi, ctx, `No workstream found for ${workstreamRef}.`);
+			return undefined;
+		}
+		return workstream;
+	}
+	if (state.workstreams.length === 0) {
+		showCommandMessage(pi, ctx, "No workstreams exist yet. Try: /co create a workstream to <specific task>");
+		return undefined;
+	}
+	return (
+		[...state.workstreams].reverse().find((workstream) => isPreferredNaturalLatestWorkstream(workstream)) ??
+		state.workstreams[state.workstreams.length - 1]
+	);
+}
+
+async function resolveNaturalMarginNoteTargetRef(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	targetRef: "latest-report" | string,
+): Promise<string | undefined> {
+	if (targetRef !== "latest-report") return targetRef;
+	return resolveNaturalReportRef(pi, ctx, "latest");
+}
+
+function isPreferredNaturalLatestWorkstream(workstream: Workstream): boolean {
+	return workstream.status === "active" || workstream.status === "running" || workstream.status === "needs_review";
 }
 
 function formatClaimHistory(state: CoMathProjectState, claim: Claim): string {

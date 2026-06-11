@@ -16,7 +16,43 @@ pi -e examples/extensions/co-math/index.ts
 The extension registers:
 
 - `/comath` for user-facing workspace commands.
+- `/co` for common natural-language co-math operations.
 - `comath_state` for model-visible state reads and initialization.
+
+## Natural-language interaction
+
+Use `/co` for common co-math operations without remembering every `/comath` subcommand.
+
+Examples:
+
+```text
+/co start a project for the reference paper
+/co set goal validate Question 3 with source-backed definitions
+/co create a workstream to audit the stationarity proof support gap
+/co run latest workstream
+/co show latest report
+/co request revision for latest report: missing source-backed support lemma
+/co export working paper
+/co what next
+```
+
+`/comath` remains available as the advanced/debug interface.
+
+### Natural interaction smoke test
+
+In a scratch workspace, run the extension and use `/co` for the main workflow:
+
+```text
+/co start a project for 2605.06651v2 Question 3 validation
+/co set goal validate Question 3 using source-backed definitions and preserve proof gaps
+/co create a workstream to audit whether the stationarity proof has a support indexing gap
+/co run latest workstream
+/co show latest report
+/co request revision for latest report: keep the support/indexing gap open until a source-backed vanishing lemma is found
+/co what next
+```
+
+The natural interface prints the equivalent `/comath` command before execution so the advanced command surface remains inspectable.
 
 ## Architecture-aligned workflow
 
