@@ -1,29 +1,23 @@
-export const NATURAL_LANGUAGE_HELP_TEXT = `Natural co-math examples:
-- /co start a project for <question or paper>
-- /co set goal <research goal>
-- /co create a workstream to <specific task>
-- /co run latest workstream
-- /co show latest report
-- /co accept report <id>: <note>
-- /co request revision for latest report: <note>
-- /co export working paper
-- /co what next
+export const NATURAL_LANGUAGE_HELP_TEXT = `Co-math conversation mode examples:
+- Start a project for <question or paper>
+- Set goal <research goal>
+- Create a workstream to <specific task>
+- Run the latest workstream
+- Show the latest report
+- Request revision for latest report: <note>
+- What should I do next?
 
-Advanced/debug interface: /comath help`;
+Debug interface: /comath help`;
 
-export function formatUnknownNaturalLanguageRequest(suggestions: string[]): string {
-	return [
-		"I could not map that to a safe co-math action.",
-		"",
-		"Try one of:",
-		...(suggestions.length > 0 ? suggestions : NATURAL_LANGUAGE_HELP_TEXT.split("\n").slice(1, -2)),
-	].join("\n");
+export function formatUnknownNaturalLanguageRequest(_suggestions: string[]): string {
+	return ["I could not map that to a safe co-math action.", "", ...NATURAL_LANGUAGE_HELP_TEXT.split("\n")].join("\n");
 }
 
 export function formatAmbiguousReviewAction(): string {
 	return [
 		"Please use an explicit review action, for example:",
-		"/co accept latest report: useful source-backed extraction, but keep support gap open",
-		"/co request revision for latest report: missing source-backed support lemma",
+		"Request revision for latest report: missing source-backed support lemma",
+		"Accept latest report: useful source-backed extraction, but keep support gap open",
+		"Block latest report: output contradicts the source indexing assumptions",
 	].join("\n");
 }

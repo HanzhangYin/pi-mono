@@ -5,9 +5,11 @@
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import chalk from "chalk";
 import { APP_NAME, CONFIG_DIR_NAME, ENV_AGENT_DIR, ENV_SESSION_DIR } from "../config.ts";
+import type { ConversationMode } from "../core/conversation-mode.ts";
 import type { ExtensionFlag } from "../core/extensions/types.ts";
 
 export type Mode = "text" | "json" | "rpc";
+export type ProductMode = "comath";
 
 export interface Args {
 	provider?: string;
@@ -21,6 +23,9 @@ export interface Args {
 	help?: boolean;
 	version?: boolean;
 	mode?: Mode;
+	productMode?: ProductMode;
+	comathSource?: string;
+	conversationMode?: ConversationMode;
 	name?: string;
 	noSession?: boolean;
 	session?: string;
@@ -67,68 +72,74 @@ export function parseArgs(args: string[]): Args {
 		unknownFlags: new Map(),
 		diagnostics: [],
 	};
+	const parseInput = [...args];
+	let canDetectProductCommand = true;
 
-	for (let i = 0; i < args.length; i++) {
-		const arg = args[i];
+	for (let i = 0; i < parseInput.length; i++) {
+		const arg = parseInput[i];
 
 		if (arg === "--help" || arg === "-h") {
 			result.help = true;
 		} else if (arg === "--version" || arg === "-v") {
 			result.version = true;
-		} else if (arg === "--mode" && i + 1 < args.length) {
-			const mode = args[++i];
+		} else if (arg === "--mode" && i + 1 < parseInput.length) {
+			const mode = parseInput[++i];
 			if (mode === "text" || mode === "json" || mode === "rpc") {
 				result.mode = mode;
+			} else if (mode === "comath") {
+				result.conversationMode = "comath";
 			}
+		} else if (arg === "--comath") {
+			result.conversationMode = "comath";
 		} else if (arg === "--continue" || arg === "-c") {
 			result.continue = true;
 		} else if (arg === "--resume" || arg === "-r") {
 			result.resume = true;
-		} else if (arg === "--provider" && i + 1 < args.length) {
-			result.provider = args[++i];
-		} else if (arg === "--model" && i + 1 < args.length) {
-			result.model = args[++i];
-		} else if (arg === "--api-key" && i + 1 < args.length) {
-			result.apiKey = args[++i];
-		} else if (arg === "--system-prompt" && i + 1 < args.length) {
-			result.systemPrompt = args[++i];
-		} else if (arg === "--append-system-prompt" && i + 1 < args.length) {
+		} else if (arg === "--provider" && i + 1 < parseInput.length) {
+			result.provider = parseInput[++i];
+		} else if (arg === "--model" && i + 1 < parseInput.length) {
+			result.model = parseInput[++i];
+		} else if (arg === "--api-key" && i + 1 < parseInput.length) {
+			result.apiKey = parseInput[++i];
+		} else if (arg === "--system-prompt" && i + 1 < parseInput.length) {
+			result.systemPrompt = parseInput[++i];
+		} else if (arg === "--append-system-prompt" && i + 1 < parseInput.length) {
 			result.appendSystemPrompt = result.appendSystemPrompt ?? [];
-			result.appendSystemPrompt.push(args[++i]);
+			result.appendSystemPrompt.push(parseInput[++i]);
 		} else if (arg === "--name" || arg === "-n") {
-			if (i + 1 < args.length) {
-				result.name = args[++i];
+			if (i + 1 < parseInput.length) {
+				result.name = parseInput[++i];
 			} else {
 				result.diagnostics.push({ type: "error", message: "--name requires a value" });
 			}
 		} else if (arg === "--no-session") {
 			result.noSession = true;
-		} else if (arg === "--session" && i + 1 < args.length) {
-			result.session = args[++i];
-		} else if (arg === "--session-id" && i + 1 < args.length) {
-			result.sessionId = args[++i];
-		} else if (arg === "--fork" && i + 1 < args.length) {
-			result.fork = args[++i];
-		} else if (arg === "--session-dir" && i + 1 < args.length) {
-			result.sessionDir = args[++i];
-		} else if (arg === "--models" && i + 1 < args.length) {
-			result.models = args[++i].split(",").map((s) => s.trim());
+		} else if (arg === "--session" && i + 1 < parseInput.length) {
+			result.session = parseInput[++i];
+		} else if (arg === "--session-id" && i + 1 < parseInput.length) {
+			result.sessionId = parseInput[++i];
+		} else if (arg === "--fork" && i + 1 < parseInput.length) {
+			result.fork = parseInput[++i];
+		} else if (arg === "--session-dir" && i + 1 < parseInput.length) {
+			result.sessionDir = parseInput[++i];
+		} else if (arg === "--models" && i + 1 < parseInput.length) {
+			result.models = parseInput[++i].split(",").map((s) => s.trim());
 		} else if (arg === "--no-tools" || arg === "-nt") {
 			result.noTools = true;
 		} else if (arg === "--no-builtin-tools" || arg === "-nbt") {
 			result.noBuiltinTools = true;
-		} else if ((arg === "--tools" || arg === "-t") && i + 1 < args.length) {
-			result.tools = args[++i]
+		} else if ((arg === "--tools" || arg === "-t") && i + 1 < parseInput.length) {
+			result.tools = parseInput[++i]
 				.split(",")
 				.map((s) => s.trim())
 				.filter((name) => name.length > 0);
-		} else if ((arg === "--exclude-tools" || arg === "-xt") && i + 1 < args.length) {
-			result.excludeTools = args[++i]
+		} else if ((arg === "--exclude-tools" || arg === "-xt") && i + 1 < parseInput.length) {
+			result.excludeTools = parseInput[++i]
 				.split(",")
 				.map((s) => s.trim())
 				.filter((name) => name.length > 0);
-		} else if (arg === "--thinking" && i + 1 < args.length) {
-			const level = args[++i];
+		} else if (arg === "--thinking" && i + 1 < parseInput.length) {
+			const level = parseInput[++i];
 			if (isValidThinkingLevel(level)) {
 				result.thinking = level;
 			} else {
@@ -139,27 +150,27 @@ export function parseArgs(args: string[]): Args {
 			}
 		} else if (arg === "--print" || arg === "-p") {
 			result.print = true;
-			const next = args[i + 1];
+			const next = parseInput[i + 1];
 			if (next !== undefined && !next.startsWith("@") && (!next.startsWith("-") || next.startsWith("---"))) {
 				result.messages.push(next);
 				i++;
 			}
-		} else if (arg === "--export" && i + 1 < args.length) {
-			result.export = args[++i];
-		} else if ((arg === "--extension" || arg === "-e") && i + 1 < args.length) {
+		} else if (arg === "--export" && i + 1 < parseInput.length) {
+			result.export = parseInput[++i];
+		} else if ((arg === "--extension" || arg === "-e") && i + 1 < parseInput.length) {
 			result.extensions = result.extensions ?? [];
-			result.extensions.push(args[++i]);
+			result.extensions.push(parseInput[++i]);
 		} else if (arg === "--no-extensions" || arg === "-ne") {
 			result.noExtensions = true;
-		} else if (arg === "--skill" && i + 1 < args.length) {
+		} else if (arg === "--skill" && i + 1 < parseInput.length) {
 			result.skills = result.skills ?? [];
-			result.skills.push(args[++i]);
-		} else if (arg === "--prompt-template" && i + 1 < args.length) {
+			result.skills.push(parseInput[++i]);
+		} else if (arg === "--prompt-template" && i + 1 < parseInput.length) {
 			result.promptTemplates = result.promptTemplates ?? [];
-			result.promptTemplates.push(args[++i]);
-		} else if (arg === "--theme" && i + 1 < args.length) {
+			result.promptTemplates.push(parseInput[++i]);
+		} else if (arg === "--theme" && i + 1 < parseInput.length) {
 			result.themes = result.themes ?? [];
-			result.themes.push(args[++i]);
+			result.themes.push(parseInput[++i]);
 		} else if (arg === "--no-skills" || arg === "-ns") {
 			result.noSkills = true;
 		} else if (arg === "--no-prompt-templates" || arg === "-np") {
@@ -170,8 +181,8 @@ export function parseArgs(args: string[]): Args {
 			result.noContextFiles = true;
 		} else if (arg === "--list-models") {
 			// Check if next arg is a search pattern (not a flag or file arg)
-			if (i + 1 < args.length && !args[i + 1].startsWith("-") && !args[i + 1].startsWith("@")) {
-				result.listModels = args[++i];
+			if (i + 1 < parseInput.length && !parseInput[i + 1].startsWith("-") && !parseInput[i + 1].startsWith("@")) {
+				result.listModels = parseInput[++i];
 			} else {
 				result.listModels = true;
 			}
@@ -191,7 +202,7 @@ export function parseArgs(args: string[]): Args {
 				result.unknownFlags.set(arg.slice(2, eqIndex), arg.slice(eqIndex + 1));
 			} else {
 				const flagName = arg.slice(2);
-				const next = args[i + 1];
+				const next = parseInput[i + 1];
 				if (next !== undefined && !next.startsWith("-") && !next.startsWith("@")) {
 					result.unknownFlags.set(flagName, next);
 					i++;
@@ -202,6 +213,17 @@ export function parseArgs(args: string[]): Args {
 		} else if (arg.startsWith("-") && !arg.startsWith("--")) {
 			result.diagnostics.push({ type: "error", message: `Unknown option: ${arg}` });
 		} else if (!arg.startsWith("-")) {
+			if (canDetectProductCommand && arg === "comath") {
+				result.productMode = "comath";
+				result.conversationMode = "comath";
+				const next = parseInput[i + 1];
+				if (next !== undefined && !next.startsWith("-") && !next.startsWith("@")) {
+					result.comathSource = next;
+					i++;
+				}
+				continue;
+			}
+			canDetectProductCommand = false;
 			result.messages.push(arg);
 		}
 	}
@@ -226,6 +248,7 @@ ${chalk.bold("Usage:")}
   ${APP_NAME} [options] [@files...] [messages...]
 
 ${chalk.bold("Commands:")}
+  ${APP_NAME} comath [source]           Start first-class co-math research mode
   ${APP_NAME} install <source> [-l]     Install extension source and add to settings
   ${APP_NAME} remove <source> [-l]      Remove extension source from settings
   ${APP_NAME} uninstall <source> [-l]   Alias for remove
@@ -242,7 +265,8 @@ ${chalk.bold("Options:")}
   --api-key <key>                API key (defaults to env vars)
   --system-prompt <text>         System prompt (default: coding assistant prompt)
   --append-system-prompt <text>  Append text or file contents to the system prompt (can be used multiple times)
-  --mode <mode>                  Output mode: text (default), json, or rpc
+  --mode <mode>                  Output mode: text (default), json, rpc, or comath
+  --comath                       Co-math conversation mode for ordinary prompts
   --print, -p                    Non-interactive mode: process prompt and exit
   --continue, -c                 Continue previous session
   --resume, -r                   Select a session to resume
@@ -284,6 +308,9 @@ Extensions can register additional flags (e.g., --plan from plan-mode extension)
 ${chalk.bold("Examples:")}
   # Interactive mode
   ${APP_NAME}
+
+  # Co-math research mode
+  ${APP_NAME} comath ./paper.pdf
 
   # Interactive mode with initial prompt
   ${APP_NAME} "List all .ts files in src/"

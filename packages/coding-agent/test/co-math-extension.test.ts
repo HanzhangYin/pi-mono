@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
+import { formatCoMathProductBackendMessage, runCoMathBackendCommand } from "../examples/extensions/co-math/commands.ts";
 import coMathExtension from "../examples/extensions/co-math/index.ts";
 import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
 import {
@@ -46,6 +47,7 @@ interface ProposedClaimForTest {
 interface ProposedArtifactForTest {
 	kind:
 		| "computation"
+		| "source"
 		| "latex_note"
 		| "proof_sketch"
 		| "counterexample_search"
@@ -206,15 +208,105 @@ describe("co-math extension registration", () => {
 		await command?.handler("looks good", ctx);
 
 		const visibleText = notifications.join("\n");
-		expect(visibleText).toContain("Natural co-math examples:");
-		expect(visibleText).toContain("/co start a project for <question or paper>");
-		expect(visibleText).toContain("Advanced/debug interface: /comath help");
+		expect(visibleText).toContain("Co-math conversation mode examples:");
+		expect(visibleText).toContain("Start a project for <question or paper>");
+		expect(visibleText).toContain("Debug interface: /comath help");
 		expect(visibleText).toContain("I could not map that to a safe co-math action.");
-		expect(visibleText).toContain("/co run latest workstream");
+		expect(visibleText).toContain("Run the latest workstream");
 		expect(visibleText).toContain("Please use an explicit review action");
-		expect(visibleText).toContain(
-			"/co accept latest report: useful source-backed extraction, but keep support gap open",
+		expect(visibleText).toContain("Accept latest report: useful source-backed extraction, but keep support gap open");
+	});
+
+	it("registers an absolute source file with structured source path", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "co-math-source-"));
+		try {
+			const sourcePath = join(cwd, "paper.pdf");
+			const notifications: string[] = [];
+			await writeFile(sourcePath, "pdf", "utf8");
+			await runCoMathBackendCommand("init Validate Question 3.", {
+				cwd,
+				notify: (message) => {
+					notifications.push(message);
+				},
+			});
+
+			const result = await runCoMathBackendCommand(
+				`source ${sourcePath} Source paper: Primary source for Question 3`,
+				{
+					cwd,
+					notify: (message) => {
+						notifications.push(message);
+					},
+				},
+			);
+			const state = await loadProjectState(getDefaultStatePath(cwd));
+			if (!state) {
+				throw new Error("Expected co-math state to exist");
+			}
+			const artifact = state.artifacts.at(-1);
+
+			expect(result.ok).toBe(true);
+			expect(artifact).toMatchObject({
+				kind: "source",
+				title: "Source paper",
+				summary: "Primary source for Question 3",
+				sourcePath,
+				sourcePathKind: "absolute",
+			});
+			expect(artifact?.summary).not.toContain("Path:");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects missing source files and directories", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "co-math-source-"));
+		try {
+			const notifications: string[] = [];
+			await mkdir(join(cwd, "source-dir"));
+			await runCoMathBackendCommand("init Validate Question 3.", {
+				cwd,
+				notify: (message) => {
+					notifications.push(message);
+				},
+			});
+
+			const missing = await runCoMathBackendCommand("source missing.pdf Source paper: Primary source", {
+				cwd,
+				notify: (message) => {
+					notifications.push(message);
+				},
+			});
+			const directory = await runCoMathBackendCommand("source source-dir Source dir: Primary source", {
+				cwd,
+				notify: (message) => {
+					notifications.push(message);
+				},
+			});
+
+			expect(missing.ok).toBe(false);
+			expect(directory.ok).toBe(false);
+			expect(notifications.join("\n")).toContain("Source file does not exist");
+			expect(notifications.join("\n")).toContain("Source path is not a file");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes debug command suggestions for product backend output only", () => {
+		const message = formatCoMathProductBackendMessage(
+			["Inspect:", "/comath next", "Live in this session: no; use /comath recover-run if stale"].join("\n"),
 		);
+
+		expect(message).not.toContain("/comath");
+		expect(message).toContain("continue");
+		expect(message).toContain("Live in this session: no");
+
+		const inlineOnly = formatCoMathProductBackendMessage(
+			"Live in this session: no; use /comath recover-run if stale",
+		);
+		expect(inlineOnly).not.toContain("/comath");
+		expect(inlineOnly).toContain("Live in this session: no");
 	});
 
 	it("registers the comath_state tool", () => {
@@ -341,17 +433,40 @@ describe("co-math extension registration", () => {
 			]);
 			const visibleText = notifications.join("\n");
 			expect(visibleText).toContain("Interpreted: start project");
-			expect(visibleText).toContain("Equivalent: /comath init Q3 validation");
+			expect(visibleText).toContain("Equivalent debug command: /comath init Q3 validation");
 			expect(visibleText).toContain(
-				"Equivalent: /comath workstream audit-the-source-support-gap: audit the source support gap",
+				"Equivalent debug command: /comath workstream audit-the-source-support-gap: audit the source support gap",
 			);
-			expect(visibleText).toContain("Equivalent: /comath run workstream workstream-audit-the-source-support-gap");
-			expect(visibleText).toContain("Equivalent: /comath report-status report-1");
 			expect(visibleText).toContain(
-				"Equivalent: /comath review-report report-1 revision-requested: support gap remains open",
+				"Equivalent debug command: /comath run workstream workstream-audit-the-source-support-gap",
 			);
-			expect(visibleText).toContain("Equivalent: /comath next");
+			expect(visibleText).toContain("Equivalent debug command: /comath report-status report-1");
+			expect(visibleText).toContain(
+				"Equivalent debug command: /comath review-report report-1 revision-requested: support gap remains open",
+			);
+			expect(visibleText).toContain("Equivalent debug command: /comath next");
 			expect(visibleText).not.toContain("Role completed, but output was not valid structured co-math JSON.");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows natural-language interpretation with the underlying command result", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-natural-visible-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("co");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("start a project for 2605.06651v2 Question 3 validation", ctx);
+
+			const latestVisibleMessage = notifications.at(-1);
+			expect(latestVisibleMessage).toContain("Interpreted: start project");
+			expect(latestVisibleMessage).toContain(
+				"Equivalent debug command: /comath init 2605.06651v2 Question 3 validation",
+			);
+			expect(latestVisibleMessage).toContain("Initialized co-math project state");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}
@@ -379,9 +494,11 @@ describe("co-math extension registration", () => {
 			const visibleText = notifications.join("\n");
 			expect(visibleText).toContain("No reports exist yet. Try: /co run latest workstream");
 			expect(visibleText).toContain("No workstreams exist yet. Try: /co create a workstream to <specific task>");
-			expect(visibleText).toContain("Equivalent: /comath run workstream workstream-inspect-latest-references");
-			expect(visibleText).toContain("Equivalent: /comath report-status report-1");
-			expect(visibleText).toContain("Equivalent: /comath run-status role-run-1");
+			expect(visibleText).toContain(
+				"Equivalent debug command: /comath run workstream workstream-inspect-latest-references",
+			);
+			expect(visibleText).toContain("Equivalent debug command: /comath report-status report-1");
+			expect(visibleText).toContain("Equivalent debug command: /comath run-status role-run-1");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

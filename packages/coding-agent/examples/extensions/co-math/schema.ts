@@ -47,6 +47,7 @@ export type CoMathEventKind =
 	| "margin_note_resolved"
 	| "working_paper_exported";
 export type ArtifactKind =
+	| "source"
 	| "computation"
 	| "latex_note"
 	| "proof_sketch"
@@ -144,6 +145,8 @@ export interface ArtifactRecord {
 	summary: string;
 	provenance?: string;
 	path?: string;
+	sourcePath?: string;
+	sourcePathKind?: "workspace" | "absolute";
 	relatedClaimIds: string[];
 	relatedWorkstreamIds: string[];
 	relatedReportIds: string[];

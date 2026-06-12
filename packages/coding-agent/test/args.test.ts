@@ -125,6 +125,12 @@ describe("parseArgs", () => {
 			expect(result.mode).toBe("rpc");
 		});
 
+		test("parses --mode comath as a conversation mode", () => {
+			const result = parseArgs(["--mode", "comath"]);
+			expect(result.mode).toBeUndefined();
+			expect(result.conversationMode).toBe("comath");
+		});
+
 		test("parses --session", () => {
 			const result = parseArgs(["--session", "/path/to/session.jsonl"]);
 			expect(result.session).toBe("/path/to/session.jsonl");
@@ -326,6 +332,57 @@ describe("parseArgs", () => {
 		test("parses --offline flag", () => {
 			const result = parseArgs(["--offline"]);
 			expect(result.offline).toBe(true);
+		});
+	});
+
+	describe("--comath flag", () => {
+		test("parses --comath conversation mode", () => {
+			const result = parseArgs(["--comath"]);
+			expect(result.conversationMode).toBe("comath");
+			expect(result.unknownFlags.size).toBe(0);
+		});
+	});
+
+	describe("comath product mode", () => {
+		test("parses source and leaves later prompt text as messages", () => {
+			const result = parseArgs(["comath", "paper.pdf", "--approve", "Validate Question 3."]);
+
+			expect(result.productMode).toBe("comath");
+			expect(result.comathSource).toBe("paper.pdf");
+			expect(result.conversationMode).toBe("comath");
+			expect(result.projectTrustOverride).toBe(true);
+			expect(result.messages).toEqual(["Validate Question 3."]);
+		});
+
+		test("allows product mode without a source", () => {
+			const result = parseArgs(["comath", "--model", "test-model"]);
+
+			expect(result.productMode).toBe("comath");
+			expect(result.comathSource).toBeUndefined();
+			expect(result.model).toBe("test-model");
+			expect(result.messages).toEqual([]);
+		});
+
+		test("detects product mode after normal flags", () => {
+			const result = parseArgs(["--approve", "--model", "gpt-5.5", "comath", "docs/paper.pdf"]);
+
+			expect(result.projectTrustOverride).toBe(true);
+			expect(result.model).toBe("gpt-5.5");
+			expect(result.productMode).toBe("comath");
+			expect(result.comathSource).toBe("docs/paper.pdf");
+		});
+
+		test("does not detect product mode from option values or package commands", () => {
+			const named = parseArgs(["--name", "comath"]);
+			const prompted = parseArgs(["--system-prompt", "comath"]);
+			const install = parseArgs(["install", "comath"]);
+
+			expect(named.productMode).toBeUndefined();
+			expect(named.name).toBe("comath");
+			expect(prompted.productMode).toBeUndefined();
+			expect(prompted.systemPrompt).toBe("comath");
+			expect(install.productMode).toBeUndefined();
+			expect(install.messages).toEqual(["install", "comath"]);
 		});
 	});
 

@@ -49,6 +49,12 @@ import {
 	prepareCompaction,
 	shouldCompact,
 } from "./compaction/index.ts";
+import {
+	type ConversationMode,
+	type ConversationPromptHarness,
+	getConversationModeCommand,
+	routeConversationModePrompt,
+} from "./conversation-mode.ts";
 import { DEFAULT_THINKING_LEVEL } from "./defaults.ts";
 import { exportSessionToHtml, type ToolHtmlRenderer } from "./export-html/index.ts";
 import { createToolHtmlRenderer } from "./export-html/tool-renderer.ts";
@@ -184,6 +190,10 @@ export interface AgentSessionConfig {
 	extensionRunnerRef?: { current?: ExtensionRunner };
 	/** Session start event metadata emitted when extensions bind to this runtime. */
 	sessionStartEvent?: SessionStartEvent;
+	/** Conversation mode routes ordinary prompts through a purpose-built command surface. */
+	conversationMode?: ConversationMode;
+	/** Optional first-class harness for conversation-mode prompts. */
+	conversationHarness?: ConversationPromptHarness;
 }
 
 export interface ExtensionBindings {
@@ -308,6 +318,8 @@ export class AgentSession {
 	private _extensionShutdownHandler?: ShutdownHandler;
 	private _extensionErrorListener?: ExtensionErrorListener;
 	private _extensionErrorUnsubscriber?: () => void;
+	private _conversationMode?: ConversationMode;
+	private _conversationHarness?: ConversationPromptHarness;
 
 	// Model registry for API key resolution
 	private _modelRegistry: ModelRegistry;
@@ -337,6 +349,8 @@ export class AgentSession {
 		this._excludedToolNames = config.excludedToolNames ? new Set(config.excludedToolNames) : undefined;
 		this._baseToolsOverride = config.baseToolsOverride;
 		this._sessionStartEvent = config.sessionStartEvent ?? { type: "session_start", reason: "startup" };
+		this._conversationMode = config.conversationMode;
+		this._conversationHarness = config.conversationHarness;
 
 		// Always subscribe to agent events for internal handling
 		// (session persistence, extensions, auto-compaction, retry logic)
@@ -352,6 +366,10 @@ export class AgentSession {
 	/** Model registry for API key resolution and model discovery */
 	get modelRegistry(): ModelRegistry {
 		return this._modelRegistry;
+	}
+
+	setConversationHarness(harness: ConversationPromptHarness | undefined): void {
+		this._conversationHarness = harness;
 	}
 
 	private async _getRequiredRequestAuth(model: Model<any>): Promise<{
@@ -989,10 +1007,17 @@ export class AgentSession {
 		let messages: AgentMessage[] | undefined;
 
 		try {
+			if (expandPromptTemplates && this._conversationHarness && !text.startsWith("/")) {
+				await this._conversationHarness.handlePrompt(text);
+				preflightResult?.(true);
+				return;
+			}
+			const routedText = expandPromptTemplates ? this._routeConversationModePrompt(text) : text;
+
 			// Handle extension commands first (execute immediately, even during streaming)
 			// Extension commands manage their own LLM interaction via pi.sendMessage()
-			if (expandPromptTemplates && text.startsWith("/")) {
-				const handled = await this._tryExecuteExtensionCommand(text);
+			if (expandPromptTemplates && routedText.startsWith("/")) {
+				const handled = await this._tryExecuteExtensionCommand(routedText);
 				if (handled) {
 					// Extension command executed, no prompt to send
 					preflightResult?.(true);
@@ -1001,7 +1026,7 @@ export class AgentSession {
 			}
 
 			// Emit input event for extension interception (before skill/template expansion)
-			let currentText = text;
+			let currentText = routedText;
 			let currentImages = options?.images;
 			if (this._extensionRunner.hasHandlers("input")) {
 				const inputResult = await this._extensionRunner.emitInput(
@@ -1134,6 +1159,19 @@ export class AgentSession {
 
 		preflightResult?.(true);
 		await this._runAgentPrompt(messages);
+	}
+
+	private _routeConversationModePrompt(text: string): string {
+		const commandName = getConversationModeCommand(this._conversationMode);
+		if (commandName === undefined || text.startsWith("/")) {
+			return text;
+		}
+		if (!this._extensionRunner.getCommand(commandName)) {
+			throw new Error(
+				`Conversation mode "comath" requires the co-math extension command "/${commandName}". Load the co-math extension with -e before sending ordinary prompts.`,
+			);
+		}
+		return routeConversationModePrompt(text, this._conversationMode);
 	}
 
 	/**

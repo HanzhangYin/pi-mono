@@ -1498,7 +1498,7 @@ describe("co-math project state", () => {
 				{ id: "warning-1", severity: "medium", status: "open", message: "Legacy warning summary." },
 			]);
 			expect(loaded?.artifacts).toMatchObject([
-				{ id: "artifact-1", kind: "script", relatedClaimIds: [] },
+				{ id: "artifact-1", kind: "source", relatedClaimIds: [] },
 				{ id: "artifact-2", kind: "dataset", relatedWorkstreamIds: [] },
 				{ id: "artifact-3", kind: "working_paper_export", relatedReportIds: [] },
 			]);
@@ -1810,6 +1810,7 @@ describe("co-math project state", () => {
 
 		for (const artifact of state.artifacts) {
 			expect([
+				"source",
 				"computation",
 				"latex_note",
 				"proof_sketch",

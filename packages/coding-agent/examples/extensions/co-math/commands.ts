@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import type { ExtensionAPI, ExtensionCommandContext } from "../../../src/core/extensions/types.ts";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionUIContext } from "../../../src/core/extensions/types.ts";
 import { type CoMathNaturalIntent, parseCoMathNaturalRequest } from "./natural-language.ts";
 import {
 	formatAmbiguousReviewAction,
@@ -99,6 +99,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath block <workstream-id>: <reason> - manually mark a workstream blocked
 /comath unblock <workstream-id>: <reason> - manually return a workstream to active with a steering note
 /comath note <subject-id>: <note> - record a human steering note as a metadata artifact
+/comath source <path> <title>: <summary> - register a source file with structured path metadata
 /comath artifact <kind> <title>: <summary> - manually record a workspace artifact
 /comath artifact-file <kind> <path> <title>: <summary> - register an existing workspace file as an artifact
 /comath computation --command <command> --out <path> [--title <title>] [--summary <summary>] - run a local computation and record hashed output provenance
@@ -139,6 +140,17 @@ export interface RegisterCoMathCommandOptions {
 	roleRunner?: RoleRunner;
 }
 
+export interface RunCoMathBackendCommandOptions extends RegisterCoMathCommandOptions {
+	cwd: string;
+	notify: (message: string, type?: "info" | "warning" | "error") => void | Promise<void>;
+	productMode?: boolean;
+}
+
+export interface CoMathBackendCommandResult {
+	ok: boolean;
+	messages: string[];
+}
+
 export function registerCoMathCommand(pi: ExtensionAPI, options: RegisterCoMathCommandOptions = {}): void {
 	const roleRunner = options.roleRunner ?? createDefaultRoleRunner();
 	pi.registerCommand("comath", {
@@ -153,6 +165,94 @@ export function registerCoMathCommand(pi: ExtensionAPI, options: RegisterCoMathC
 			await handleNaturalCoMathCommand(pi, args, ctx, roleRunner);
 		},
 	});
+}
+
+export async function runCoMathBackendCommand(
+	args: string,
+	options: RunCoMathBackendCommandOptions,
+): Promise<CoMathBackendCommandResult> {
+	const roleRunner = options.roleRunner ?? createDefaultRoleRunner();
+	const pendingNotifications: Promise<void>[] = [];
+	const messages: string[] = [];
+	const notify = (message: string, type?: "info" | "warning" | "error"): void => {
+		const productMessage = options.productMode ? formatCoMathProductBackendMessage(message) : message;
+		messages.push(productMessage);
+		pendingNotifications.push(Promise.resolve(options.notify(productMessage, type)));
+	};
+	const pi = {
+		sendMessage(message: { content?: unknown }) {
+			notify(typeof message.content === "string" ? message.content : JSON.stringify(message.content), "info");
+		},
+	} as unknown as ExtensionAPI;
+	const ctx = {
+		cwd: options.cwd,
+		hasUI: true,
+		mode: "print",
+		ui: {
+			notify(message: string, type?: "info" | "warning" | "error") {
+				notify(message, type);
+			},
+		},
+		isIdle() {
+			return true;
+		},
+		waitForIdle() {
+			return Promise.resolve();
+		},
+		signal: undefined,
+		abort() {},
+		hasPendingMessages() {
+			return false;
+		},
+		shutdown() {},
+		getContextUsage() {
+			return undefined;
+		},
+		compact() {},
+		getSystemPrompt() {
+			return "";
+		},
+		getSystemPromptOptions() {
+			return {};
+		},
+	} as unknown as ExtensionCommandContext;
+	await handleCoMathCommand(pi, args, ctx, roleRunner);
+	await Promise.all(pendingNotifications);
+	return { ok: !messages.some(isBackendFailureMessage), messages };
+}
+
+export function formatCoMathProductBackendMessage(message: string): string {
+	const originalLines = message.split("\n");
+	const lines = originalLines.map((line) => line.replace(/;\s*use \/comath recover-run if stale/g, ""));
+	const filtered = lines.filter((line) => {
+		const trimmed = line.trim();
+		return trimmed !== "Inspect:" && !trimmed.startsWith("/comath ") && !trimmed.includes("/comath ");
+	});
+	const changedInline = lines.some((line, index) => line !== originalLines[index]);
+	if (!changedInline && filtered.length === lines.length) {
+		return message;
+	}
+	return [...filtered, "", 'Next: say "show latest run", "show latest report", or "continue".']
+		.join("\n")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
+}
+
+function isBackendFailureMessage(message: string): boolean {
+	return [
+		"Usage:",
+		"Artifact file does not exist:",
+		"Artifact path is not a file:",
+		"Artifact path is a symlink",
+		"Artifact path must stay inside the workspace.",
+		"Source file does not exist:",
+		"Source path is not a file:",
+		"Source path is a symlink",
+		"No co-math project state found",
+		"No role run found",
+		"No report found",
+		"Unknown /comath command:",
+	].some((prefix) => message.startsWith(prefix) || message.includes(`\n${prefix}`));
 }
 
 async function handleNaturalCoMathCommand(
@@ -179,12 +279,12 @@ async function handleNaturalCoMathCommand(
 
 	const command = await translateNaturalIntent(pi, ctx, intent);
 	if (!command) return;
-	showCommandMessage(
-		pi,
-		ctx,
-		[`Interpreted: ${command.interpreted}`, `Equivalent: /comath ${command.args}`].join("\n"),
-	);
-	await handleCoMathCommand(pi, command.args, ctx, roleRunner);
+	const displayPrefix = [
+		`Interpreted: ${command.interpreted}`,
+		`Equivalent debug command: /comath ${command.args}`,
+	].join("\n");
+	const prefixed = withCommandDisplayPrefix(pi, ctx, displayPrefix);
+	await handleCoMathCommand(prefixed.pi, command.args, prefixed.ctx, roleRunner);
 }
 
 interface TranslatedNaturalCommand {
@@ -319,6 +419,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "note") {
 		await addHumanNote(pi, ctx, remainder);
+		return;
+	}
+
+	if (subcommand === "source") {
+		await addSourceArtifact(pi, ctx, remainder);
 		return;
 	}
 
@@ -892,6 +997,47 @@ async function addManualArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 	showCommandMessage(pi, ctx, `Recorded artifact ${artifactId}: ${parsed.title}`);
 }
 
+async function addSourceArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
+	const parsed = parseSourceText(text);
+	if (!parsed) {
+		showCommandMessage(pi, ctx, "Usage: /comath source <path> <title>: <summary>");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+
+	const sourcePath = path.isAbsolute(parsed.filePath) ? parsed.filePath : path.resolve(ctx.cwd, parsed.filePath);
+	const pathStat = await getPathLstat(sourcePath);
+	if (!pathStat) {
+		showCommandMessage(pi, ctx, `Source file does not exist: ${parsed.filePath}`);
+		return;
+	}
+	if (pathStat.isSymbolicLink()) {
+		showCommandMessage(pi, ctx, `Source path is a symlink and is not allowed: ${parsed.filePath}`);
+		return;
+	}
+	if (!pathStat.isFile()) {
+		showCommandMessage(pi, ctx, `Source path is not a file: ${parsed.filePath}`);
+		return;
+	}
+
+	const artifactId = `artifact-${existing.artifacts.length + 1}`;
+	const state = addArtifact(existing, {
+		id: artifactId,
+		kind: "source",
+		title: parsed.title,
+		summary: parsed.summary,
+		sourcePath,
+		sourcePathKind: "absolute",
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), state);
+	showCommandMessage(pi, ctx, `Registered source ${artifactId}: ${parsed.title}`);
+}
+
 async function addFileArtifact(pi: ExtensionAPI, ctx: ExtensionCommandContext, text: string): Promise<void> {
 	const parsed = parseArtifactFileText(text);
 	if (!parsed) {
@@ -1112,6 +1258,12 @@ interface ParsedArtifactFileCommand {
 	summary: string;
 }
 
+interface ParsedSourceCommand {
+	filePath: string;
+	title: string;
+	summary: string;
+}
+
 interface ParsedComputationCommand {
 	command: string;
 	outputPath: string;
@@ -1302,6 +1454,18 @@ function parseArtifactFileText(text: string): ParsedArtifactFileCommand | undefi
 	return { kind, filePath, title, summary };
 }
 
+function parseSourceText(text: string): ParsedSourceCommand | undefined {
+	const [filePath, ...rest] = text.trim().split(/\s+/);
+	if (!filePath) return undefined;
+	const body = rest.join(" ").trim();
+	const separatorIndex = body.indexOf(":");
+	if (separatorIndex === -1) return undefined;
+	const title = body.slice(0, separatorIndex).trim();
+	const summary = body.slice(separatorIndex + 1).trim();
+	if (title.length === 0 || summary.length === 0) return undefined;
+	return { filePath, title, summary };
+}
+
 function parseComputationText(text: string): ParsedComputationCommand | undefined {
 	const tokens = tokenizeShellLike(text);
 	if (!tokens) return undefined;
@@ -1479,6 +1643,7 @@ function isWarningSeverity(value: string): value is WarningSeverity {
 
 function isArtifactKind(value: string): value is ArtifactKind {
 	return (
+		value === "source" ||
 		value === "computation" ||
 		value === "latex_note" ||
 		value === "proof_sketch" ||
@@ -3440,7 +3605,12 @@ async function showReportStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext, 
 	if (!state) {
 		return;
 	}
-	const report = state.reports.find((candidate) => candidate.id === trimmedReportId);
+	const resolvedReportId = trimmedReportId === "latest" ? state.reports.at(-1)?.id : trimmedReportId;
+	if (!resolvedReportId) {
+		showCommandMessage(pi, ctx, "No report found for latest.");
+		return;
+	}
+	const report = state.reports.find((candidate) => candidate.id === resolvedReportId);
 	if (!report) {
 		showCommandMessage(pi, ctx, `No report found for ${trimmedReportId}.`);
 		return;
@@ -3509,7 +3679,11 @@ async function showArtifacts(pi: ExtensionAPI, ctx: ExtensionCommandContext): Pr
 function formatArtifacts(state: CoMathProjectState): string[] {
 	if (state.artifacts.length === 0) return ["No artifacts recorded."];
 	return state.artifacts.map((artifact) => {
-		const artifactPath = artifact.path ? ` (${artifact.path})` : "";
+		const artifactPath = artifact.path
+			? ` (${artifact.path})`
+			: artifact.sourcePath
+				? ` (${artifact.sourcePath})`
+				: "";
 		return `- ${artifact.id} [${artifact.kind}] ${artifact.title}${artifactPath}: ${artifact.summary}`;
 	});
 }
@@ -4031,7 +4205,12 @@ async function showRoleRunStatus(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 		return;
 	}
 
-	const run = state.roleRuns.find((candidate) => candidate.id === runId);
+	const resolvedRunId = runId === "latest" ? state.roleRuns.at(-1)?.id : runId;
+	if (!resolvedRunId) {
+		showCommandMessage(pi, ctx, "No role run found for latest.");
+		return;
+	}
+	const run = state.roleRuns.find((candidate) => candidate.id === resolvedRunId);
 	if (!run) {
 		showCommandMessage(pi, ctx, `No role run found for ${runId}.`);
 		return;
@@ -4419,6 +4598,42 @@ function showCommandMessage(pi: ExtensionAPI, ctx: ExtensionCommandContext, text
 		display: true,
 		details: { kind: "command" },
 	});
+}
+
+function withCommandDisplayPrefix(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	displayPrefix: string,
+): { pi: ExtensionAPI; ctx: ExtensionCommandContext } {
+	const prefixText = displayPrefix.trimEnd();
+	const prefix = (text: string): string => `${prefixText}\n\n${text}`;
+	const prefixedUi: ExtensionUIContext = {
+		...ctx.ui,
+		notify(message, type) {
+			ctx.ui.notify(prefix(message), type);
+		},
+	};
+	const prefixedCtx = Object.defineProperties({}, Object.getOwnPropertyDescriptors(ctx)) as ExtensionCommandContext;
+	Object.defineProperty(prefixedCtx, "ui", {
+		configurable: true,
+		enumerable: true,
+		value: prefixedUi,
+	});
+
+	const prefixedPi: ExtensionAPI = {
+		...pi,
+		sendMessage(message, options) {
+			pi.sendMessage(
+				{
+					...message,
+					content: typeof message.content === "string" ? prefix(message.content) : message.content,
+				},
+				options,
+			);
+		},
+	};
+
+	return { pi: prefixedPi, ctx: prefixedCtx };
 }
 
 function sendBackgroundMessage(pi: ExtensionAPI, text: string): void {

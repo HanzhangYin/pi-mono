@@ -5,10 +5,13 @@
  * createAgentSession() options. The SDK does the heavy lifting.
  */
 
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { type ImageContent, modelsAreEqual } from "@earendil-works/pi-ai";
 import { ProcessTerminal, setKeybindings, TUI } from "@earendil-works/pi-tui";
 import chalk from "chalk";
+import { runCoMathBackendCommand } from "../examples/extensions/co-math/commands.ts";
+import { getDefaultStatePath } from "../examples/extensions/co-math/storage.ts";
 import { type Args, type Mode, parseArgs, printHelp } from "./cli/args.ts";
 import { processFileArguments } from "./cli/file-processor.ts";
 import { buildInitialMessage } from "./cli/initial-message.ts";
@@ -42,6 +45,9 @@ import { SettingsManager } from "./core/settings-manager.ts";
 import { printTimings, resetTimings, time } from "./core/timings.ts";
 import { hasProjectTrustInputs, ProjectTrustStore } from "./core/trust-manager.ts";
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
+import { CoMathHarness } from "./modes/comath/comath-harness.ts";
+import { formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
+import { resolveCoMathSource } from "./modes/comath/comath-source.ts";
 import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.ts";
 import { ExtensionSelectorComponent } from "./modes/interactive/components/extension-selector.ts";
 import { initTheme, stopThemeWatcher } from "./modes/interactive/theme/theme.ts";
@@ -429,12 +435,22 @@ function buildSessionOptions(
 	if (parsed.excludeTools) {
 		options.excludeTools = [...parsed.excludeTools];
 	}
+	if (parsed.conversationMode) {
+		options.conversationMode = parsed.conversationMode;
+	}
 
 	return { options, cliThinkingFromModel, diagnostics };
 }
 
 function resolveCliPaths(cwd: string, paths: string[] | undefined): string[] | undefined {
 	return paths?.map((value) => (isLocalPath(value) ? resolvePath(value, cwd) : value));
+}
+
+export function getRequiredProductExtensionPaths(parsed: Args, packageDir: string): string[] {
+	if (parsed.productMode !== "comath") {
+		return [];
+	}
+	return [join(packageDir, "examples", "extensions", "co-math", "index.ts")];
 }
 
 async function showStartupSelector<T>(
@@ -656,7 +672,10 @@ export async function main(args: string[], options?: MainOptions) {
 		settingsManagerForPrompt: startupSettingsManager,
 	});
 
-	const resolvedExtensionPaths = resolveCliPaths(cwd, parsed.extensions);
+	const resolvedExtensionPaths = [
+		...(resolveCliPaths(cwd, parsed.extensions) ?? []),
+		...getRequiredProductExtensionPaths(parsed, getPackageDir()),
+	];
 	const resolvedSkillPaths = resolveCliPaths(cwd, parsed.skills);
 	const resolvedPromptTemplatePaths = resolveCliPaths(cwd, parsed.promptTemplates);
 	const resolvedThemePaths = resolveCliPaths(cwd, parsed.themes);
@@ -741,6 +760,7 @@ export async function main(args: string[], options?: MainOptions) {
 			excludeTools: sessionOptions.excludeTools,
 			noTools: sessionOptions.noTools,
 			customTools: sessionOptions.customTools,
+			conversationMode: sessionOptions.conversationMode,
 		});
 		const cliThinkingOverride = parsed.thinking !== undefined || cliThinkingFromModel;
 		if (created.session.model && cliThinkingOverride) {
@@ -776,6 +796,32 @@ export async function main(args: string[], options?: MainOptions) {
 		const searchPattern = typeof parsed.listModels === "string" ? parsed.listModels : undefined;
 		await listModels(modelRegistry, searchPattern);
 		process.exit(0);
+	}
+
+	if (parsed.productMode === "comath") {
+		const runtimeCwd = sessionManager.getCwd();
+		const source = await resolveCoMathSource(parsed.comathSource, runtimeCwd);
+		const sendCoMathNotice = (message: string, type: "info" | "warning" | "error" = "info"): Promise<void> =>
+			session.sendCustomMessage({
+				customType: "co-math",
+				content: message,
+				display: true,
+				details: { kind: "product", type },
+			});
+		session.setConversationHarness(
+			new CoMathHarness({
+				source,
+				statePath: getDefaultStatePath(runtimeCwd),
+				notify: sendCoMathNotice,
+				runBackendCommand: (command) =>
+					runCoMathBackendCommand(command, {
+						cwd: runtimeCwd,
+						notify: sendCoMathNotice,
+						productMode: true,
+					}),
+			}),
+		);
+		await sendCoMathNotice(formatCoMathWelcome(source));
 	}
 
 	// Read piped stdin content (if any) - skip for RPC mode which uses stdin for JSON-RPC

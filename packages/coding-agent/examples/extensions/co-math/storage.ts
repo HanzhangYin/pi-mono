@@ -176,6 +176,8 @@ export interface AddArtifactInput {
 	summary: string;
 	provenance?: string;
 	path?: string;
+	sourcePath?: string;
+	sourcePathKind?: "workspace" | "absolute";
 	relatedClaimIds?: string[];
 	relatedWorkstreamIds?: string[];
 	relatedReportIds?: string[];
@@ -757,6 +759,8 @@ export function addArtifact(state: CoMathProjectState, input: AddArtifactInput):
 		summary: input.summary,
 		...(input.provenance ? { provenance: input.provenance } : {}),
 		...(input.path ? { path: input.path } : {}),
+		...(input.sourcePath ? { sourcePath: input.sourcePath } : {}),
+		...(input.sourcePathKind ? { sourcePathKind: input.sourcePathKind } : {}),
 		relatedClaimIds: input.relatedClaimIds ?? [],
 		relatedWorkstreamIds: input.relatedWorkstreamIds ?? [],
 		relatedReportIds: input.relatedReportIds ?? [],
@@ -1640,6 +1644,12 @@ function normalizeArtifact(value: Record<string, unknown>, fallbackTime: string)
 			? { provenance: getOptionalStringField(value, "provenance") }
 			: {}),
 		...(getOptionalStringField(value, "path") ? { path: getOptionalStringField(value, "path") } : {}),
+		...(getOptionalStringField(value, "sourcePath")
+			? { sourcePath: getOptionalStringField(value, "sourcePath") }
+			: {}),
+		...(normalizeSourcePathKind(value.sourcePathKind)
+			? { sourcePathKind: normalizeSourcePathKind(value.sourcePathKind) }
+			: {}),
 		relatedClaimIds: getStringArrayField(value, "relatedClaimIds"),
 		relatedWorkstreamIds: getStringArrayField(value, "relatedWorkstreamIds"),
 		relatedReportIds: getStringArrayField(value, "relatedReportIds"),
@@ -1797,10 +1807,14 @@ function normalizeClaimStatus(value: unknown): ClaimStatus {
 
 function normalizeArtifactKind(value: unknown): ArtifactKind {
 	if (isCurrentArtifactKind(value)) return value;
-	if (value === "source") return "script";
 	if (value === "data") return "dataset";
 	if (value === "paper_export") return "working_paper_export";
 	return "human_note";
+}
+
+function normalizeSourcePathKind(value: unknown): ArtifactRecord["sourcePathKind"] | undefined {
+	if (value === "workspace" || value === "absolute") return value;
+	return undefined;
 }
 
 function normalizeEvidenceKind(value: unknown): EvidenceKind {
@@ -1898,6 +1912,7 @@ function normalizeEventKind(value: unknown): CoMathEventKind {
 
 function isCurrentArtifactKind(value: unknown): value is ArtifactKind {
 	return (
+		value === "source" ||
 		value === "computation" ||
 		value === "latex_note" ||
 		value === "proof_sketch" ||

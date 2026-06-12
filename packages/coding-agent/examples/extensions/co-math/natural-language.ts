@@ -18,20 +18,21 @@ export type CoMathNaturalIntent =
 	| { kind: "unknown"; reason: string; suggestions: string[] };
 
 const DEFAULT_SUGGESTIONS = [
-	"/co start a project for <question or paper>",
-	"/co set goal <research goal>",
-	"/co create a workstream to <specific task>",
-	"/co run latest workstream",
-	"/co show latest report",
-	"/co accept latest report: useful source-backed extraction, but keep support gap open",
-	"/co request revision for latest report: missing source-backed support lemma",
-	"/co export working paper",
-	"/co what next",
+	"Start a project for <question or paper>",
+	"Set goal <research goal>",
+	"Create a workstream to <specific task>",
+	"Run the latest workstream",
+	"Show the latest report",
+	"Accept latest report: useful source-backed extraction, but keep support gap open",
+	"Request revision for latest report: missing source-backed support lemma",
+	"Export working paper",
+	"What should I do next?",
 ];
 
 const EXPLICIT_REVIEW_SUGGESTIONS = [
-	"/co accept latest report: useful source-backed extraction, but keep support gap open",
-	"/co request revision for latest report: missing source-backed support lemma",
+	"Request revision for latest report: missing source-backed support lemma",
+	"Accept latest report: useful source-backed extraction, but keep support gap open",
+	"Block latest report: output contradicts the source indexing assumptions",
 ];
 
 export function parseCoMathNaturalRequest(input: string): CoMathNaturalIntent {
@@ -39,26 +40,29 @@ export function parseCoMathNaturalRequest(input: string): CoMathNaturalIntent {
 	if (request.length === 0) return unknownIntent("empty request", []);
 	if (request === "help") return { kind: "help" };
 
-	const init = /^(?:start a project for|initialize project for|initialize)\s+(.+)$/i.exec(request);
-	if (init?.[1]) return { kind: "init", question: init[1] };
+	const init =
+		/^(?:start a co-math project for|start a project for|start project for|initialize project for|initialize)\s+(.+)$/i.exec(
+			request,
+		);
+	if (init?.[1]) return { kind: "init", question: normalizeRootQuestion(init[1]) };
 
-	const goal = /^(?:set goal|add goal)\s+(.+)$/i.exec(request);
+	const goal = /^(?:set the goal to|set goal|add goal)\s+(.+)$/i.exec(request);
 	if (goal?.[1]) return { kind: "goal", text: goal[1] };
 
-	const workstream = /^create a workstream to\s+(.+)$/i.exec(request);
+	const workstream = /^create a workstream (?:to|for|that)\s+(.+)$/i.exec(request);
 	if (workstream?.[1]) {
 		return { kind: "workstream", slug: slugifyWorkstreamGoal(workstream[1]), goal: workstream[1] };
 	}
 
-	if (/^run latest workstream$/i.test(request)) return { kind: "run-workstream", workstreamRef: "latest" };
+	if (/^run (?:the )?latest workstream$/i.test(request)) return { kind: "run-workstream", workstreamRef: "latest" };
 	const runWorkstream = /^run workstream\s+(.+)$/i.exec(request);
 	if (runWorkstream?.[1]) return { kind: "run-workstream", workstreamRef: runWorkstream[1] };
 
-	if (/^show latest report$/i.test(request)) return { kind: "show-report", reportRef: "latest" };
+	if (/^show (?:me )?(?:the )?latest report$/i.test(request)) return { kind: "show-report", reportRef: "latest" };
 	const showReport = /^show report\s+(\S+)$/i.exec(request);
 	if (showReport?.[1]) return { kind: "show-report", reportRef: showReport[1] };
 
-	if (/^show latest run$/i.test(request)) return { kind: "show-run", runRef: "latest" };
+	if (/^show (?:me )?(?:the )?latest run$/i.test(request)) return { kind: "show-run", runRef: "latest" };
 	const showRun = /^show run\s+(\S+)$/i.exec(request);
 	if (showRun?.[1]) return { kind: "show-run", runRef: showRun[1] };
 
@@ -72,13 +76,15 @@ export function parseCoMathNaturalRequest(input: string): CoMathNaturalIntent {
 		};
 	}
 
-	const revisionReport = /^request revision for\s+(?:report\s+(\S+)|latest report):\s+(.+)$/i.exec(request);
-	if (revisionReport?.[2]) {
+	const revisionReport = /^request revision(?: for\s+(?:report\s+(\S+)|(the )?latest report))?:\s+(.+)$/i.exec(
+		request,
+	);
+	if (revisionReport?.[3]) {
 		return {
 			kind: "review-report",
 			reportRef: normalizeLatestReportRef(revisionReport[1]),
 			decision: "revision-requested",
-			note: revisionReport[2],
+			note: revisionReport[3],
 		};
 	}
 
@@ -114,7 +120,7 @@ export function parseCoMathNaturalRequest(input: string): CoMathNaturalIntent {
 		};
 	}
 
-	if (/^(?:what next|what should i do next\??|next)$/i.test(request)) return { kind: "next" };
+	if (/^(?:what next|what should (?:we|i) do next\??|next)$/i.test(request)) return { kind: "next" };
 
 	if (isVagueReviewRequest(request)) {
 		return unknownIntent("ambiguous report review action", EXPLICIT_REVIEW_SUGGESTIONS);
@@ -129,6 +135,10 @@ function normalizeRequest(input: string): string {
 
 function normalizeLatestReportRef(reportRef: string | undefined): "latest" | string {
 	return reportRef ?? "latest";
+}
+
+function normalizeRootQuestion(question: string): string {
+	return question.replace(/\.$/, "").trim();
 }
 
 function slugifyWorkstreamGoal(goal: string): string {
