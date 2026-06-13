@@ -1812,6 +1812,48 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("declines re-audit while an audit is still queued or running", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reaudit-busy-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		const tasks: string[] = [];
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					tasks.push(input.task);
+					return deferred.promise;
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Validate Question 3.", ctx);
+			await command?.handler("goal Validate Question 3.", ctx);
+			await command?.handler("workstream defs: Extract definitions", ctx);
+			await command?.handler("queue workstream workstream-defs", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			await waitForCondition(() => {
+				expect(tasks).toHaveLength(1);
+			});
+
+			// The first run is still running. New context arrives, but repeated re-audit must not
+			// spawn a duplicate background run while one is in flight.
+			await command?.handler("note project: NEW context while a run is in flight", ctx);
+			notifications.length = 0;
+			await command?.handler("re-audit --background", ctx);
+			await command?.handler("re-audit --background", ctx);
+			expect(notifications.join("\n")).toContain("An audit is already in progress");
+			expect(tasks).toHaveLength(1);
+
+			deferred.resolve({ summary: "first run done" });
+			await waitForCondition(() => {
+				expect(notifications.join("\n")).toContain("saved report");
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("dispatch-next --background saves running state before role invocation", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-next-"));
 		try {

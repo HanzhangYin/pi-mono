@@ -486,6 +486,33 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("does not re-audit while an audit is still running", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const runningRunMessage = ["role-run-1", "Role: workstream", "Status: running"].join("\n");
+			const harness = new CoMathHarness({
+				statePath,
+				notify: () => {},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					return { ok: true, messages: command === "run-status latest" ? [runningRunMessage] : [] };
+				},
+			});
+
+			// Repeated continue while the audit runs must never trigger a re-audit dispatch.
+			await harness.handlePrompt("continue");
+			await harness.handlePrompt("continue");
+
+			expect(commands).toEqual(["run-status latest", "next", "run-status latest", "next"]);
+			expect(commands).not.toContain("re-audit --background");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("starts the first workstream in the background so steering remains responsive", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
 		try {

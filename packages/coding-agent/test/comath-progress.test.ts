@@ -167,4 +167,16 @@ describe("co-math product messages", () => {
 		expect(empty).toContain("No audit run has started yet.");
 		expectProductCopy(empty);
 	});
+
+	it("redacts internal ids from progress blockers", () => {
+		const progress = formatProductProgress({
+			status: "blocked",
+			blockers: ["Need context for workstream-extract-question-2-definitions before role-run-3 can proceed."],
+		});
+		expect(progress).not.toContain("workstream-extract-question-2-definitions");
+		expect(progress).not.toContain("role-run-3");
+		expect(progress).toContain("this audit step");
+		expect(progress).toContain("this run");
+		expectProductCopy(progress);
+	});
 });

@@ -1,3 +1,4 @@
+import { sanitizeProductIds } from "./comath-backend-output.ts";
 import type { CoMathSource } from "./comath-source.ts";
 
 export interface CoMathProductRunSummary {
@@ -147,6 +148,6 @@ export function formatProductProgress(run: CoMathProductRunSummary | undefined):
 		`- Report: ${run.reportId ? "ready" : "none yet"}`,
 		...(blockers.length === 0
 			? ["- Blockers: none"]
-			: ["- Blockers:", ...blockers.map((blocker) => `  - ${blocker}`)]),
+			: ["- Blockers:", ...blockers.map((blocker) => `  - ${sanitizeProductIds(blocker)}`)]),
 	].join("\n");
 }

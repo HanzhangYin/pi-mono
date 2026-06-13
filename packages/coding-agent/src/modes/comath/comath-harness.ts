@@ -146,7 +146,8 @@ export class CoMathHarness {
 	private async handleSteeringPrompt(prompt: string): Promise<void> {
 		if (/^continue$/i.test(prompt)) {
 			const latestRun = await this.tryCommand("run-status latest");
-			if (latestRun?.ok && extractStatus(latestRun.messages) === "queued") {
+			const latestStatus = latestRun?.ok ? extractStatus(latestRun.messages) : undefined;
+			if (latestStatus === "queued") {
 				const dispatched = await this.runCommand(
 					"dispatch-next --background",
 					"Could not start the prepared source audit. Check model/provider configuration and try again.",
@@ -156,11 +157,14 @@ export class CoMathHarness {
 				}
 				return;
 			}
-			const reaudit = await this.tryCommand("re-audit --background");
-			const reauditTranscript = reaudit?.ok ? extractTranscriptPath(reaudit.messages) : undefined;
-			if (reauditTranscript) {
-				await this.notify(formatBackgroundRunStarted(reauditTranscript));
-				return;
+			// Do not start a re-audit while one is still running; let it finish first.
+			if (latestStatus !== "running") {
+				const reaudit = await this.tryCommand("re-audit --background");
+				const reauditTranscript = reaudit?.ok ? extractTranscriptPath(reaudit.messages) : undefined;
+				if (reauditTranscript) {
+					await this.notify(formatBackgroundRunStarted(reauditTranscript));
+					return;
+				}
 			}
 			const result = await this.runCommand("next", "Could not identify the next step.");
 			if (result) {

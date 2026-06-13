@@ -2310,6 +2310,12 @@ async function reAuditLatestWorkstream(
 	if (!existing) {
 		return;
 	}
+	// Never start a second audit while one is already queued or running; otherwise repeated
+	// "continue" presses would spawn duplicate background re-audits for the same work.
+	if (existing.roleRuns.some((run) => run.status === "queued" || run.status === "running")) {
+		showCommandMessage(pi, ctx, "An audit is already in progress; nothing re-queued.");
+		return;
+	}
 	const latestFinished = [...existing.roleRuns]
 		.filter((run) => (run.status === "completed" || run.status === "blocked") && run.targetWorkstreamId)
 		.sort((left, right) =>
