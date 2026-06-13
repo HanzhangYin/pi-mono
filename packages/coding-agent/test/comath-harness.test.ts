@@ -285,7 +285,7 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("continue");
 			await harness.handlePrompt("show uncertainty");
 
-			expect(commands).toEqual(["next", "review-queue"]);
+			expect(commands).toEqual(["run-status latest", "re-audit --background", "next", "review-queue"]);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -319,6 +319,168 @@ describe("co-math harness", () => {
 
 			expect(commands.some((command) => command.startsWith("goal "))).toBe(false);
 			expect(notices.join("\n")).toContain("Could not pin the source file");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("sets up but waits for context when the first prompt asks to wait", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const sourcePath = join(dir, "paper.pdf");
+			const harness = new CoMathHarness({
+				source: {
+					input: sourcePath,
+					absolutePath: sourcePath,
+					displayName: "paper.pdf",
+					exists: true,
+					isFile: true,
+				},
+				statePath: join(dir, ".pi", "co-math", "state.json"),
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt("Set up validation for Problem X, but wait for pasted context before starting.");
+
+			expect(commands.some((command) => command.startsWith("queue workstream "))).toBe(true);
+			expect(commands).not.toContain("dispatch-next --background");
+			// The control-flow request must be stripped from the root question the audit role sees.
+			expect(commands).toContain("init Problem X");
+			expect(commands.join("\n")).not.toContain("wait for pasted context");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("I’ll set up a source-backed validation run for: Problem X");
+			expect(visible).toContain("- Wait for your pasted context before starting the first audit.");
+			expect(visible).toContain("✓ Source audit prepared");
+			expect(visible).toContain('Say "continue" when you are ready to start.');
+			expect(visible).not.toContain("→ Running source audit in the background");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("dispatches the prepared audit when continue follows a queued run", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const queuedRunMessage = [
+				"role-run-1",
+				"Role: workstream",
+				"Status: queued",
+				"Execution mode: background",
+				"Transcript: .pi/co-math/transcripts/role-run-1.jsonl",
+				"Report: none",
+				"Blockers:",
+				"- none",
+			].join("\n");
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					if (command === "run-status latest") {
+						return { ok: true, messages: [queuedRunMessage] };
+					}
+					if (command === "dispatch-next --background") {
+						return {
+							ok: true,
+							messages: ["Started run in background.\nTranscript: .pi/co-math/transcripts/role-run-1.jsonl"],
+						};
+					}
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt("continue");
+
+			expect(commands).toEqual(["run-status latest", "dispatch-next --background"]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("→ Running source audit in the background");
+			// The transcript file path is the one accepted place a role-run id may appear.
+			expect(visible).toContain("Latest transcript: .pi/co-math/transcripts/role-run-1.jsonl");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to the next safe action when continue has no queued run and no new context", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const completedRunMessage = ["role-run-1", "Role: workstream", "Status: completed"].join("\n");
+			const harness = new CoMathHarness({
+				statePath,
+				notify: () => {},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					if (command === "run-status latest") {
+						return { ok: true, messages: [completedRunMessage] };
+					}
+					if (command === "re-audit --background") {
+						return { ok: true, messages: ["No new context to audit since the last step."] };
+					}
+					return { ok: true, messages: [] };
+				},
+			});
+
+			await harness.handlePrompt("continue");
+
+			expect(commands).toEqual(["run-status latest", "re-audit --background", "next"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("re-audits with new context when continue follows a finished run", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const completedRunMessage = ["role-run-1", "Role: workstream", "Status: completed"].join("\n");
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					if (command === "run-status latest") {
+						return { ok: true, messages: [completedRunMessage] };
+					}
+					if (command === "re-audit --background") {
+						return {
+							ok: true,
+							messages: ["Started run in background.\nTranscript: .pi/co-math/transcripts/role-run-2.jsonl"],
+						};
+					}
+					return { ok: true, messages: [] };
+				},
+			});
+
+			await harness.handlePrompt("continue");
+
+			expect(commands).toEqual(["run-status latest", "re-audit --background"]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("→ Running source audit in the background");
+			expect(visible).toContain("Latest transcript: .pi/co-math/transcripts/role-run-2.jsonl");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

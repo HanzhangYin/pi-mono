@@ -10,6 +10,7 @@ import {
 	formatProductProgress,
 	formatSetupStep,
 	formatSteeringNoted,
+	formatWaitingForContext,
 } from "../src/modes/comath/comath-progress.ts";
 
 const FORBIDDEN_PRODUCT_TERMS = [
@@ -85,9 +86,24 @@ describe("co-math product messages", () => {
 		const text = formatInitialValidationPlan("Validate Question 3.", "paper.pdf");
 		expect(text).toContain("I’ll set up a source-backed validation run for: Validate Question 3.");
 		expect(text).toContain("Plan");
+		expect(text).toContain("- Start with the source audit.");
 		expect(text).toContain("Source: paper.pdf");
 		expectProductCopy(text);
 		expectProductCopy(formatInitialValidationPlan("Validate Question 3."));
+	});
+
+	it("formats the validation plan and waiting copy for setup-only mode", () => {
+		const plan = formatInitialValidationPlan("Problem X", "paper.pdf", { waitForContext: true });
+		expect(plan).toContain("- Wait for your pasted context before starting the first audit.");
+		expect(plan).not.toContain("- Start with the source audit.");
+		expectProductCopy(plan);
+
+		const waiting = formatWaitingForContext(true);
+		expect(waiting).toContain("✓ Source audit prepared");
+		expect(waiting).toContain('Say "continue" when you are ready to start.');
+		expectProductCopy(waiting);
+
+		expect(formatWaitingForContext(false)).not.toContain("✓ Source audit prepared");
 	});
 
 	it("formats setup steps and background run start", () => {
@@ -142,6 +158,10 @@ describe("co-math product messages", () => {
 		expect(blocked).toContain("- Report: ready");
 		expect(blocked).toContain("- Blockers:");
 		expect(blocked).toContain("  - No literal Question 3 statement in the source.");
+
+		const queued = formatProductProgress({ status: "queued", background: false });
+		expect(queued).toContain("- Source audit: prepared; waiting for you to say continue");
+		expectProductCopy(queued);
 
 		const empty = formatProductProgress(undefined);
 		expect(empty).toContain("No audit run has started yet.");

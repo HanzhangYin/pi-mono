@@ -1,7 +1,12 @@
 import { stat } from "node:fs/promises";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
 import { createCoMathAutoPlan } from "./comath-autoplan.ts";
-import { extractRunSummary, extractTranscriptPath, formatProductReport } from "./comath-backend-output.ts";
+import {
+	extractRunSummary,
+	extractStatus,
+	extractTranscriptPath,
+	formatProductReport,
+} from "./comath-backend-output.ts";
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
@@ -10,6 +15,7 @@ import {
 	formatProductProgress,
 	formatSetupStep,
 	formatSteeringNoted,
+	formatWaitingForContext,
 } from "./comath-progress.ts";
 import type { CoMathSource } from "./comath-source.ts";
 
@@ -66,8 +72,11 @@ export class CoMathHarness {
 
 	private async handleInitialProblem(problem: string): Promise<void> {
 		const sourceTitle = this.source?.exists && this.source.isFile ? this.source.displayName : undefined;
-		const plan = this.createPlan(problem, sourceTitle);
-		await this.notify(formatInitialValidationPlan(plan.rootQuestion, sourceTitle));
+		const waitForContext = shouldWaitForContext(problem);
+		// The control-flow request ("wait for pasted context before starting") must not become the
+		// math root question, or the audit role obeys it and blocks even once context is supplied.
+		const plan = this.createPlan(waitForContext ? cleanProblemStatement(problem) : problem, sourceTitle);
+		await this.notify(formatInitialValidationPlan(plan.rootQuestion, sourceTitle, { waitForContext }));
 		if (
 			!(await this.runRequiredCommand(`init ${plan.rootQuestion}`, "Could not prepare the validation workspace."))
 		) {
@@ -114,9 +123,13 @@ export class CoMathHarness {
 			if (
 				!(await this.runRequiredCommand(
 					`queue workstream ${plan.firstWorkstreamId}`,
-					"Could not queue the source audit.",
+					"Could not prepare the source audit.",
 				))
 			) {
+				return;
+			}
+			if (waitForContext) {
+				await this.notify(formatWaitingForContext(true));
 				return;
 			}
 			const dispatched = await this.runCommand(
@@ -132,6 +145,23 @@ export class CoMathHarness {
 
 	private async handleSteeringPrompt(prompt: string): Promise<void> {
 		if (/^continue$/i.test(prompt)) {
+			const latestRun = await this.tryCommand("run-status latest");
+			if (latestRun?.ok && extractStatus(latestRun.messages) === "queued") {
+				const dispatched = await this.runCommand(
+					"dispatch-next --background",
+					"Could not start the prepared source audit. Check model/provider configuration and try again.",
+				);
+				if (dispatched) {
+					await this.notify(formatBackgroundRunStarted(extractTranscriptPath(dispatched.messages)));
+				}
+				return;
+			}
+			const reaudit = await this.tryCommand("re-audit --background");
+			const reauditTranscript = reaudit?.ok ? extractTranscriptPath(reaudit.messages) : undefined;
+			if (reauditTranscript) {
+				await this.notify(formatBackgroundRunStarted(reauditTranscript));
+				return;
+			}
 			const result = await this.runCommand("next", "Could not identify the next step.");
 			if (result) {
 				await this.notify(joinProductMessages(result.messages) || "Nothing to do right now.");
@@ -231,6 +261,36 @@ export class CoMathHarness {
 
 function trimTerminalPunctuation(value: string): string {
 	return value.replace(/[.?!]+$/, "");
+}
+
+function cleanProblemStatement(problem: string): string {
+	const withoutLeadVerb = problem
+		.trim()
+		.replace(
+			/^(?:please\s+)?(?:set[\s-]?up|initiali[sz]e|prepare|create|begin|start)\s+(?:a\s+)?(?:source-backed\s+)?validation(?:\s+run)?\s+(?:for|of|on)\s+/i,
+			"",
+		);
+	const clauses = withoutLeadVerb
+		.split(/\s*(?:,|;|\.|\bbut\b)\s*/i)
+		.map((clause) => clause.trim())
+		.filter((clause) => clause.length > 0);
+	const kept = clauses.filter(
+		(clause) => !/\b(?:wait|don'?t start|do not start|before starting|until i|until you)\b/i.test(clause),
+	);
+	const cleaned = kept.join(". ").trim();
+	return cleaned.length > 0 ? cleaned : withoutLeadVerb.trim();
+}
+
+function shouldWaitForContext(prompt: string): boolean {
+	const normalized = prompt.toLowerCase();
+	const asksToWait =
+		/\bwait\b/.test(normalized) || /\bdon'?t start\b/.test(normalized) || /\bdo not start\b/.test(normalized);
+	const mentionsContext =
+		/\bcontext\b/.test(normalized) ||
+		/\bpaste[ds]?\b/.test(normalized) ||
+		/\bstatement\b/.test(normalized) ||
+		/\bproof\b/.test(normalized);
+	return asksToWait && mentionsContext;
 }
 
 function isProductHelpPrompt(prompt: string): boolean {

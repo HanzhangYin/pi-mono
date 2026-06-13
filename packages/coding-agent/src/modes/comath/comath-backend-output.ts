@@ -65,12 +65,37 @@ export function formatProductReport(messages: readonly string[]): string | undef
 	return [
 		"Latest report",
 		`Status: ${status}`,
-		...(summary ? ["", "Summary", summary] : []),
-		...(blockers.length > 0 ? ["", "Blockers", ...blockers.map((blocker) => `- ${blocker}`)] : []),
+		...(summary ? ["", "Summary", sanitizeProductIds(summary)] : []),
+		...(blockers.length > 0
+			? ["", "Blockers", ...blockers.map((blocker) => `- ${sanitizeProductIds(blocker)}`)]
+			: []),
 		"",
 		"Next",
 		blockers.length > 0
 			? 'Paste the missing statement or detail, say "continue", or say "focus on ...".'
 			: 'Say "continue" for the next step, or "focus on ..." to steer.',
 	].join("\n");
+}
+
+const PRODUCT_ID_REPLACEMENTS: Record<string, string> = {
+	workstream: "this audit step",
+	"role-run": "this run",
+	artifact: "an artifact",
+	goal: "a goal",
+	claim: "a claim",
+	evidence: "evidence",
+	warning: "a warning",
+	report: "a report",
+};
+
+/**
+ * Redact internal co-math identifiers (e.g. `workstream-...`, `role-run-1`) that a
+ * model may echo into its summary or blockers. Apply only to model-authored content,
+ * never to a transcript-path line, which legitimately contains a `role-run-N` id.
+ */
+export function sanitizeProductIds(text: string): string {
+	return text.replace(
+		/\b(workstream|role-run|artifact|goal|claim|evidence|warning|report)-[A-Za-z0-9][A-Za-z0-9-]*\b/g,
+		(_match, prefix: string) => PRODUCT_ID_REPLACEMENTS[prefix] ?? "this item",
+	);
 }

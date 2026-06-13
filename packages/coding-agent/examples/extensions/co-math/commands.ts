@@ -120,6 +120,7 @@ const HELP_TEXT = `Co-math assistant commands:
 /comath queue <coordinator|workstream|reviewer|synthesizer> [workstream-id|claim-id] - queue a bounded role run without executing it
 /comath dispatch-next - dispatch the oldest queued role run
 /comath dispatch-next --background - start the oldest queued role run asynchronously
+/comath re-audit [--background] - re-run the latest workstream audit if new context was added since it finished
 /comath dispatch-run <run-id> - dispatch a specific queued role run
 /comath dispatch-run <run-id> --background - start a specific queued role run asynchronously
 /comath cancel-run <run-id>: <reason> - cancel a queued role run before dispatch
@@ -265,6 +266,29 @@ const PRODUCT_ROLE_STEP_LABELS: Record<string, string> = {
 	synthesizer: "Synthesis step",
 };
 
+const PRODUCT_ID_REPLACEMENTS: Record<string, string> = {
+	workstream: "this audit step",
+	"role-run": "this run",
+	artifact: "an artifact",
+	goal: "a goal",
+	claim: "a claim",
+	evidence: "evidence",
+	warning: "a warning",
+	report: "a report",
+};
+
+/**
+ * Redact internal co-math identifiers (e.g. `workstream-...`, `role-run-1`) that a model may
+ * echo into its summary or blockers. Apply only to model-authored text, never to a transcript
+ * path line, which legitimately contains a `role-run-N` id.
+ */
+function sanitizeProductIds(text: string): string {
+	return text.replace(
+		/\b(workstream|role-run|artifact|goal|claim|evidence|warning|report)-[A-Za-z0-9][A-Za-z0-9-]*\b/g,
+		(_match, prefix: string) => PRODUCT_ID_REPLACEMENTS[prefix] ?? "this item",
+	);
+}
+
 export function formatCoMathProductBackgroundEvent(message: string): string {
 	const firstLine = message.split("\n", 1)[0] ?? "";
 	const transcript = /^Transcript:\s*(.+)$/m.exec(message)?.[1]?.trim();
@@ -276,8 +300,10 @@ export function formatCoMathProductBackgroundEvent(message: string): string {
 		const blocked = status === "blocked" || blockers.length > 0;
 		return [
 			blocked ? `${stepLabel} blocked.` : `${stepLabel} finished.`,
-			...(completion[2] ? ["", "Summary", completion[2]] : []),
-			...(blockers.length > 0 ? ["", "Blockers", ...blockers.map((blocker) => `- ${blocker}`)] : []),
+			...(completion[2] ? ["", "Summary", sanitizeProductIds(completion[2])] : []),
+			...(blockers.length > 0
+				? ["", "Blockers", ...blockers.map((blocker) => `- ${sanitizeProductIds(blocker)}`)]
+				: []),
 			...(transcript ? ["", `Transcript: ${transcript}`] : []),
 			"",
 			'Say "show report" for details, "show progress" for status, or "continue".',
@@ -288,7 +314,7 @@ export function formatCoMathProductBackgroundEvent(message: string): string {
 		const stepLabel = PRODUCT_ROLE_STEP_LABELS[failure[1]] ?? "Background step";
 		return [
 			`${stepLabel} ${failure[2]}.`,
-			`Reason: ${failure[3]}`,
+			`Reason: ${sanitizeProductIds(failure[3])}`,
 			...(transcript ? [`Transcript: ${transcript}`] : []),
 			"",
 			'Say "show progress" for status, or "continue" for the next step.',
@@ -298,7 +324,7 @@ export function formatCoMathProductBackgroundEvent(message: string): string {
 	if (unexpected) {
 		return [
 			"The background audit hit an unexpected error.",
-			`Reason: ${unexpected[1]}`,
+			`Reason: ${sanitizeProductIds(unexpected[1])}`,
 			"",
 			'Say "show progress" for status, or "continue" for the next step.',
 		].join("\n");
@@ -551,6 +577,11 @@ async function handleCoMathCommand(
 
 	if (subcommand === "dispatch-next") {
 		await dispatchNextQueuedRoleRun(pi, ctx, remainder, roleRunner);
+		return;
+	}
+
+	if (subcommand === "re-audit") {
+		await reAuditLatestWorkstream(pi, ctx, remainder, roleRunner);
 		return;
 	}
 
@@ -2264,6 +2295,59 @@ async function dispatchNextQueuedRoleRun(
 	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, existing, queuedRun.id, background);
 }
 
+async function reAuditLatestWorkstream(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+	text: string,
+	roleRunner: RoleRunner,
+): Promise<void> {
+	const background = parseBackgroundFlag(text);
+	if (background === undefined) {
+		showCommandMessage(pi, ctx, "Usage: /comath re-audit [--background]");
+		return;
+	}
+	const existing = await loadProjectStateOrNotify(pi, ctx);
+	if (!existing) {
+		return;
+	}
+	const latestFinished = [...existing.roleRuns]
+		.filter((run) => (run.status === "completed" || run.status === "blocked") && run.targetWorkstreamId)
+		.sort((left, right) =>
+			(right.completedAt ?? right.updatedAt).localeCompare(left.completedAt ?? left.updatedAt),
+		)[0];
+	if (!latestFinished) {
+		showCommandMessage(pi, ctx, "No new context to audit since the last step.");
+		return;
+	}
+	const since = latestFinished.completedAt ?? latestFinished.updatedAt;
+	const hasNewContext = existing.artifacts.some(
+		(artifact) => artifact.kind === "human_note" && artifact.createdAt > since,
+	);
+	if (!hasNewContext) {
+		showCommandMessage(pi, ctx, "No new context to audit since the last step.");
+		return;
+	}
+	const targetWorkstream = existing.workstreams.find(
+		(workstream) => workstream.id === latestFinished.targetWorkstreamId,
+	);
+	if (!targetWorkstream) {
+		showCommandMessage(pi, ctx, "No new context to audit since the last step.");
+		return;
+	}
+
+	const runId = `role-run-${existing.roleRuns.length + 1}`;
+	const queuedState = queueRoleRun(existing, {
+		id: runId,
+		role: "workstream",
+		task: buildRoleTask("workstream", existing, targetWorkstream),
+		targetWorkstreamId: targetWorkstream.id,
+		now: new Date().toISOString(),
+		actor: "human",
+	});
+	await saveProjectState(getDefaultStatePath(ctx.cwd), queuedState);
+	await dispatchQueuedRoleRunById(pi, ctx, roleRunner, queuedState, runId, background);
+}
+
 async function dispatchSpecificQueuedRoleRun(
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,
@@ -2440,7 +2524,7 @@ async function executeBackgroundRoleRun(
 		const result = await roleRunner({
 			cwd: input.cwd,
 			role: run.role,
-			task: run.task,
+			task: rebuildRoleTaskForDispatch(invocationState, run),
 			transcriptPath: run.transcriptPath ? resolveRoleRunTranscriptPath(input.cwd, run.transcriptPath) : undefined,
 			signal: input.signal,
 			...(input.onActivity ? { onActivity: input.onActivity } : {}),
@@ -2809,7 +2893,7 @@ async function executeRunningRoleRun(
 			roleRunner({
 				cwd: ctx.cwd,
 				role: run.role,
-				task: run.task,
+				task: buildRoleTask(run.role, startedState, targetWorkstream, targetClaim),
 				transcriptPath: run.transcriptPath ? resolveRoleRunTranscriptPath(ctx.cwd, run.transcriptPath) : undefined,
 				signal: ctx.signal,
 			}),
@@ -3532,15 +3616,41 @@ function buildRoleTask(
 		...formatGoals(state),
 		"Workstreams:",
 		...formatWorkstreams(state),
+		"Source files:",
+		...formatSourceFiles(state),
+		"Project notes and pasted context:",
+		...formatProjectNotes(state),
 		`Claims: ${state.claims.length}`,
 		`Open warnings: ${openWarnings.length}`,
 		"Instructions:",
+		"- Read the listed source files and pasted context before reporting; treat them as the authoritative problem statement and definitions.",
 		"- Do not promote any mathematical claim to proved unless proof evidence exists and no attached warning is open.",
 		"- Treat proposed goals as unapproved unless the user explicitly approves or activates them.",
 		"- Keep report review separate from claim review; accepted reports do not prove claims.",
 		"- Return proposed next steps as a concise report. Do not mutate project state directly.",
 		"- Preserve failed attempts, blockers, uncertainty labels, and provenance requirements.",
 	].join("\n");
+}
+
+function formatSourceFiles(state: CoMathProjectState): string[] {
+	const sources = state.artifacts.filter((artifact) => artifact.kind === "source");
+	if (sources.length === 0) return ["- none"];
+	return sources.map((artifact) => {
+		const location = artifact.sourcePath ?? artifact.path;
+		return location ? `- ${artifact.title}: ${location}` : `- ${artifact.title}`;
+	});
+}
+
+function formatProjectNotes(state: CoMathProjectState): string[] {
+	const notes = state.artifacts.filter((artifact) => artifact.kind === "human_note");
+	if (notes.length === 0) return ["- none"];
+	return notes.map((artifact) => `- ${artifact.summary}`);
+}
+
+function rebuildRoleTaskForDispatch(state: CoMathProjectState, run: RoleRunRecord): string {
+	const targetWorkstream = getRoleRunTargetWorkstream(state, run);
+	const targetClaim = getRoleRunTargetClaim(state, run);
+	return buildRoleTask(run.role, state, targetWorkstream, targetClaim);
 }
 
 function formatTargetWorkstream(targetWorkstream?: Workstream): string[] {

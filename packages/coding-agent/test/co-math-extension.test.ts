@@ -387,6 +387,23 @@ describe("co-math extension registration", () => {
 		expect(failed).toContain("Reason: provider unavailable");
 	});
 
+	it("redacts internal ids a model echoes into its summary but keeps the transcript path", () => {
+		const blocked = formatCoMathProductBackgroundEvent(
+			[
+				"Background Ran co-math workstream and saved report report-1: Workstream workstream-extract-question-2-definitions is blocked pending context.",
+				"Status: blocked",
+				"Transcript: .pi/co-math/transcripts/role-run-1.jsonl",
+				"Blockers:",
+				"- Need context for workstream-extract-question-2-definitions before extraction.",
+			].join("\n"),
+		);
+		expect(blocked).toContain("Source audit blocked.");
+		expect(blocked).not.toContain("workstream-extract-question-2-definitions");
+		expect(blocked).toContain("this audit step");
+		// The transcript path is the one accepted place a role-run id may appear.
+		expect(blocked).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
+	});
+
 	it("registers the comath_state tool", () => {
 		const { tools } = createCoMathExtensionFixture();
 
@@ -1708,6 +1725,88 @@ describe("co-math extension registration", () => {
 			expect(visibleText).toContain("Cancel reason: Superseded by coordinator queue item");
 			expect(visibleText).toContain("- queued: 1");
 			expect(visibleText).toContain("- cancelled: 1");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("includes pasted context and source files in the dispatched role task", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-task-context-"));
+		const sourcePath = join(tempDir, "paper.pdf");
+		let capturedTask = "";
+		try {
+			await writeFile(sourcePath, "pdf", "utf8");
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					capturedTask = input.task;
+					return { summary: "ok" };
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Validate Question 3.", ctx);
+			await command?.handler(`source ${sourcePath} paper.pdf: Primary source`, ctx);
+			await command?.handler("goal Validate Question 3.", ctx);
+			await command?.handler("workstream defs: Extract definitions", ctx);
+			await command?.handler("queue workstream workstream-defs", ctx);
+			// Context is pasted AFTER the run was queued.
+			await command?.handler("note project: PASTED-CONTEXT-MARKER exact Question 3 statement", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+
+			await waitForCondition(() => {
+				expect(capturedTask).not.toBe("");
+				expect(notifications.join("\n")).toContain("saved report");
+			});
+			expect(capturedTask).toContain("PASTED-CONTEXT-MARKER exact Question 3 statement");
+			expect(capturedTask).toContain(sourcePath);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("re-audits the latest workstream only when new context was added since it finished", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-reaudit-"));
+		const tasks: string[] = [];
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					tasks.push(input.task);
+					return { summary: "first run done" };
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Validate Question 3.", ctx);
+			await command?.handler("goal Validate Question 3.", ctx);
+			await command?.handler("workstream defs: Extract definitions", ctx);
+			await command?.handler("queue workstream workstream-defs", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			// Wait for the completion notification, which is sent after the state save finishes.
+			await waitForCondition(() => {
+				expect(tasks).toHaveLength(1);
+				expect(notifications.join("\n")).toContain("saved report");
+			});
+
+			// No new context yet: re-audit should decline.
+			notifications.length = 0;
+			await command?.handler("re-audit --background", ctx);
+			expect(notifications.join("\n")).toContain("No new context to audit since the last step.");
+			expect(tasks).toHaveLength(1);
+
+			// Add new context, then re-audit should start a fresh run that includes it.
+			await command?.handler("note project: RE-AUDIT-CONTEXT new candidate to check", ctx);
+			notifications.length = 0;
+			await command?.handler("re-audit --background", ctx);
+			await waitForCondition(() => {
+				expect(tasks).toHaveLength(2);
+				expect(notifications.join("\n")).toContain("saved report");
+			});
+			expect(tasks[1]).toContain("RE-AUDIT-CONTEXT new candidate to check");
+			expect(notifications.join("\n")).toContain("Transcript:");
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

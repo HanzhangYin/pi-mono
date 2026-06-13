@@ -5,6 +5,7 @@ import {
 	extractStatus,
 	extractTranscriptPath,
 	formatProductReport,
+	sanitizeProductIds,
 } from "../src/modes/comath/comath-backend-output.ts";
 
 const RUN_STATUS_MESSAGE = [
@@ -72,6 +73,31 @@ describe("co-math backend output parsing", () => {
 		expect(report).not.toContain("Report report-1");
 		expect(report).not.toContain("Linked role run");
 		expect(report).not.toContain("/comath");
+	});
+
+	it("redacts internal ids from report summary and blockers but keeps other text", () => {
+		const report = formatProductReport([
+			[
+				"Report report-1: workstream role run",
+				"Summary: Workstream workstream-extract-question-2-definitions is blocked; see claim-3.",
+				"Blockers:",
+				"- Missing context for workstream-extract-question-2-definitions.",
+			].join("\n"),
+		]);
+		expect(report).toBeDefined();
+		expect(report).not.toContain("workstream-extract-question-2-definitions");
+		expect(report).not.toContain("claim-3");
+		expect(report).toContain("this audit step");
+		expect(report).toContain("a claim");
+	});
+
+	it("sanitizeProductIds maps id prefixes and leaves plain text untouched", () => {
+		expect(sanitizeProductIds("see workstream-foo-bar and role-run-2 and artifact-9")).toBe(
+			"see this audit step and this run and an artifact",
+		);
+		expect(sanitizeProductIds("no ids here, just prose about Question 3")).toBe(
+			"no ids here, just prose about Question 3",
+		);
 	});
 
 	it("formats a clean report as completed", () => {

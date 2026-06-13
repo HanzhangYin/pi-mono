@@ -58,7 +58,18 @@ export function formatExistingProjectHelp(): string {
 	].join("\n");
 }
 
-export function formatInitialValidationPlan(problem: string, sourceDisplayName?: string): string {
+export interface InitialValidationPlanOptions {
+	waitForContext?: boolean;
+}
+
+export function formatInitialValidationPlan(
+	problem: string,
+	sourceDisplayName?: string,
+	options: InitialValidationPlanOptions = {},
+): string {
+	const finalStep = options.waitForContext
+		? "- Wait for your pasted context before starting the first audit."
+		: "- Start with the source audit.";
 	return [
 		`I’ll set up a source-backed validation run for: ${problem}`,
 		"",
@@ -66,8 +77,16 @@ export function formatInitialValidationPlan(problem: string, sourceDisplayName?:
 		"- Pin the source and target problem.",
 		"- Extract definitions and assumptions before proof attempts.",
 		"- Audit proof dependencies, especially support/indexing gaps.",
-		"- Start with the source audit.",
+		finalStep,
 		...(sourceDisplayName ? ["", `Source: ${sourceDisplayName}`] : []),
+	].join("\n");
+}
+
+export function formatWaitingForContext(sourceAuditPrepared: boolean): string {
+	return [
+		...(sourceAuditPrepared ? [formatSetupStep("Source audit prepared")] : []),
+		"",
+		'Paste the exact statement, definitions, assumptions, or proof context now. Say "continue" when you are ready to start.',
 	].join("\n");
 }
 
@@ -106,6 +125,13 @@ export function formatSteeringNoted(): string {
 	return "Noted. I’ll factor that into the next audit step.";
 }
 
+function formatProductRunStatus(status: string | undefined): string {
+	if (status === "queued") {
+		return "prepared; waiting for you to say continue";
+	}
+	return status ?? "unknown";
+}
+
 export function formatProductProgress(run: CoMathProductRunSummary | undefined): string {
 	if (!run) {
 		return ["Current progress", "- No audit run has started yet.", '- Say "continue" to start the next step.'].join(
@@ -115,7 +141,7 @@ export function formatProductProgress(run: CoMathProductRunSummary | undefined):
 	const blockers = run.blockers ?? [];
 	return [
 		"Current progress",
-		`- Source audit: ${run.status ?? "unknown"}`,
+		`- Source audit: ${formatProductRunStatus(run.status)}`,
 		...(run.background !== undefined ? [`- Running in background: ${run.background ? "yes" : "no"}`] : []),
 		...(run.transcriptPath ? [`- Latest transcript: ${run.transcriptPath}`] : []),
 		`- Report: ${run.reportId ? "ready" : "none yet"}`,
