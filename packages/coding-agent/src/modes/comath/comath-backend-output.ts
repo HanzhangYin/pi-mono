@@ -1,0 +1,76 @@
+import type { CoMathProductRunSummary } from "./comath-progress.ts";
+
+export function extractTranscriptPath(messages: readonly string[]): string | undefined {
+	return extractField(messages, "Transcript");
+}
+
+export function extractStatus(messages: readonly string[]): string | undefined {
+	return extractField(messages, "Status");
+}
+
+export function extractField(messages: readonly string[], label: string): string | undefined {
+	const pattern = new RegExp(`^${label}:\\s*(.+)$`, "m");
+	for (const message of messages) {
+		const match = pattern.exec(message);
+		if (match?.[1]) {
+			return match[1].trim();
+		}
+	}
+	return undefined;
+}
+
+export function extractRunSummary(messages: readonly string[]): CoMathProductRunSummary | undefined {
+	const message = messages.find((candidate) => /^Status:\s*.+$/m.test(candidate));
+	if (!message) {
+		return undefined;
+	}
+	const report = extractField([message], "Report");
+	const executionMode = extractField([message], "Execution mode");
+	return {
+		status: extractStatus([message]),
+		background: executionMode === undefined ? undefined : executionMode === "background",
+		transcriptPath: extractTranscriptPath([message]),
+		reportId: report && report !== "none" ? report : undefined,
+		blockers: extractBlockers(message),
+	};
+}
+
+export function extractBlockers(message: string): string[] {
+	const lines = message.split("\n");
+	const start = lines.findIndex((line) => line.trim() === "Blockers:" || line.trim() === "Blockers");
+	if (start === -1) {
+		return [];
+	}
+	const blockers: string[] = [];
+	for (const line of lines.slice(start + 1)) {
+		const match = /^-\s+(.+)$/.exec(line.trim());
+		if (!match) {
+			break;
+		}
+		if (match[1].trim().toLowerCase() !== "none") {
+			blockers.push(match[1].trim());
+		}
+	}
+	return blockers;
+}
+
+export function formatProductReport(messages: readonly string[]): string | undefined {
+	const message = messages.find((candidate) => /^Report\s+\S+:/.test(candidate));
+	if (!message) {
+		return undefined;
+	}
+	const summary = extractField([message], "Summary");
+	const blockers = extractBlockers(message);
+	const status = blockers.length > 0 ? "blocked" : "completed";
+	return [
+		"Latest report",
+		`Status: ${status}`,
+		...(summary ? ["", "Summary", summary] : []),
+		...(blockers.length > 0 ? ["", "Blockers", ...blockers.map((blocker) => `- ${blocker}`)] : []),
+		"",
+		"Next",
+		blockers.length > 0
+			? 'Paste the missing statement or detail, say "continue", or say "focus on ...".'
+			: 'Say "continue" for the next step, or "focus on ..." to steer.',
+	].join("\n");
+}

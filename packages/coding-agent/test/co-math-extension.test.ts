@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { formatCoMathProductBackendMessage, runCoMathBackendCommand } from "../examples/extensions/co-math/commands.ts";
+import {
+	formatCoMathProductBackendMessage,
+	formatCoMathProductBackgroundEvent,
+	runCoMathBackendCommand,
+} from "../examples/extensions/co-math/commands.ts";
 import coMathExtension from "../examples/extensions/co-math/index.ts";
 import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
 import {
@@ -20,12 +24,23 @@ const extensionDir = join(dirname(fileURLToPath(import.meta.url)), "../examples/
 type RegisteredCommandForTest = Parameters<ExtensionAPI["registerCommand"]>[1];
 type RegisteredToolForTest = Parameters<ExtensionAPI["registerTool"]>[0];
 
+type CoMathRoleForTest = "coordinator" | "workstream" | "reviewer" | "synthesizer";
+
+interface CoMathRoleActivityEventForTest {
+	kind: string;
+	timestamp: string;
+	role: CoMathRoleForTest;
+	message: string;
+	detail?: string;
+}
+
 interface RoleRunInputForTest {
 	cwd: string;
-	role: "coordinator" | "workstream" | "reviewer" | "synthesizer";
+	role: CoMathRoleForTest;
 	task: string;
 	transcriptPath?: string;
 	signal?: AbortSignal;
+	onActivity?: (event: CoMathRoleActivityEventForTest) => void;
 }
 
 interface ProposedEvidenceForTest {
@@ -108,6 +123,7 @@ function createCoMathExtensionFixture(options: CoMathExtensionFixtureOptions = {
 			tools.set(tool.name, tool);
 			activeTools.push(tool.name);
 		},
+		registerMessageRenderer(): void {},
 		sendMessage(message: { content: string }): void {
 			notifications.push(message.content);
 		},
@@ -166,6 +182,14 @@ async function waitForCondition(assertCondition: () => void | Promise<void>): Pr
 		throw lastError;
 	}
 	throw lastError;
+}
+
+const FORBIDDEN_PRODUCT_ACTIVITY_TERMS = ["role-run", "workstream-", "artifact-", "/comath"];
+
+function expectProductActivityCopy(text: string): void {
+	for (const term of FORBIDDEN_PRODUCT_ACTIVITY_TERMS) {
+		expect(text).not.toContain(term);
+	}
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -307,6 +331,60 @@ describe("co-math extension registration", () => {
 		);
 		expect(inlineOnly).not.toContain("/comath");
 		expect(inlineOnly).toContain("Live in this session: no");
+	});
+
+	it("captures messages without notifying when silent", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "co-math-silent-"));
+		try {
+			const notifications: string[] = [];
+			const result = await runCoMathBackendCommand("init Validate Question 3.", {
+				cwd,
+				notify: (message) => {
+					notifications.push(message);
+				},
+				silent: true,
+				productMode: true,
+			});
+
+			expect(result.ok).toBe(true);
+			expect(result.messages.join("\n")).toContain("Initialized co-math project state");
+			expect(notifications).toEqual([]);
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	it("formats background role run events as product copy", () => {
+		const blocked = formatCoMathProductBackgroundEvent(
+			[
+				"Background Ran co-math workstream and saved report report-1: Extraction stopped at a missing statement.",
+				"Status: blocked",
+				"Transcript: .pi/co-math/transcripts/role-run-1.jsonl",
+				"Blockers:",
+				'- The source contains no literal "Question 3".',
+			].join("\n"),
+		);
+		expect(blocked).toContain("Source audit blocked.");
+		expect(blocked).toContain("Extraction stopped at a missing statement.");
+		expect(blocked).toContain('- The source contains no literal "Question 3".');
+		expect(blocked).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
+		expect(blocked).toContain('"show report"');
+		expect(blocked).not.toContain("Background Ran co-math");
+
+		const completed = formatCoMathProductBackgroundEvent(
+			[
+				"Background Ran co-math workstream and saved report report-2: All definitions extracted.",
+				"Status: completed",
+			].join("\n"),
+		);
+		expect(completed).toContain("Source audit finished.");
+		expect(completed).not.toContain("report-2");
+
+		const failed = formatCoMathProductBackgroundEvent(
+			"Co-math workstream role run role-run-1 failed: provider unavailable",
+		);
+		expect(failed).toContain("Source audit failed.");
+		expect(failed).toContain("Reason: provider unavailable");
 	});
 
 	it("registers the comath_state tool", () => {
@@ -1671,6 +1749,48 @@ describe("co-math extension registration", () => {
 				executionMode: "background",
 				reportId: "report-1",
 			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("forwards throttled product activity from a background role run", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-activity-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					const emit = (kind: string, message: string): void => {
+						input.onActivity?.({ kind, timestamp: new Date().toISOString(), role: input.role, message });
+					};
+					emit("started", "Starting the audit run");
+					emit("reading", "Reading source context");
+					emit("reading", "Reading source context");
+					emit("searching", "Searching the workspace");
+					emit("completed", "Finished the audit run");
+					return { summary: "Background coordinator completed." };
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Study endpoint behavior", ctx);
+			await command?.handler("queue coordinator", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+
+			await waitForCondition(() => {
+				expect(notifications.some((message) => message.includes("Coordination step activity"))).toBe(true);
+			});
+			const activityMessages = notifications.filter((message) => message.includes("Coordination step activity"));
+			// Distinct rapid events are throttled to a single visible update; duplicates are dropped.
+			expect(activityMessages).toHaveLength(1);
+			expect(activityMessages[0]).toContain("Reading source context");
+			expect(activityMessages[0]).not.toContain("Searching the workspace");
+			const allText = notifications.join("\n");
+			// Lifecycle activity is left to the dedicated start/completion messages.
+			expect(allText).not.toContain("Starting the audit run");
+			expect(allText).not.toContain("Finished the audit run");
+			expectProductActivityCopy(activityMessages.join("\n"));
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

@@ -1,62 +1,150 @@
 import { describe, expect, it } from "vitest";
 import {
+	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
 	formatCoMathWelcome,
 	formatExistingProjectHelp,
-	formatGoalCreated,
-	formatPlanningStarted,
-	formatProjectCreated,
-	formatSourceRegistered,
-	formatStartingFirstWorkstream,
-	formatWorkstreamCreated,
+	formatFocusNoted,
+	formatInitialValidationPlan,
+	formatProductActivity,
+	formatProductProgress,
+	formatSetupStep,
+	formatSteeringNoted,
 } from "../src/modes/comath/comath-progress.ts";
 
-describe("co-math progress messages", () => {
-	it("formats source-aware startup progress", () => {
-		expect(
-			formatCoMathWelcome({
-				input: "paper.pdf",
-				absolutePath: "/tmp/paper.pdf",
-				displayName: "paper.pdf",
-				exists: true,
-				isFile: true,
-			}),
-		).toContain("Source: paper.pdf");
+const FORBIDDEN_PRODUCT_TERMS = [
+	"Co-math research mode",
+	"co-math project",
+	"co-math goal",
+	"co-math workstream",
+	"role-run",
+	"artifact-",
+	"workstream-",
+	"/comath",
+];
+
+function expectProductCopy(text: string): void {
+	for (const term of FORBIDDEN_PRODUCT_TERMS) {
+		expect(text).not.toContain(term);
+	}
+}
+
+describe("co-math product messages", () => {
+	it("formats Pi-native startup copy", () => {
+		const text = formatCoMathWelcome({
+			input: "/tmp/paper.pdf",
+			absolutePath: "/tmp/paper.pdf",
+			displayName: "paper.pdf",
+			exists: true,
+			isFile: true,
+		});
+		expect(text).toContain("Pi is ready");
+		expect(text).toContain("Source: paper.pdf");
+		expect(text).toContain("Describe the problem you want to investigate.");
+		expect(text).not.toContain("Co-math research mode");
+		expectProductCopy(text);
+	});
+
+	it("formats sourceless startup copy", () => {
+		const text = formatCoMathWelcome(undefined);
+		expect(text).toContain("Pi is ready");
+		expect(text).toContain("Describe the problem you want to investigate.");
+		expectProductCopy(text);
 	});
 
 	it("formats missing-source startup warnings", () => {
-		expect(
-			formatCoMathWelcome({
-				input: "missing.pdf",
-				absolutePath: "/tmp/missing.pdf",
-				displayName: "missing.pdf",
-				exists: false,
-				isFile: false,
-				missingReason: "Source path is not readable.",
-			}),
-		).toContain("source warning: missing.pdf");
+		const text = formatCoMathWelcome({
+			input: "missing.pdf",
+			absolutePath: "/tmp/missing.pdf",
+			displayName: "missing.pdf",
+			exists: false,
+			isFile: false,
+			missingReason: "Source path is not readable.",
+		});
+		expect(text).toContain("Pi is ready");
+		expect(text).toContain("Source warning: missing.pdf");
+		expect(text).toContain("Source path is not readable.");
+		expectProductCopy(text);
 	});
 
-	it("formats product help without slash commands", () => {
+	it("formats Pi-native help copy", () => {
 		const help = formatCoMathProductHelp();
-
-		expect(help).toContain("Describe the problem");
-		expect(help).toContain("show latest run");
-		expect(help).not.toContain("/comath");
+		expect(help).toContain("Pi math validation help");
+		expect(help).toContain("show progress");
+		expect(help).toContain("show report");
+		expectProductCopy(help);
 	});
 
-	it("formats product setup progress", () => {
-		expect(formatPlanningStarted("Validate Question 3.")).toBe(
-			"Planning co-math validation workflow for: Validate Question 3.",
-		);
-		expect(formatProjectCreated("Validate Question 3.")).toBe("Created project: Validate Question 3.");
-		expect(formatSourceRegistered("paper.pdf")).toBe("Registered source: paper.pdf");
-		expect(formatGoalCreated("Validate Q3")).toBe("Created goal: Validate Q3");
-		expect(formatWorkstreamCreated("Extract definitions")).toBe("Created workstream: Extract definitions");
-		expect(formatStartingFirstWorkstream("Extract definitions")).toBe(
-			"Starting first workstream: Extract definitions",
-		);
-		expect(formatExistingProjectHelp()).toContain("show latest run");
-		expect(formatExistingProjectHelp()).not.toContain("/comath");
+	it("formats existing-project help with natural steering", () => {
+		const help = formatExistingProjectHelp();
+		expect(help).toContain("show progress");
+		expectProductCopy(help);
+	});
+
+	it("formats the initial validation plan", () => {
+		const text = formatInitialValidationPlan("Validate Question 3.", "paper.pdf");
+		expect(text).toContain("I’ll set up a source-backed validation run for: Validate Question 3.");
+		expect(text).toContain("Plan");
+		expect(text).toContain("Source: paper.pdf");
+		expectProductCopy(text);
+		expectProductCopy(formatInitialValidationPlan("Validate Question 3."));
+	});
+
+	it("formats setup steps and background run start", () => {
+		expect(formatSetupStep("Source pinned: paper.pdf")).toBe("✓ Source pinned: paper.pdf");
+		const started = formatBackgroundRunStarted(".pi/co-math/transcripts/run.jsonl");
+		expect(started).toContain("→ Running source audit in the background");
+		expect(started).toContain("Latest transcript: .pi/co-math/transcripts/run.jsonl");
+		expect(started).toContain("show progress");
+		expectProductCopy(formatBackgroundRunStarted());
+	});
+
+	it("formats product activity updates without internal terms", () => {
+		const activity = formatProductActivity({ stepLabel: "Source audit", message: "Reading source context" });
+		expect(activity).toBe("Source audit activity\n- Reading source context");
+		expectProductCopy(activity);
+		const withDetail = formatProductActivity({
+			stepLabel: "Source audit",
+			message: "Running a local check",
+			detail: "checking definitions",
+		});
+		expect(withDetail).toContain("- Running a local check");
+		expect(withDetail).toContain("  checking definitions");
+		expectProductCopy(withDetail);
+	});
+
+	it("formats focus and steering acknowledgements", () => {
+		const focus = formatFocusNoted("the support indexing gap");
+		expect(focus).toContain("Focus noted: the support indexing gap.");
+		expectProductCopy(focus);
+		expectProductCopy(formatSteeringNoted());
+	});
+
+	it("formats product progress summaries", () => {
+		const progress = formatProductProgress({
+			status: "running",
+			background: true,
+			transcriptPath: ".pi/co-math/transcripts/run.jsonl",
+		});
+		expect(progress).toContain("Current progress");
+		expect(progress).toContain("- Source audit: running");
+		expect(progress).toContain("- Running in background: yes");
+		expect(progress).toContain("- Latest transcript: .pi/co-math/transcripts/run.jsonl");
+		expect(progress).toContain("- Report: none yet");
+		expect(progress).toContain("- Blockers: none");
+
+		const blocked = formatProductProgress({
+			status: "blocked",
+			reportId: "report-1",
+			blockers: ["No literal Question 3 statement in the source."],
+		});
+		expect(blocked).toContain("- Source audit: blocked");
+		expect(blocked).toContain("- Report: ready");
+		expect(blocked).toContain("- Blockers:");
+		expect(blocked).toContain("  - No literal Question 3 statement in the source.");
+
+		const empty = formatProductProgress(undefined);
+		expect(empty).toContain("No audit run has started yet.");
+		expectProductCopy(empty);
 	});
 });

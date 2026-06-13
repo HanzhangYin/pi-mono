@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+	activityFromPiJsonEvent,
 	createDefaultRoleRunner,
 	createTranscriptWriter,
 	getPiInvocation,
@@ -27,6 +28,70 @@ class ErroringTranscriptStreamForTest extends EventEmitter {
 		return this;
 	}
 }
+
+describe("activityFromPiJsonEvent", () => {
+	it("maps tool execution starts to coarse product activity", () => {
+		expect(activityFromPiJsonEvent({ type: "tool_execution_start", toolName: "read" })).toEqual({
+			kind: "reading",
+			message: "Reading source context",
+		});
+		expect(activityFromPiJsonEvent({ type: "tool_execution_start", toolName: "grep" })).toEqual({
+			kind: "searching",
+			message: "Searching the workspace",
+		});
+		expect(activityFromPiJsonEvent({ type: "tool_execution_start", toolName: "bash" })).toEqual({
+			kind: "running-command",
+			message: "Running a local check",
+		});
+		expect(activityFromPiJsonEvent({ type: "tool_execution_start", toolName: "write" })).toEqual({
+			kind: "editing",
+			message: "Updating workspace notes",
+		});
+	});
+
+	it("maps unknown tool names to a generic local check", () => {
+		expect(activityFromPiJsonEvent({ type: "tool_execution_start", toolName: "mystery_tool" })).toEqual({
+			kind: "running-command",
+			message: "Running a local check",
+		});
+	});
+
+	it("maps thinking and text starts to thinking and drafting", () => {
+		expect(
+			activityFromPiJsonEvent({
+				type: "message_update",
+				assistantMessageEvent: { type: "thinking_start" },
+			}),
+		).toEqual({ kind: "thinking", message: "Working through the proof context" });
+		expect(
+			activityFromPiJsonEvent({
+				type: "message_update",
+				assistantMessageEvent: { type: "text_start" },
+			}),
+		).toEqual({ kind: "drafting", message: "Drafting the audit report" });
+	});
+
+	it("maps retry-like events to retrying", () => {
+		expect(activityFromPiJsonEvent({ type: "api_retry" })).toEqual({
+			kind: "retrying",
+			message: "Retrying the model request",
+		});
+		expect(activityFromPiJsonEvent({ type: "system", subtype: "api_retry" })).toEqual({
+			kind: "retrying",
+			message: "Retrying the model request",
+		});
+	});
+
+	it("ignores token deltas and unknown event shapes without throwing", () => {
+		expect(
+			activityFromPiJsonEvent({ type: "message_update", assistantMessageEvent: { type: "text_delta" } }),
+		).toBeUndefined();
+		expect(activityFromPiJsonEvent({ type: "message_end", message: {} })).toBeUndefined();
+		expect(activityFromPiJsonEvent({})).toBeUndefined();
+		expect(activityFromPiJsonEvent({ type: "tool_execution_start" })).toBeUndefined();
+		expect(activityFromPiJsonEvent({ type: "unknown_shape", nested: { a: 1 } })).toBeUndefined();
+	});
+});
 
 describe("parseRoleRunOutput", () => {
 	it("parses plain JSON role output with proposed claims", () => {
@@ -455,6 +520,47 @@ describe("getPiInvocation", () => {
 				expect.objectContaining({ type: "closed", exitCode: 0, aborted: false }),
 			]),
 		);
+	});
+
+	it("emits activity events for a controlled Pi JSON-mode process", async () => {
+		const root = mkdtempSync(join(tmpdir(), "co-math-role-activity-"));
+		const scriptPath = join(root, "fake-pi.sh");
+		const extensionDir = join(root, "extension");
+		const transcriptPath = join(root, ".pi", "co-math", "transcripts", "role-run-1.jsonl");
+		mkdirSync(join(extensionDir, "agents"), { recursive: true });
+		writeFileSync(join(extensionDir, "agents", "workstream.md"), "fake prompt\n");
+		writeFileSync(
+			scriptPath,
+			[
+				"#!/bin/sh",
+				'printf \'%s\\n\' \'{"type":"tool_execution_start","toolName":"read"}\'',
+				'printf \'%s\\n\' \'{"type":"message_update","assistantMessageEvent":{"type":"text_start"}}\'',
+				'printf \'%s\\n\' \'{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"{\\"summary\\":\\"ok\\"}"}]}}\'',
+			].join("\n"),
+		);
+		chmodSync(scriptPath, 0o755);
+		const roleRunner = createDefaultRoleRunner(extensionDir, {
+			currentScript: join(root, "missing-current-script"),
+			execPath: scriptPath,
+		});
+
+		const activity: { kind: string; message: string }[] = [];
+		const result = await roleRunner({
+			cwd: root,
+			role: "workstream",
+			task: "Role: workstream",
+			transcriptPath,
+			onActivity: (event) => {
+				activity.push({ kind: event.kind, message: event.message });
+			},
+		});
+
+		expect(result.summary).toBe("ok");
+		const kinds = activity.map((event) => event.kind);
+		expect(kinds[0]).toBe("started");
+		expect(kinds).toContain("reading");
+		expect(kinds).toContain("drafting");
+		expect(kinds.at(-1)).toBe("completed");
 	});
 
 	it("uses tsx when a development TypeScript cli script is running under node", () => {

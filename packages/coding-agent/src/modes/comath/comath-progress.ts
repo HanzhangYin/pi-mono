@@ -1,64 +1,126 @@
 import type { CoMathSource } from "./comath-source.ts";
 
+export interface CoMathProductRunSummary {
+	status?: string;
+	background?: boolean;
+	transcriptPath?: string;
+	reportId?: string;
+	blockers?: string[];
+}
+
 export function formatCoMathWelcome(source: CoMathSource | undefined): string {
 	if (!source) {
-		return "Co-math research mode\nWaiting for a problem to validate.";
+		return [
+			"Pi is ready to help validate mathematical work.",
+			"",
+			"Describe the problem you want to investigate.",
+		].join("\n");
 	}
 	if (!source.exists || !source.isFile) {
 		return [
-			`Co-math research mode source warning: ${source.input}`,
+			"Pi is ready to help validate mathematical work.",
+			`Source warning: ${source.input}`,
 			source.missingReason ?? "Source path is not readable.",
-			"Waiting for a problem to validate.",
+			"",
+			"Describe the problem you want to investigate.",
 		].join("\n");
 	}
-	return [`Co-math research mode`, `Source: ${source.displayName}`, "Waiting for a problem to validate."].join("\n");
+	return [
+		"Pi is ready to help validate mathematical work.",
+		`Source: ${source.displayName}`,
+		"",
+		"Describe the problem you want to investigate.",
+	].join("\n");
 }
 
 export function formatCoMathProductHelp(): string {
 	return [
-		"Co-math research mode",
+		"Pi math validation help",
 		"",
-		"Describe the problem you want to validate, for example:",
-		"  Validate Question 3.",
+		"Start by describing the problem or claim you want to investigate.",
+		"Example: Validate Question 3.",
 		"",
-		"After setup, steer naturally:",
+		"After Pi starts working, steer naturally:",
 		"  continue",
+		"  show progress",
+		"  show report",
 		"  focus on the support indexing gap",
-		"  show latest run",
-		"  show latest report",
 		"  show uncertainty",
 		"",
-		"I will create goals, source-audit workstreams, transcripts, and reports automatically.",
+		"Pi will organize the source, goals, audit steps, transcripts, and reports internally.",
 	].join("\n");
 }
 
 export function formatExistingProjectHelp(): string {
 	return [
-		"A co-math project already exists in this workspace.",
-		'Say "continue", "show latest report", "show latest run", or "focus on ...".',
+		"A validation run already exists in this workspace.",
+		'Say "continue", "show progress", "show report", or "focus on ...".',
 	].join("\n");
 }
 
-export function formatPlanningStarted(problem: string): string {
-	return `Planning co-math validation workflow for: ${problem}`;
+export function formatInitialValidationPlan(problem: string, sourceDisplayName?: string): string {
+	return [
+		`I’ll set up a source-backed validation run for: ${problem}`,
+		"",
+		"Plan",
+		"- Pin the source and target problem.",
+		"- Extract definitions and assumptions before proof attempts.",
+		"- Audit proof dependencies, especially support/indexing gaps.",
+		"- Start with the source audit.",
+		...(sourceDisplayName ? ["", `Source: ${sourceDisplayName}`] : []),
+	].join("\n");
 }
 
-export function formatProjectCreated(rootQuestion: string): string {
-	return `Created project: ${rootQuestion}`;
+export function formatSetupStep(label: string): string {
+	return `✓ ${label}`;
 }
 
-export function formatSourceRegistered(sourceDisplayName: string): string {
-	return `Registered source: ${sourceDisplayName}`;
+export function formatBackgroundRunStarted(transcriptPath?: string): string {
+	return [
+		"→ Running source audit in the background",
+		...(transcriptPath ? [`Latest transcript: ${transcriptPath}`] : []),
+		"",
+		'You can keep steering while it runs. Try: "show progress", "show report", or "focus on ...".',
+	].join("\n");
 }
 
-export function formatGoalCreated(goal: string): string {
-	return `Created goal: ${goal}`;
+export interface CoMathProductActivity {
+	stepLabel: string;
+	message: string;
+	detail?: string;
 }
 
-export function formatWorkstreamCreated(title: string): string {
-	return `Created workstream: ${title}`;
+export function formatProductActivity(activity: CoMathProductActivity): string {
+	return [
+		`${activity.stepLabel} activity`,
+		`- ${activity.message}`,
+		...(activity.detail ? [`  ${activity.detail}`] : []),
+	].join("\n");
 }
 
-export function formatStartingFirstWorkstream(title: string): string {
-	return `Starting first workstream: ${title}`;
+export function formatFocusNoted(focus: string): string {
+	return [`Focus noted: ${focus}.`, "I’ll prioritize that in the next audit step."].join("\n");
+}
+
+export function formatSteeringNoted(): string {
+	return "Noted. I’ll factor that into the next audit step.";
+}
+
+export function formatProductProgress(run: CoMathProductRunSummary | undefined): string {
+	if (!run) {
+		return ["Current progress", "- No audit run has started yet.", '- Say "continue" to start the next step.'].join(
+			"\n",
+		);
+	}
+	const blockers = run.blockers ?? [];
+	return [
+		"Current progress",
+		`- Source audit: ${run.status ?? "unknown"}`,
+		...(run.background !== undefined ? [`- Running in background: ${run.background ? "yes" : "no"}`] : []),
+		...(run.transcriptPath ? [`- Latest transcript: ${run.transcriptPath}`] : []),
+		`- Report: ${run.reportId ? "ready" : "none yet"}`,
+		...(blockers.length === 0
+			? ["- Blockers: none"]
+			: ["- Blockers:", ...blockers.map((blocker) => `  - ${blocker}`)]),
+	].join("\n");
 }

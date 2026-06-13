@@ -7,12 +7,35 @@ import type { ArtifactKind, EvidenceKind, WarningSeverity } from "./schema.ts";
 
 export type CoMathRole = "coordinator" | "workstream" | "reviewer" | "synthesizer";
 
+export type CoMathRoleActivityKind =
+	| "started"
+	| "thinking"
+	| "reading"
+	| "searching"
+	| "running-command"
+	| "editing"
+	| "drafting"
+	| "retrying"
+	| "stderr"
+	| "completed";
+
+export interface CoMathRoleActivityEvent {
+	kind: CoMathRoleActivityKind;
+	timestamp: string;
+	role: CoMathRole;
+	message: string;
+	detail?: string;
+}
+
+export type CoMathRoleActivityCallback = (event: CoMathRoleActivityEvent) => void | Promise<void>;
+
 export interface RoleRunInput {
 	cwd: string;
 	role: CoMathRole;
 	task: string;
 	signal?: AbortSignal;
 	transcriptPath?: string;
+	onActivity?: CoMathRoleActivityCallback;
 }
 
 export interface RoleRunResult {
@@ -115,6 +138,18 @@ async function runPiRole(
 	let wasAborted = false;
 	let closedEventWritten = false;
 
+	const emitActivity = (kind: CoMathRoleActivityKind, message: string, detail?: string): void => {
+		void Promise.resolve(
+			input.onActivity?.({
+				kind,
+				timestamp: new Date().toISOString(),
+				role: input.role,
+				message,
+				...(detail ? { detail } : {}),
+			}),
+		).catch(() => {});
+	};
+
 	transcript.write({
 		type: "started",
 		timestamp: new Date().toISOString(),
@@ -123,6 +158,7 @@ async function runPiRole(
 		command: invocation.command,
 		args: invocation.args,
 	});
+	emitActivity("started", "Starting the audit run");
 
 	try {
 		const exitCode = await new Promise<number>((resolve) => {
@@ -146,6 +182,10 @@ async function runPiRole(
 			const processLine = (line: string) => {
 				const event = parseJsonObject(line);
 				if (!event) return;
+				const activity = activityFromPiJsonEvent(event);
+				if (activity) {
+					emitActivity(activity.kind, activity.message, activity.detail);
+				}
 				if (event.type !== "message_end") return;
 				const message = getObject(event.message);
 				if (!message) return;
@@ -173,6 +213,10 @@ async function runPiRole(
 			const processStderrText = (text: string): void => {
 				stderr += text;
 				transcript.write({ type: "stderr", timestamp: new Date().toISOString(), text });
+				const sanitized = sanitizeStderrForActivity(text);
+				if (sanitized) {
+					emitActivity("stderr", "Noted a diagnostic message", sanitized);
+				}
 			};
 
 			proc.stdout.on("data", (data: Buffer) => {
@@ -223,6 +267,7 @@ async function runPiRole(
 		if (exitCode !== 0) {
 			throw new Error(stderr.trim() || `Co-math role process exited with code ${exitCode}.`);
 		}
+		emitActivity("completed", "Finished the audit run");
 		return {
 			...parseRoleRunOutput(finalSummary),
 			stderr: stderr.trim() || undefined,
@@ -591,6 +636,68 @@ function findAncestorWithFile(startDir: string, relativeFile: string): string | 
 		if (parentDir === currentDir) return undefined;
 		currentDir = parentDir;
 	}
+}
+
+interface CoMathActivityMapping {
+	kind: CoMathRoleActivityKind;
+	message: string;
+	detail?: string;
+}
+
+const TOOL_ACTIVITY_BY_NAME: Record<string, CoMathActivityMapping> = {
+	read: { kind: "reading", message: "Reading source context" },
+	find: { kind: "searching", message: "Searching the workspace" },
+	grep: { kind: "searching", message: "Searching the workspace" },
+	ls: { kind: "searching", message: "Searching the workspace" },
+	bash: { kind: "running-command", message: "Running a local check" },
+	edit: { kind: "editing", message: "Updating workspace notes" },
+	write: { kind: "editing", message: "Updating workspace notes" },
+};
+
+export function activityFromPiJsonEvent(event: Record<string, unknown>): CoMathActivityMapping | undefined {
+	const type = typeof event.type === "string" ? event.type : undefined;
+	if (!type) return undefined;
+
+	if (type === "tool_execution_start") {
+		const toolName = typeof event.toolName === "string" ? event.toolName.toLowerCase() : undefined;
+		if (!toolName) return undefined;
+		return TOOL_ACTIVITY_BY_NAME[toolName] ?? { kind: "running-command", message: "Running a local check" };
+	}
+
+	if (isRetryEvent(type, event)) {
+		return { kind: "retrying", message: "Retrying the model request" };
+	}
+
+	if (type === "message_update") {
+		const innerType = getAssistantMessageEventType(event.assistantMessageEvent);
+		if (innerType === "thinking_start") return { kind: "thinking", message: "Working through the proof context" };
+		if (innerType === "text_start") return { kind: "drafting", message: "Drafting the audit report" };
+		return undefined;
+	}
+
+	return undefined;
+}
+
+function isRetryEvent(type: string, event: Record<string, unknown>): boolean {
+	if (type === "api_retry" || type === "retry") return true;
+	if (type !== "system") return false;
+	const subtype = typeof event.subtype === "string" ? event.subtype : undefined;
+	return subtype === "api_retry" || subtype === "retry";
+}
+
+function getAssistantMessageEventType(value: unknown): string | undefined {
+	const inner = getObject(value);
+	return inner && typeof inner.type === "string" ? inner.type : undefined;
+}
+
+function sanitizeStderrForActivity(text: string): string | undefined {
+	const firstLine = text
+		.split("\n")
+		.map((line) => line.trim())
+		.find((line) => line.length > 0);
+	if (!firstLine) return undefined;
+	const truncated = firstLine.length > 120 ? `${firstLine.slice(0, 117)}...` : firstLine;
+	return truncated;
 }
 
 function parseJsonObject(line: string): Record<string, unknown> | undefined {

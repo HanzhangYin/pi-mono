@@ -11,6 +11,7 @@ import {
 } from "./natural-language-help.ts";
 import {
 	type CoMathRole,
+	type CoMathRoleActivityEvent,
 	createDefaultRoleRunner,
 	type ReviewDecision,
 	type RoleRunner,
@@ -76,12 +77,15 @@ interface BackgroundRoleRunHandle {
 	startedAt: string;
 	controller: AbortController;
 	completion: Promise<void>;
+	lastActivityAt?: number;
+	lastActivityKey?: string;
 }
 
 const backgroundRoleRuns = new Map<string, BackgroundRoleRunHandle>();
 const COMATH_COMPUTATION_TIMEOUT_MS = 60_000;
 const COMATH_COMPUTATION_PREVIEW_CHARS = 2_000;
 const ROLE_RUN_HEARTBEAT_INTERVAL_MS = 15_000;
+const ROLE_RUN_ACTIVITY_THROTTLE_MS = 3_000;
 const INVALID_STRUCTURED_JSON_BLOCKER = "Role output was not valid structured co-math JSON; saved as report only.";
 
 const HELP_TEXT = `Co-math assistant commands:
@@ -144,6 +148,12 @@ export interface RunCoMathBackendCommandOptions extends RegisterCoMathCommandOpt
 	cwd: string;
 	notify: (message: string, type?: "info" | "warning" | "error") => void | Promise<void>;
 	productMode?: boolean;
+	/**
+	 * Capture command messages without notifying while the command executes.
+	 * Messages emitted later by background role runs are still notified so
+	 * completion/blocked events reach the user.
+	 */
+	silent?: boolean;
 }
 
 export interface CoMathBackendCommandResult {
@@ -174,10 +184,19 @@ export async function runCoMathBackendCommand(
 	const roleRunner = options.roleRunner ?? createDefaultRoleRunner();
 	const pendingNotifications: Promise<void>[] = [];
 	const messages: string[] = [];
+	let commandFinished = false;
 	const notify = (message: string, type?: "info" | "warning" | "error"): void => {
+		if (commandFinished) {
+			// Background role-run events arriving after the command returned.
+			const lateMessage = options.productMode ? formatCoMathProductBackgroundEvent(message) : message;
+			void Promise.resolve(options.notify(lateMessage, type)).catch(() => {});
+			return;
+		}
 		const productMessage = options.productMode ? formatCoMathProductBackendMessage(message) : message;
 		messages.push(productMessage);
-		pendingNotifications.push(Promise.resolve(options.notify(productMessage, type)));
+		if (!options.silent) {
+			pendingNotifications.push(Promise.resolve(options.notify(productMessage, type)));
+		}
 	};
 	const pi = {
 		sendMessage(message: { content?: unknown }) {
@@ -217,6 +236,7 @@ export async function runCoMathBackendCommand(
 		},
 	} as unknown as ExtensionCommandContext;
 	await handleCoMathCommand(pi, args, ctx, roleRunner);
+	commandFinished = true;
 	await Promise.all(pendingNotifications);
 	return { ok: !messages.some(isBackendFailureMessage), messages };
 }
@@ -236,6 +256,73 @@ export function formatCoMathProductBackendMessage(message: string): string {
 		.join("\n")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
+}
+
+const PRODUCT_ROLE_STEP_LABELS: Record<string, string> = {
+	workstream: "Source audit",
+	coordinator: "Coordination step",
+	reviewer: "Review step",
+	synthesizer: "Synthesis step",
+};
+
+export function formatCoMathProductBackgroundEvent(message: string): string {
+	const firstLine = message.split("\n", 1)[0] ?? "";
+	const transcript = /^Transcript:\s*(.+)$/m.exec(message)?.[1]?.trim();
+	const completion = /^Background Ran co-math (\S+) and saved report \S+?(?: with [^:]*)?: (.*)$/.exec(firstLine);
+	if (completion) {
+		const stepLabel = PRODUCT_ROLE_STEP_LABELS[completion[1]] ?? "Background step";
+		const status = /^Status:\s*(.+)$/m.exec(message)?.[1]?.trim();
+		const blockers = extractProductBlockerLines(message);
+		const blocked = status === "blocked" || blockers.length > 0;
+		return [
+			blocked ? `${stepLabel} blocked.` : `${stepLabel} finished.`,
+			...(completion[2] ? ["", "Summary", completion[2]] : []),
+			...(blockers.length > 0 ? ["", "Blockers", ...blockers.map((blocker) => `- ${blocker}`)] : []),
+			...(transcript ? ["", `Transcript: ${transcript}`] : []),
+			"",
+			'Say "show report" for details, "show progress" for status, or "continue".',
+		].join("\n");
+	}
+	const failure = /^Co-math (\S+) role run \S+ (failed|aborted): (.*)$/.exec(firstLine);
+	if (failure) {
+		const stepLabel = PRODUCT_ROLE_STEP_LABELS[failure[1]] ?? "Background step";
+		return [
+			`${stepLabel} ${failure[2]}.`,
+			`Reason: ${failure[3]}`,
+			...(transcript ? [`Transcript: ${transcript}`] : []),
+			"",
+			'Say "show progress" for status, or "continue" for the next step.',
+		].join("\n");
+	}
+	const unexpected = /^Background role run \S+ had an unexpected error: (.*)$/.exec(firstLine);
+	if (unexpected) {
+		return [
+			"The background audit hit an unexpected error.",
+			`Reason: ${unexpected[1]}`,
+			"",
+			'Say "show progress" for status, or "continue" for the next step.',
+		].join("\n");
+	}
+	return formatCoMathProductBackendMessage(message);
+}
+
+function extractProductBlockerLines(message: string): string[] {
+	const lines = message.split("\n");
+	const start = lines.findIndex((line) => line.trim() === "Blockers:");
+	if (start === -1) {
+		return [];
+	}
+	const blockers: string[] = [];
+	for (const line of lines.slice(start + 1)) {
+		const match = /^-\s+(.+)$/.exec(line.trim());
+		if (!match) {
+			break;
+		}
+		if (match[1].trim().toLowerCase() !== "none") {
+			blockers.push(match[1].trim());
+		}
+	}
+	return blockers;
 }
 
 function isBackendFailureMessage(message: string): boolean {
@@ -2305,6 +2392,9 @@ function startBackgroundRoleRun(
 		runId: run.id,
 		signal: controller.signal,
 		statePath,
+		onActivity: (event) => {
+			sendRoleActivity(pi, handle, event);
+		},
 	})
 		.catch((error) => {
 			sendBackgroundMessage(
@@ -2322,6 +2412,7 @@ interface ExecuteBackgroundRoleRunInput {
 	runId: string;
 	signal: AbortSignal;
 	statePath: string;
+	onActivity?: (event: CoMathRoleActivityEvent) => void;
 }
 
 async function executeBackgroundRoleRun(
@@ -2352,6 +2443,7 @@ async function executeBackgroundRoleRun(
 			task: run.task,
 			transcriptPath: run.transcriptPath ? resolveRoleRunTranscriptPath(input.cwd, run.transcriptPath) : undefined,
 			signal: input.signal,
+			...(input.onActivity ? { onActivity: input.onActivity } : {}),
 		});
 		await finalizeBackgroundRoleRunResult(pi, input.statePath, run.id, result);
 	} catch (error) {
@@ -2390,9 +2482,10 @@ async function finalizeBackgroundRoleRunResult(
 		targetClaim,
 		targetWorkstream,
 	});
+	const completionStatus = result.blockers && result.blockers.length > 0 ? "blocked" : "completed";
 	const finishedState = finishRoleRun(ingestion.state, {
 		runId,
-		status: result.blockers && result.blockers.length > 0 ? "blocked" : "completed",
+		status: completionStatus,
 		reportId,
 		createdClaimIds: ingestion.createdClaimIds,
 		createdEvidenceIds: ingestion.createdEvidenceIds,
@@ -2417,7 +2510,9 @@ async function finalizeBackgroundRoleRunResult(
 		pi,
 		[
 			`Background ${formatRoleRunMessage(latestRun.role, reportId, result)}`,
+			`Status: ${completionStatus}`,
 			...(latestRun.transcriptPath ? [`Transcript: ${latestRun.transcriptPath}`] : []),
+			...formatCompletionBlockerLines(result.blockers ?? []),
 		].join("\n"),
 	);
 }
@@ -4643,4 +4738,38 @@ function sendBackgroundMessage(pi: ExtensionAPI, text: string): void {
 		display: true,
 		details: { kind: "background" },
 	});
+}
+
+export function formatCoMathRoleActivity(event: CoMathRoleActivityEvent): string | undefined {
+	// Start and completion are surfaced by the dedicated start/completion messages.
+	if (event.kind === "started" || event.kind === "completed") {
+		return undefined;
+	}
+	const stepLabel = PRODUCT_ROLE_STEP_LABELS[event.role] ?? "Background step";
+	return [`${stepLabel} activity`, `- ${event.message}`].join("\n");
+}
+
+function shouldSendRoleActivity(handle: BackgroundRoleRunHandle, event: CoMathRoleActivityEvent, now: number): boolean {
+	const key = `${event.kind}:${event.message}`;
+	if (handle.lastActivityKey === key) {
+		return false;
+	}
+	if (handle.lastActivityAt !== undefined && now - handle.lastActivityAt < ROLE_RUN_ACTIVITY_THROTTLE_MS) {
+		return false;
+	}
+	return true;
+}
+
+function sendRoleActivity(pi: ExtensionAPI, handle: BackgroundRoleRunHandle, event: CoMathRoleActivityEvent): void {
+	const text = formatCoMathRoleActivity(event);
+	if (!text) {
+		return;
+	}
+	const now = Date.now();
+	if (!shouldSendRoleActivity(handle, event, now)) {
+		return;
+	}
+	handle.lastActivityAt = now;
+	handle.lastActivityKey = `${event.kind}:${event.message}`;
+	sendBackgroundMessage(pi, text);
 }

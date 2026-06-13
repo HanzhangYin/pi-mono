@@ -818,6 +818,7 @@ export async function main(args: string[], options?: MainOptions) {
 						cwd: runtimeCwd,
 						notify: sendCoMathNotice,
 						productMode: true,
+						silent: true,
 					}),
 			}),
 		);
