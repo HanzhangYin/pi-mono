@@ -1008,6 +1008,10 @@ export class AgentSession {
 
 		try {
 			if (expandPromptTemplates && this._conversationHarness && !text.startsWith("/")) {
+				// Surface the prompt as a normal user message (rendered, emitted, persisted) before the
+				// conversation harness handles it, so the UI shows the user's own input. The harness still
+				// owns the response; this message is intentionally never sent to the LLM.
+				this._recordConversationUserMessage(text, options?.images);
 				await this._conversationHarness.handlePrompt(text);
 				preflightResult?.(true);
 				return;
@@ -1159,6 +1163,28 @@ export class AgentSession {
 
 		preflightResult?.(true);
 		await this._runAgentPrompt(messages);
+	}
+
+	/**
+	 * Record a user message in the session exactly like a normal prompt would — append to agent
+	 * state, persist to the session log, and emit message_start/message_end so listeners render it
+	 * via the standard user-message UI — but WITHOUT triggering an LLM turn. Used by conversation
+	 * mode (co-math), which handles the prompt itself yet should still show the user's own input.
+	 */
+	private _recordConversationUserMessage(text: string, images?: ImageContent[]): void {
+		const content: (TextContent | ImageContent)[] = [{ type: "text", text }];
+		if (images) {
+			content.push(...images);
+		}
+		const message: AgentMessage = {
+			role: "user",
+			content,
+			timestamp: Date.now(),
+		};
+		this.agent.state.messages.push(message);
+		this.sessionManager.appendMessage(message);
+		this._emit({ type: "message_start", message });
+		this._emit({ type: "message_end", message });
 	}
 
 	private _routeConversationModePrompt(text: string): string {
