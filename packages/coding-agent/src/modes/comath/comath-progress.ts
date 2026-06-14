@@ -87,8 +87,22 @@ export function formatWaitingForContext(sourceAuditPrepared: boolean): string {
 	return [
 		...(sourceAuditPrepared ? [formatSetupStep("Source audit prepared")] : []),
 		"",
-		'Paste the exact statement, definitions, assumptions, or proof context now. Say "continue" when you are ready to start.',
+		"Paste the exact statement, definitions, assumptions, or proof context now — I’ll start validating automatically.",
+		'You can also say "continue" to start right away.',
 	].join("\n");
+}
+
+export function formatReadyForContext(): string {
+	return [
+		formatSetupStep("Source audit prepared"),
+		"",
+		"Please paste the question statement, candidate solution, or relevant context.",
+		"I’ll start validating automatically once you do.",
+	].join("\n");
+}
+
+export function formatContextRecorded(): string {
+	return "Got it — I’ve added that to the validation context.";
 }
 
 export function formatSetupStep(label: string): string {

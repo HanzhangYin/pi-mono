@@ -3,11 +3,13 @@ import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
 	formatCoMathWelcome,
+	formatContextRecorded,
 	formatExistingProjectHelp,
 	formatFocusNoted,
 	formatInitialValidationPlan,
 	formatProductActivity,
 	formatProductProgress,
+	formatReadyForContext,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatWaitingForContext,
@@ -100,10 +102,27 @@ describe("co-math product messages", () => {
 
 		const waiting = formatWaitingForContext(true);
 		expect(waiting).toContain("✓ Source audit prepared");
-		expect(waiting).toContain('Say "continue" when you are ready to start.');
+		expect(waiting).toContain("I’ll start validating automatically");
+		// "continue" remains available but must no longer be presented as required.
+		expect(waiting).toContain('say "continue" to start right away');
+		expect(waiting).not.toContain("when you are ready to start");
 		expectProductCopy(waiting);
 
 		expect(formatWaitingForContext(false)).not.toContain("✓ Source audit prepared");
+	});
+
+	it("formats human-first context copy without asking for continue", () => {
+		const ready = formatReadyForContext();
+		expect(ready).toContain("✓ Source audit prepared");
+		expect(ready).toContain("Please paste the question statement, candidate solution, or relevant context.");
+		expect(ready).toContain("I’ll start validating automatically once you do.");
+		// Human-first copy must not tell the user to type a command.
+		expect(ready).not.toContain("continue");
+		expectProductCopy(ready);
+
+		const recorded = formatContextRecorded();
+		expect(recorded).toContain("added that to the validation context");
+		expectProductCopy(recorded);
 	});
 
 	it("formats setup steps and background run start", () => {

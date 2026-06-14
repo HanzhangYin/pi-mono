@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -1383,6 +1383,33 @@ describe("co-math project state", () => {
 			await saveProjectState(statePath, state);
 
 			expect(await loadProjectState(statePath)).toEqual(state);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("writes atomically under concurrency and leaves no temp files behind", async () => {
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-state-atomic-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			const states = Array.from({ length: 12 }, (_unused, index) =>
+				addGoal(createProject(), {
+					id: `goal-${index + 1}`,
+					text: `Concurrent save number ${index + 1}.`,
+					now: FIXED_NOW,
+				}),
+			);
+
+			// Concurrent writers must never corrupt the file or collide on a temp path.
+			await Promise.all(states.map((state) => saveProjectState(statePath, state)));
+
+			// Whatever won the race, the file is complete, valid JSON for one of the states.
+			const loaded = await loadProjectState(statePath);
+			expect(loaded).toBeDefined();
+			expect(states).toContainEqual(loaded);
+
+			const leftoverTempFiles = (await readdir(path.dirname(statePath))).filter((name) => name.endsWith(".tmp"));
+			expect(leftoverTempFiles).toEqual([]);
 		} finally {
 			await rm(tempDir, { recursive: true, force: true });
 		}

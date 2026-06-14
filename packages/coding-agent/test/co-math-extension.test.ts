@@ -1854,6 +1854,47 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("does not double-start the prepared audit if dispatch is issued twice", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-double-dispatch-"));
+		const deferred = createDeferred<RoleRunResultForTest>();
+		const tasks: string[] = [];
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture({
+				roleRunner: async (input) => {
+					tasks.push(input.task);
+					return deferred.promise;
+				},
+			});
+			const command = commands.get("comath");
+			expect(command).toBeDefined();
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("init Validate Question 3.", ctx);
+			await command?.handler("goal Validate Question 3.", ctx);
+			await command?.handler("workstream defs: Extract definitions", ctx);
+			await command?.handler("queue workstream workstream-defs", ctx);
+			// Human-first auto-start records context then dispatches; a stray second dispatch must
+			// not start a duplicate because the only queued run is already running.
+			await command?.handler("note project: pasted context to validate", ctx);
+			await command?.handler("dispatch-next --background", ctx);
+			await waitForCondition(() => {
+				expect(tasks).toHaveLength(1);
+			});
+			notifications.length = 0;
+			await command?.handler("dispatch-next --background", ctx);
+			expect(notifications.join("\n")).toContain("No queued co-math role runs.");
+			expect(tasks).toHaveLength(1);
+			expect(tasks[0]).toContain("pasted context to validate");
+
+			deferred.resolve({ summary: "done" });
+			await waitForCondition(() => {
+				expect(notifications.join("\n")).toContain("saved report");
+			});
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("dispatch-next --background saves running state before role invocation", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-background-next-"));
 		try {

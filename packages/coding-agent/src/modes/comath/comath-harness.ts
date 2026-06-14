@@ -10,9 +10,11 @@ import {
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
+	formatContextRecorded,
 	formatFocusNoted,
 	formatInitialValidationPlan,
 	formatProductProgress,
+	formatReadyForContext,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatWaitingForContext,
@@ -72,11 +74,15 @@ export class CoMathHarness {
 
 	private async handleInitialProblem(problem: string): Promise<void> {
 		const sourceTitle = this.source?.exists && this.source.isFile ? this.source.displayName : undefined;
-		const waitForContext = shouldWaitForContext(problem);
+		const explicitWait = shouldWaitForContext(problem);
+		const hasSource = !!(this.source?.exists && this.source.isFile);
+		// With a source pinned but only a short problem reference, ask the human to paste the exact
+		// statement/context before the first audit instead of auditing with no real context.
+		const askForContext = explicitWait || (hasSource && !initialPromptIncludesContext(problem));
 		// The control-flow request ("wait for pasted context before starting") must not become the
 		// math root question, or the audit role obeys it and blocks even once context is supplied.
-		const plan = this.createPlan(waitForContext ? cleanProblemStatement(problem) : problem, sourceTitle);
-		await this.notify(formatInitialValidationPlan(plan.rootQuestion, sourceTitle, { waitForContext }));
+		const plan = this.createPlan(explicitWait ? cleanProblemStatement(problem) : problem, sourceTitle);
+		await this.notify(formatInitialValidationPlan(plan.rootQuestion, sourceTitle, { waitForContext: askForContext }));
 		if (
 			!(await this.runRequiredCommand(`init ${plan.rootQuestion}`, "Could not prepare the validation workspace."))
 		) {
@@ -128,8 +134,10 @@ export class CoMathHarness {
 			) {
 				return;
 			}
-			if (waitForContext) {
-				await this.notify(formatWaitingForContext(true));
+			if (askForContext) {
+				// Leave the audit prepared (queued); the next substantial message becomes context and
+				// auto-starts it. Explicit "wait" keeps its copy; the auto-ask uses human-first copy.
+				await this.notify(explicitWait ? formatWaitingForContext(true) : formatReadyForContext());
 				return;
 			}
 			const dispatched = await this.runCommand(
@@ -220,10 +228,47 @@ export class CoMathHarness {
 			}
 			return;
 		}
+		await this.handleContextOrSteering(prompt);
+	}
+
+	/**
+	 * Default handling for an unrecognized message: record it, then — if it looks like pasted
+	 * context/candidate rather than a short steering note — automatically start the prepared audit
+	 * (first context) or trigger one re-audit (after a finished run). A run already in flight only
+	 * records the context so repeated messages cannot start duplicate audits.
+	 */
+	private async handleContextOrSteering(prompt: string): Promise<void> {
 		if (!(await this.runRequiredCommand(`note project: ${prompt}`, "Could not record that steering note."))) {
 			return;
 		}
-		await this.notify(formatSteeringNoted());
+		if (!looksLikePastedContext(prompt)) {
+			await this.notify(formatSteeringNoted());
+			return;
+		}
+		const latestRun = await this.tryCommand("run-status latest");
+		const latestStatus = latestRun?.ok ? extractStatus(latestRun.messages) : undefined;
+		if (latestStatus === "queued") {
+			const dispatched = await this.runCommand(
+				"dispatch-next --background",
+				"Could not start the source audit. Check model/provider configuration and try again.",
+			);
+			if (dispatched) {
+				await this.notify(formatContextRecorded());
+				await this.notify(formatBackgroundRunStarted(extractTranscriptPath(dispatched.messages)));
+			}
+			return;
+		}
+		if (latestStatus === "completed" || latestStatus === "blocked") {
+			const reaudit = await this.tryCommand("re-audit --background");
+			const transcript = reaudit?.ok ? extractTranscriptPath(reaudit.messages) : undefined;
+			await this.notify(formatContextRecorded());
+			if (transcript) {
+				await this.notify(formatBackgroundRunStarted(transcript));
+			}
+			return;
+		}
+		// A run is queued-and-dispatching or running: record context only, never start a duplicate.
+		await this.notify(formatContextRecorded());
 	}
 
 	private async hasExistingState(): Promise<boolean> {
@@ -283,6 +328,41 @@ function cleanProblemStatement(problem: string): string {
 	);
 	const cleaned = kept.join(". ").trim();
 	return cleaned.length > 0 ? cleaned : withoutLeadVerb.trim();
+}
+
+/**
+ * Strict detector for the FIRST prompt: decides whether the user already pasted the actual problem
+ * content (so we can audit immediately) versus a short reference like "Validate First Proof
+ * Question 2." or "Please validate Question 3 from the attached source" (so we should ask for
+ * context first). Conservative on purpose — a false "needs context" only costs one extra paste,
+ * whereas a false "has context" launches an audit with nothing real to check. Note "First Proof"
+ * must NOT count as a proof marker, so labels are start-anchored and require a colon.
+ */
+function initialPromptIncludesContext(text: string): boolean {
+	const trimmed = text.trim();
+	if (trimmed.includes("\n")) {
+		return true;
+	}
+	if (
+		/^(?:context|candidate|statement|proof|definition|assumptions?|claim|theorem|lemma)\b[^\n]{0,40}:/i.test(trimmed)
+	) {
+		return true;
+	}
+	const words = trimmed.split(/\s+/).filter((word) => word.length > 0);
+	return words.length >= 40 || trimmed.length >= 240;
+}
+
+/**
+ * Looser detector for messages AFTER setup, once Pi has asked for context. At that point any
+ * substantial reply is the pasted context/candidate; short replies stay ordinary steering notes.
+ */
+function looksLikePastedContext(text: string): boolean {
+	const trimmed = text.trim();
+	if (trimmed.includes("\n")) {
+		return true;
+	}
+	const words = trimmed.split(/\s+/).filter((word) => word.length > 0);
+	return trimmed.length >= 40 || words.length >= 8;
 }
 
 function shouldWaitForContext(prompt: string): boolean {

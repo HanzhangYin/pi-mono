@@ -29,7 +29,7 @@ function expectProductCopy(text: string): void {
 }
 
 describe("co-math harness", () => {
-	it("translates the first problem prompt into silent setup commands with product notices", async () => {
+	it("prepares the workspace and asks for context when a short problem references a source", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
 		try {
 			const commands: string[] = [];
@@ -60,9 +60,12 @@ describe("co-math harness", () => {
 			expect(visible).toContain("✓ Validation workspace prepared");
 			expect(visible).toContain("✓ Source pinned: paper.pdf");
 			expect(visible).toContain("✓ Validation plan created");
-			expect(visible).toContain("✓ Definition and assumption audit prepared");
-			expect(visible).toContain("✓ Support/indexing gap audit prepared");
-			expect(visible).toContain("→ Running source audit in the background");
+			expect(visible).toContain("✓ Source audit prepared");
+			expect(visible).toContain("Please paste the question statement, candidate solution, or relevant context.");
+			expect(visible).toContain("I’ll start validating automatically once you do.");
+			// Human-first: must not auto-start before context, and must not ask the user to type "continue".
+			expect(visible).not.toContain("→ Running source audit in the background");
+			expect(visible).not.toContain("continue");
 			expectProductCopy(visible);
 
 			expect(commands).toEqual([
@@ -75,8 +78,90 @@ describe("co-math harness", () => {
 				"workstream identify-question-3-assumptions: Identify assumptions and references for Question 3",
 				"workstream audit-question-3-support-gaps: Audit support and indexing gaps for Question 3",
 				"queue workstream workstream-extract-question-3-definitions",
-				"dispatch-next --background",
 			]);
+			expect(commands).not.toContain("dispatch-next --background");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("still asks for context for longer single-line references that are not pasted content", async () => {
+		const references = [
+			"Please validate Question 3 from the attached source", // 8 words, 51 chars
+			"Check this theorem for support gaps in Question 5 now", // 10 words
+			"Validate First Proof Question 2 against the paper.", // contains "Proof" but is a reference
+		];
+		for (const reference of references) {
+			const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+			try {
+				const commands: string[] = [];
+				const notices: string[] = [];
+				const sourcePath = join(dir, "paper.pdf");
+				const harness = new CoMathHarness({
+					source: {
+						input: sourcePath,
+						absolutePath: sourcePath,
+						displayName: "paper.pdf",
+						exists: true,
+						isFile: true,
+					},
+					statePath: join(dir, ".pi", "co-math", "state.json"),
+					notify: (message) => {
+						notices.push(message);
+					},
+					runBackendCommand: async (command) => {
+						commands.push(command);
+						return OK;
+					},
+				});
+
+				await harness.handlePrompt(reference);
+
+				expect(commands).not.toContain("dispatch-next --background");
+				expect(commands.some((command) => command.startsWith("queue workstream "))).toBe(true);
+				const visible = notices.join("\n");
+				expect(visible).toContain("Please paste the question statement, candidate solution, or relevant context.");
+				expect(visible).not.toContain("→ Running source audit in the background");
+			} finally {
+				await rm(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("audits immediately when the first prompt already contains pasted context", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const sourcePath = join(dir, "paper.pdf");
+			const harness = new CoMathHarness({
+				source: {
+					input: sourcePath,
+					absolutePath: sourcePath,
+					displayName: "paper.pdf",
+					exists: true,
+					isFile: true,
+				},
+				statePath: join(dir, ".pi", "co-math", "state.json"),
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					if (command === "dispatch-next --background") {
+						return { ok: true, messages: ["Started run.\nTranscript: .pi/co-math/transcripts/run-1.jsonl"] };
+					}
+					return OK;
+				},
+			});
+
+			// Multiline pasted content on the very first message: audit right away.
+			await harness.handlePrompt(
+				"Validate Question 3.\nStatement: for all pi there exists a uniform W.\nCandidate: choose W depending on pi.",
+			);
+
+			expect(commands).toContain("dispatch-next --background");
+			expect(notices.join("\n")).toContain("→ Running source audit in the background");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -360,7 +445,9 @@ describe("co-math harness", () => {
 			expect(visible).toContain("I’ll set up a source-backed validation run for: Problem X");
 			expect(visible).toContain("- Wait for your pasted context before starting the first audit.");
 			expect(visible).toContain("✓ Source audit prepared");
-			expect(visible).toContain('Say "continue" when you are ready to start.');
+			// Pasted context now auto-starts; "continue" stays available but is not required.
+			expect(visible).toContain("I’ll start validating automatically");
+			expect(visible).toContain('say "continue" to start right away');
 			expect(visible).not.toContain("→ Running source audit in the background");
 			expectProductCopy(visible);
 		} finally {
@@ -508,6 +595,150 @@ describe("co-math harness", () => {
 
 			expect(commands).toEqual(["run-status latest", "next", "run-status latest", "next"]);
 			expect(commands).not.toContain("re-audit --background");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("auto-starts the prepared audit when the next message is pasted context", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const queuedRunMessage = ["role-run-1", "Role: workstream", "Status: queued"].join("\n");
+			const context = "The statement asks whether W is uniform for all pi; the candidate chooses W depending on pi.";
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					if (command === "run-status latest") {
+						return { ok: true, messages: [queuedRunMessage] };
+					}
+					if (command === "dispatch-next --background") {
+						return {
+							ok: true,
+							messages: ["Started run.\nTranscript: .pi/co-math/transcripts/role-run-1.jsonl"],
+						};
+					}
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt(context);
+
+			expect(commands).toEqual([`note project: ${context}`, "run-status latest", "dispatch-next --background"]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Got it — I’ve added that to the validation context.");
+			expect(visible).toContain("→ Running source audit in the background");
+			// The transcript file path is the one accepted place a role-run id may appear.
+			expect(visible).toContain("Latest transcript: .pi/co-math/transcripts/role-run-1.jsonl");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("re-audits once when context is pasted after a finished run", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const blockedRunMessage = ["role-run-1", "Role: workstream", "Status: blocked"].join("\n");
+			const candidate =
+				"Candidate bad solution: for each pi, choose a Whittaker function W depending on pi, so W is not uniform.";
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					if (command === "run-status latest") {
+						return { ok: true, messages: [blockedRunMessage] };
+					}
+					if (command === "re-audit --background") {
+						return {
+							ok: true,
+							messages: ["Started run.\nTranscript: .pi/co-math/transcripts/role-run-2.jsonl"],
+						};
+					}
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt(candidate);
+
+			expect(commands).toEqual([`note project: ${candidate}`, "run-status latest", "re-audit --background"]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Got it — I’ve added that to the validation context.");
+			expect(visible).toContain("→ Running source audit in the background");
+			expect(visible).toContain("Latest transcript: .pi/co-math/transcripts/role-run-2.jsonl");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("records pasted context without starting a duplicate while an audit is running", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const runningRunMessage = ["role-run-1", "Role: workstream", "Status: running"].join("\n");
+			const context = "More context: also confirm the Rankin-Selberg integral is nonzero for the chosen data.";
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					return { ok: true, messages: command === "run-status latest" ? [runningRunMessage] : [] };
+				},
+			});
+
+			await harness.handlePrompt(context);
+
+			expect(commands).toEqual([`note project: ${context}`, "run-status latest"]);
+			expect(commands).not.toContain("dispatch-next --background");
+			expect(commands).not.toContain("re-audit --background");
+			const visible = notices.join("\n");
+			expect(visible).toContain("Got it — I’ve added that to the validation context.");
+			expect(visible).not.toContain("→ Running source audit in the background");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("treats a short steering message as a note rather than pasted context", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const statePath = join(dir, "state.json");
+			await writeFile(statePath, "{}", "utf8");
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt("check lemma 2");
+
+			expect(commands).toEqual(["note project: check lemma 2"]);
+			expect(notices.join("\n")).toContain("Noted. I’ll factor that into the next audit step.");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

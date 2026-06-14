@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import type {
 	ArtifactKind,
@@ -1450,7 +1451,17 @@ export function getDefaultStatePath(cwd: string): string {
 
 export async function saveProjectState(statePath: string, state: CoMathProjectState): Promise<void> {
 	await mkdir(path.dirname(statePath), { recursive: true });
-	await writeFile(statePath, serializeProjectState(state), "utf8");
+	// Write to a unique temp file then rename so a concurrent loadProjectState (e.g. a background
+	// role-run finalize) never reads a half-written file. Rename is atomic on the same filesystem.
+	// A random name plus exclusive create ("wx") avoids collisions between concurrent writers.
+	const tempPath = `${statePath}.${randomUUID()}.tmp`;
+	try {
+		await writeFile(tempPath, serializeProjectState(state), { encoding: "utf8", flag: "wx" });
+		await rename(tempPath, statePath);
+	} catch (error) {
+		await rm(tempPath, { force: true }).catch(() => {});
+		throw error;
+	}
 }
 
 export async function loadProjectState(statePath: string): Promise<CoMathProjectState | undefined> {
