@@ -38,6 +38,7 @@ import {
 	setResearchFocus,
 	startRoleRun,
 	updateResearchPath,
+	upsertWorkingPaperSectionByTitle,
 } from "../examples/extensions/co-math/storage.ts";
 
 const FIXED_NOW = "2026-06-05T12:00:00.000Z";
@@ -826,6 +827,34 @@ describe("co-math project state", () => {
 			actor: "human",
 			subjectId: "paper-section-1",
 			relatedIds: ["claim-1", "evidence-1", "warning-1", "artifact-1", "review-round-1", "role-run-1"],
+		});
+	});
+
+	it("upserts working paper sections by title", () => {
+		let state = upsertWorkingPaperSectionByTitle(createProject(), {
+			title: "Examples and evidence",
+			body: "First round.",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = upsertWorkingPaperSectionByTitle(state, {
+			title: " examples and evidence ",
+			body: "Second round.",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "system",
+		});
+
+		expect(state.workingPaperSections).toHaveLength(1);
+		expect(state.workingPaperSections[0]).toMatchObject({
+			id: "paper-section-1",
+			title: "Examples and evidence",
+			body: "First round.\n\nSecond round.",
+			updatedAt: "2026-06-05T12:05:00.000Z",
+		});
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "working_paper_section_recorded",
+			actor: "system",
+			subjectId: "paper-section-1",
 		});
 	});
 

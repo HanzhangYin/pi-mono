@@ -359,6 +359,14 @@ export interface AddWorkingPaperSectionInput {
 	actor: CoMathActor;
 }
 
+export interface UpsertWorkingPaperSectionByTitleInput {
+	title: string;
+	body: string;
+	status?: WorkingPaperSectionStatus;
+	now: string;
+	actor: CoMathActor;
+}
+
 export interface AddMarginNoteInput {
 	id: string;
 	kind: MarginNoteKind;
@@ -1434,6 +1442,57 @@ export function addWorkingPaperSection(
 				...section.sourceReviewRoundIds,
 				...section.sourceRoleRunIds,
 			],
+			now: input.now,
+		},
+	);
+}
+
+export function upsertWorkingPaperSectionByTitle(
+	state: CoMathProjectState,
+	input: UpsertWorkingPaperSectionByTitleInput,
+): CoMathProjectState {
+	const title = input.title.trim();
+	const body = input.body.trim();
+	if (!title) {
+		throw new Error("Working paper section requires a title.");
+	}
+	if (!body) {
+		throw new Error("Working paper section requires a body.");
+	}
+	const existing = state.workingPaperSections.find(
+		(section) => section.title.trim().toLowerCase() === title.toLowerCase(),
+	);
+	if (!existing) {
+		return addWorkingPaperSection(state, {
+			id: `paper-section-${state.workingPaperSections.length + 1}`,
+			title,
+			body,
+			status: input.status,
+			now: input.now,
+			actor: input.actor,
+		});
+	}
+	const nextBody = existing.body.includes(body) ? existing.body : `${existing.body}\n\n${body}`;
+	return appendEvent(
+		{
+			...state,
+			workingPaperSections: state.workingPaperSections.map((section) =>
+				section.id === existing.id
+					? {
+							...section,
+							body: nextBody,
+							status: input.status ?? section.status,
+							updatedAt: input.now,
+						}
+					: section,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "working_paper_section_recorded",
+			actor: input.actor,
+			summary: `Updated working-paper section ${existing.id}: ${title}`,
+			subjectId: existing.id,
 			now: input.now,
 		},
 	);

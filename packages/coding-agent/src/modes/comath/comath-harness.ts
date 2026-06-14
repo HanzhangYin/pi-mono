@@ -1,11 +1,13 @@
 import { stat } from "node:fs/promises";
 import type { CoMathProjectState, ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
 import {
+	addMarginNote,
 	addResearchPath,
 	loadProjectState,
 	saveProjectState,
 	setResearchFocus,
 	updateResearchPath,
+	upsertWorkingPaperSectionByTitle,
 } from "../../../examples/extensions/co-math/storage.ts";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
 import { createCoMathAutoPlan } from "./comath-autoplan.ts";
@@ -25,7 +27,7 @@ import {
 	formatReadyForContext,
 	formatResearchFocusUpdated,
 	formatResearchPathDropped,
-	formatResearchRoundUpdated,
+	formatResearchRoundCompleted,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
 	formatSetupStep,
@@ -33,6 +35,7 @@ import {
 	formatWaitingForContext,
 } from "./comath-progress.ts";
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
+import { runResearchPathRound } from "./comath-research-execution.ts";
 import type { CoMathSource } from "./comath-source.ts";
 
 export type CoMathHarnessNoticeType = "info" | "warning" | "error";
@@ -396,17 +399,53 @@ export class CoMathHarness {
 				);
 				return;
 			}
-			const finding = "No conclusion yet. This path should next inspect more examples or sharpen the obstruction.";
 			const now = new Date().toISOString();
-			const nextState = updateResearchPath(state, {
+			const result = runResearchPathRound({
+				rootQuestion: state.rootQuestion,
+				path,
+				allPaths: state.researchPaths,
+				now,
+			});
+			let nextState = updateResearchPath(state, {
 				pathId: path.id,
-				latestFindings: [...path.latestFindings, finding],
-				suggestedNextMove: path.suggestedNextMove,
+				latestFindings: [...path.latestFindings, ...result.findings],
+				blockers: uniqueStrings([...path.blockers, ...result.uncertainties, ...result.blockers]),
+				suggestedNextMove: result.suggestedNextMove,
 				now,
 				actor: "system",
 			});
+			nextState = upsertWorkingPaperSectionByTitle(nextState, {
+				title: result.workingPaperSectionTitle,
+				body: result.workingPaperSummary,
+				now,
+				actor: "system",
+			});
+			const section = nextState.workingPaperSections.find(
+				(candidate) => candidate.title === result.workingPaperSectionTitle,
+			);
+			for (const note of [...result.uncertainties, ...result.blockers].slice(0, 3)) {
+				nextState = addMarginNote(nextState, {
+					id: `margin-note-${nextState.marginNotes.length + 1}`,
+					kind: result.blockers.includes(note) ? "gap" : "warning",
+					subjectId: path.id,
+					...(section ? { sectionId: section.id } : {}),
+					message: note,
+					now,
+					actor: "system",
+				});
+			}
 			await saveProjectState(this.statePath, nextState);
-			await this.notify(formatResearchRoundUpdated(path, finding));
+			const updatedPath = nextState.researchPaths.find((candidate) => candidate.id === path.id) ?? path;
+			await this.notify(
+				formatResearchRoundCompleted({
+					state: nextState,
+					path: updatedPath,
+					findings: result.findings,
+					uncertainties: [...result.uncertainties, ...result.blockers],
+					suggestedNextMove: result.suggestedNextMove,
+					workingPaperSectionTitle: result.workingPaperSectionTitle,
+				}),
+			);
 			return;
 		}
 		await this.notify(formatResearchStateSummary(state));
@@ -658,4 +697,8 @@ function normalizePathQuery(value: string): string {
 		.replace(/\b(?:the|a|an|path|on|to)\b/g, " ")
 		.replace(/[^a-z0-9]+/g, " ")
 		.trim();
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+	return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 }

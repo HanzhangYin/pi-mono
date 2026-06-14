@@ -83,6 +83,7 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("Path 1: Small examples and counterexamples");
 			expect(visible).toContain("Small examples and counterexamples");
 			expect(visible).toContain("Direct proof attempt");
 			expect(visible).toContain("Next");
@@ -226,7 +227,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Path updated");
 			expect(visible).toContain("Direct proof attempt");
 			expect(visible).toContain("Weaker special cases");
-			expect(visible).toContain("Research round updated");
+			expect(visible).toContain("Research round completed");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -279,9 +280,10 @@ describe("co-math harness", () => {
 			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
 			expect(state.researchPaths[0]?.latestFindings).toEqual([]);
 			expect(state.researchPaths[1]?.title).toBe("Direct proof attempt");
-			expect(state.researchPaths[1]?.latestFindings).toHaveLength(1);
+			expect(state.researchPaths[1]?.latestFindings.join("\n")).toContain("Euclid-style argument is not immediate");
+			expect(state.researchPaths[1]?.latestFindings.join("\n")).not.toContain("n = 1 gives 2, prime");
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research round updated");
+			expect(visible).toContain("Research round completed");
 			expect(visible).toContain("Direct proof attempt");
 			expectProductCopy(visible);
 		} finally {
@@ -299,7 +301,7 @@ describe("co-math harness", () => {
 			expect(state.researchPaths.every((path) => path.latestFindings.length === 0)).toBe(true);
 			const lastNotice = notices[notices.length - 1] ?? "";
 			expect(lastNotice).toContain("I could not find a matching active research path to continue.");
-			expect(lastNotice).not.toContain("Research round updated");
+			expect(lastNotice).not.toContain("Research round completed");
 			expectProductCopy(lastNotice);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -314,8 +316,38 @@ describe("co-math harness", () => {
 
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
-			expect(state.researchPaths[0]?.latestFindings).toHaveLength(1);
+			expect(state.researchPaths[0]?.latestFindings.join("\n")).toContain("n = 1 gives 2, prime");
 			expect(state.researchPaths[1]?.latestFindings).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("continues the examples path with findings, uncertainty, and working-paper notes", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 1");
+			await harness.handlePrompt("summarize current state");
+
+			const state = await loadRequiredProjectState(statePath);
+			const findings = state.researchPaths[0]?.latestFindings.join("\n") ?? "";
+			expect(findings).toContain("n = 1 gives 2, prime");
+			expect(findings).toContain("n = 3 gives 10, not prime");
+			expect(state.researchPaths[0]?.suggestedNextMove).toContain("parity");
+			expect(state.researchPaths[0]?.blockers.join("\n")).toContain("do not prove or disprove infinitude");
+			expect(state.workingPaperSections.some((section) => section.title.includes("Examples"))).toBe(true);
+			expect(state.marginNotes.length).toBeGreaterThan(0);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research round completed");
+			expect(visible).toContain("Path 1: Small examples and counterexamples");
+			expect(visible).toContain("Findings");
+			expect(visible).toContain("Uncertainty");
+			expect(visible).toContain("Working paper updated");
+			expect(visible).toContain("Latest findings");
+			expect(visible).toContain("n = 10 gives 101, prime");
+			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

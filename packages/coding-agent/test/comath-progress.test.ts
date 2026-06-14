@@ -13,6 +13,7 @@ import {
 	formatReadyForContext,
 	formatResearchFocusUpdated,
 	formatResearchPathDropped,
+	formatResearchRoundCompleted,
 	formatResearchRoundUpdated,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
@@ -28,6 +29,8 @@ const FORBIDDEN_PRODUCT_TERMS = [
 	"co-math goal",
 	"co-math workstream",
 	"role-run",
+	"queue",
+	"schema",
 	"artifact",
 	"artifact-",
 	"workstream-",
@@ -211,7 +214,7 @@ describe("co-math product messages", () => {
 		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
 		const workspace = formatResearchWorkspacePrepared(plan);
 		expect(workspace).toContain("Research workspace prepared");
-		expect(workspace).toContain("Small examples and counterexamples");
+		expect(workspace).toContain("Path 1: Small examples and counterexamples");
 		expect(workspace).toContain("Next");
 		expectProductCopy(workspace);
 
@@ -221,7 +224,7 @@ describe("co-math product messages", () => {
 				title: path.title,
 				objective: path.objective,
 				status: index === 1 ? "abandoned" : "active",
-				latestFindings: [],
+				latestFindings: index === 0 ? ["n = 1 gives 2, prime."] : [],
 				blockers: [],
 				suggestedNextMove: path.suggestedNextMove,
 				priority: path.priority,
@@ -237,6 +240,8 @@ describe("co-math product messages", () => {
 		expect(summary).toContain("Active paths");
 		expect(summary).toContain("Path 1: Small examples and counterexamples");
 		expect(summary).toContain("Path 2: Direct proof attempt");
+		expect(summary).toContain("Latest findings");
+		expect(summary).toContain("n = 1 gives 2, prime.");
 		expect(summary).toContain("Abandoned for now");
 		expect(summary).toContain("Most promising next move");
 		expectProductCopy(summary);
@@ -258,8 +263,27 @@ describe("co-math product messages", () => {
 		expect(formatResearchFocusUpdated(path, "User asked to focus on counterexamples.")).toContain("Focus updated");
 		expect(formatResearchPathDropped(path, "The user asked to drop this path.")).toContain("Abandoned for now");
 		expect(formatResearchRoundUpdated(path, "No conclusion yet.")).toContain("Research round updated");
+		expect(
+			formatResearchRoundCompleted({
+				state: { researchPaths: [path] },
+				path,
+				findings: ["n = 1 gives 2, prime."],
+				uncertainties: ["This does not prove infinitude."],
+				suggestedNextMove: "Check more examples.",
+				workingPaperSectionTitle: "Examples and evidence",
+			}),
+		).toContain("Research round completed");
 		expectProductCopy(formatResearchFocusUpdated(path, "User asked to focus on counterexamples."));
 		expectProductCopy(formatResearchPathDropped(path, "The user asked to drop this path."));
-		expectProductCopy(formatResearchRoundUpdated(path, "No conclusion yet."));
+		expectProductCopy(
+			formatResearchRoundCompleted({
+				state: { researchPaths: [path] },
+				path,
+				findings: ["n = 1 gives 2, prime."],
+				uncertainties: ["This does not prove infinitude."],
+				suggestedNextMove: "Check more examples.",
+				workingPaperSectionTitle: "Examples and evidence",
+			}),
+		);
 	});
 });

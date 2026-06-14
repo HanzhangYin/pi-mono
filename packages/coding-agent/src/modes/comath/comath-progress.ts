@@ -173,10 +173,10 @@ export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): s
 		"Research workspace prepared",
 		"",
 		"I’ll explore several possible paths:",
-		...plan.paths.map((path) => `- ${path.title}: ${path.objective}`),
+		...plan.paths.map((path, index) => `- Path ${index + 1}: ${path.title}: ${path.objective}`),
 		"",
 		"Next",
-		`I’ll start with ${plan.paths[0]?.title ?? "the most concrete path"}, because it can quickly reveal what is plausible.`,
+		`I’ll start with ${plan.paths[0] ? `Path 1: ${plan.paths[0].title}` : "the most concrete path"}, because it can quickly reveal what is plausible.`,
 	].join("\n");
 }
 
@@ -235,8 +235,44 @@ export function formatResearchRoundUpdated(path: ResearchPath, finding: string):
 	].join("\n");
 }
 
+export interface FormatResearchRoundCompletedInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	path: ResearchPath;
+	findings: readonly string[];
+	uncertainties: readonly string[];
+	suggestedNextMove: string;
+	workingPaperSectionTitle: string;
+}
+
+export function formatResearchRoundCompleted(input: FormatResearchRoundCompletedInput): string {
+	const uncertainties =
+		input.uncertainties.length > 0 ? input.uncertainties : ["No specific uncertainty was recorded for this round."];
+	return [
+		"Research round completed",
+		"",
+		formatResearchPathLabel(input.state, input.path),
+		"",
+		"Findings",
+		...input.findings.map((finding) => `- ${finding}`),
+		"",
+		"Uncertainty",
+		...uncertainties.map((uncertainty) => `- ${uncertainty}`),
+		"",
+		"Next",
+		input.suggestedNextMove,
+		"",
+		"Working paper updated",
+		`- Added notes under "${input.workingPaperSectionTitle}."`,
+	].join("\n");
+}
+
 function formatResearchPathLine(state: Pick<CoMathProjectState, "researchPaths">, path: ResearchPath): string {
-	return `- ${formatResearchPathLabel(state, path)}: ${path.status}. Next: ${path.suggestedNextMove}`;
+	const findings = path.latestFindings.slice(-3);
+	return [
+		`- ${formatResearchPathLabel(state, path)}: ${path.status}`,
+		...(findings.length > 0 ? ["  Latest findings", ...findings.map((finding) => `  - ${finding}`)] : []),
+		`  Next: ${path.suggestedNextMove}`,
+	].join("\n");
 }
 
 function formatResearchPathLabel(state: Pick<CoMathProjectState, "researchPaths">, path: ResearchPath): string {

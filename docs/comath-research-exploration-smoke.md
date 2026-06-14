@@ -49,3 +49,41 @@ Success criteria:
 [ ] User can ask for a summary.
 [ ] Existing validation flow still works in a separate clean folder.
 ```
+
+## Research path execution smoke
+
+From the same clean folder, enter:
+
+```text
+Explore this problem: Are there infinitely many primes of the form n^2 + 1?
+```
+
+Then:
+
+```text
+continue path 1
+```
+
+```text
+summarize current state
+```
+
+```text
+continue path 2
+```
+
+```text
+continue path 99
+```
+
+Good signs:
+
+```text
+[ ] Path 1 reports concrete n^2 + 1 examples.
+[ ] Output says Research round completed.
+[ ] Output includes Findings, Uncertainty, Next, and Working paper updated.
+[ ] Summary includes compact latest findings.
+[ ] Path 2 reports direct-proof attempt content, not path 1 examples.
+[ ] Path 99 warns and does not update another path.
+[ ] Product copy avoids role-run/workstream/queue/schema/artifact.
+```
