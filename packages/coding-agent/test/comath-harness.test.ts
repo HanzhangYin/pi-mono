@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { createEmptyProjectState, loadProjectState, saveProjectState } from "../examples/extensions/co-math/storage.ts";
 import { type CoMathBackendCommandResult, CoMathHarness } from "../src/modes/comath/comath-harness.ts";
 
 const OK: CoMathBackendCommandResult = { ok: true, messages: [] };
@@ -17,6 +18,9 @@ const FORBIDDEN_PRODUCT_TERMS = [
 	"Queued co-math workstream",
 	"Started co-math role run",
 	"role-run",
+	"queue",
+	"schema",
+	"artifact",
 	"artifact-",
 	"workstream-",
 	"/comath",
@@ -28,7 +32,295 @@ function expectProductCopy(text: string): void {
 	}
 }
 
+async function createResearchHarnessFixture(): Promise<{
+	commands: string[];
+	dir: string;
+	harness: CoMathHarness;
+	notices: string[];
+	statePath: string;
+}> {
+	const dir = await mkdtemp(join(tmpdir(), "comath-research-harness-"));
+	const statePath = join(dir, ".pi", "co-math", "state.json");
+	const commands: string[] = [];
+	const notices: string[] = [];
+	const harness = new CoMathHarness({
+		statePath,
+		notify: (message) => {
+			notices.push(message);
+		},
+		runBackendCommand: async (command) => {
+			commands.push(command);
+			if (command.startsWith("init ")) {
+				await saveProjectState(
+					statePath,
+					createEmptyProjectState({
+						projectId: "proj-test",
+						title: command.slice("init ".length),
+						rootQuestion: command.slice("init ".length),
+						now: "2026-06-05T12:00:00.000Z",
+					}),
+				);
+			}
+			return OK;
+		},
+	});
+	return { commands, dir, harness, notices, statePath };
+}
+
+async function loadRequiredProjectState(statePath: string) {
+	const state = await loadProjectState(statePath);
+	if (!state) {
+		throw new Error("Expected co-math project state to exist.");
+	}
+	return state;
+}
+
 describe("co-math harness", () => {
+	it("creates a research workspace for exploration prompts", async () => {
+		const { commands, dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("Small examples and counterexamples");
+			expect(visible).toContain("Direct proof attempt");
+			expect(visible).toContain("Next");
+			expectProductCopy(visible);
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("waits for the problem after an incomplete exploration prompt", async () => {
+		const { commands, dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem:");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Describe the problem you want to explore.");
+			expectProductCopy(visible);
+			expect(commands).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("uses the next message as the pending exploration problem", async () => {
+		const { commands, dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem:");
+			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("Small examples and counterexamples");
+			expect(visible).toContain("Direct proof attempt");
+			expectProductCopy(visible);
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+			expect(commands.some((command) => command.startsWith("workstream "))).toBe(false);
+			expect(commands.some((command) => command.startsWith("queue workstream "))).toBe(false);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps pending exploration through help and empty replies", async () => {
+		const { commands, dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem:");
+			await harness.handlePrompt(" ");
+			await harness.handlePrompt("help");
+			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Pi math validation help");
+			expect(visible).toContain("Research workspace prepared");
+			expectProductCopy(visible);
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("extracts the problem from a complete exploration prompt while pending", async () => {
+		const { commands, dir, harness } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem:");
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("can cancel pending exploration before validation", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const harness = new CoMathHarness({
+				statePath: join(dir, ".pi", "co-math", "state.json"),
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt("Explore this problem:");
+			await harness.handlePrompt("cancel");
+			await harness.handlePrompt("Validate Question 3.");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Exploration setup cancelled.");
+			expect(visible).toContain("I’ll set up a source-backed validation run for: Validate Question 3.");
+			expect(commands).toContain("init Validate Question 3.");
+			expect(commands.some((command) => command.startsWith("workstream "))).toBe(true);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("steers existing research paths naturally", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-research-harness-"));
+		try {
+			const statePath = join(dir, ".pi", "co-math", "state.json");
+			const notices: string[] = [];
+			const harness = new CoMathHarness({
+				statePath,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					if (command.startsWith("init ")) {
+						await saveProjectState(
+							statePath,
+							createEmptyProjectState({
+								projectId: "proj-test",
+								title: command.slice("init ".length),
+								rootQuestion: command.slice("init ".length),
+								now: "2026-06-05T12:00:00.000Z",
+							}),
+						);
+					}
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("summarize current state");
+			await harness.handlePrompt("focus on counterexamples");
+			await harness.handlePrompt("drop the direct proof path");
+			await harness.handlePrompt("try a weaker theorem");
+			await harness.handlePrompt("continue");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Current research state");
+			expect(visible).toContain("Focus updated");
+			expect(visible).toContain("Small examples and counterexamples");
+			expect(visible).toContain("Path updated");
+			expect(visible).toContain("Direct proof attempt");
+			expect(visible).toContain("Weaker special cases");
+			expect(visible).toContain("Research round updated");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("focuses numbered research paths", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("focus on path 2");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths[1]?.title).toBe("Direct proof attempt");
+			expect(state.researchFocus?.pathIds).toEqual([state.researchPaths[1]?.id]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Focus updated");
+			expect(visible).toContain("Direct proof attempt");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("drops numbered research paths", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("drop path 2");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths[1]?.title).toBe("Direct proof attempt");
+			expect(state.researchPaths[1]?.status).toBe("abandoned");
+			const visible = notices.join("\n");
+			expect(visible).toContain("Path updated");
+			expect(visible).toContain("Direct proof attempt");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("continues numbered research paths instead of the focused path", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 2");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
+			expect(state.researchPaths[0]?.latestFindings).toEqual([]);
+			expect(state.researchPaths[1]?.title).toBe("Direct proof attempt");
+			expect(state.researchPaths[1]?.latestFindings).toHaveLength(1);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research round updated");
+			expect(visible).toContain("Direct proof attempt");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("warns for missing numbered research paths without continuing another path", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 99");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths.every((path) => path.latestFindings.length === 0)).toBe(true);
+			const lastNotice = notices[notices.length - 1] ?? "";
+			expect(lastNotice).toContain("I could not find a matching active research path to continue.");
+			expect(lastNotice).not.toContain("Research round updated");
+			expectProductCopy(lastNotice);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("continues named research paths naturally", async () => {
+		const { dir, harness, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue the counterexample path");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
+			expect(state.researchPaths[0]?.latestFindings).toHaveLength(1);
+			expect(state.researchPaths[1]?.latestFindings).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("prepares the workspace and asks for context when a short problem references a source", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
 		try {

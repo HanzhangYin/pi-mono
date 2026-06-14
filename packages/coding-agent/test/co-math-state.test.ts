@@ -10,6 +10,7 @@ import {
 	addGoal,
 	addMarginNote,
 	addReportReviewRound,
+	addResearchPath,
 	addReviewDecisionEvent,
 	addReviewRound,
 	addWarning,
@@ -20,6 +21,7 @@ import {
 	dispatchQueuedRoleRun,
 	failRoleRun,
 	finishRoleRun,
+	getActiveResearchPaths,
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
@@ -33,7 +35,9 @@ import {
 	serializeProjectState,
 	setClaimStatus,
 	setGoalStatus,
+	setResearchFocus,
 	startRoleRun,
+	updateResearchPath,
 } from "../examples/extensions/co-math/storage.ts";
 
 const FIXED_NOW = "2026-06-05T12:00:00.000Z";
@@ -81,8 +85,62 @@ describe("co-math project state", () => {
 			claimRevisions: [],
 			workingPaperSections: [],
 			marginNotes: [],
+			researchPaths: [],
 			updatedAt: FIXED_NOW,
 		});
+	});
+
+	it("adds, updates, focuses, and lists research paths", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Small examples and counterexamples",
+			objective: "List initial examples.",
+			suggestedNextMove: "Compute more small examples.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchPath(state, {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Look for a congruence obstruction.",
+			priority: 2,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = updateResearchPath(state, {
+			pathId: "path-2",
+			status: "abandoned",
+			latestFindings: ["Direct proof is not the best first move."],
+			now: "2026-06-05T12:10:00.000Z",
+			actor: "human",
+		});
+		state = setResearchFocus(state, {
+			pathIds: ["path-1"],
+			reason: "Prioritize counterexamples.",
+			now: "2026-06-05T12:11:00.000Z",
+			actor: "human",
+		});
+
+		expect(state.researchPaths).toMatchObject([
+			{
+				id: "path-1",
+				title: "Small examples and counterexamples",
+				status: "active",
+				priority: 1,
+			},
+			{
+				id: "path-2",
+				title: "Direct proof attempt",
+				status: "abandoned",
+				latestFindings: ["Direct proof is not the best first move."],
+			},
+		]);
+		expect(state.researchFocus).toEqual({
+			pathIds: ["path-1"],
+			reason: "Prioritize counterexamples.",
+			updatedAt: "2026-06-05T12:11:00.000Z",
+		});
+		expect(getActiveResearchPaths(state).map((path) => path.id)).toEqual(["path-1"]);
 	});
 
 	it("adds a goal with deterministic id and timestamp injection", () => {
@@ -1442,6 +1500,8 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.claimRevisions;
 			delete legacyWithoutNewFields.workingPaperSections;
 			delete legacyWithoutNewFields.marginNotes;
+			delete legacyWithoutNewFields.researchPaths;
+			delete legacyWithoutNewFields.researchFocus;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
 			const loaded = await loadProjectState(statePath);
@@ -1454,6 +1514,8 @@ describe("co-math project state", () => {
 			expect(loaded?.claimRevisions).toEqual([]);
 			expect(loaded?.workingPaperSections).toEqual([]);
 			expect(loaded?.marginNotes).toEqual([]);
+			expect(loaded?.researchPaths).toEqual([]);
+			expect(loaded?.researchFocus).toBeUndefined();
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",
 				status: "active",

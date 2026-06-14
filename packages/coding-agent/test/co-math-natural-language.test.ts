@@ -2,6 +2,37 @@ import { describe, expect, it } from "vitest";
 import { parseCoMathNaturalRequest } from "../examples/extensions/co-math/natural-language.ts";
 
 describe("parseCoMathNaturalRequest", () => {
+	it("parses exploration intents separately from validation", () => {
+		expect(
+			parseCoMathNaturalRequest("Explore this problem: Are there infinitely many primes of the form n^2 + 1?"),
+		).toEqual({
+			kind: "explore-problem",
+			problemText: "Are there infinitely many primes of the form n^2 + 1?",
+		});
+		expect(parseCoMathNaturalRequest("Research this problem: classify small examples of X.")).toEqual({
+			kind: "explore-problem",
+			problemText: "classify small examples of X.",
+		});
+		expect(parseCoMathNaturalRequest("Find approaches to this conjecture: every foo has bar.")).toEqual({
+			kind: "explore-problem",
+			problemText: "every foo has bar.",
+		});
+		expect(parseCoMathNaturalRequest("Investigate this conjecture: every foo has bar.")).toEqual({
+			kind: "explore-problem",
+			problemText: "every foo has bar.",
+		});
+		expect(parseCoMathNaturalRequest("Explore this problem:")).toEqual({
+			kind: "unknown",
+			reason: "unrecognized request",
+			suggestions: expect.any(Array),
+		});
+		expect(parseCoMathNaturalRequest("Validate this proof: every foo has bar.")).toEqual({
+			kind: "unknown",
+			reason: "unrecognized request",
+			suggestions: expect.any(Array),
+		});
+	});
+
 	it("parses common safe co-math intents conservatively", () => {
 		expect(parseCoMathNaturalRequest("start a project for 2605.06651")).toEqual({
 			kind: "init",

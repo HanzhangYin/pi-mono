@@ -1,4 +1,5 @@
 export const NATURAL_LANGUAGE_HELP_TEXT = `Co-math conversation mode examples:
+- Explore this problem: <open research question>
 - Start a project for <question or paper>
 - Set goal <research goal>
 - Create a workstream to <specific task>

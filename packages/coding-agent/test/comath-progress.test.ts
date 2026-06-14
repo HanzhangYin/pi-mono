@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ResearchPath } from "../examples/extensions/co-math/schema.ts";
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
@@ -10,10 +11,16 @@ import {
 	formatProductActivity,
 	formatProductProgress,
 	formatReadyForContext,
+	formatResearchFocusUpdated,
+	formatResearchPathDropped,
+	formatResearchRoundUpdated,
+	formatResearchStateSummary,
+	formatResearchWorkspacePrepared,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatWaitingForContext,
 } from "../src/modes/comath/comath-progress.ts";
+import { createCoMathResearchAutoPlan } from "../src/modes/comath/comath-research-autoplan.ts";
 
 const FORBIDDEN_PRODUCT_TERMS = [
 	"Co-math research mode",
@@ -21,6 +28,7 @@ const FORBIDDEN_PRODUCT_TERMS = [
 	"co-math goal",
 	"co-math workstream",
 	"role-run",
+	"artifact",
 	"artifact-",
 	"workstream-",
 	"/comath",
@@ -197,5 +205,61 @@ describe("co-math product messages", () => {
 		expect(progress).toContain("this audit step");
 		expect(progress).toContain("this run");
 		expectProductCopy(progress);
+	});
+
+	it("formats research workspace and state summaries without internal terms", () => {
+		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
+		const workspace = formatResearchWorkspacePrepared(plan);
+		expect(workspace).toContain("Research workspace prepared");
+		expect(workspace).toContain("Small examples and counterexamples");
+		expect(workspace).toContain("Next");
+		expectProductCopy(workspace);
+
+		const paths = plan.paths.map(
+			(path, index): ResearchPath => ({
+				id: `path-${index + 1}`,
+				title: path.title,
+				objective: path.objective,
+				status: index === 1 ? "abandoned" : "active",
+				latestFindings: [],
+				blockers: [],
+				suggestedNextMove: path.suggestedNextMove,
+				priority: path.priority,
+				createdAt: "2026-06-05T12:00:00.000Z",
+				updatedAt: "2026-06-05T12:00:00.000Z",
+			}),
+		);
+		const summary = formatResearchStateSummary({
+			researchPaths: paths,
+			researchFocus: { pathIds: ["path-1"], reason: "Focus on examples.", updatedAt: "2026-06-05T12:00:00.000Z" },
+		});
+		expect(summary).toContain("Current research state");
+		expect(summary).toContain("Active paths");
+		expect(summary).toContain("Path 1: Small examples and counterexamples");
+		expect(summary).toContain("Path 2: Direct proof attempt");
+		expect(summary).toContain("Abandoned for now");
+		expect(summary).toContain("Most promising next move");
+		expectProductCopy(summary);
+	});
+
+	it("formats research steering updates", () => {
+		const path: ResearchPath = {
+			id: "path-1",
+			title: "Small examples and counterexamples",
+			objective: "List examples.",
+			status: "active",
+			latestFindings: [],
+			blockers: [],
+			suggestedNextMove: "Compute more examples.",
+			priority: 1,
+			createdAt: "2026-06-05T12:00:00.000Z",
+			updatedAt: "2026-06-05T12:00:00.000Z",
+		};
+		expect(formatResearchFocusUpdated(path, "User asked to focus on counterexamples.")).toContain("Focus updated");
+		expect(formatResearchPathDropped(path, "The user asked to drop this path.")).toContain("Abandoned for now");
+		expect(formatResearchRoundUpdated(path, "No conclusion yet.")).toContain("Research round updated");
+		expectProductCopy(formatResearchFocusUpdated(path, "User asked to focus on counterexamples."));
+		expectProductCopy(formatResearchPathDropped(path, "The user asked to drop this path."));
+		expectProductCopy(formatResearchRoundUpdated(path, "No conclusion yet."));
 	});
 });

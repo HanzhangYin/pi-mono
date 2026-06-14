@@ -14,6 +14,7 @@ export type ReportReviewOutcome = "accepted" | "revision_requested" | "blocked";
 export type WorkingPaperSectionStatus = "draft" | "needs_revision" | "reviewed";
 export type MarginNoteKind = "gap" | "todo" | "warning" | "provenance" | "comment";
 export type MarginNoteStatus = "open" | "resolved";
+export type ResearchPathStatus = "active" | "promising" | "blocked" | "abandoned" | "resolved";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -244,6 +245,25 @@ export interface MarginNote {
 	resolvedAt?: string;
 }
 
+export interface ResearchPath {
+	id: string;
+	title: string;
+	objective: string;
+	status: ResearchPathStatus;
+	latestFindings: string[];
+	blockers: string[];
+	suggestedNextMove: string;
+	priority: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ResearchFocus {
+	pathIds: string[];
+	reason: string;
+	updatedAt: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -264,5 +284,7 @@ export interface CoMathProjectState {
 	claimRevisions: ClaimRevisionRecord[];
 	workingPaperSections: WorkingPaperSection[];
 	marginNotes: MarginNote[];
+	researchPaths: ResearchPath[];
+	researchFocus?: ResearchFocus;
 	updatedAt: string;
 }

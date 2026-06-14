@@ -1,4 +1,12 @@
 import { stat } from "node:fs/promises";
+import type { CoMathProjectState, ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
+import {
+	addResearchPath,
+	loadProjectState,
+	saveProjectState,
+	setResearchFocus,
+	updateResearchPath,
+} from "../../../examples/extensions/co-math/storage.ts";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
 import { createCoMathAutoPlan } from "./comath-autoplan.ts";
 import {
@@ -15,14 +23,21 @@ import {
 	formatInitialValidationPlan,
 	formatProductProgress,
 	formatReadyForContext,
+	formatResearchFocusUpdated,
+	formatResearchPathDropped,
+	formatResearchRoundUpdated,
+	formatResearchStateSummary,
+	formatResearchWorkspacePrepared,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatWaitingForContext,
 } from "./comath-progress.ts";
+import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import type { CoMathSource } from "./comath-source.ts";
 
 export type CoMathHarnessNoticeType = "info" | "warning" | "error";
 export type CoMathHarnessNotify = (message: string, type?: CoMathHarnessNoticeType) => void | Promise<void>;
+type CoMathPendingInitialIntent = { kind: "explore-problem" };
 export interface CoMathBackendCommandResult {
 	ok: boolean;
 	messages: string[];
@@ -45,6 +60,7 @@ export class CoMathHarness {
 	private readonly runBackendCommand: CoMathBackendCommandRunner;
 	private readonly createPlan: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	private readonly startFirstRun: boolean;
+	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
 	constructor(options: CoMathHarnessOptions) {
 		this.source = options.source;
@@ -58,18 +74,85 @@ export class CoMathHarness {
 	async handlePrompt(problemText: string): Promise<void> {
 		const problem = problemText.trim();
 		if (!problem) {
-			await this.notify("Describe the problem you want to investigate.", "warning");
+			await this.notify(
+				this.pendingInitialIntent?.kind === "explore-problem"
+					? "Describe the problem you want to explore."
+					: "Describe the problem you want to investigate.",
+				"warning",
+			);
 			return;
 		}
 		if (isProductHelpPrompt(problem)) {
 			await this.notify(formatCoMathProductHelp());
 			return;
 		}
+		if (this.pendingInitialIntent?.kind === "explore-problem") {
+			if (isCancelPrompt(problem)) {
+				this.pendingInitialIntent = undefined;
+				await this.notify("Exploration setup cancelled.");
+				return;
+			}
+			if (isIncompleteExplorationPrompt(problem)) {
+				await this.notify("Describe the problem you want to explore.", "warning");
+				return;
+			}
+			const explorationProblem = parseExplorationPrompt(problem) ?? problem;
+			if (await this.handleInitialResearchProblem(explorationProblem)) {
+				this.pendingInitialIntent = undefined;
+			}
+			return;
+		}
 		if (await this.hasExistingState()) {
 			await this.handleSteeringPrompt(problem);
 			return;
 		}
+		if (isIncompleteExplorationPrompt(problem)) {
+			this.pendingInitialIntent = { kind: "explore-problem" };
+			await this.notify("Describe the problem you want to explore.", "warning");
+			return;
+		}
+		const explorationProblem = parseExplorationPrompt(problem);
+		if (explorationProblem) {
+			await this.handleInitialResearchProblem(explorationProblem);
+			return;
+		}
 		await this.handleInitialProblem(problem);
+	}
+
+	private async handleInitialResearchProblem(problem: string): Promise<boolean> {
+		const plan = createCoMathResearchAutoPlan(problem);
+		if (!(await this.runRequiredCommand(`init ${plan.rootQuestion}`, "Could not prepare the research workspace."))) {
+			return false;
+		}
+		const state = await loadProjectState(this.statePath);
+		if (!state) {
+			await this.notify("Could not load the research workspace after setup.", "error");
+			return false;
+		}
+		const now = new Date().toISOString();
+		let nextState = state;
+		for (const path of plan.paths) {
+			nextState = addResearchPath(nextState, {
+				title: path.title,
+				objective: path.objective,
+				suggestedNextMove: path.suggestedNextMove,
+				priority: path.priority,
+				now,
+				actor: "human",
+			});
+		}
+		const initialPath = nextState.researchPaths.find((path) => path.priority === 1);
+		if (initialPath) {
+			nextState = setResearchFocus(nextState, {
+				pathIds: [initialPath.id],
+				reason: "Start with the most concrete research path.",
+				now,
+				actor: "human",
+			});
+		}
+		await saveProjectState(this.statePath, nextState);
+		await this.notify(formatResearchWorkspacePrepared(plan));
+		return true;
 	}
 
 	private async handleInitialProblem(problem: string): Promise<void> {
@@ -152,6 +235,11 @@ export class CoMathHarness {
 	}
 
 	private async handleSteeringPrompt(prompt: string): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		if (state?.researchPaths.length) {
+			await this.handleResearchSteeringPrompt(state, prompt);
+			return;
+		}
 		if (/^continue$/i.test(prompt)) {
 			const latestRun = await this.tryCommand("run-status latest");
 			const latestStatus = latestRun?.ok ? extractStatus(latestRun.messages) : undefined;
@@ -229,6 +317,99 @@ export class CoMathHarness {
 			return;
 		}
 		await this.handleContextOrSteering(prompt);
+	}
+
+	private async handleResearchSteeringPrompt(state: CoMathProjectState, prompt: string): Promise<void> {
+		if (/^(?:summari[sz]e current state|show research state|show progress|status)$/i.test(prompt)) {
+			await this.notify(formatResearchStateSummary(state));
+			return;
+		}
+		if (/^(?:what is most promising\??|what's most promising\??)$/i.test(prompt)) {
+			await this.notify(formatResearchStateSummary(state));
+			return;
+		}
+		const focus = /^focus on (.+)$/i.exec(prompt);
+		if (focus?.[1]) {
+			const path = findResearchPath(state, focus[1]);
+			if (!path) {
+				await this.notify(
+					"I could not find a matching research path. Ask for a summary to see the current paths.",
+					"warning",
+				);
+				return;
+			}
+			const now = new Date().toISOString();
+			const nextState = setResearchFocus(state, {
+				pathIds: [path.id],
+				reason: `User asked to focus on ${trimTerminalPunctuation(focus[1])}.`,
+				now,
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, nextState);
+			await this.notify(
+				formatResearchFocusUpdated(path, `User asked to focus on ${trimTerminalPunctuation(focus[1])}.`),
+			);
+			return;
+		}
+		const drop = /^drop (?:the )?(.+?)(?: path)?$/i.exec(prompt);
+		if (drop?.[1]) {
+			const path = findResearchPath(state, drop[1]);
+			if (!path) {
+				await this.notify("I could not find a matching research path to drop.", "warning");
+				return;
+			}
+			const reason = "The user asked to drop this path.";
+			const now = new Date().toISOString();
+			const nextState = updateResearchPath(state, {
+				pathId: path.id,
+				status: "abandoned",
+				now,
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, nextState);
+			await this.notify(formatResearchPathDropped(path, reason));
+			return;
+		}
+		if (/^try a weaker theorem$/i.test(prompt)) {
+			const path = findResearchPath(state, "weaker special cases");
+			if (path) {
+				const now = new Date().toISOString();
+				const nextState = setResearchFocus(state, {
+					pathIds: [path.id],
+					reason: "User asked to try a weaker theorem.",
+					now,
+					actor: "human",
+				});
+				await saveProjectState(this.statePath, nextState);
+				await this.notify(formatResearchFocusUpdated(path, "User asked to try a weaker theorem."));
+			}
+			return;
+		}
+		if (/^continue(?:\s+.+)?$/i.test(prompt)) {
+			const { explicit, path } = resolveContinueResearchPath(state, prompt);
+			if (!path) {
+				await this.notify(
+					explicit
+						? "I could not find a matching active research path to continue. Ask for a summary to see the current paths."
+						: "No active research path is ready to continue.",
+					"warning",
+				);
+				return;
+			}
+			const finding = "No conclusion yet. This path should next inspect more examples or sharpen the obstruction.";
+			const now = new Date().toISOString();
+			const nextState = updateResearchPath(state, {
+				pathId: path.id,
+				latestFindings: [...path.latestFindings, finding],
+				suggestedNextMove: path.suggestedNextMove,
+				now,
+				actor: "system",
+			});
+			await saveProjectState(this.statePath, nextState);
+			await this.notify(formatResearchRoundUpdated(path, finding));
+			return;
+		}
+		await this.notify(formatResearchStateSummary(state));
 	}
 
 	/**
@@ -382,10 +563,99 @@ function isProductHelpPrompt(prompt: string): boolean {
 	return normalized === "help" || normalized === "?";
 }
 
+function isCancelPrompt(prompt: string): boolean {
+	const normalized = prompt.trim().toLowerCase();
+	return normalized === "cancel" || normalized === "never mind" || normalized === "nevermind";
+}
+
 function joinProductMessages(messages: readonly string[]): string {
 	return messages.map(demoteBackendHeading).join("\n\n").trim();
 }
 
 function demoteBackendHeading(message: string): string {
 	return message.replace(/^Co-math (\w)/, (_match, first: string) => first.toUpperCase());
+}
+
+function parseExplorationPrompt(prompt: string): string | undefined {
+	const normalized = prompt.trim().replace(/\s+/g, " ");
+	const patterns = [
+		/^(?:explore|research|investigate)\s+this\s+(?:problem|conjecture|question):\s+(.+)$/i,
+		/^find\s+approaches\s+to\s+this\s+(?:problem|conjecture|question):\s+(.+)$/i,
+		/^try\s+to\s+solve\s+this\s+(?:problem|conjecture|question):\s+(.+)$/i,
+		/^(?:explore|research|investigate)\s+(.+)$/i,
+	];
+	for (const pattern of patterns) {
+		const match = pattern.exec(normalized);
+		const problem = match?.[1]?.trim();
+		if (problem && !isIncompleteExplorationProblem(problem)) {
+			return problem;
+		}
+	}
+	return undefined;
+}
+
+function isIncompleteExplorationPrompt(prompt: string): boolean {
+	return /^(?:explore|research|investigate)\s+this\s+(?:problem|conjecture|question):?$/i.test(prompt.trim());
+}
+
+function isIncompleteExplorationProblem(problem: string): boolean {
+	return /^this\s+(?:problem|conjecture|question):?$/i.test(problem.trim());
+}
+
+function findResearchPath(state: Pick<CoMathProjectState, "researchPaths">, query: string): ResearchPath | undefined {
+	const numbered = parseResearchPathNumber(query);
+	if (numbered !== undefined) {
+		return state.researchPaths[numbered - 1];
+	}
+	const normalizedQuery = normalizePathQuery(query);
+	return state.researchPaths.find((path) => {
+		const haystack = normalizePathQuery(`${path.title} ${path.objective}`);
+		return normalizedQuery
+			.split(/\s+/)
+			.filter((term) => term.length > 2)
+			.some((term) => haystack.includes(term));
+	});
+}
+
+function parseResearchPathNumber(query: string): number | undefined {
+	const match = /^\s*(?:path\s*)?(\d+)\s*$/i.exec(trimTerminalPunctuation(query.trim()));
+	if (!match?.[1]) {
+		return undefined;
+	}
+	const pathNumber = Number.parseInt(match[1], 10);
+	return pathNumber > 0 ? pathNumber : undefined;
+}
+
+function resolveContinueResearchPath(
+	state: CoMathProjectState,
+	prompt: string,
+): { explicit: boolean; path?: ResearchPath } {
+	const explicitPath = /^continue\s+(.+)$/i.exec(prompt.trim())?.[1];
+	if (explicitPath) {
+		const path = findResearchPath(state, explicitPath);
+		if (path && path.status !== "abandoned") {
+			return { explicit: true, path };
+		}
+		return { explicit: true };
+	}
+	const focused = state.researchFocus?.pathIds
+		.map((pathId) => state.researchPaths.find((path) => path.id === pathId))
+		.find((path): path is ResearchPath => path !== undefined && path.status !== "abandoned");
+	if (focused) {
+		return { explicit: false, path: focused };
+	}
+	return {
+		explicit: false,
+		path: [...state.researchPaths]
+			.filter((path) => path.status === "active" || path.status === "promising")
+			.sort((a, b) => a.priority - b.priority)[0],
+	};
+}
+
+function normalizePathQuery(value: string): string {
+	return value
+		.toLowerCase()
+		.replace(/\b(?:the|a|an|path|on|to)\b/g, " ")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim();
 }

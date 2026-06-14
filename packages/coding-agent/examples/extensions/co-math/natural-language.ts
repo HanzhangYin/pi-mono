@@ -1,4 +1,5 @@
 export type CoMathNaturalIntent =
+	| { kind: "explore-problem"; problemText: string }
 	| { kind: "init"; question: string }
 	| { kind: "goal"; text: string }
 	| { kind: "workstream"; slug: string; goal: string }
@@ -18,6 +19,7 @@ export type CoMathNaturalIntent =
 	| { kind: "unknown"; reason: string; suggestions: string[] };
 
 const DEFAULT_SUGGESTIONS = [
+	"Explore this problem: <open research question>",
 	"Start a project for <question or paper>",
 	"Set goal <research goal>",
 	"Create a workstream to <specific task>",
@@ -39,6 +41,11 @@ export function parseCoMathNaturalRequest(input: string): CoMathNaturalIntent {
 	const request = normalizeRequest(input);
 	if (request.length === 0) return unknownIntent("empty request", []);
 	if (request === "help") return { kind: "help" };
+
+	const exploration = parseExplorationRequest(request);
+	if (exploration) {
+		return exploration;
+	}
 
 	const init =
 		/^(?:start a co-math project for|start a project for|start project for|initialize project for|initialize)\s+(.+)$/i.exec(
@@ -127,6 +134,29 @@ export function parseCoMathNaturalRequest(input: string): CoMathNaturalIntent {
 	}
 
 	return unknownIntent("unrecognized request", DEFAULT_SUGGESTIONS);
+}
+
+function parseExplorationRequest(
+	request: string,
+): Extract<CoMathNaturalIntent, { kind: "explore-problem" }> | undefined {
+	const patterns = [
+		/^(?:explore|research|investigate)\s+this\s+(?:problem|conjecture|question):\s+(.+)$/i,
+		/^find\s+approaches\s+to\s+this\s+(?:problem|conjecture|question):\s+(.+)$/i,
+		/^try\s+to\s+solve\s+this\s+(?:problem|conjecture|question):\s+(.+)$/i,
+		/^(?:explore|research|investigate)\s+(.+)$/i,
+	];
+	for (const pattern of patterns) {
+		const match = pattern.exec(request);
+		const problemText = match?.[1]?.trim();
+		if (problemText && !isIncompleteExplorationProblem(problemText)) {
+			return { kind: "explore-problem", problemText };
+		}
+	}
+	return undefined;
+}
+
+function isIncompleteExplorationProblem(problemText: string): boolean {
+	return /^this\s+(?:problem|conjecture|question):?$/i.test(problemText.trim());
 }
 
 function normalizeRequest(input: string): string {

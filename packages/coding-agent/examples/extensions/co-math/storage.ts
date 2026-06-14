@@ -19,6 +19,9 @@ import type {
 	Report,
 	ReportReviewOutcome,
 	ReportReviewRoundRecord,
+	ResearchFocus,
+	ResearchPath,
+	ResearchPathStatus,
 	ReviewQueueItem,
 	ReviewRoundOutcome,
 	ReviewRoundRecord,
@@ -50,6 +53,8 @@ type LegacyProjectState = Omit<
 	| "workstreams"
 	| "workingPaperSections"
 	| "marginNotes"
+	| "researchPaths"
+	| "researchFocus"
 > &
 	Partial<
 		Omit<
@@ -68,6 +73,8 @@ type LegacyProjectState = Omit<
 				| "warnings"
 				| "workingPaperSections"
 				| "marginNotes"
+				| "researchPaths"
+				| "researchFocus"
 			>,
 			"roleRuns"
 		>
@@ -182,6 +189,37 @@ export interface AddArtifactInput {
 	relatedClaimIds?: string[];
 	relatedWorkstreamIds?: string[];
 	relatedReportIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchPathInput {
+	id?: string;
+	title: string;
+	objective: string;
+	suggestedNextMove: string;
+	priority: number;
+	status?: ResearchPathStatus;
+	latestFindings?: string[];
+	blockers?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface UpdateResearchPathInput {
+	pathId: string;
+	status?: ResearchPathStatus;
+	latestFindings?: string[];
+	blockers?: string[];
+	suggestedNextMove?: string;
+	priority?: number;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface SetResearchFocusInput {
+	pathIds: string[];
+	reason: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -376,6 +414,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		claimRevisions: [],
 		workingPaperSections: [],
 		marginNotes: [],
+		researchPaths: [],
 		events: [
 			{
 				id: "event-1",
@@ -783,6 +822,98 @@ export function addArtifact(state: CoMathProjectState, input: AddArtifactInput):
 			relatedIds: [...artifact.relatedClaimIds, ...artifact.relatedWorkstreamIds, ...artifact.relatedReportIds],
 			now: input.now,
 		},
+	);
+}
+
+export function addResearchPath(state: CoMathProjectState, input: AddResearchPathInput): CoMathProjectState {
+	const pathRecord: ResearchPath = {
+		id: input.id ?? `path-${state.researchPaths.length + 1}`,
+		title: input.title,
+		objective: input.objective,
+		status: input.status ?? "active",
+		latestFindings: input.latestFindings ?? [],
+		blockers: input.blockers ?? [],
+		suggestedNextMove: input.suggestedNextMove,
+		priority: input.priority,
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+
+	return appendEvent(
+		{
+			...state,
+			researchPaths: [...state.researchPaths, pathRecord],
+			updatedAt: input.now,
+		},
+		{
+			kind: "human_intervention_recorded",
+			actor: input.actor,
+			summary: `Added research path ${pathRecord.id}: ${pathRecord.title}`,
+			subjectId: pathRecord.id,
+			now: input.now,
+		},
+	);
+}
+
+export function updateResearchPath(state: CoMathProjectState, input: UpdateResearchPathInput): CoMathProjectState {
+	if (!state.researchPaths.some((pathRecord) => pathRecord.id === input.pathId)) {
+		return state;
+	}
+	return appendEvent(
+		{
+			...state,
+			researchPaths: state.researchPaths.map((pathRecord) =>
+				pathRecord.id === input.pathId
+					? {
+							...pathRecord,
+							...(input.status ? { status: input.status } : {}),
+							...(input.latestFindings ? { latestFindings: input.latestFindings } : {}),
+							...(input.blockers ? { blockers: input.blockers } : {}),
+							...(input.suggestedNextMove ? { suggestedNextMove: input.suggestedNextMove } : {}),
+							...(input.priority !== undefined ? { priority: input.priority } : {}),
+							updatedAt: input.now,
+						}
+					: pathRecord,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "human_intervention_recorded",
+			actor: input.actor,
+			summary: `Updated research path ${input.pathId}`,
+			subjectId: input.pathId,
+			now: input.now,
+		},
+	);
+}
+
+export function setResearchFocus(state: CoMathProjectState, input: SetResearchFocusInput): CoMathProjectState {
+	const knownPathIds = new Set(state.researchPaths.map((pathRecord) => pathRecord.id));
+	const pathIds = uniqueStrings(input.pathIds.filter((pathId) => knownPathIds.has(pathId)));
+	const focus: ResearchFocus = {
+		pathIds,
+		reason: input.reason,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchFocus: focus,
+			updatedAt: input.now,
+		},
+		{
+			kind: "human_intervention_recorded",
+			actor: input.actor,
+			summary: `Updated research focus: ${input.reason}`,
+			relatedIds: pathIds,
+			now: input.now,
+		},
+	);
+}
+
+export function getActiveResearchPaths(state: CoMathProjectState): ResearchPath[] {
+	return state.researchPaths.filter(
+		(pathRecord) => pathRecord.status === "active" || pathRecord.status === "promising",
 	);
 }
 
@@ -1509,6 +1640,12 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 			normalizeWorkingPaperSection(record, updatedAt),
 		),
 		marginNotes: getArrayField(value, "marginNotes").map((record) => normalizeMarginNote(record, updatedAt)),
+		researchPaths: getArrayField(value, "researchPaths").map((record, index) =>
+			normalizeResearchPath(record, updatedAt, index),
+		),
+		...(normalizeResearchFocus(value.researchFocus, updatedAt)
+			? { researchFocus: normalizeResearchFocus(value.researchFocus, updatedAt) }
+			: {}),
 		updatedAt,
 	};
 	return normalizeClaimRelationshipsAndProofStatus(normalizedState);
@@ -1784,6 +1921,37 @@ function normalizeMarginNote(value: Record<string, unknown>, fallbackTime: strin
 	};
 }
 
+function normalizeResearchPath(value: Record<string, unknown>, fallbackTime: string, index: number): ResearchPath {
+	return {
+		id: getStringField(value, "id", `path-${index + 1}`),
+		title: getStringField(value, "title", "Legacy research path"),
+		objective: getStringField(value, "objective", getStringField(value, "summary", "")),
+		status: normalizeResearchPathStatus(value.status),
+		latestFindings: getStringArrayField(value, "latestFindings"),
+		blockers: getStringArrayField(value, "blockers"),
+		suggestedNextMove: getStringField(value, "suggestedNextMove", "Identify the next useful research move."),
+		priority: getNumberField(value, "priority", index + 1),
+		createdAt: getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime)),
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeResearchFocus(value: unknown, fallbackTime: string): ResearchFocus | undefined {
+	if (typeof value !== "object" || value === null) {
+		return undefined;
+	}
+	const record = value as Record<string, unknown>;
+	const pathIds = getStringArrayField(record, "pathIds");
+	if (pathIds.length === 0) {
+		return undefined;
+	}
+	return {
+		pathIds,
+		reason: getStringField(record, "reason", "Focused by user request."),
+		updatedAt: getStringField(record, "updatedAt", fallbackTime),
+	};
+}
+
 function isCurrentReviewRoundRecord(value: Record<string, unknown>): boolean {
 	return typeof value.claimId === "string";
 }
@@ -1902,6 +2070,19 @@ function normalizeMarginNoteStatus(value: unknown): MarginNote["status"] {
 	return "open";
 }
 
+function normalizeResearchPathStatus(value: unknown): ResearchPathStatus {
+	if (
+		value === "active" ||
+		value === "promising" ||
+		value === "blocked" ||
+		value === "abandoned" ||
+		value === "resolved"
+	) {
+		return value;
+	}
+	return "active";
+}
+
 function normalizeActor(value: unknown): CoMathActor {
 	if (
 		value === "human" ||
@@ -1989,6 +2170,11 @@ function getStringArrayField(value: object, key: string): string[] {
 function getStringField(value: object, key: string, fallback: string): string {
 	const field = (value as Record<string, unknown>)[key];
 	return typeof field === "string" ? field : fallback;
+}
+
+function getNumberField(value: object, key: string, fallback: number): number {
+	const field = (value as Record<string, unknown>)[key];
+	return typeof field === "number" && Number.isFinite(field) ? field : fallback;
 }
 
 function getOptionalStringField(value: object, key: string): string | undefined {

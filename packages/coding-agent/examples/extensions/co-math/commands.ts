@@ -458,6 +458,9 @@ async function translateNaturalIntent(
 	ctx: ExtensionCommandContext,
 	intent: Exclude<CoMathNaturalIntent, { kind: "help" } | { kind: "unknown" }>,
 ): Promise<TranslatedNaturalCommand | undefined> {
+	if (intent.kind === "explore-problem") {
+		return { interpreted: "start exploration", args: `init ${intent.problemText}` };
+	}
 	if (intent.kind === "init") {
 		return { interpreted: "start project", args: `init ${intent.question}` };
 	}

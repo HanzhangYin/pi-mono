@@ -1,4 +1,6 @@
+import type { CoMathProjectState, ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
 import { sanitizeProductIds } from "./comath-backend-output.ts";
+import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import type { CoMathSource } from "./comath-source.ts";
 
 export interface CoMathProductRunSummary {
@@ -164,4 +166,94 @@ export function formatProductProgress(run: CoMathProductRunSummary | undefined):
 			? ["- Blockers: none"]
 			: ["- Blockers:", ...blockers.map((blocker) => `  - ${sanitizeProductIds(blocker)}`)]),
 	].join("\n");
+}
+
+export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): string {
+	return [
+		"Research workspace prepared",
+		"",
+		"I’ll explore several possible paths:",
+		...plan.paths.map((path) => `- ${path.title}: ${path.objective}`),
+		"",
+		"Next",
+		`I’ll start with ${plan.paths[0]?.title ?? "the most concrete path"}, because it can quickly reveal what is plausible.`,
+	].join("\n");
+}
+
+export function formatResearchStateSummary(state: Pick<CoMathProjectState, "researchPaths" | "researchFocus">): string {
+	const active = state.researchPaths.filter((path) => path.status === "active" || path.status === "promising");
+	const blocked = state.researchPaths.filter((path) => path.status === "blocked");
+	const abandoned = state.researchPaths.filter((path) => path.status === "abandoned");
+	const best = chooseResearchPath(state);
+	return [
+		"Current research state",
+		"",
+		"Active paths",
+		...(active.length > 0 ? active.map((path) => formatResearchPathLine(state, path)) : ["- None right now."]),
+		...(blocked.length > 0
+			? ["", "Blocked paths", ...blocked.map((path) => formatResearchPathLine(state, path))]
+			: []),
+		...(abandoned.length > 0
+			? ["", "Abandoned for now", ...abandoned.map((path) => `- ${formatResearchPathLabel(state, path)}`)]
+			: []),
+		"",
+		"Most promising next move",
+		best ? `${best.suggestedNextMove}` : "Choose a path to continue.",
+	].join("\n");
+}
+
+export function formatResearchFocusUpdated(path: ResearchPath, reason: string): string {
+	return [
+		"Focus updated",
+		"",
+		`I’ll prioritize the ${path.title} path.`,
+		"",
+		"Reason",
+		reason,
+		"",
+		"Next",
+		path.suggestedNextMove,
+	].join("\n");
+}
+
+export function formatResearchPathDropped(path: ResearchPath, reason: string): string {
+	return ["Path updated", "", "Abandoned for now:", `- ${path.title}`, "", "Reason", reason].join("\n");
+}
+
+export function formatResearchRoundUpdated(path: ResearchPath, finding: string): string {
+	return [
+		"Research round updated",
+		"",
+		"Path",
+		path.title,
+		"",
+		"Finding",
+		finding,
+		"",
+		"Next",
+		path.suggestedNextMove,
+	].join("\n");
+}
+
+function formatResearchPathLine(state: Pick<CoMathProjectState, "researchPaths">, path: ResearchPath): string {
+	return `- ${formatResearchPathLabel(state, path)}: ${path.status}. Next: ${path.suggestedNextMove}`;
+}
+
+function formatResearchPathLabel(state: Pick<CoMathProjectState, "researchPaths">, path: ResearchPath): string {
+	const pathIndex = state.researchPaths.findIndex((candidate) => candidate.id === path.id);
+	return pathIndex >= 0 ? `Path ${pathIndex + 1}: ${path.title}` : path.title;
+}
+
+function chooseResearchPath(
+	state: Pick<CoMathProjectState, "researchPaths" | "researchFocus">,
+): ResearchPath | undefined {
+	const focused = state.researchFocus?.pathIds
+		.map((pathId) => state.researchPaths.find((path) => path.id === pathId))
+		.find((path): path is ResearchPath => path !== undefined && path.status !== "abandoned");
+	if (focused) {
+		return focused;
+	}
+	return [...state.researchPaths]
+		.filter((path) => path.status === "active" || path.status === "promising")
+		.sort((a, b) => a.priority - b.priority)[0];
 }
