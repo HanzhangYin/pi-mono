@@ -5,8 +5,42 @@ import {
 	extractStatus,
 	extractTranscriptPath,
 	formatProductReport,
+	parseRawReportSummary,
 	sanitizeProductIds,
 } from "../src/modes/comath/comath-backend-output.ts";
+
+const PRIME_PROOF_RAW_JSON = JSON.stringify(
+	{
+		summary:
+			"The fixed proof is valid assuming the standard lemma that every integer greater than 1 has a prime divisor.",
+		proposedClaims: [
+			{
+				statement: "There are infinitely many primes.",
+				evidence: [
+					{
+						kind: "proof",
+						summary: "The fixed proof replaces “Therefore N is prime” with a prime divisor argument.",
+					},
+				],
+			},
+		],
+		reviewDecision: { claimId: "", status: "needs_review" },
+		blockers: [],
+	},
+	null,
+	2,
+);
+
+const PARSE_FAILED_REPORT_MESSAGE = [
+	"Report report-2: workstream role run: workstream-validate-fixed-proof",
+	`Summary: ${PRIME_PROOF_RAW_JSON}`,
+	"Blockers:",
+	"- Role output was not valid structured co-math JSON; saved as report only.",
+	"- Structured output parse failure: reviewDecision.claimId must be a non-empty string",
+	"Linked role run: role-run-1",
+	"Report review rounds:",
+	"- none",
+].join("\n");
 
 const RUN_STATUS_MESSAGE = [
 	"role-run-1",
@@ -98,6 +132,35 @@ describe("co-math backend output parsing", () => {
 		expect(sanitizeProductIds("no ids here, just prose about Question 3")).toBe(
 			"no ids here, just prose about Question 3",
 		);
+	});
+
+	it("renders a human-readable fallback when a report is blocked only by structured-parse failure", () => {
+		const report = formatProductReport([PARSE_FAILED_REPORT_MESSAGE]);
+		expect(report).toBeDefined();
+		// Useful math content is surfaced...
+		expect(report).toContain("Status: needs review");
+		expect(report).toContain(
+			"The fixed proof is valid assuming the standard lemma that every integer greater than 1 has a prime divisor.",
+		);
+		expect(report).toContain("Key points");
+		expect(report).toContain("There are infinitely many primes.");
+		expect(report).toContain("The fixed proof replaces");
+		// ...and the internal parser/schema failure is not shown as the answer.
+		expect(report).not.toContain("structured co-math JSON");
+		expect(report).not.toContain("reviewDecision.claimId");
+		expect(report).not.toContain("Structured output parse failure");
+		expect(report).not.toMatch(/Summary\n\{/);
+	});
+
+	it("parseRawReportSummary extracts useful fields and ignores empty schema values", () => {
+		const fields = parseRawReportSummary(PRIME_PROOF_RAW_JSON);
+		expect(fields).toBeDefined();
+		expect(fields?.summary).toContain("The fixed proof is valid");
+		expect(fields?.claimStatements).toEqual(["There are infinitely many primes."]);
+		expect(fields?.evidenceSummaries[0]).toContain("prime divisor argument");
+		expect(fields?.reviewStatus).toBe("needs_review");
+		// Non-JSON prose yields no fallback fields.
+		expect(parseRawReportSummary("Just plain prose, no JSON here.")).toBeUndefined();
 	});
 
 	it("formats a clean report as completed", () => {

@@ -3,6 +3,13 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionUIContext } from "../../../src/core/extensions/types.ts";
+import {
+	formatRawReportSections,
+	friendlyReviewStatus,
+	hasStructuredParseFailure,
+	isStructuredParseFailureBlocker,
+	parseRawReportSummary,
+} from "../../../src/modes/comath/comath-backend-output.ts";
 import { type CoMathNaturalIntent, parseCoMathNaturalRequest } from "./natural-language.ts";
 import {
 	formatAmbiguousReviewAction,
@@ -298,6 +305,24 @@ export function formatCoMathProductBackgroundEvent(message: string): string {
 		const status = /^Status:\s*(.+)$/m.exec(message)?.[1]?.trim();
 		const blockers = extractProductBlockerLines(message);
 		const blocked = status === "blocked" || blockers.length > 0;
+
+		// A run blocked only by strict structured-output parsing still produced useful math in its
+		// raw summary. Surface that as a readable review instead of the internal parser error.
+		if (blocked && hasStructuredParseFailure(blockers)) {
+			const rawSummary = extractBackgroundCompletionSummary(message);
+			const fields = rawSummary ? parseRawReportSummary(rawSummary) : undefined;
+			if (fields) {
+				const genuineBlockers = blockers.filter((blocker) => !isStructuredParseFailureBlocker(blocker));
+				return [
+					`${stepLabel} ${friendlyReviewStatus(fields.reviewStatus)}.`,
+					...formatRawReportSections(fields, genuineBlockers),
+					...(transcript ? ["", `Transcript: ${transcript}`] : []),
+					"",
+					'Say "show report" for details, "show progress" for status, or "continue".',
+				].join("\n");
+			}
+		}
+
 		return [
 			blocked ? `${stepLabel} blocked.` : `${stepLabel} finished.`,
 			...(completion[2] ? ["", "Summary", sanitizeProductIds(completion[2])] : []),
@@ -330,6 +355,29 @@ export function formatCoMathProductBackgroundEvent(message: string): string {
 		].join("\n");
 	}
 	return formatCoMathProductBackendMessage(message);
+}
+
+/**
+ * Extract the full (possibly multi-line) raw summary from a background completion message, i.e. the
+ * text after `...saved report <id>: ` up to the next `Status:`/`Transcript:`/`Blockers:` section.
+ */
+function extractBackgroundCompletionSummary(message: string): string | undefined {
+	const lines = message.split("\n");
+	const firstLine = lines[0] ?? "";
+	const match = /saved report \S+?(?: with [^:]*)?: (.*)$/.exec(firstLine);
+	if (!match) {
+		return undefined;
+	}
+	const collected = [match[1]];
+	for (const line of lines.slice(1)) {
+		const trimmed = line.trim();
+		if (trimmed.startsWith("Status:") || trimmed.startsWith("Transcript:") || trimmed.startsWith("Blockers:")) {
+			break;
+		}
+		collected.push(line);
+	}
+	const summary = collected.join("\n").trim();
+	return summary.length > 0 ? summary : undefined;
 }
 
 function extractProductBlockerLines(message: string): string[] {

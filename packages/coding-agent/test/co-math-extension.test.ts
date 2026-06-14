@@ -18,6 +18,7 @@ import {
 	startRoleRun,
 } from "../examples/extensions/co-math/storage.ts";
 import type { ExtensionAPI, ExtensionCommandContext } from "../src/core/extensions/types.ts";
+import { formatProductReport } from "../src/modes/comath/comath-backend-output.ts";
 
 const extensionDir = join(dirname(fileURLToPath(import.meta.url)), "../examples/extensions/co-math");
 
@@ -402,6 +403,87 @@ describe("co-math extension registration", () => {
 		expect(blocked).toContain("this audit step");
 		// The transcript path is the one accepted place a role-run id may appear.
 		expect(blocked).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
+	});
+
+	it("renders useful math instead of parser errors when a run is blocked only by structured-parse failure", () => {
+		const rawJson = JSON.stringify({
+			summary:
+				"The fixed proof is valid assuming the standard lemma that every integer greater than 1 has a prime divisor.",
+			proposedClaims: [
+				{
+					statement: "There are infinitely many primes.",
+					evidence: [{ kind: "proof", summary: "Replaces “Therefore N is prime” with a prime divisor argument." }],
+				},
+			],
+			reviewDecision: { claimId: "", status: "needs_review" },
+		});
+		const message = [
+			`Background Ran co-math workstream and saved report report-2: ${rawJson}`,
+			"Status: blocked",
+			"Transcript: .pi/co-math/transcripts/role-run-1.jsonl",
+			"Blockers:",
+			"- Role output was not valid structured co-math JSON; saved as report only.",
+			"- Structured output parse failure: reviewDecision.claimId must be a non-empty string",
+		].join("\n");
+
+		const result = formatCoMathProductBackgroundEvent(message);
+		expect(result).toContain("Source audit needs review.");
+		expect(result).toContain(
+			"The fixed proof is valid assuming the standard lemma that every integer greater than 1 has a prime divisor.",
+		);
+		expect(result).toContain("There are infinitely many primes.");
+		// Internal parser/schema details must not appear in the beginner-facing message.
+		expect(result).not.toContain("structured co-math JSON");
+		expect(result).not.toContain("reviewDecision.claimId");
+		expect(result).not.toContain("Source audit blocked.");
+		// Transcript path is still available for debugging.
+		expect(result).toContain("Transcript: .pi/co-math/transcripts/role-run-1.jsonl");
+	});
+
+	it("surfaces useful fallback content end-to-end for a parse-failed run via show report", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "co-math-parse-fallback-"));
+		try {
+			const rawJson = JSON.stringify({
+				summary:
+					"The fixed proof is valid assuming the standard lemma that every integer greater than 1 has a prime divisor.",
+				proposedClaims: [
+					{
+						statement: "There are infinitely many primes.",
+						evidence: [
+							{ kind: "proof", summary: "Replaces “Therefore N is prime” with a prime divisor argument." },
+						],
+					},
+				],
+				reviewDecision: { claimId: "", status: "needs_review" },
+			});
+			// Mirrors the role runner's fallback when strict structured parsing fails.
+			const roleRunner = async () => ({
+				summary: rawJson,
+				blockers: [
+					"Role output was not valid structured co-math JSON; saved as report only.",
+					"Structured output parse failure: reviewDecision.claimId must be a non-empty string",
+				],
+			});
+			const notify = () => {};
+
+			await runCoMathBackendCommand("init Validate the fixed proof.", { cwd, notify });
+			await runCoMathBackendCommand("goal Validate the fixed proof.", { cwd, notify });
+			await runCoMathBackendCommand("workstream fixed-proof: Validate the fixed proof", { cwd, notify });
+			await runCoMathBackendCommand("queue workstream workstream-fixed-proof", { cwd, notify });
+			await runCoMathBackendCommand("dispatch-next", { cwd, notify, roleRunner });
+
+			const result = await runCoMathBackendCommand("report-status latest", { cwd, notify, productMode: true });
+			const report = formatProductReport(result.messages);
+			expect(report).toBeDefined();
+			expect(report).toContain("Status: needs review");
+			expect(report).toContain("The fixed proof is valid assuming the standard lemma");
+			expect(report).toContain("There are infinitely many primes.");
+			expect(report).not.toContain("structured co-math JSON");
+			expect(report).not.toContain("reviewDecision.claimId");
+			expect(report).not.toMatch(/Summary\n\{/);
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
 	});
 
 	it("registers the comath_state tool", () => {
