@@ -17,6 +17,9 @@ export type MarginNoteStatus = "open" | "resolved";
 export type ResearchPathStatus = "active" | "promising" | "blocked" | "abandoned" | "resolved";
 export type ResearchWorkstreamRole = "coordinator" | "specialist" | "critic" | "synthesizer";
 export type ResearchWorkstreamReportStatus = "completed" | "blocked";
+export type ResearchWorkstreamRunStatus = "queued" | "running" | "completed" | "blocked" | "failed";
+export type ResearchWorkstreamRunStage = ResearchWorkstreamRole;
+export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" | "blocked" | "failed";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -49,7 +52,8 @@ export type CoMathEventKind =
 	| "margin_note_recorded"
 	| "margin_note_resolved"
 	| "working_paper_exported"
-	| "research_workstream_recorded";
+	| "research_workstream_recorded"
+	| "research_workstream_run_recorded";
 export type ArtifactKind =
 	| "source"
 	| "computation"
@@ -296,6 +300,31 @@ export interface ResearchWorkstreamReportRecord {
 	updatedAt: string;
 }
 
+export interface ResearchWorkstreamIncrementalReportRecord {
+	id: string;
+	stage: ResearchWorkstreamRunStage;
+	status: ResearchWorkstreamIncrementalReportStatus;
+	title: string;
+	summary: string;
+	details: string[];
+	createdAt: string;
+}
+
+export interface ResearchWorkstreamRunRecord {
+	id: string;
+	pathId: string;
+	pathTitle: string;
+	status: ResearchWorkstreamRunStatus;
+	currentStage: ResearchWorkstreamRunStage;
+	startedAt: string;
+	updatedAt: string;
+	completedAt?: string;
+	incrementalReports: ResearchWorkstreamIncrementalReportRecord[];
+	finalReportId?: string;
+	failureReason?: string;
+	usedFallback?: boolean;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -318,6 +347,7 @@ export interface CoMathProjectState {
 	marginNotes: MarginNote[];
 	researchPaths: ResearchPath[];
 	researchReports: ResearchWorkstreamReportRecord[];
+	researchWorkstreamRuns: ResearchWorkstreamRunRecord[];
 	researchFocus?: ResearchFocus;
 	updatedAt: string;
 }

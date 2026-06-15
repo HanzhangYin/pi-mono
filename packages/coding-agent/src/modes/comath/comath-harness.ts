@@ -1,15 +1,27 @@
 import { stat } from "node:fs/promises";
-import type { CoMathProjectState, ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
+import type {
+	CoMathProjectState,
+	ResearchPath,
+	ResearchWorkstreamRunRecord,
+	ResearchWorkstreamRunStage,
+} from "../../../examples/extensions/co-math/schema.ts";
 import {
 	addMarginNote,
 	addResearchPath,
+	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
+	addResearchWorkstreamRun,
+	failStaleResearchWorkstreamRuns,
+	getActiveResearchWorkstreamRun,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
+	getLatestResearchWorkstreamRun,
 	loadProjectState,
+	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 	setResearchFocus,
 	updateResearchPath,
+	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
 } from "../../../examples/extensions/co-math/storage.ts";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
@@ -33,8 +45,13 @@ import {
 	formatResearchPathDropped,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
+	formatResearchWorkstreamAlreadyRunning,
 	formatResearchWorkstreamCompleted,
 	formatResearchWorkstreamReport,
+	formatResearchWorkstreamRunFailed,
+	formatResearchWorkstreamRunProgress,
+	formatResearchWorkstreamRunStarted,
+	formatResearchWorkstreamRunStillRunningReport,
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
@@ -43,7 +60,8 @@ import {
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import {
 	type ResearchWorkstreamModelExecutor,
-	runModelBackedResearchWorkstream,
+	type ResearchWorkstreamStageResult,
+	runModelBackedResearchWorkstreamStaged,
 } from "./comath-research-model-workstream.ts";
 import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
 import type { CoMathSource } from "./comath-source.ts";
@@ -80,6 +98,7 @@ export class CoMathHarness {
 	private readonly createPlan: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	private readonly startFirstRun: boolean;
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
+	private readonly activeResearchWorkstreams = new Map<string, Promise<void>>();
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
 	constructor(options: CoMathHarnessOptions) {
@@ -341,7 +360,19 @@ export class CoMathHarness {
 	}
 
 	private async handleResearchSteeringPrompt(state: CoMathProjectState, prompt: string): Promise<void> {
+		const reconciled = await this.reconcileStaleResearchWorkstreamRuns(state);
+		state = reconciled.state;
+		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
 		if (/^(?:summari[sz]e current state|show research state|show progress|status)$/i.test(prompt)) {
+			if (/^(?:show progress|status)$/i.test(prompt) && latestInterruptedRun) {
+				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
+				return;
+			}
+			const activeRun = getActiveResearchWorkstreamRun(state);
+			if (/^(?:show progress|status)$/i.test(prompt) && activeRun) {
+				await this.notify(formatResearchWorkstreamRunProgress({ state, run: activeRun }));
+				return;
+			}
 			await this.notify(formatResearchStateSummary(state));
 			return;
 		}
@@ -360,6 +391,11 @@ export class CoMathHarness {
 				);
 				return;
 			}
+			const activeRun = getActiveResearchWorkstreamRun(state);
+			if (activeRun?.pathId === path.id) {
+				await this.notify(formatResearchWorkstreamRunStillRunningReport({ state, run: activeRun }));
+				return;
+			}
 			const report = getLatestResearchWorkstreamReportForPath(state, path.id);
 			if (!report) {
 				await this.notify(
@@ -371,6 +407,15 @@ export class CoMathHarness {
 			return;
 		}
 		if (/^show (?:the )?(?:latest )?report$/i.test(prompt.trim())) {
+			const latestRun = getLatestResearchWorkstreamRun(state);
+			if (latestRun && (latestRun.status === "queued" || latestRun.status === "running")) {
+				await this.notify(formatResearchWorkstreamRunStillRunningReport({ state, run: latestRun }));
+				return;
+			}
+			if (latestRun?.status === "failed" && !latestRun.finalReportId) {
+				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestRun }), "warning");
+				return;
+			}
 			const report = getLatestResearchWorkstreamReport(state);
 			if (!report) {
 				await this.notify("No research report is available yet. Continue a path first.");
@@ -447,10 +492,43 @@ export class CoMathHarness {
 				);
 				return;
 			}
+			const activeRun = getActiveResearchWorkstreamRun(state);
+			if (activeRun) {
+				await this.notify(formatResearchWorkstreamAlreadyRunning({ state, run: activeRun }), "warning");
+				return;
+			}
+			if (latestInterruptedRun) {
+				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
+			}
 			await this.runResearchWorkstreamForPath(state, path);
 			return;
 		}
 		await this.notify(formatResearchStateSummary(state));
+	}
+
+	private async reconcileStaleResearchWorkstreamRuns(state: CoMathProjectState): Promise<{
+		state: CoMathProjectState;
+		interruptedRuns: ResearchWorkstreamRunRecord[];
+	}> {
+		const inProcessRunIds = new Set(this.activeResearchWorkstreams.keys());
+		const staleRunIds = state.researchWorkstreamRuns
+			.filter((run) => (run.status === "queued" || run.status === "running") && !inProcessRunIds.has(run.id))
+			.map((run) => run.id);
+		if (staleRunIds.length === 0) {
+			return { state, interruptedRuns: [] };
+		}
+		const nextState = failStaleResearchWorkstreamRuns(state, {
+			activeRunIds: [...inProcessRunIds],
+			now: new Date().toISOString(),
+			actor: "system",
+			reason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+		});
+		await saveProjectState(this.statePath, nextState);
+		const staleRunIdSet = new Set(staleRunIds);
+		return {
+			state: nextState,
+			interruptedRuns: nextState.researchWorkstreamRuns.filter((run) => staleRunIdSet.has(run.id)),
+		};
 	}
 
 	/**
@@ -461,36 +539,262 @@ export class CoMathHarness {
 	 */
 	private async runResearchWorkstreamForPath(state: CoMathProjectState, path: ResearchPath): Promise<void> {
 		const now = new Date().toISOString();
-		let report: ResearchWorkstreamReport;
-		let usedModelFallback = false;
 		if (this.researchModelExecutor) {
-			try {
-				report = await runModelBackedResearchWorkstream({
-					rootQuestion: state.rootQuestion,
-					path,
-					allPaths: state.researchPaths,
-					now,
-					executor: this.researchModelExecutor,
-				});
-			} catch {
-				usedModelFallback = true;
-				report = runResearchWorkstream({
-					rootQuestion: state.rootQuestion,
-					path,
-					allPaths: state.researchPaths,
-					now,
-				});
+			const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
+			const nextState = addResearchWorkstreamRun(state, {
+				id: runId,
+				pathId: path.id,
+				pathTitle: path.title,
+				currentStage: "coordinator",
+				now,
+				actor: "system",
+			});
+			await saveProjectState(this.statePath, nextState);
+			const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+			if (run) {
+				await this.notify(formatResearchWorkstreamRunStarted({ state: nextState, run }));
 			}
-		} else {
-			report = runResearchWorkstream({ rootQuestion: state.rootQuestion, path, allPaths: state.researchPaths, now });
+			const workstream = this.executeResearchWorkstreamInBackground(runId)
+				.catch(async (error: unknown) => {
+					await this.markResearchWorkstreamRunFailed(runId, safeErrorMessage(error));
+				})
+				.finally(() => {
+					this.activeResearchWorkstreams.delete(runId);
+				});
+			this.activeResearchWorkstreams.set(runId, workstream);
+			void workstream;
+			return;
 		}
-		const nextState = this.persistResearchWorkstreamReport(state, path, report, now);
+
+		const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
+		let nextState = addResearchWorkstreamRun(state, {
+			id: runId,
+			pathId: path.id,
+			pathTitle: path.title,
+			currentStage: "coordinator",
+			now,
+			actor: "system",
+		});
+		const report = runResearchWorkstream({
+			rootQuestion: state.rootQuestion,
+			path,
+			allPaths: state.researchPaths,
+			now,
+		});
+		nextState = this.appendIncrementalReports(nextState, runId, report, now);
+		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
+		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = updateResearchWorkstreamRun(nextState, {
+			runId,
+			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: report.completedAt,
+			...(finalReportId ? { finalReportId } : {}),
+			now,
+			actor: "synthesizer",
+		});
 		await saveProjectState(this.statePath, nextState);
-		if (usedModelFallback) {
-			await this.notify(formatResearchModelFallbackNote());
-		}
 		await this.notify(formatResearchWorkstreamStarted({ state: nextState, report }));
 		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+	}
+
+	private async executeResearchWorkstreamInBackground(runId: string): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		const run = state?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		const path = run ? state?.researchPaths.find((candidate) => candidate.id === run.pathId) : undefined;
+		if (!state || !run || !path) {
+			return;
+		}
+		const now = new Date().toISOString();
+		try {
+			const report = await runModelBackedResearchWorkstreamStaged(
+				{
+					rootQuestion: state.rootQuestion,
+					path,
+					allPaths: state.researchPaths,
+					now,
+					executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
+				},
+				{
+					onStageStarted: async (stage, summary) => {
+						await this.saveResearchWorkstreamStage(runId, {
+							stage,
+							status: "running",
+							title: formatStageTitle(stage),
+							summary,
+							details: [],
+						});
+					},
+					onStageCompleted: async (result) => {
+						await this.saveResearchWorkstreamStage(runId, {
+							stage: result.stage,
+							status: "completed",
+							title: result.title,
+							summary: result.summary,
+							details: result.details,
+						});
+					},
+				},
+			);
+			await this.completeResearchWorkstreamRun(runId, report);
+		} catch (error: unknown) {
+			await this.completeResearchWorkstreamWithFallback(runId, error);
+		}
+	}
+
+	private async saveResearchWorkstreamStage(
+		runId: string,
+		input: Pick<ResearchWorkstreamStageResult, "stage" | "title" | "summary" | "details"> & {
+			status: "running" | "completed" | "blocked" | "failed";
+		},
+	): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		if (!state?.researchWorkstreamRuns.some((run) => run.id === runId)) {
+			return;
+		}
+		const now = new Date().toISOString();
+		let nextState = updateResearchWorkstreamRun(state, {
+			runId,
+			...(input.status === "running" ? { status: "running" } : {}),
+			currentStage: input.stage,
+			now,
+			actor: "system",
+		});
+		if (input.stage === "coordinator" && input.status === "running") {
+			await saveProjectState(this.statePath, nextState);
+			return;
+		}
+		nextState = addResearchWorkstreamIncrementalReport(nextState, {
+			runId,
+			stage: input.stage,
+			status: input.status,
+			title: input.title,
+			summary: input.summary,
+			details: input.details,
+			now,
+			actor: "system",
+		});
+		await saveProjectState(this.statePath, nextState);
+	}
+
+	private async completeResearchWorkstreamRun(runId: string, report: ResearchWorkstreamReport): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		const path = state?.researchPaths.find((candidate) => candidate.id === report.pathId);
+		if (!state || !path) {
+			return;
+		}
+		const now = new Date().toISOString();
+		let nextState = this.persistResearchWorkstreamReport(state, path, report, now);
+		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = updateResearchWorkstreamRun(nextState, {
+			runId,
+			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: report.completedAt,
+			...(finalReportId ? { finalReportId } : {}),
+			now,
+			actor: "synthesizer",
+		});
+		await saveProjectState(this.statePath, nextState);
+		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+	}
+
+	private async completeResearchWorkstreamWithFallback(runId: string, error: unknown): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		const run = state?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		const path = run ? state?.researchPaths.find((candidate) => candidate.id === run.pathId) : undefined;
+		if (!state || !run || !path) {
+			return;
+		}
+		const now = new Date().toISOString();
+		try {
+			const report = runResearchWorkstream({
+				rootQuestion: state.rootQuestion,
+				path,
+				allPaths: state.researchPaths,
+				now,
+			});
+			let nextState = updateResearchWorkstreamRun(state, {
+				runId,
+				status: "running",
+				currentStage: "coordinator",
+				usedFallback: true,
+				now,
+				actor: "system",
+			});
+			nextState = this.appendIncrementalReports(nextState, runId, report, now);
+			nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
+			const finalReportId = nextState.researchReports.at(-1)?.id;
+			nextState = updateResearchWorkstreamRun(nextState, {
+				runId,
+				status: "completed",
+				currentStage: "synthesizer",
+				completedAt: report.completedAt,
+				usedFallback: true,
+				...(finalReportId ? { finalReportId } : {}),
+				now,
+				actor: "synthesizer",
+			});
+			await saveProjectState(this.statePath, nextState);
+			await this.notify(formatResearchModelFallbackNote());
+			await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+		} catch (fallbackError: unknown) {
+			const failureMessage = safeErrorMessage(fallbackError) || safeErrorMessage(error);
+			const latest = (await loadProjectState(this.statePath)) ?? state;
+			const failedState = updateResearchWorkstreamRun(latest, {
+				runId,
+				status: "failed",
+				failureReason: failureMessage,
+				now: new Date().toISOString(),
+				actor: "system",
+			});
+			await saveProjectState(this.statePath, failedState);
+			const failedRun = failedState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+			if (failedRun) {
+				await this.notify(formatResearchWorkstreamRunFailed({ state: failedState, run: failedRun }), "error");
+			}
+		}
+	}
+
+	private async markResearchWorkstreamRunFailed(runId: string, reason: string): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		if (!state?.researchWorkstreamRuns.some((run) => run.id === runId)) {
+			return;
+		}
+		const failedState = updateResearchWorkstreamRun(state, {
+			runId,
+			status: "failed",
+			failureReason: reason,
+			now: new Date().toISOString(),
+			actor: "system",
+		});
+		await saveProjectState(this.statePath, failedState);
+		const run = failedState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		if (run) {
+			await this.notify(formatResearchWorkstreamRunFailed({ state: failedState, run }), "error");
+		}
+	}
+
+	private appendIncrementalReports(
+		state: CoMathProjectState,
+		runId: string,
+		report: ResearchWorkstreamReport,
+		now: string,
+	): CoMathProjectState {
+		let nextState = state;
+		for (const step of report.steps) {
+			nextState = addResearchWorkstreamIncrementalReport(nextState, {
+				runId,
+				stage: step.role,
+				status: "completed",
+				title: step.title,
+				summary: step.summary,
+				details: step.details,
+				now,
+				actor: "system",
+			});
+		}
+		return nextState;
 	}
 
 	/**
@@ -803,6 +1107,29 @@ function normalizePathQuery(value: string): string {
 		.replace(/\b(?:the|a|an|path|on|to)\b/g, " ")
 		.replace(/[^a-z0-9]+/g, " ")
 		.trim();
+}
+
+function formatStageTitle(stage: ResearchWorkstreamRunStage): string {
+	if (stage === "coordinator") {
+		return "Coordinator brief";
+	}
+	if (stage === "specialist") {
+		return "Specialist attempt";
+	}
+	if (stage === "critic") {
+		return "Critic review";
+	}
+	return "Synthesis";
+}
+
+function safeErrorMessage(error: unknown): string {
+	if (error instanceof Error && error.message.trim().length > 0) {
+		return error.message;
+	}
+	if (typeof error === "string" && error.trim().length > 0) {
+		return error.trim();
+	}
+	return "The research attempt stopped unexpectedly.";
 }
 
 function uniqueStrings(values: readonly string[]): string[] {

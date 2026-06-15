@@ -11,7 +11,9 @@ import {
 	addMarginNote,
 	addReportReviewRound,
 	addResearchPath,
+	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
+	addResearchWorkstreamRun,
 	addReviewDecisionEvent,
 	addReviewRound,
 	addWarning,
@@ -21,11 +23,14 @@ import {
 	createEmptyProjectState,
 	dispatchQueuedRoleRun,
 	failRoleRun,
+	failStaleResearchWorkstreamRuns,
 	finishRoleRun,
 	getActiveResearchPaths,
+	getActiveResearchWorkstreamRun,
 	getDefaultStatePath,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
+	getLatestResearchWorkstreamRun,
 	isClaimSynthesisEligible,
 	loadProjectState,
 	queueRoleRun,
@@ -34,6 +39,7 @@ import {
 	resolveMarginNote,
 	resolveWarning,
 	reviseClaim,
+	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 	serializeProjectState,
 	setClaimStatus,
@@ -41,6 +47,7 @@ import {
 	setResearchFocus,
 	startRoleRun,
 	updateResearchPath,
+	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
 } from "../examples/extensions/co-math/storage.ts";
 
@@ -91,6 +98,7 @@ describe("co-math project state", () => {
 			marginNotes: [],
 			researchPaths: [],
 			researchReports: [],
+			researchWorkstreamRuns: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -243,6 +251,153 @@ describe("co-math project state", () => {
 		expect(() => addResearchWorkstreamReport(base, { ...validInput, pathTitle: "  " })).toThrow(/path title/i);
 		const withReport = addResearchWorkstreamReport(base, validInput);
 		expect(() => addResearchWorkstreamReport(withReport, validInput)).toThrow(/duplicate/i);
+	});
+
+	it("records and updates research workstream runs with incremental reports", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Look for a congruence obstruction.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addResearchWorkstreamIncrementalReport(state, {
+			runId: "research-run-1",
+			stage: "coordinator",
+			status: "completed",
+			title: "Coordinator brief",
+			summary: "Framed the path.",
+			details: ["Brief."],
+			now: FIXED_NOW,
+			actor: "coordinator",
+		});
+		state = addResearchWorkstreamIncrementalReport(state, {
+			runId: "research-run-1",
+			stage: "specialist",
+			status: "running",
+			title: "Specialist attempt",
+			summary: "Specialist is running.",
+			details: [],
+			now: "2026-06-05T12:01:00.000Z",
+			actor: "workstream",
+		});
+
+		expect(state.researchWorkstreamRuns).toHaveLength(1);
+		expect(state.researchWorkstreamRuns[0]).toMatchObject({
+			id: "research-run-1",
+			pathId: "path-1",
+			status: "running",
+			currentStage: "specialist",
+		});
+		expect(state.researchWorkstreamRuns[0]?.incrementalReports.map((report) => report.stage)).toEqual([
+			"coordinator",
+			"specialist",
+		]);
+		expect(getLatestResearchWorkstreamRun(state)?.id).toBe("research-run-1");
+		expect(getActiveResearchWorkstreamRun(state)?.id).toBe("research-run-1");
+
+		state = updateResearchWorkstreamRun(state, {
+			runId: "research-run-1",
+			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: "2026-06-05T12:05:00.000Z",
+			finalReportId: "research-report-1",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "synthesizer",
+		});
+
+		expect(state.researchWorkstreamRuns[0]).toMatchObject({
+			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: "2026-06-05T12:05:00.000Z",
+			finalReportId: "research-report-1",
+		});
+		expect(getActiveResearchWorkstreamRun(state)).toBeUndefined();
+	});
+
+	it("marks stale queued and running research workstream runs failed without touching live or completed runs", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Look for a congruence obstruction.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			status: "running",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			status: "queued",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			status: "running",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = updateResearchWorkstreamRun(state, {
+			runId: "research-run-3",
+			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: "2026-06-05T12:05:00.000Z",
+			finalReportId: "research-report-1",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "synthesizer",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			status: "running",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+
+		const nextState = failStaleResearchWorkstreamRuns(state, {
+			activeRunIds: ["research-run-1"],
+			now: "2026-06-05T12:10:00.000Z",
+			actor: "system",
+		});
+
+		expect(nextState.researchWorkstreamRuns.map((run) => run.status)).toEqual([
+			"running",
+			"failed",
+			"completed",
+			"failed",
+		]);
+		expect(nextState.researchWorkstreamRuns[0]?.failureReason).toBeUndefined();
+		expect(nextState.researchWorkstreamRuns[1]).toMatchObject({
+			status: "failed",
+			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+			updatedAt: "2026-06-05T12:10:00.000Z",
+		});
+		expect(nextState.researchWorkstreamRuns[2]).toMatchObject({
+			status: "completed",
+			finalReportId: "research-report-1",
+		});
+		expect(nextState.researchWorkstreamRuns[3]).toMatchObject({
+			status: "failed",
+			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+		});
+		expect(state.researchWorkstreamRuns[1]?.status).toBe("queued");
+		expect(state.researchWorkstreamRuns[3]?.status).toBe("running");
+		expect(getActiveResearchWorkstreamRun(nextState)?.id).toBe("research-run-1");
 	});
 
 	it("adds a goal with deterministic id and timestamp injection", () => {
@@ -1632,6 +1787,7 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.marginNotes;
 			delete legacyWithoutNewFields.researchPaths;
 			delete legacyWithoutNewFields.researchReports;
+			delete legacyWithoutNewFields.researchWorkstreamRuns;
 			delete legacyWithoutNewFields.researchFocus;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
@@ -1646,6 +1802,7 @@ describe("co-math project state", () => {
 			expect(loaded?.workingPaperSections).toEqual([]);
 			expect(loaded?.marginNotes).toEqual([]);
 			expect(loaded?.researchPaths).toEqual([]);
+			expect(loaded?.researchWorkstreamRuns).toEqual([]);
 			expect(loaded?.researchFocus).toBeUndefined();
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",

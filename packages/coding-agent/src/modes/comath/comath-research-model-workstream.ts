@@ -1,4 +1,4 @@
-import type { ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
+import type { ResearchPath, ResearchWorkstreamRunStage } from "../../../examples/extensions/co-math/schema.ts";
 import {
 	buildCoordinatorBrief,
 	type ResearchWorkstreamReport,
@@ -35,6 +35,19 @@ export interface RunModelBackedResearchWorkstreamInput {
 	executor: ResearchWorkstreamModelExecutor;
 }
 
+export interface ResearchWorkstreamStageResult {
+	stage: ResearchWorkstreamRunStage;
+	title: string;
+	summary: string;
+	details: string[];
+	rawText?: string;
+}
+
+export interface ResearchWorkstreamStageCallbacks {
+	onStageStarted?: (stage: ResearchWorkstreamRunStage, summary: string) => Promise<void> | void;
+	onStageCompleted?: (result: ResearchWorkstreamStageResult) => Promise<void> | void;
+}
+
 interface MarkdownSection {
 	heading: string;
 	items: string[];
@@ -56,11 +69,26 @@ interface ParsedMarkdown {
 export async function runModelBackedResearchWorkstream(
 	input: RunModelBackedResearchWorkstreamInput,
 ): Promise<ResearchWorkstreamReport> {
+	return runModelBackedResearchWorkstreamStaged(input, {});
+}
+
+export async function runModelBackedResearchWorkstreamStaged(
+	input: RunModelBackedResearchWorkstreamInput,
+	callbacks: ResearchWorkstreamStageCallbacks,
+): Promise<ResearchWorkstreamReport> {
 	const rootQuestion = input.rootQuestion.trim();
 	const { path, allPaths, executor } = input;
 	const priorFindings = path.latestFindings;
 	const coordinatorBrief = buildCoordinatorBrief(path);
+	await callbacks.onStageStarted?.("coordinator", "Framing the research path.");
+	await callbacks.onStageCompleted?.({
+		stage: "coordinator",
+		title: "Coordinator brief",
+		summary: "Framed the objective and what would count as progress.",
+		details: [coordinatorBrief],
+	});
 
+	await callbacks.onStageStarted?.("specialist", "Specialist research is running.");
 	const specialistText = await runRole(executor, {
 		role: "specialist",
 		rootQuestion,
@@ -71,7 +99,15 @@ export async function runModelBackedResearchWorkstream(
 		prompt: buildSpecialistPrompt(rootQuestion, path, priorFindings),
 	});
 	const specialist = parseMarkdown(specialistText);
+	await callbacks.onStageCompleted?.({
+		stage: "specialist",
+		title: "Specialist attempt",
+		summary: "Specialist attempt completed.",
+		details: renderRoleDetails(specialist),
+		rawText: specialistText,
+	});
 
+	await callbacks.onStageStarted?.("critic", "Critic review is running.");
 	const criticText = await runRole(executor, {
 		role: "critic",
 		rootQuestion,
@@ -82,7 +118,15 @@ export async function runModelBackedResearchWorkstream(
 		prompt: buildCriticPrompt(rootQuestion, path, specialistText),
 	});
 	const critic = parseMarkdown(criticText);
+	await callbacks.onStageCompleted?.({
+		stage: "critic",
+		title: "Critic review",
+		summary: "Critic review completed.",
+		details: renderRoleDetails(critic),
+		rawText: criticText,
+	});
 
+	await callbacks.onStageStarted?.("synthesizer", "Synthesis is running.");
 	const synthesizerText = await runRole(executor, {
 		role: "synthesizer",
 		rootQuestion,
@@ -93,6 +137,13 @@ export async function runModelBackedResearchWorkstream(
 		prompt: buildSynthesizerPrompt(rootQuestion, path, specialistText, criticText),
 	});
 	const synthesizer = parseMarkdown(synthesizerText);
+	await callbacks.onStageCompleted?.({
+		stage: "synthesizer",
+		title: "Synthesis",
+		summary: "Synthesis completed.",
+		details: renderRoleDetails(synthesizer),
+		rawText: synthesizerText,
+	});
 
 	const promisingStrategy = pickItems(sectionItems(synthesizer, "promising"), sectionItems(specialist, "promising"));
 	const findings = pickItems(sectionItems(synthesizer, "finding"), sectionItems(specialist, "finding"));

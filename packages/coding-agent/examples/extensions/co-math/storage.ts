@@ -22,8 +22,12 @@ import type {
 	ResearchFocus,
 	ResearchPath,
 	ResearchPathStatus,
+	ResearchWorkstreamIncrementalReportRecord,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamReportStatus,
+	ResearchWorkstreamRunRecord,
+	ResearchWorkstreamRunStage,
+	ResearchWorkstreamRunStatus,
 	ResearchWorkstreamStepRecord,
 	ReviewQueueItem,
 	ReviewRoundOutcome,
@@ -58,6 +62,7 @@ type LegacyProjectState = Omit<
 	| "marginNotes"
 	| "researchPaths"
 	| "researchReports"
+	| "researchWorkstreamRuns"
 	| "researchFocus"
 > &
 	Partial<
@@ -79,6 +84,7 @@ type LegacyProjectState = Omit<
 				| "marginNotes"
 				| "researchPaths"
 				| "researchReports"
+				| "researchWorkstreamRuns"
 				| "researchFocus"
 			>,
 			"roleRuns"
@@ -248,6 +254,48 @@ export interface AddResearchWorkstreamReportInput {
 	workingPaperSectionId?: string;
 	now: string;
 	actor?: CoMathActor;
+}
+
+export interface AddResearchWorkstreamRunInput {
+	id?: string;
+	pathId: string;
+	pathTitle: string;
+	status?: ResearchWorkstreamRunStatus;
+	currentStage?: ResearchWorkstreamRunStage;
+	now: string;
+	actor?: CoMathActor;
+	usedFallback?: boolean;
+}
+
+export interface UpdateResearchWorkstreamRunInput {
+	runId: string;
+	status?: ResearchWorkstreamRunStatus;
+	currentStage?: ResearchWorkstreamRunStage;
+	completedAt?: string;
+	finalReportId?: string;
+	failureReason?: string;
+	usedFallback?: boolean;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchWorkstreamIncrementalReportInput {
+	runId: string;
+	id?: string;
+	stage: ResearchWorkstreamRunStage;
+	status: ResearchWorkstreamIncrementalReportRecord["status"];
+	title: string;
+	summary: string;
+	details: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface FailStaleResearchWorkstreamRunsInput {
+	activeRunIds: readonly string[];
+	now: string;
+	actor?: CoMathActor;
+	reason?: string;
 }
 
 export interface AddSynthesisEventInput {
@@ -450,6 +498,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		marginNotes: [],
 		researchPaths: [],
 		researchReports: [],
+		researchWorkstreamRuns: [],
 		events: [
 			{
 				id: "event-1",
@@ -1011,6 +1060,169 @@ export function getLatestResearchWorkstreamReportForPath(
 	pathId: string,
 ): ResearchWorkstreamReportRecord | undefined {
 	return [...state.researchReports].reverse().find((report) => report.pathId === pathId);
+}
+
+export function addResearchWorkstreamRun(
+	state: CoMathProjectState,
+	input: AddResearchWorkstreamRunInput,
+): CoMathProjectState {
+	const pathId = input.pathId.trim();
+	const pathTitle = input.pathTitle.trim();
+	if (!pathId) {
+		throw new Error("Research workstream run requires a path id.");
+	}
+	if (!pathTitle) {
+		throw new Error("Research workstream run requires a path title.");
+	}
+	const id = input.id?.trim() || `research-run-${state.researchWorkstreamRuns.length + 1}`;
+	if (state.researchWorkstreamRuns.some((run) => run.id === id)) {
+		throw new Error(`Duplicate research workstream run id: ${id}`);
+	}
+	const run: ResearchWorkstreamRunRecord = {
+		id,
+		pathId,
+		pathTitle,
+		status: input.status ?? "running",
+		currentStage: input.currentStage ?? "coordinator",
+		startedAt: input.now,
+		updatedAt: input.now,
+		incrementalReports: [],
+		...(input.usedFallback !== undefined ? { usedFallback: input.usedFallback } : {}),
+	};
+	return appendEvent(
+		{
+			...state,
+			researchWorkstreamRuns: [...state.researchWorkstreamRuns, run],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_workstream_run_recorded",
+			actor: input.actor,
+			summary: `Started research workstream run for ${pathTitle}`,
+			subjectId: id,
+			relatedIds: [pathId],
+			now: input.now,
+		},
+	);
+}
+
+export function updateResearchWorkstreamRun(
+	state: CoMathProjectState,
+	input: UpdateResearchWorkstreamRunInput,
+): CoMathProjectState {
+	if (!state.researchWorkstreamRuns.some((run) => run.id === input.runId)) {
+		return state;
+	}
+	return appendEvent(
+		{
+			...state,
+			researchWorkstreamRuns: state.researchWorkstreamRuns.map((run) =>
+				run.id === input.runId
+					? {
+							...run,
+							...(input.status ? { status: input.status } : {}),
+							...(input.currentStage ? { currentStage: input.currentStage } : {}),
+							...(input.completedAt ? { completedAt: input.completedAt } : {}),
+							...(input.finalReportId ? { finalReportId: input.finalReportId } : {}),
+							...(input.failureReason ? { failureReason: input.failureReason } : {}),
+							...(input.usedFallback !== undefined ? { usedFallback: input.usedFallback } : {}),
+							updatedAt: input.now,
+						}
+					: run,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_workstream_run_recorded",
+			actor: input.actor,
+			summary: `Updated research workstream run ${input.runId}`,
+			subjectId: input.runId,
+			now: input.now,
+		},
+	);
+}
+
+export function addResearchWorkstreamIncrementalReport(
+	state: CoMathProjectState,
+	input: AddResearchWorkstreamIncrementalReportInput,
+): CoMathProjectState {
+	const run = state.researchWorkstreamRuns.find((candidate) => candidate.id === input.runId);
+	if (!run) {
+		throw new Error(`Unknown research workstream run: ${input.runId}`);
+	}
+	const title = input.title.trim();
+	const summary = input.summary.trim();
+	if (!title) {
+		throw new Error("Research workstream incremental report requires a title.");
+	}
+	if (!summary) {
+		throw new Error("Research workstream incremental report requires a summary.");
+	}
+	const report: ResearchWorkstreamIncrementalReportRecord = {
+		id: input.id?.trim() || `${run.id}-incremental-${run.incrementalReports.length + 1}`,
+		stage: input.stage,
+		status: input.status,
+		title,
+		summary,
+		details: [...input.details],
+		createdAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchWorkstreamRuns: state.researchWorkstreamRuns.map((candidate) =>
+				candidate.id === input.runId
+					? {
+							...candidate,
+							status: input.status === "running" ? "running" : candidate.status,
+							currentStage: input.stage,
+							incrementalReports: [...candidate.incrementalReports, report],
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_workstream_run_recorded",
+			actor: input.actor,
+			summary: `Recorded ${input.stage} progress for ${run.pathTitle}`,
+			subjectId: input.runId,
+			relatedIds: [run.pathId],
+			now: input.now,
+		},
+	);
+}
+
+export const STALE_RESEARCH_WORKSTREAM_RUN_REASON = "Previous Pi session ended before completion.";
+
+export function failStaleResearchWorkstreamRuns(
+	state: CoMathProjectState,
+	input: FailStaleResearchWorkstreamRunsInput,
+): CoMathProjectState {
+	const activeRunIds = new Set(input.activeRunIds);
+	const reason = input.reason?.trim() || STALE_RESEARCH_WORKSTREAM_RUN_REASON;
+	let nextState = state;
+	for (const run of state.researchWorkstreamRuns) {
+		if ((run.status === "queued" || run.status === "running") && !activeRunIds.has(run.id)) {
+			nextState = updateResearchWorkstreamRun(nextState, {
+				runId: run.id,
+				status: "failed",
+				failureReason: reason,
+				now: input.now,
+				actor: input.actor,
+			});
+		}
+	}
+	return nextState;
+}
+
+export function getLatestResearchWorkstreamRun(state: CoMathProjectState): ResearchWorkstreamRunRecord | undefined {
+	return state.researchWorkstreamRuns.at(-1);
+}
+
+export function getActiveResearchWorkstreamRun(state: CoMathProjectState): ResearchWorkstreamRunRecord | undefined {
+	return state.researchWorkstreamRuns.find((run) => run.status === "queued" || run.status === "running");
 }
 
 export function getActiveResearchPaths(state: CoMathProjectState): ResearchPath[] {
@@ -1799,6 +2011,9 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		researchReports: getArrayField(value, "researchReports").map((record, index) =>
 			normalizeResearchWorkstreamReport(record, updatedAt, index),
 		),
+		researchWorkstreamRuns: getArrayField(value, "researchWorkstreamRuns").map((record, index) =>
+			normalizeResearchWorkstreamRun(record, updatedAt, index),
+		),
 		...(normalizeResearchFocus(value.researchFocus, updatedAt)
 			? { researchFocus: normalizeResearchFocus(value.researchFocus, updatedAt) }
 			: {}),
@@ -2132,6 +2347,52 @@ function normalizeResearchWorkstreamStep(value: Record<string, unknown>): Resear
 	};
 }
 
+function normalizeResearchWorkstreamRun(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchWorkstreamRunRecord {
+	const startedAt = getStringField(value, "startedAt", getStringField(value, "createdAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `research-run-${index + 1}`),
+		pathId: getStringField(value, "pathId", "path-legacy"),
+		pathTitle: getStringField(value, "pathTitle", "Research path"),
+		status: normalizeResearchWorkstreamRunStatus(value.status),
+		currentStage: normalizeResearchWorkstreamStage(value.currentStage),
+		startedAt,
+		updatedAt: getStringField(value, "updatedAt", startedAt),
+		...(getOptionalStringField(value, "completedAt")
+			? { completedAt: getOptionalStringField(value, "completedAt") }
+			: {}),
+		incrementalReports: getArrayField(value, "incrementalReports").map((report, reportIndex) =>
+			normalizeResearchWorkstreamIncrementalReport(report, startedAt, reportIndex),
+		),
+		...(getOptionalStringField(value, "finalReportId")
+			? { finalReportId: getOptionalStringField(value, "finalReportId") }
+			: {}),
+		...(getOptionalStringField(value, "failureReason")
+			? { failureReason: getOptionalStringField(value, "failureReason") }
+			: {}),
+		...(typeof value.usedFallback === "boolean" ? { usedFallback: value.usedFallback } : {}),
+	};
+}
+
+function normalizeResearchWorkstreamIncrementalReport(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchWorkstreamIncrementalReportRecord {
+	return {
+		id: getStringField(value, "id", `incremental-${index + 1}`),
+		stage: normalizeResearchWorkstreamStage(value.stage),
+		status: normalizeResearchWorkstreamIncrementalReportStatus(value.status),
+		title: getStringField(value, "title", "Research progress"),
+		summary: getStringField(value, "summary", ""),
+		details: getStringArrayField(value, "details"),
+		createdAt: getStringField(value, "createdAt", fallbackTime),
+	};
+}
+
 function normalizeResearchWorkstreamRole(value: unknown): ResearchWorkstreamStepRecord["role"] {
 	if (value === "coordinator" || value === "specialist" || value === "critic" || value === "synthesizer") {
 		return value;
@@ -2139,8 +2400,34 @@ function normalizeResearchWorkstreamRole(value: unknown): ResearchWorkstreamStep
 	return "coordinator";
 }
 
+function normalizeResearchWorkstreamStage(value: unknown): ResearchWorkstreamRunStage {
+	return normalizeResearchWorkstreamRole(value);
+}
+
 function normalizeResearchWorkstreamReportStatus(value: unknown): ResearchWorkstreamReportStatus {
 	return value === "blocked" ? "blocked" : "completed";
+}
+
+function normalizeResearchWorkstreamRunStatus(value: unknown): ResearchWorkstreamRunStatus {
+	if (
+		value === "queued" ||
+		value === "running" ||
+		value === "completed" ||
+		value === "blocked" ||
+		value === "failed"
+	) {
+		return value;
+	}
+	return "running";
+}
+
+function normalizeResearchWorkstreamIncrementalReportStatus(
+	value: unknown,
+): ResearchWorkstreamIncrementalReportRecord["status"] {
+	if (value === "running" || value === "completed" || value === "blocked" || value === "failed") {
+		return value;
+	}
+	return "completed";
 }
 
 function normalizeResearchFocus(value: unknown, fallbackTime: string): ResearchFocus | undefined {
@@ -2358,7 +2645,8 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "margin_note_recorded" ||
 		value === "margin_note_resolved" ||
 		value === "working_paper_exported" ||
-		value === "research_workstream_recorded"
+		value === "research_workstream_recorded" ||
+		value === "research_workstream_run_recorded"
 	);
 }
 

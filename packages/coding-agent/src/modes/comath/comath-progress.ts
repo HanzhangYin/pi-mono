@@ -2,6 +2,7 @@ import type {
 	CoMathProjectState,
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
+	ResearchWorkstreamRunRecord,
 } from "../../../examples/extensions/co-math/schema.ts";
 import { sanitizeProductIds } from "./comath-backend-output.ts";
 import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
@@ -298,6 +299,11 @@ export interface FormatResearchWorkstreamInput {
 	report: ResearchWorkstreamReportView;
 }
 
+export interface FormatResearchWorkstreamRunInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	run: ResearchWorkstreamRunRecord;
+}
+
 export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamInput): string {
 	const progress = ["coordinator", "specialist", "critic", "synthesizer"]
 		.map((role) => input.report.steps.find((step) => step.role === role))
@@ -310,6 +316,74 @@ export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamI
 		"",
 		"Progress",
 		...(progress.length > 0 ? progress : ["- Working through the path."]),
+	].join("\n");
+}
+
+export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstreamRunInput): string {
+	return [
+		"Research workstream started",
+		"",
+		formatResearchRunPathLabel(input.state, input.run),
+		"",
+		"Current status",
+		"- Coordinator framed the path.",
+		"- Specialist research is running in the background.",
+		"",
+		'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
+	].join("\n");
+}
+
+export function formatResearchWorkstreamRunProgress(input: FormatResearchWorkstreamRunInput): string {
+	const latest = input.run.incrementalReports.at(-1);
+	return [
+		`Research workstream ${formatResearchRunStatus(input.run.status)}`,
+		"",
+		formatResearchRunPathLabel(input.state, input.run),
+		"",
+		"Current stage",
+		formatResearchStage(input.run.currentStage),
+		"",
+		"Latest incremental report",
+		...(latest
+			? [`- ${latest.title}: ${latest.summary}`, ...latest.details.slice(0, 3).map((detail) => `- ${detail}`)]
+			: ["- Coordinator has framed the path; the first research attempt has not reported back yet."]),
+	].join("\n");
+}
+
+export function formatResearchWorkstreamRunStillRunningReport(input: FormatResearchWorkstreamRunInput): string {
+	return [
+		"Latest research report is still running.",
+		"",
+		formatResearchRunPathLabel(input.state, input.run),
+		"",
+		"Incremental reports",
+		...(input.run.incrementalReports.length > 0
+			? input.run.incrementalReports.flatMap((report) => [
+					`- ${report.title}: ${report.status}`,
+					`  ${report.summary}`,
+					...report.details.slice(0, 2).map((detail) => `  - ${detail}`),
+				])
+			: ["- No incremental report has been saved yet."]),
+	].join("\n");
+}
+
+export function formatResearchWorkstreamRunFailed(input: FormatResearchWorkstreamRunInput): string {
+	return [
+		"Research workstream failed",
+		"",
+		formatResearchRunPathLabel(input.state, input.run),
+		"",
+		"Reason",
+		input.run.failureReason ?? "The research attempt stopped before producing a final report.",
+		"",
+		'You can inspect progress with "show latest report" or try another path.',
+	].join("\n");
+}
+
+export function formatResearchWorkstreamAlreadyRunning(input: FormatResearchWorkstreamRunInput): string {
+	return [
+		`A research workstream is already running on ${formatResearchRunPathLabel(input.state, input.run)}.`,
+		'Say "show progress" to inspect it, or wait for it to finish.',
 	].join("\n");
 }
 
@@ -387,6 +461,43 @@ function formatResearchReportPathLabel(
 ): string {
 	const pathIndex = state.researchPaths.findIndex((candidate) => candidate.id === report.pathId);
 	return pathIndex >= 0 ? `Path ${pathIndex + 1}: ${report.pathTitle}` : report.pathTitle;
+}
+
+function formatResearchRunPathLabel(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	run: Pick<ResearchWorkstreamRunRecord, "pathId" | "pathTitle">,
+): string {
+	const pathIndex = state.researchPaths.findIndex((candidate) => candidate.id === run.pathId);
+	return pathIndex >= 0 ? `Path ${pathIndex + 1}: ${run.pathTitle}` : run.pathTitle;
+}
+
+function formatResearchRunStatus(status: ResearchWorkstreamRunRecord["status"]): string {
+	if (status === "queued") {
+		return "queued";
+	}
+	if (status === "running") {
+		return "running";
+	}
+	if (status === "completed") {
+		return "completed";
+	}
+	if (status === "blocked") {
+		return "blocked";
+	}
+	return "failed";
+}
+
+function formatResearchStage(stage: ResearchWorkstreamRunRecord["currentStage"]): string {
+	if (stage === "coordinator") {
+		return "Coordinator brief";
+	}
+	if (stage === "specialist") {
+		return "Specialist attempt";
+	}
+	if (stage === "critic") {
+		return "Critic review";
+	}
+	return "Synthesis";
 }
 
 function formatResearchPathLine(

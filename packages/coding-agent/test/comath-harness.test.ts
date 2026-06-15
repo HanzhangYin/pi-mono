@@ -2,9 +2,20 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createEmptyProjectState, loadProjectState, saveProjectState } from "../examples/extensions/co-math/storage.ts";
+import {
+	addResearchPath,
+	addResearchWorkstreamIncrementalReport,
+	addResearchWorkstreamRun,
+	createEmptyProjectState,
+	loadProjectState,
+	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+	saveProjectState,
+} from "../examples/extensions/co-math/storage.ts";
 import { type CoMathBackendCommandResult, CoMathHarness } from "../src/modes/comath/comath-harness.ts";
-import type { ResearchWorkstreamModelExecutor } from "../src/modes/comath/comath-research-model-workstream.ts";
+import type {
+	ResearchWorkstreamModelExecutor,
+	ResearchWorkstreamModelRequest,
+} from "../src/modes/comath/comath-research-model-workstream.ts";
 
 const OK: CoMathBackendCommandResult = { ok: true, messages: [] };
 
@@ -121,6 +132,42 @@ function createTwinPrimeExecutor(): {
 	return { executor, roles };
 }
 
+function createDeferredExecutor(): {
+	executor: ResearchWorkstreamModelExecutor;
+	requests: ResearchWorkstreamModelRequest[];
+	resolveNext(text: string): void;
+	rejectNext(error: Error): void;
+} {
+	const requests: ResearchWorkstreamModelRequest[] = [];
+	const pending: Array<{ resolve: (response: { text: string }) => void; reject: (error: Error) => void }> = [];
+	const executor: ResearchWorkstreamModelExecutor = {
+		run: async (request) => {
+			requests.push(request);
+			return new Promise((resolve, reject) => {
+				pending.push({ resolve, reject });
+			});
+		},
+	};
+	return {
+		executor,
+		requests,
+		resolveNext: (text: string) => {
+			const next = pending.shift();
+			if (!next) {
+				throw new Error("No pending model request to resolve.");
+			}
+			next.resolve({ text });
+		},
+		rejectNext: (error: Error) => {
+			const next = pending.shift();
+			if (!next) {
+				throw new Error("No pending model request to reject.");
+			}
+			next.reject(error);
+		},
+	};
+}
+
 async function createModelHarnessFixture(executor: ResearchWorkstreamModelExecutor): Promise<{
 	dir: string;
 	harness: CoMathHarness;
@@ -152,6 +199,26 @@ async function createModelHarnessFixture(executor: ResearchWorkstreamModelExecut
 		researchModelExecutor: executor,
 	});
 	return { dir, harness, notices, statePath };
+}
+
+async function waitForCondition(description: string, condition: () => boolean | Promise<boolean>): Promise<void> {
+	for (let attempt = 0; attempt < 500; attempt += 1) {
+		if (await condition()) {
+			return;
+		}
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+	}
+	throw new Error(`Timed out waiting for ${description}.`);
+}
+
+async function waitForProjectState(
+	statePath: string,
+	description: string,
+	condition: (state: Awaited<ReturnType<typeof loadProjectState>>) => boolean,
+): Promise<void> {
+	await waitForCondition(description, async () => condition(await loadProjectState(statePath)));
 }
 
 async function loadRequiredProjectState(statePath: string) {
@@ -555,16 +622,178 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("starts model-backed research workstreams in the background and exposes active progress", async () => {
+		const deferred = createDeferredExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(deferred.executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 2");
+
+			await waitForProjectState(statePath, "active research run", (state) =>
+				Boolean(state?.researchWorkstreamRuns.some((run) => run.status === "running")),
+			);
+			let state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports).toEqual([]);
+			expect(state.researchWorkstreamRuns).toHaveLength(1);
+			expect(state.researchWorkstreamRuns[0]?.pathTitle).toBe("Direct proof attempt");
+			expect(notices.join("\n")).toContain("Research workstream started");
+
+			await waitForCondition("specialist request", () => deferred.requests.length >= 1);
+			const beforeProgress = notices.length;
+			await harness.handlePrompt("show progress");
+			await harness.handlePrompt("show latest report");
+			const activeVisible = notices.slice(beforeProgress).join("\n");
+			expect(activeVisible).toContain("Research workstream running");
+			expect(activeVisible).toContain("Specialist attempt");
+			expect(activeVisible).toContain("Latest research report is still running");
+			expect(activeVisible).toContain("Incremental reports");
+			expectProductCopy(activeVisible);
+
+			const beforeSecondContinue = notices.length;
+			await harness.handlePrompt("continue path 1");
+			expect(notices.slice(beforeSecondContinue).join("\n")).toContain("already running on Path 2");
+			expect(deferred.requests).toHaveLength(1);
+
+			deferred.resolveNext(TWIN_PRIME_MODEL_RESPONSES.specialist);
+			await waitForCondition("critic request", () => deferred.requests.length >= 2);
+			await waitForProjectState(statePath, "specialist report", (candidate) =>
+				Boolean(
+					candidate?.researchWorkstreamRuns[0]?.incrementalReports.some(
+						(report) => report.stage === "specialist" && report.status === "completed",
+					),
+				),
+			);
+
+			deferred.resolveNext(TWIN_PRIME_MODEL_RESPONSES.critic);
+			await waitForCondition("synthesizer request", () => deferred.requests.length >= 3);
+			deferred.resolveNext(TWIN_PRIME_MODEL_RESPONSES.synthesizer);
+			await waitForProjectState(statePath, "completed research run", (candidate) =>
+				Boolean(candidate?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			state = await loadRequiredProjectState(statePath);
+			expect(state.researchWorkstreamRuns[0]?.finalReportId).toBe("research-report-1");
+			expect(state.researchWorkstreamRuns[0]?.incrementalReports.map((report) => report.stage)).toEqual([
+				"coordinator",
+				"specialist",
+				"specialist",
+				"critic",
+				"critic",
+				"synthesizer",
+				"synthesizer",
+			]);
+			expect(state.researchReports).toHaveLength(1);
+			expect(notices.join("\n")).toContain("Research workstream completed");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("does not create a research run for a bad path number", async () => {
+		const deferred = createDeferredExecutor();
+		const { dir, harness, statePath } = await createModelHarnessFixture(deferred.executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 99");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchWorkstreamRuns).toEqual([]);
+			expect(state.researchReports).toEqual([]);
+			expect(deferred.requests).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("fails stale interrupted research runs before starting a new continue path", async () => {
+		const { executor, roles } = createTwinPrimeExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			let state = createEmptyProjectState({
+				projectId: "proj-test",
+				title: "Are there infinitely many twin primes?",
+				rootQuestion: "Are there infinitely many twin primes?",
+				now: "2026-06-05T12:00:00.000Z",
+			});
+			state = addResearchPath(state, {
+				title: "Small examples and counterexamples",
+				objective: "List initial examples.",
+				suggestedNextMove: "Compute more examples.",
+				priority: 1,
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = addResearchPath(state, {
+				title: "Direct proof attempt",
+				objective: "Try a direct proof.",
+				suggestedNextMove: "Check whether simple arguments apply or fail.",
+				priority: 2,
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = addResearchWorkstreamRun(state, {
+				pathId: "path-1",
+				pathTitle: "Small examples and counterexamples",
+				status: "running",
+				currentStage: "specialist",
+				now: "2026-06-05T12:01:00.000Z",
+				actor: "system",
+			});
+			state = addResearchWorkstreamIncrementalReport(state, {
+				runId: "research-run-1",
+				stage: "specialist",
+				status: "running",
+				title: "Specialist attempt",
+				summary: "Specialist research is running.",
+				details: [],
+				now: "2026-06-05T12:01:00.000Z",
+				actor: "system",
+			});
+			await saveProjectState(statePath, state);
+
+			await harness.handlePrompt("continue path 2");
+			await waitForProjectState(statePath, "completed replacement research run", (candidate) =>
+				Boolean(candidate?.researchWorkstreamRuns[1]?.status === "completed"),
+			);
+
+			const nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchWorkstreamRuns).toHaveLength(2);
+			expect(nextState.researchWorkstreamRuns[0]).toMatchObject({
+				status: "failed",
+				failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+			});
+			expect(nextState.researchWorkstreamRuns[1]).toMatchObject({
+				pathTitle: "Direct proof attempt",
+				status: "completed",
+				finalReportId: "research-report-1",
+			});
+			expect(nextState.researchReports).toHaveLength(1);
+			expect(roles).toEqual(["specialist", "critic", "synthesizer"]);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Previous Pi session ended before completion.");
+			expect(visible).toContain("Research workstream completed");
+			expect(visible).not.toContain("already running on Path 1");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("uses the model-backed workstream for a generic problem when an executor is configured", async () => {
 		const { executor, roles } = createTwinPrimeExecutor();
 		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
 		try {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
 			await harness.handlePrompt("continue path 2");
+			await waitForProjectState(statePath, "completed model-backed report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
 
 			expect(roles).toEqual(["specialist", "critic", "synthesizer"]);
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchReports.length).toBe(1);
+			expect(state.researchWorkstreamRuns[0]?.finalReportId).toBe("research-report-1");
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Research workstream completed");
@@ -599,9 +828,13 @@ describe("co-math harness", () => {
 		try {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
 			await harness.handlePrompt("continue path 2");
+			await waitForProjectState(statePath, "completed fallback report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
 
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchReports.length).toBe(1);
+			expect(state.researchWorkstreamRuns[0]?.usedFallback).toBe(true);
 
 			const visible = notices.join("\n");
 			expect(visible).toContain(

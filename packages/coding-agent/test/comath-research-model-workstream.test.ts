@@ -5,6 +5,7 @@ import {
 	type ResearchWorkstreamModelExecutor,
 	type ResearchWorkstreamModelRequest,
 	runModelBackedResearchWorkstream,
+	runModelBackedResearchWorkstreamStaged,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
 
 const TWIN_PRIME_QUESTION = "Are there infinitely many twin primes?";
@@ -134,6 +135,69 @@ describe("model-backed research workstream", () => {
 		expect(report.workingPaperSummary).toContain("Twin-prime infinitude is open");
 		// The synthesizer must not claim it proved the conjecture.
 		expect(report.suggestedNextMove.toLowerCase()).not.toContain("proves the twin prime conjecture");
+	});
+
+	it("runs staged callbacks in coordinator, specialist, critic, synthesizer order", async () => {
+		const { executor } = createRecordingExecutor(TWIN_PRIME_RESPONSES);
+		const path = buildDirectProofPath();
+		const events: string[] = [];
+		const completedDetails: string[] = [];
+		const report = await runModelBackedResearchWorkstreamStaged(
+			{
+				rootQuestion: TWIN_PRIME_QUESTION,
+				path,
+				allPaths: [path],
+				now: "2026-06-05T12:30:00.000Z",
+				executor,
+			},
+			{
+				onStageStarted: (stage) => {
+					events.push(`start:${stage}`);
+				},
+				onStageCompleted: (result) => {
+					events.push(`complete:${result.stage}`);
+					completedDetails.push(...result.details);
+				},
+			},
+		);
+
+		expect(events).toEqual([
+			"start:coordinator",
+			"complete:coordinator",
+			"start:specialist",
+			"complete:specialist",
+			"start:critic",
+			"complete:critic",
+			"start:synthesizer",
+			"complete:synthesizer",
+		]);
+		expect(completedDetails.join("\n")).toContain("Twin primes are prime pairs at distance 2");
+		expect(completedDetails.join("\n")).toContain("The specialist did not prove infinitude of twin primes");
+		expect(report.suggestedNextMove).toContain("literature");
+	});
+
+	it("propagates staged callback failures", async () => {
+		const { executor } = createRecordingExecutor(TWIN_PRIME_RESPONSES);
+		const path = buildDirectProofPath();
+
+		await expect(
+			runModelBackedResearchWorkstreamStaged(
+				{
+					rootQuestion: TWIN_PRIME_QUESTION,
+					path,
+					allPaths: [path],
+					now: "2026-06-05T12:30:00.000Z",
+					executor,
+				},
+				{
+					onStageCompleted: (result) => {
+						if (result.stage === "specialist") {
+							throw new Error("could not save specialist progress");
+						}
+					},
+				},
+			),
+		).rejects.toThrow(/could not save specialist progress/);
 	});
 
 	it("extracts substantive next steps instead of heading-like filler", async () => {

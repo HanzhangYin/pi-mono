@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ResearchPath } from "../examples/extensions/co-math/schema.ts";
+import type { ResearchPath, ResearchWorkstreamRunRecord } from "../examples/extensions/co-math/schema.ts";
+import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../examples/extensions/co-math/storage.ts";
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
@@ -19,6 +20,9 @@ import {
 	formatResearchWorkspacePrepared,
 	formatResearchWorkstreamCompleted,
 	formatResearchWorkstreamReport,
+	formatResearchWorkstreamRunFailed,
+	formatResearchWorkstreamRunProgress,
+	formatResearchWorkstreamRunStillRunningReport,
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
@@ -345,4 +349,112 @@ describe("co-math product messages", () => {
 		expect(full).toContain("Next");
 		expectProductCopy(full);
 	});
+
+	it("formats active research workstream progress without raw run ids", () => {
+		const path = createResearchPath();
+		const run = createRunningResearchWorkstreamRun(path);
+		const progress = formatResearchWorkstreamRunProgress({ state: { researchPaths: [path] }, run });
+
+		expect(progress).toContain("Research workstream running");
+		expect(progress).toContain("Path 1: Direct proof attempt");
+		expect(progress).toContain("Current stage");
+		expect(progress).toContain("Specialist attempt");
+		expect(progress).toContain("Latest incremental report");
+		expect(progress).toContain("Testing whether a sieve formulation can produce prime pairs at distance 2.");
+		expect(progress).not.toContain("research-run-1");
+		expectProductCopy(progress);
+	});
+
+	it("formats a running latest research report with partial reports", () => {
+		const path = createResearchPath();
+		const run = createRunningResearchWorkstreamRun(path);
+		const report = formatResearchWorkstreamRunStillRunningReport({ state: { researchPaths: [path] }, run });
+
+		expect(report).toContain("Latest research report is still running.");
+		expect(report).toContain("Path 1: Direct proof attempt");
+		expect(report).toContain("Incremental reports");
+		expect(report).toContain("Coordinator brief: completed");
+		expect(report).toContain("Specialist attempt: running");
+		expect(report).not.toContain("research-run-1");
+		expectProductCopy(report);
+	});
+
+	it("formats failed research workstream warnings without raw run ids", () => {
+		const path = createResearchPath();
+		const run: ResearchWorkstreamRunRecord = {
+			...createRunningResearchWorkstreamRun(path),
+			status: "failed",
+			failureReason: "The research attempt stopped before producing a final report.",
+		};
+		const warning = formatResearchWorkstreamRunFailed({ state: { researchPaths: [path] }, run });
+
+		expect(warning).toContain("Research workstream failed");
+		expect(warning).toContain("Path 1: Direct proof attempt");
+		expect(warning).toContain("The research attempt stopped before producing a final report.");
+		expect(warning).not.toContain("research-run-1");
+		expectProductCopy(warning);
+	});
+
+	it("formats interrupted-session research workstream warnings safely", () => {
+		const path = createResearchPath();
+		const run: ResearchWorkstreamRunRecord = {
+			...createRunningResearchWorkstreamRun(path),
+			status: "failed",
+			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+		};
+		const warning = formatResearchWorkstreamRunFailed({ state: { researchPaths: [path] }, run });
+
+		expect(warning).toContain("Research workstream failed");
+		expect(warning).toContain("Path 1: Direct proof attempt");
+		expect(warning).toContain("Previous Pi session ended before completion.");
+		expect(warning).not.toContain("research-run-1");
+		expectProductCopy(warning);
+	});
 });
+
+function createResearchPath(): ResearchPath {
+	return {
+		id: "path-1",
+		title: "Direct proof attempt",
+		objective: "Try a direct proof.",
+		status: "active",
+		latestFindings: [],
+		blockers: [],
+		suggestedNextMove: "Check whether the direct proof can be made rigorous.",
+		priority: 1,
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+}
+
+function createRunningResearchWorkstreamRun(path: ResearchPath): ResearchWorkstreamRunRecord {
+	return {
+		id: "research-run-1",
+		pathId: path.id,
+		pathTitle: path.title,
+		status: "running",
+		currentStage: "specialist",
+		startedAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:01:00.000Z",
+		incrementalReports: [
+			{
+				id: "research-run-1-incremental-1",
+				stage: "coordinator",
+				status: "completed",
+				title: "Coordinator brief",
+				summary: "Framed the direct proof route.",
+				details: ["Path objective is to test a direct proof."],
+				createdAt: "2026-06-05T12:00:10.000Z",
+			},
+			{
+				id: "research-run-1-incremental-2",
+				stage: "specialist",
+				status: "running",
+				title: "Specialist attempt",
+				summary: "Testing whether a sieve formulation can produce prime pairs at distance 2.",
+				details: ["Comparing bounded gaps with twin-prime distance 2."],
+				createdAt: "2026-06-05T12:01:00.000Z",
+			},
+		],
+	};
+}

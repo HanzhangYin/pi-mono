@@ -148,6 +148,64 @@ at least 1 working-paper section
 at least 1 margin note
 ```
 
+## Async research workstream smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-async-workstream-demo
+cd comath-async-workstream-demo
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Explore this problem: Are there infinitely many twin primes?
+```
+
+```text
+continue path 2
+```
+
+```text
+show progress
+```
+
+```text
+show latest report
+```
+
+```text
+summarize current state
+```
+
+```text
+continue path 99
+```
+
+Good signs:
+
+```text
+[ ] continue path 2 starts work and returns control quickly.
+[ ] show progress works before completion and reports the current stage.
+[ ] show latest report shows incremental details while running, or final details after completion.
+[ ] The final report is saved and linked from the run.
+[ ] The final report remains problem-specific and does not claim a proof of twin-prime infinitude.
+[ ] continue path 99 warns and leaves report/run counts unchanged.
+```
+
+Optional state check:
+
+```bash
+python3 -c 'import json, pathlib; p=pathlib.Path(".pi/co-math/state.json"); print("exists", p.exists());
+if p.exists():
+ s=json.loads(p.read_text()); print("paths", len(s.get("researchPaths", []))); print("runs", len(s.get("researchWorkstreamRuns", []))); print("researchReports", len(s.get("researchReports", []))); print("sections", len(s.get("workingPaperSections", [])));
+ [print("run", r.get("id"), r.get("pathTitle"), r.get("status"), r.get("currentStage"), "incremental", len(r.get("incrementalReports", [])), "final", r.get("finalReportId")) for r in s.get("researchWorkstreamRuns", [])]
+'
+```
+
 ## LLM-backed generic problem smoke
 
 `continue path N` runs a real specialist -> critic -> synthesizer model pass when a model/provider
