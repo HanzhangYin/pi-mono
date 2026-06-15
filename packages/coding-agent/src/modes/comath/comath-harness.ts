@@ -1,11 +1,14 @@
 import { stat } from "node:fs/promises";
 import type {
 	CoMathProjectState,
+	LiteratureSourceArtifact,
 	ResearchPath,
 	ResearchWorkstreamRunRecord,
 	ResearchWorkstreamRunStage,
 } from "../../../examples/extensions/co-math/schema.ts";
 import {
+	addLiteratureClaimSupport,
+	addLiteratureSourceArtifact,
 	addMarginNote,
 	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
@@ -32,6 +35,13 @@ import {
 	extractTranscriptPath,
 	formatProductReport,
 } from "./comath-backend-output.ts";
+import type { LiteratureSourceLookup, LiteratureSourceResult } from "./comath-literature-source.ts";
+import { createDefaultLiteratureSourceLookup } from "./comath-literature-source.ts";
+import {
+	isLiteratureResearchPath,
+	type LiteratureResearchWorkstreamResult,
+	runLiteratureResearchWorkstreamStaged,
+} from "./comath-literature-workstream.ts";
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
@@ -88,6 +98,7 @@ export interface CoMathHarnessOptions {
 	 * the deterministic workstream instead.
 	 */
 	researchModelExecutor?: ResearchWorkstreamModelExecutor;
+	literatureSourceLookup?: LiteratureSourceLookup;
 }
 
 export class CoMathHarness {
@@ -98,6 +109,7 @@ export class CoMathHarness {
 	private readonly createPlan: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	private readonly startFirstRun: boolean;
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
+	private readonly literatureSourceLookup: LiteratureSourceLookup;
 	private readonly activeResearchWorkstreams = new Map<string, Promise<void>>();
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
@@ -109,6 +121,7 @@ export class CoMathHarness {
 		this.createPlan = options.createPlan ?? createCoMathAutoPlan;
 		this.startFirstRun = options.startFirstRun ?? true;
 		this.researchModelExecutor = options.researchModelExecutor;
+		this.literatureSourceLookup = options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup();
 	}
 
 	async handlePrompt(problemText: string): Promise<void> {
@@ -607,6 +620,40 @@ export class CoMathHarness {
 		}
 		const now = new Date().toISOString();
 		try {
+			if (isLiteratureResearchPath(path)) {
+				const literatureResult = await runLiteratureResearchWorkstreamStaged(
+					{
+						rootQuestion: state.rootQuestion,
+						path,
+						allPaths: state.researchPaths,
+						now,
+						executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
+						sourceLookup: this.literatureSourceLookup,
+					},
+					{
+						onStageStarted: async (stage, summary) => {
+							await this.saveResearchWorkstreamStage(runId, {
+								stage,
+								status: "running",
+								title: formatStageTitle(stage),
+								summary,
+								details: [],
+							});
+						},
+						onStageCompleted: async (result) => {
+							await this.saveResearchWorkstreamStage(runId, {
+								stage: result.stage,
+								status: "completed",
+								title: result.title,
+								summary: result.summary,
+								details: result.details,
+							});
+						},
+					},
+				);
+				await this.completeLiteratureResearchWorkstreamRun(runId, literatureResult);
+				return;
+			}
 			const report = await runModelBackedResearchWorkstreamStaged(
 				{
 					rootQuestion: state.rootQuestion,
@@ -689,6 +736,83 @@ export class CoMathHarness {
 		nextState = updateResearchWorkstreamRun(nextState, {
 			runId,
 			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: report.completedAt,
+			...(finalReportId ? { finalReportId } : {}),
+			now,
+			actor: "synthesizer",
+		});
+		await saveProjectState(this.statePath, nextState);
+		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+	}
+
+	private async completeLiteratureResearchWorkstreamRun(
+		runId: string,
+		result: LiteratureResearchWorkstreamResult,
+	): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		const path = state?.researchPaths.find((candidate) => candidate.id === result.report.pathId);
+		if (!state || !path) {
+			return;
+		}
+		const now = new Date().toISOString();
+		let nextState = state;
+		const sourceIdMap = new Map<string, string>();
+		for (const [index, source] of result.sources.entries()) {
+			const before = nextState.literatureSources;
+			nextState = addLiteratureSourceArtifact(nextState, {
+				kind: source.kind,
+				title: source.title,
+				...(source.url ? { url: source.url } : {}),
+				...(source.path ? { path: source.path } : {}),
+				authors: source.authors ?? [],
+				...(source.year ? { year: source.year } : {}),
+				summary: source.summary,
+				...(source.extractedText ? { extractedText: source.extractedText } : {}),
+				now,
+				actor: "system",
+			});
+			const persisted = findPersistedLiteratureSource(nextState.literatureSources, before, source);
+			if (persisted) {
+				sourceIdMap.set(`source-${index + 1}`, persisted.id);
+			}
+		}
+		const sourceIds = uniqueStrings([...sourceIdMap.values()]);
+		const claimSupportIds: string[] = [];
+		for (const support of result.claimSupports) {
+			nextState = addLiteratureClaimSupport(nextState, {
+				pathId: path.id,
+				claim: support.claim,
+				sourceIds: support.sourceIds.map((sourceId) => sourceIdMap.get(sourceId) ?? sourceId),
+				status: support.status,
+				...(support.note ? { note: support.note } : {}),
+				now,
+				actor: "reviewer",
+			});
+			const claimSupportId = nextState.literatureClaimSupports.at(-1)?.id;
+			if (claimSupportId) {
+				claimSupportIds.push(claimSupportId);
+			}
+		}
+		const report: ResearchWorkstreamReport = {
+			...result.report,
+			sourceIds,
+			claimSupportIds,
+			promisingStrategy: result.report.promisingStrategy.map((item) => remapSourceLabels(item, sourceIdMap)),
+			findings: result.report.findings.map((item) => remapSourceLabels(item, sourceIdMap)),
+			criticisms: result.report.criticisms.map((item) => remapSourceLabels(item, sourceIdMap)),
+			gaps: result.report.gaps.map((item) => remapSourceLabels(item, sourceIdMap)),
+			steps: result.report.steps.map((step) => ({
+				...step,
+				details: step.details.map((detail) => remapSourceLabels(detail, sourceIdMap)),
+			})),
+			workingPaperSummary: remapSourceLabels(result.report.workingPaperSummary, sourceIdMap),
+		};
+		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
+		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = updateResearchWorkstreamRun(nextState, {
+			runId,
+			status: report.status === "blocked" ? "blocked" : "completed",
 			currentStage: "synthesizer",
 			completedAt: report.completedAt,
 			...(finalReportId ? { finalReportId } : {}),
@@ -856,6 +980,8 @@ export class CoMathHarness {
 			suggestedNextMove: report.suggestedNextMove,
 			workingPaperSectionTitle: report.workingPaperSectionTitle,
 			...(section ? { workingPaperSectionId: section.id } : {}),
+			sourceIds: report.sourceIds ?? [],
+			claimSupportIds: report.claimSupportIds ?? [],
 			now,
 			actor: "synthesizer",
 		});
@@ -1113,6 +1239,9 @@ function formatStageTitle(stage: ResearchWorkstreamRunStage): string {
 	if (stage === "coordinator") {
 		return "Coordinator brief";
 	}
+	if (stage === "literature-search") {
+		return "Literature search";
+	}
 	if (stage === "specialist") {
 		return "Specialist attempt";
 	}
@@ -1120,6 +1249,30 @@ function formatStageTitle(stage: ResearchWorkstreamRunStage): string {
 		return "Critic review";
 	}
 	return "Synthesis";
+}
+
+function findPersistedLiteratureSource(
+	current: readonly LiteratureSourceArtifact[],
+	previous: readonly LiteratureSourceArtifact[],
+	source: LiteratureSourceResult,
+): LiteratureSourceArtifact | undefined {
+	const previousIds = new Set(previous.map((candidate) => candidate.id));
+	return (
+		current.find((candidate) => !previousIds.has(candidate.id)) ??
+		current.find((candidate) => {
+			if (source.url && candidate.url === source.url) return true;
+			if (source.path && candidate.path === source.path) return true;
+			return candidate.title.toLowerCase() === source.title.trim().toLowerCase();
+		})
+	);
+}
+
+function remapSourceLabels(value: string, sourceIdMap: ReadonlyMap<string, string>): string {
+	let remapped = value;
+	for (const [temporaryId, persistedId] of sourceIdMap) {
+		remapped = remapped.replaceAll(`[${temporaryId}]`, `[${persistedId}]`);
+	}
+	return remapped;
 }
 
 function safeErrorMessage(error: unknown): string {

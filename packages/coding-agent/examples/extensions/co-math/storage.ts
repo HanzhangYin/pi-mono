@@ -14,6 +14,10 @@ import type {
 	Evidence,
 	EvidenceKind,
 	GoalStatus,
+	LiteratureClaimSupport,
+	LiteratureClaimSupportStatus,
+	LiteratureSourceArtifact,
+	LiteratureSourceKind,
 	MarginNote,
 	MarginNoteKind,
 	Report,
@@ -63,6 +67,8 @@ type LegacyProjectState = Omit<
 	| "researchPaths"
 	| "researchReports"
 	| "researchWorkstreamRuns"
+	| "literatureSources"
+	| "literatureClaimSupports"
 	| "researchFocus"
 > &
 	Partial<
@@ -85,6 +91,8 @@ type LegacyProjectState = Omit<
 				| "researchPaths"
 				| "researchReports"
 				| "researchWorkstreamRuns"
+				| "literatureSources"
+				| "literatureClaimSupports"
 				| "researchFocus"
 			>,
 			"roleRuns"
@@ -252,6 +260,34 @@ export interface AddResearchWorkstreamReportInput {
 	suggestedNextMove: string;
 	workingPaperSectionTitle: string;
 	workingPaperSectionId?: string;
+	sourceIds?: string[];
+	claimSupportIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddLiteratureSourceArtifactInput {
+	id?: string;
+	kind?: LiteratureSourceKind;
+	title: string;
+	url?: string;
+	path?: string;
+	authors?: string[];
+	year?: string;
+	summary: string;
+	extractedText?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddLiteratureClaimSupportInput {
+	id?: string;
+	pathId?: string;
+	reportId?: string;
+	claim: string;
+	sourceIds: string[];
+	status: LiteratureClaimSupportStatus;
+	note?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -499,6 +535,8 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		researchPaths: [],
 		researchReports: [],
 		researchWorkstreamRuns: [],
+		literatureSources: [],
+		literatureClaimSupports: [],
 		events: [
 			{
 				id: "event-1",
@@ -1029,6 +1067,8 @@ export function addResearchWorkstreamReport(
 		suggestedNextMove: input.suggestedNextMove,
 		workingPaperSectionTitle: input.workingPaperSectionTitle,
 		...(input.workingPaperSectionId ? { workingPaperSectionId: input.workingPaperSectionId } : {}),
+		sourceIds: uniqueStrings(input.sourceIds ?? []),
+		claimSupportIds: uniqueStrings(input.claimSupportIds ?? []),
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
@@ -1060,6 +1100,119 @@ export function getLatestResearchWorkstreamReportForPath(
 	pathId: string,
 ): ResearchWorkstreamReportRecord | undefined {
 	return [...state.researchReports].reverse().find((report) => report.pathId === pathId);
+}
+
+export function addLiteratureSourceArtifact(
+	state: CoMathProjectState,
+	input: AddLiteratureSourceArtifactInput,
+): CoMathProjectState {
+	const title = input.title.trim();
+	const summary = input.summary.trim();
+	if (!title) {
+		throw new Error("Literature source requires a title.");
+	}
+	if (!summary) {
+		throw new Error("Literature source requires a summary.");
+	}
+	const url = input.url?.trim();
+	const sourcePath = input.path?.trim();
+	const duplicate = state.literatureSources.find((source) => {
+		if (url && source.url === url) return true;
+		if (sourcePath && source.path === sourcePath) return true;
+		return !url && !sourcePath && source.title.toLowerCase() === title.toLowerCase();
+	});
+	if (duplicate) {
+		return state;
+	}
+	const id = input.id?.trim() || `source-${state.literatureSources.length + 1}`;
+	if (state.literatureSources.some((source) => source.id === id)) {
+		throw new Error(`Duplicate literature source id: ${id}`);
+	}
+	const source: LiteratureSourceArtifact = {
+		id,
+		kind: input.kind ?? "unknown",
+		title,
+		...(url ? { url } : {}),
+		...(sourcePath ? { path: sourcePath } : {}),
+		authors: [...(input.authors ?? [])],
+		...(input.year?.trim() ? { year: input.year.trim() } : {}),
+		summary,
+		...(input.extractedText?.trim() ? { extractedText: input.extractedText.trim() } : {}),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			literatureSources: [...state.literatureSources, source],
+			updatedAt: input.now,
+		},
+		{
+			kind: "literature_source_recorded",
+			actor: input.actor,
+			summary: `Recorded literature source ${id}: ${title}`,
+			subjectId: id,
+			now: input.now,
+		},
+	);
+}
+
+export function addLiteratureClaimSupport(
+	state: CoMathProjectState,
+	input: AddLiteratureClaimSupportInput,
+): CoMathProjectState {
+	const claim = input.claim.trim();
+	if (!claim) {
+		throw new Error("Literature claim support requires a claim.");
+	}
+	const sourceIds = uniqueStrings(input.sourceIds);
+	const id = input.id?.trim() || `claim-support-${state.literatureClaimSupports.length + 1}`;
+	if (state.literatureClaimSupports.some((support) => support.id === id)) {
+		throw new Error(`Duplicate literature claim support id: ${id}`);
+	}
+	const support: LiteratureClaimSupport = {
+		id,
+		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		claim,
+		sourceIds,
+		status: input.status,
+		...(input.note?.trim() ? { note: input.note.trim() } : {}),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			literatureClaimSupports: [...state.literatureClaimSupports, support],
+			updatedAt: input.now,
+		},
+		{
+			kind: "literature_claim_support_recorded",
+			actor: input.actor,
+			summary: `Recorded literature support ${id}: ${claim}`,
+			subjectId: id,
+			relatedIds: sourceIds,
+			now: input.now,
+		},
+	);
+}
+
+export function getLiteratureSourcesForReport(state: CoMathProjectState, reportId: string): LiteratureSourceArtifact[] {
+	const report = state.researchReports.find((candidate) => candidate.id === reportId);
+	const sourceIds = new Set(report?.sourceIds ?? []);
+	return state.literatureSources.filter((source) => sourceIds.has(source.id));
+}
+
+export function getLiteratureClaimSupportsForReportOrPath(
+	state: CoMathProjectState,
+	input: { reportId?: string; pathId?: string },
+): LiteratureClaimSupport[] {
+	return state.literatureClaimSupports.filter(
+		(support) =>
+			(input.reportId !== undefined && support.reportId === input.reportId) ||
+			(input.pathId !== undefined && support.pathId === input.pathId),
+	);
 }
 
 export function addResearchWorkstreamRun(
@@ -2014,6 +2167,12 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		researchWorkstreamRuns: getArrayField(value, "researchWorkstreamRuns").map((record, index) =>
 			normalizeResearchWorkstreamRun(record, updatedAt, index),
 		),
+		literatureSources: getArrayField(value, "literatureSources").map((record, index) =>
+			normalizeLiteratureSourceArtifact(record, updatedAt, index),
+		),
+		literatureClaimSupports: getArrayField(value, "literatureClaimSupports").map((record, index) =>
+			normalizeLiteratureClaimSupport(record, updatedAt, index),
+		),
 		...(normalizeResearchFocus(value.researchFocus, updatedAt)
 			? { researchFocus: normalizeResearchFocus(value.researchFocus, updatedAt) }
 			: {}),
@@ -2333,8 +2492,52 @@ function normalizeResearchWorkstreamReport(
 		...(getOptionalStringField(value, "workingPaperSectionId")
 			? { workingPaperSectionId: getOptionalStringField(value, "workingPaperSectionId") }
 			: {}),
+		sourceIds: getStringArrayField(value, "sourceIds"),
+		claimSupportIds: getStringArrayField(value, "claimSupportIds"),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeLiteratureSourceArtifact(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): LiteratureSourceArtifact {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `source-${index + 1}`),
+		kind: normalizeLiteratureSourceKind(value.kind),
+		title: getStringField(value, "title", "Untitled source"),
+		...(getOptionalStringField(value, "url") ? { url: getOptionalStringField(value, "url") } : {}),
+		...(getOptionalStringField(value, "path") ? { path: getOptionalStringField(value, "path") } : {}),
+		authors: getStringArrayField(value, "authors"),
+		...(getOptionalStringField(value, "year") ? { year: getOptionalStringField(value, "year") } : {}),
+		summary: getStringField(value, "summary", ""),
+		...(getOptionalStringField(value, "extractedText")
+			? { extractedText: getOptionalStringField(value, "extractedText") }
+			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeLiteratureClaimSupport(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): LiteratureClaimSupport {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `claim-support-${index + 1}`),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		claim: getStringField(value, "claim", ""),
+		sourceIds: getStringArrayField(value, "sourceIds"),
+		status: normalizeLiteratureClaimSupportStatus(value.status),
+		...(getOptionalStringField(value, "note") ? { note: getOptionalStringField(value, "note") } : {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
 }
 
@@ -2401,6 +2604,9 @@ function normalizeResearchWorkstreamRole(value: unknown): ResearchWorkstreamStep
 }
 
 function normalizeResearchWorkstreamStage(value: unknown): ResearchWorkstreamRunStage {
+	if (value === "literature-search") {
+		return value;
+	}
 	return normalizeResearchWorkstreamRole(value);
 }
 
@@ -2428,6 +2634,27 @@ function normalizeResearchWorkstreamIncrementalReportStatus(
 		return value;
 	}
 	return "completed";
+}
+
+function normalizeLiteratureSourceKind(value: unknown): LiteratureSourceKind {
+	if (
+		value === "web" ||
+		value === "paper" ||
+		value === "book" ||
+		value === "local-file" ||
+		value === "user-provided" ||
+		value === "unknown"
+	) {
+		return value;
+	}
+	return "unknown";
+}
+
+function normalizeLiteratureClaimSupportStatus(value: unknown): LiteratureClaimSupportStatus {
+	if (value === "supported" || value === "partially-supported" || value === "unsupported" || value === "conflicting") {
+		return value;
+	}
+	return "unsupported";
 }
 
 function normalizeResearchFocus(value: unknown, fallbackTime: string): ResearchFocus | undefined {
@@ -2646,7 +2873,9 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "margin_note_resolved" ||
 		value === "working_paper_exported" ||
 		value === "research_workstream_recorded" ||
-		value === "research_workstream_run_recorded"
+		value === "research_workstream_run_recorded" ||
+		value === "literature_source_recorded" ||
+		value === "literature_claim_support_recorded"
 	);
 }
 

@@ -23,6 +23,8 @@ export interface ResearchWorkstreamReport {
 	suggestedNextMove: string;
 	workingPaperSectionTitle: string;
 	workingPaperSummary: string;
+	sourceIds?: string[];
+	claimSupportIds?: string[];
 }
 
 export interface RunResearchWorkstreamInput {

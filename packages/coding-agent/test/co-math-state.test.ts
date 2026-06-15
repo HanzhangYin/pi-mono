@@ -8,6 +8,8 @@ import {
 	addClaim,
 	addEvidence,
 	addGoal,
+	addLiteratureClaimSupport,
+	addLiteratureSourceArtifact,
 	addMarginNote,
 	addReportReviewRound,
 	addResearchPath,
@@ -31,6 +33,8 @@ import {
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
 	getLatestResearchWorkstreamRun,
+	getLiteratureClaimSupportsForReportOrPath,
+	getLiteratureSourcesForReport,
 	isClaimSynthesisEligible,
 	loadProjectState,
 	queueRoleRun,
@@ -99,6 +103,8 @@ describe("co-math project state", () => {
 			researchPaths: [],
 			researchReports: [],
 			researchWorkstreamRuns: [],
+			literatureSources: [],
+			literatureClaimSupports: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -251,6 +257,92 @@ describe("co-math project state", () => {
 		expect(() => addResearchWorkstreamReport(base, { ...validInput, pathTitle: "  " })).toThrow(/path title/i);
 		const withReport = addResearchWorkstreamReport(base, validInput);
 		expect(() => addResearchWorkstreamReport(withReport, validInput)).toThrow(/duplicate/i);
+	});
+
+	it("records literature sources, claim supports, and report source links", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Known theorem or literature reduction",
+			objective: "Check known theorem targets.",
+			suggestedNextMove: "Find source-backed references.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addLiteratureSourceArtifact(state, {
+			kind: "paper",
+			title: "Bounded gaps between primes",
+			url: "https://example.test/bounded-gaps",
+			authors: ["A. Mathematician"],
+			year: "2014",
+			summary: "A source about bounded prime gaps.",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		const withDuplicate = addLiteratureSourceArtifact(state, {
+			kind: "paper",
+			title: "Duplicate title should not be added",
+			url: "https://example.test/bounded-gaps",
+			summary: "Same URL.",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		expect(withDuplicate.literatureSources).toEqual(state.literatureSources);
+		state = addLiteratureClaimSupport(state, {
+			pathId: "path-1",
+			claim: "Bounded prime gaps do not imply twin-prime infinitude.",
+			sourceIds: ["source-1"],
+			status: "supported",
+			note: "The source is related but weaker than the exact target.",
+			now: FIXED_NOW,
+			actor: "reviewer",
+		});
+		state = addResearchWorkstreamReport(state, {
+			pathId: "path-1",
+			pathTitle: "Known theorem or literature reduction",
+			status: "completed",
+			startedAt: FIXED_NOW,
+			completedAt: FIXED_NOW,
+			coordinatorBrief: "Check exact source support.",
+			steps: [],
+			promisingStrategy: ["Use bounded-gap sources carefully."],
+			findings: ["Bounded gaps are weaker than twin-prime infinitude. [source-1]"],
+			criticisms: [],
+			gaps: [],
+			humanHelpUseful: [],
+			suggestedNextMove: "Compare exact theorem statements.",
+			workingPaperSectionTitle: "Literature/theorem targets",
+			sourceIds: ["source-1"],
+			claimSupportIds: ["claim-support-1"],
+			now: FIXED_NOW,
+			actor: "synthesizer",
+		});
+
+		expect(state.literatureSources).toMatchObject([
+			{
+				id: "source-1",
+				title: "Bounded gaps between primes",
+				url: "https://example.test/bounded-gaps",
+				authors: ["A. Mathematician"],
+			},
+		]);
+		expect(state.literatureClaimSupports).toMatchObject([
+			{
+				id: "claim-support-1",
+				pathId: "path-1",
+				sourceIds: ["source-1"],
+				status: "supported",
+			},
+		]);
+		expect(state.researchReports[0]).toMatchObject({
+			sourceIds: ["source-1"],
+			claimSupportIds: ["claim-support-1"],
+		});
+		expect(getLiteratureSourcesForReport(state, "research-report-1").map((source) => source.id)).toEqual([
+			"source-1",
+		]);
+		expect(
+			getLiteratureClaimSupportsForReportOrPath(state, { pathId: "path-1" }).map((support) => support.id),
+		).toEqual(["claim-support-1"]);
 	});
 
 	it("records and updates research workstream runs with incremental reports", () => {
@@ -1788,6 +1880,8 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.researchPaths;
 			delete legacyWithoutNewFields.researchReports;
 			delete legacyWithoutNewFields.researchWorkstreamRuns;
+			delete legacyWithoutNewFields.literatureSources;
+			delete legacyWithoutNewFields.literatureClaimSupports;
 			delete legacyWithoutNewFields.researchFocus;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
@@ -1803,6 +1897,8 @@ describe("co-math project state", () => {
 			expect(loaded?.marginNotes).toEqual([]);
 			expect(loaded?.researchPaths).toEqual([]);
 			expect(loaded?.researchWorkstreamRuns).toEqual([]);
+			expect(loaded?.literatureSources).toEqual([]);
+			expect(loaded?.literatureClaimSupports).toEqual([]);
 			expect(loaded?.researchFocus).toBeUndefined();
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",

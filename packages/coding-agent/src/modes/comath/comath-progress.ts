@@ -1,5 +1,7 @@
 import type {
 	CoMathProjectState,
+	LiteratureClaimSupport,
+	LiteratureSourceArtifact,
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
@@ -292,10 +294,16 @@ export type ResearchWorkstreamReportView = Pick<
 	| "humanHelpUseful"
 	| "suggestedNextMove"
 	| "workingPaperSectionTitle"
->;
+> & {
+	sourceIds?: readonly string[];
+	claimSupportIds?: readonly string[];
+};
 
 export interface FormatResearchWorkstreamInput {
-	state: Pick<CoMathProjectState, "researchPaths">;
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		literatureSources?: readonly LiteratureSourceArtifact[];
+		literatureClaimSupports?: readonly LiteratureClaimSupport[];
+	};
 	report: ResearchWorkstreamReportView;
 }
 
@@ -320,6 +328,19 @@ export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamI
 }
 
 export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstreamRunInput): string {
+	if (isLiteraturePathTitle(input.run.pathTitle)) {
+		return [
+			"Research workstream started",
+			"",
+			formatResearchRunPathLabel(input.state, input.run),
+			"",
+			"Current status",
+			"- Coordinator is identifying what needs source support.",
+			"- Literature specialist is looking for relevant known theorems and references.",
+			"",
+			'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
+		].join("\n");
+	}
 	return [
 		"Research workstream started",
 		"",
@@ -389,6 +410,8 @@ export function formatResearchWorkstreamAlreadyRunning(input: FormatResearchWork
 
 export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstreamInput): string {
 	const { report } = input;
+	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
+	const references = formatReferences(input.state, report.sourceIds ?? []);
 	return [
 		"Research workstream completed",
 		"",
@@ -405,6 +428,8 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 		...(report.humanHelpUseful.length > 0
 			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
 			: []),
+		...(supports.length > 0 ? ["", "Source-backed distinctions", ...supports] : []),
+		...(references.length > 0 ? ["", "References", ...references] : []),
 		"",
 		"Next",
 		report.suggestedNextMove,
@@ -422,6 +447,8 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 	const coordinator = report.steps.find((step) => step.role === "coordinator");
 	const specialist = report.steps.find((step) => step.role === "specialist");
 	const critic = report.steps.find((step) => step.role === "critic");
+	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
+	const references = formatReferences(input.state, report.sourceIds ?? []);
 	return [
 		"Latest research report",
 		"",
@@ -430,14 +457,16 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 		"Coordinator brief",
 		...(coordinator && coordinator.details.length > 0 ? coordinator.details : [report.coordinatorBrief]),
 		"",
-		"Specialist attempt",
+		specialist?.title ?? "Specialist attempt",
 		...bulletsOrFallback(specialist?.details ?? report.findings, "No attempt details were recorded."),
 		"",
-		"Critic review",
+		critic?.title ?? "Critic review",
 		...bulletsOrFallback(critic?.details ?? report.criticisms, "No review details were recorded."),
 		"",
 		"Synthesis",
 		...bulletsOrFallback(report.promisingStrategy, "No synthesized strategy was recorded."),
+		...(supports.length > 0 ? ["", "Claim support", ...supports] : []),
+		...(references.length > 0 ? ["", "References / attachments", ...references] : []),
 		...(report.humanHelpUseful.length > 0
 			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
 			: []),
@@ -453,6 +482,45 @@ export function formatResearchModelFallbackNote(): string {
 
 function bulletsOrFallback(items: readonly string[], fallback: string): string[] {
 	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
+}
+
+function formatReferences(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		literatureSources?: readonly LiteratureSourceArtifact[];
+	},
+	sourceIds: readonly string[],
+): string[] {
+	const sourceById = new Map((state.literatureSources ?? []).map((source) => [source.id, source]));
+	return sourceIds
+		.map((sourceId) => {
+			const source = sourceById.get(sourceId);
+			if (!source) {
+				return undefined;
+			}
+			const locator = source.url ?? source.path ?? source.kind;
+			return `- ${source.id}: ${source.title}${locator ? ` — ${locator}` : ""}`;
+		})
+		.filter((line): line is string => line !== undefined);
+}
+
+function formatClaimSupports(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		literatureClaimSupports?: readonly LiteratureClaimSupport[];
+	},
+	claimSupportIds: readonly string[],
+): string[] {
+	const supportById = new Map((state.literatureClaimSupports ?? []).map((support) => [support.id, support]));
+	return claimSupportIds
+		.map((supportId) => {
+			const support = supportById.get(supportId);
+			if (!support) {
+				return undefined;
+			}
+			const sources = support.sourceIds.length > 0 ? ` (${support.sourceIds.join(", ")})` : "";
+			const note = support.note ? ` — ${support.note}` : "";
+			return `- ${support.status}: ${support.claim}${sources}${note}`;
+		})
+		.filter((line): line is string => line !== undefined);
 }
 
 function formatResearchReportPathLabel(
@@ -491,6 +559,9 @@ function formatResearchStage(stage: ResearchWorkstreamRunRecord["currentStage"])
 	if (stage === "coordinator") {
 		return "Coordinator brief";
 	}
+	if (stage === "literature-search") {
+		return "Literature search";
+	}
 	if (stage === "specialist") {
 		return "Specialist attempt";
 	}
@@ -498,6 +569,10 @@ function formatResearchStage(stage: ResearchWorkstreamRunRecord["currentStage"])
 		return "Critic review";
 	}
 	return "Synthesis";
+}
+
+function isLiteraturePathTitle(title: string): boolean {
+	return /\b(?:known theorem|literature|reference|source)\b/i.test(title);
 }
 
 function formatResearchPathLine(

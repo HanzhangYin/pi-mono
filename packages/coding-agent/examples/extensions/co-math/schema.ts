@@ -18,8 +18,10 @@ export type ResearchPathStatus = "active" | "promising" | "blocked" | "abandoned
 export type ResearchWorkstreamRole = "coordinator" | "specialist" | "critic" | "synthesizer";
 export type ResearchWorkstreamReportStatus = "completed" | "blocked";
 export type ResearchWorkstreamRunStatus = "queued" | "running" | "completed" | "blocked" | "failed";
-export type ResearchWorkstreamRunStage = ResearchWorkstreamRole;
+export type ResearchWorkstreamRunStage = ResearchWorkstreamRole | "literature-search";
 export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" | "blocked" | "failed";
+export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "user-provided" | "unknown";
+export type LiteratureClaimSupportStatus = "supported" | "partially-supported" | "unsupported" | "conflicting";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -53,7 +55,9 @@ export type CoMathEventKind =
 	| "margin_note_resolved"
 	| "working_paper_exported"
 	| "research_workstream_recorded"
-	| "research_workstream_run_recorded";
+	| "research_workstream_run_recorded"
+	| "literature_source_recorded"
+	| "literature_claim_support_recorded";
 export type ArtifactKind =
 	| "source"
 	| "computation"
@@ -271,6 +275,32 @@ export interface ResearchFocus {
 	updatedAt: string;
 }
 
+export interface LiteratureSourceArtifact {
+	id: string;
+	kind: LiteratureSourceKind;
+	title: string;
+	url?: string;
+	path?: string;
+	authors: string[];
+	year?: string;
+	summary: string;
+	extractedText?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface LiteratureClaimSupport {
+	id: string;
+	pathId?: string;
+	reportId?: string;
+	claim: string;
+	sourceIds: string[];
+	status: LiteratureClaimSupportStatus;
+	note?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface ResearchWorkstreamStepRecord {
 	role: ResearchWorkstreamRole;
 	title: string;
@@ -296,6 +326,8 @@ export interface ResearchWorkstreamReportRecord {
 	suggestedNextMove: string;
 	workingPaperSectionTitle: string;
 	workingPaperSectionId?: string;
+	sourceIds: string[];
+	claimSupportIds: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -348,6 +380,8 @@ export interface CoMathProjectState {
 	researchPaths: ResearchPath[];
 	researchReports: ResearchWorkstreamReportRecord[];
 	researchWorkstreamRuns: ResearchWorkstreamRunRecord[];
+	literatureSources: LiteratureSourceArtifact[];
+	literatureClaimSupports: LiteratureClaimSupport[];
 	researchFocus?: ResearchFocus;
 	updatedAt: string;
 }

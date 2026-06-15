@@ -12,6 +12,7 @@ import {
 	saveProjectState,
 } from "../examples/extensions/co-math/storage.ts";
 import { type CoMathBackendCommandResult, CoMathHarness } from "../src/modes/comath/comath-harness.ts";
+import type { LiteratureSourceLookup, LiteratureSourceResult } from "../src/modes/comath/comath-literature-source.ts";
 import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
@@ -118,6 +119,64 @@ const TWIN_PRIME_MODEL_RESPONSES: Record<"specialist" | "critic" | "synthesizer"
 	].join("\n"),
 };
 
+const TWIN_PRIME_LITERATURE_SOURCES: LiteratureSourceResult[] = [
+	{
+		kind: "paper",
+		title: "Twin prime conjecture status note",
+		url: "https://example.test/twin-prime-status",
+		summary: "The twin-prime conjecture remains open.",
+		extractedText: "The twin-prime conjecture remains open.",
+	},
+	{
+		kind: "paper",
+		title: "Bounded gaps between primes",
+		url: "https://example.test/bounded-gaps",
+		summary: "Bounded prime gaps are weaker than twin-prime infinitude.",
+		extractedText: "A bounded gap need not be exactly 2.",
+	},
+];
+
+const TWIN_PRIME_LITERATURE_RESPONSES: Record<"specialist" | "critic" | "synthesizer", string> = {
+	specialist: [
+		"## Findings",
+		"- The twin-prime conjecture remains open. [source-1]",
+		"- Bounded prime gaps are weaker than twin-prime infinitude. [source-2]",
+		"## Known results",
+		"- These are context sources, not a proof of the twin-prime conjecture.",
+		"## Unsupported or unclear",
+		"- No source here proves gaps exactly 2 occur infinitely often.",
+		"## Next",
+		"- Use the sources to revise the direct-proof path.",
+	].join("\n"),
+	critic: [
+		"## Review",
+		"- The specialist correctly separates bounded gaps from twin-prime infinitude.",
+		"## Unsupported or unclear",
+		"- No source in this report proves the twin-prime conjecture.",
+		"## Gaps",
+		"- Exact theorem statements should still be checked.",
+		"## Human help useful",
+		"- A number theorist could verify exact references.",
+	].join("\n"),
+	synthesizer: [
+		"## Known results",
+		"- The twin-prime conjecture remains open. [source-1]",
+		"- Bounded prime gaps are known but do not imply gaps exactly 2. [source-2]",
+		"## Findings",
+		"- Source-backed context distinguishes twin-prime infinitude from weaker bounded-gap results. [source-1] [source-2]",
+		"## Source-backed distinctions",
+		"- Do not present bounded-gap results as a proof of the twin-prime conjecture.",
+		"## Unsupported or unclear",
+		"- No provided source proves infinitely many prime pairs at distance 2.",
+		"## Human help useful",
+		"- Exact theorem statements from a reference text would help.",
+		"## Next",
+		"- Use the literature findings to revise the direct-proof path or create a weaker bounded-gap path.",
+		"## Working paper summary",
+		"- The twin-prime conjecture remains open; bounded-gap results are weaker.",
+	].join("\n"),
+};
+
 function createTwinPrimeExecutor(): {
 	executor: ResearchWorkstreamModelExecutor;
 	roles: string[];
@@ -130,6 +189,63 @@ function createTwinPrimeExecutor(): {
 		},
 	};
 	return { executor, roles };
+}
+
+function createTwinPrimeLiteratureExecutor(): {
+	executor: ResearchWorkstreamModelExecutor;
+	requests: ResearchWorkstreamModelRequest[];
+} {
+	const requests: ResearchWorkstreamModelRequest[] = [];
+	const executor: ResearchWorkstreamModelExecutor = {
+		run: async (request) => {
+			requests.push(request);
+			return { text: TWIN_PRIME_LITERATURE_RESPONSES[request.role] };
+		},
+	};
+	return { executor, requests };
+}
+
+function createLiteratureLookup(sources: LiteratureSourceResult[]): {
+	lookup: LiteratureSourceLookup;
+	queries: string[];
+} {
+	const queries: string[] = [];
+	return {
+		queries,
+		lookup: {
+			search: async (query) => {
+				queries.push(`${query.rootQuestion} ${query.pathTitle} ${query.pathObjective}`);
+				return sources;
+			},
+		},
+	};
+}
+
+function createDeferredLiteratureLookup(): {
+	lookup: LiteratureSourceLookup;
+	resolveNext(sources: LiteratureSourceResult[]): void;
+	queries: string[];
+} {
+	const queries: string[] = [];
+	const pending: Array<(sources: LiteratureSourceResult[]) => void> = [];
+	return {
+		queries,
+		lookup: {
+			search: async (query) => {
+				queries.push(`${query.rootQuestion} ${query.pathTitle} ${query.pathObjective}`);
+				return new Promise((resolve) => {
+					pending.push(resolve);
+				});
+			},
+		},
+		resolveNext: (sources) => {
+			const resolve = pending.shift();
+			if (!resolve) {
+				throw new Error("No pending source lookup to resolve.");
+			}
+			resolve(sources);
+		},
+	};
 }
 
 function createDeferredExecutor(): {
@@ -168,7 +284,10 @@ function createDeferredExecutor(): {
 	};
 }
 
-async function createModelHarnessFixture(executor: ResearchWorkstreamModelExecutor): Promise<{
+async function createModelHarnessFixture(
+	executor: ResearchWorkstreamModelExecutor,
+	literatureSourceLookup?: LiteratureSourceLookup,
+): Promise<{
 	dir: string;
 	harness: CoMathHarness;
 	notices: string[];
@@ -197,6 +316,7 @@ async function createModelHarnessFixture(executor: ResearchWorkstreamModelExecut
 			return OK;
 		},
 		researchModelExecutor: executor,
+		...(literatureSourceLookup ? { literatureSourceLookup } : {}),
 	});
 	return { dir, harness, notices, statePath };
 }
@@ -700,6 +820,120 @@ describe("co-math harness", () => {
 			expect(state.researchWorkstreamRuns).toEqual([]);
 			expect(state.researchReports).toEqual([]);
 			expect(deferred.requests).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows literature-search progress while source lookup is pending", async () => {
+		const deferredLookup = createDeferredLiteratureLookup();
+		const deferredExecutor = createDeferredExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(
+			deferredExecutor.executor,
+			deferredLookup.lookup,
+		);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 5");
+			await waitForProjectState(statePath, "literature-search running", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.currentStage === "literature-search"),
+			);
+
+			const before = notices.length;
+			await harness.handlePrompt("show progress");
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("Research workstream running");
+			expect(visible).toContain("Path 5: Known theorem or literature reduction");
+			expect(visible).toContain("Literature search");
+			expect(visible).toContain("Literature specialist is looking for relevant sources.");
+			expect(deferredExecutor.requests).toEqual([]);
+			expectProductCopy(visible);
+
+			deferredLookup.resolveNext([]);
+			await waitForProjectState(statePath, "blocked no-source literature lookup", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "blocked"),
+			);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("routes known-theorem paths to a source-backed literature workstream", async () => {
+		const { executor, requests } = createTwinPrimeLiteratureExecutor();
+		const { lookup, queries } = createLiteratureLookup(TWIN_PRIME_LITERATURE_SOURCES);
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, lookup);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 5");
+			await waitForProjectState(statePath, "completed literature report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(queries[0]).toContain("Known theorem or literature reduction");
+			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
+			expect(requests[0]?.prompt).toContain("[source-1] Twin prime conjecture status note");
+			expect(state.literatureSources).toMatchObject([
+				{ id: "source-1", title: "Twin prime conjecture status note" },
+				{ id: "source-2", title: "Bounded gaps between primes" },
+			]);
+			expect(state.literatureClaimSupports.length).toBeGreaterThan(0);
+			expect(state.researchReports[0]).toMatchObject({
+				pathTitle: "Known theorem or literature reduction",
+				sourceIds: ["source-1", "source-2"],
+			});
+			expect(state.researchReports[0]?.claimSupportIds.length).toBeGreaterThan(0);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Literature specialist is looking for relevant known theorems and references.");
+			expect(visible).toContain("References");
+			expect(visible).toContain("source-1: Twin prime conjecture status note");
+			expect(visible).toContain("Bounded prime gaps are known but do not imply gaps exactly 2");
+			expectProductCopy(visible);
+
+			const before = notices.length;
+			await harness.handlePrompt("show latest report");
+			const report = notices.slice(before).join("\n");
+			expect(report).toContain("Literature findings");
+			expect(report).toContain("Source-support review");
+			expect(report).toContain("References / attachments");
+			expect(report).toContain("supported:");
+			expectProductCopy(report);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("uses a safe no-source literature fallback without fake citations", async () => {
+		const { executor, requests } = createTwinPrimeLiteratureExecutor();
+		const { lookup } = createLiteratureLookup([]);
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, lookup);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 5");
+			await waitForProjectState(statePath, "blocked no-source literature report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "blocked"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(requests).toEqual([]);
+			expect(state.literatureSources).toEqual([]);
+			expect(state.literatureClaimSupports).toMatchObject([
+				{
+					status: "unsupported",
+					sourceIds: [],
+				},
+			]);
+			expect(state.researchReports[0]).toMatchObject({
+				status: "blocked",
+				sourceIds: [],
+			});
+			const visible = notices.join("\n");
+			expect(visible).toContain("Source-backed literature support is still needed");
+			expect(visible).toContain("unsupported:");
+			expect(visible).not.toContain("Chen");
+			expect(visible).not.toContain("Maynard");
+			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

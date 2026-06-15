@@ -365,6 +365,33 @@ describe("co-math product messages", () => {
 		expectProductCopy(progress);
 	});
 
+	it("formats active literature workstream progress naturally", () => {
+		const path = createLiteraturePath();
+		const run: ResearchWorkstreamRunRecord = {
+			...createRunningResearchWorkstreamRun(path),
+			pathId: path.id,
+			pathTitle: path.title,
+			currentStage: "literature-search",
+			incrementalReports: [
+				{
+					id: "research-run-1-incremental-1",
+					stage: "literature-search",
+					status: "running",
+					title: "Literature search",
+					summary: "Looking for references related to the twin-prime conjecture.",
+					details: ["Separating exact twin-prime infinitude from weaker bounded-gap results."],
+					createdAt: "2026-06-05T12:01:00.000Z",
+				},
+			],
+		};
+		const progress = formatResearchWorkstreamRunProgress({ state: { researchPaths: [path] }, run });
+
+		expect(progress).toContain("Literature search");
+		expect(progress).toContain("Looking for references related to the twin-prime conjecture.");
+		expect(progress).not.toContain("research-run-1");
+		expectProductCopy(progress);
+	});
+
 	it("formats a running latest research report with partial reports", () => {
 		const path = createResearchPath();
 		const run = createRunningResearchWorkstreamRun(path);
@@ -377,6 +404,93 @@ describe("co-math product messages", () => {
 		expect(report).toContain("Specialist attempt: running");
 		expect(report).not.toContain("research-run-1");
 		expectProductCopy(report);
+	});
+
+	it("formats source-aware reports with references and unsupported claims", () => {
+		const path = createLiteraturePath();
+		const report = {
+			pathId: path.id,
+			pathTitle: path.title,
+			status: "completed" as const,
+			coordinatorBrief: "Check exact source support.",
+			steps: [
+				{
+					role: "coordinator" as const,
+					title: "Coordinator brief",
+					summary: "Framed source support.",
+					details: ["Check exact source support."],
+				},
+				{
+					role: "specialist" as const,
+					title: "Literature findings",
+					summary: "Reviewed sources.",
+					details: ["The twin-prime conjecture remains open. [source-1]"],
+				},
+				{
+					role: "critic" as const,
+					title: "Source-support review",
+					summary: "Checked overclaims.",
+					details: ["No source proves twin-prime infinitude."],
+				},
+			],
+			promisingStrategy: ["Use source-backed distinctions."],
+			findings: ["The twin-prime conjecture remains open. [source-1]"],
+			criticisms: ["Do not conflate bounded gaps with gaps exactly 2."],
+			gaps: ["No source proves twin-prime infinitude."],
+			humanHelpUseful: [],
+			suggestedNextMove: "Revise the direct-proof path.",
+			workingPaperSectionTitle: "Literature/theorem targets",
+			sourceIds: ["source-1"],
+			claimSupportIds: ["claim-support-1", "claim-support-2"],
+		};
+		const state = {
+			researchPaths: [path],
+			literatureSources: [
+				{
+					id: "source-1",
+					kind: "paper" as const,
+					title: "Twin prime conjecture status note",
+					url: "https://example.test/twin-prime-status",
+					authors: [],
+					summary: "The twin-prime conjecture remains open.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
+			literatureClaimSupports: [
+				{
+					id: "claim-support-1",
+					claim: "The twin-prime conjecture remains open.",
+					sourceIds: ["source-1"],
+					status: "supported" as const,
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+				{
+					id: "claim-support-2",
+					claim: "A source proves twin-prime infinitude.",
+					sourceIds: [],
+					status: "unsupported" as const,
+					note: "No source id was attached to this claim.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
+		};
+
+		const completed = formatResearchWorkstreamCompleted({ state, report });
+		expect(completed).toContain("References");
+		expect(completed).toContain("source-1: Twin prime conjecture status note");
+		expect(completed).toContain("unsupported: A source proves twin-prime infinitude.");
+		expect(completed).not.toContain("research-run-1");
+		expectProductCopy(completed);
+
+		const details = formatResearchWorkstreamReport({ state, report });
+		expect(details).toContain("Literature findings");
+		expect(details).toContain("Source-support review");
+		expect(details).toContain("References / attachments");
+		expect(details).toContain("Claim support");
+		expectProductCopy(details);
 	});
 
 	it("formats failed research workstream warnings without raw run ids", () => {
@@ -422,6 +536,21 @@ function createResearchPath(): ResearchPath {
 		blockers: [],
 		suggestedNextMove: "Check whether the direct proof can be made rigorous.",
 		priority: 1,
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+}
+
+function createLiteraturePath(): ResearchPath {
+	return {
+		id: "path-5",
+		title: "Known theorem or literature reduction",
+		objective: "Check known theorem targets.",
+		status: "active",
+		latestFindings: [],
+		blockers: [],
+		suggestedNextMove: "Find source-backed references.",
+		priority: 5,
 		createdAt: "2026-06-05T12:00:00.000Z",
 		updatedAt: "2026-06-05T12:00:00.000Z",
 	};

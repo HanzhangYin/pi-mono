@@ -206,6 +206,59 @@ if p.exists():
 '
 ```
 
+## Source-backed literature workstream smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-literature-workstream-demo
+cd comath-literature-workstream-demo
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Explore this problem: Are there infinitely many twin primes?
+```
+
+```text
+continue path 5
+```
+
+```text
+show progress
+```
+
+```text
+show latest report
+```
+
+```text
+summarize current state
+```
+
+Good signs:
+
+```text
+[ ] Path 5 starts a literature/reference workstream.
+[ ] Progress mentions literature/source review.
+[ ] If source lookup is configured, the report distinguishes the twin-prime conjecture from weaker bounded-gap or Chen-type results.
+[ ] If source lookup is configured, sources/references are structured in state.
+[ ] If source lookup is not configured, the report asks for sources and marks claims unsupported instead of inventing citations.
+```
+
+Optional state check:
+
+```bash
+python3 -c 'import json, pathlib; p=pathlib.Path(".pi/co-math/state.json"); print("exists", p.exists());
+if p.exists():
+ s=json.loads(p.read_text()); print("sources", len(s.get("literatureSources", []))); print("claimSupports", len(s.get("literatureClaimSupports", []))); print("runs", len(s.get("researchWorkstreamRuns", []))); print("reports", len(s.get("researchReports", [])));
+ [print("source", src.get("id"), src.get("title"), src.get("url") or src.get("path") or src.get("kind")) for src in s.get("literatureSources", [])]
+'
+```
+
 ## LLM-backed generic problem smoke
 
 `continue path N` runs a real specialist -> critic -> synthesizer model pass when a model/provider
