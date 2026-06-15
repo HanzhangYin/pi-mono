@@ -1,5 +1,6 @@
 import type {
 	CoMathProjectState,
+	ComputationalArtifact,
 	LiteratureClaimSupport,
 	LiteratureSourceArtifact,
 	ResearchPath,
@@ -297,12 +298,14 @@ export type ResearchWorkstreamReportView = Pick<
 > & {
 	sourceIds?: readonly string[];
 	claimSupportIds?: readonly string[];
+	computationalArtifactIds?: readonly string[];
 };
 
 export interface FormatResearchWorkstreamInput {
 	state: Pick<CoMathProjectState, "researchPaths"> & {
 		literatureSources?: readonly LiteratureSourceArtifact[];
 		literatureClaimSupports?: readonly LiteratureClaimSupport[];
+		computationalArtifacts?: readonly ComputationalArtifact[];
 	};
 	report: ResearchWorkstreamReportView;
 }
@@ -337,6 +340,20 @@ export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstre
 			"Current status",
 			"- Coordinator is identifying what needs source support.",
 			"- Literature specialist is looking for relevant known theorems and references.",
+			"",
+			'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
+		].join("\n");
+	}
+	if (isComputationalPathTitle(input.run.pathTitle)) {
+		return [
+			"Research workstream started",
+			"",
+			formatResearchRunPathLabel(input.state, input.run),
+			"",
+			"Current status",
+			"- Coordinator is choosing a bounded finite experiment.",
+			"- Computational specialist is preparing a small script.",
+			"- Critic will check what the computation does and does not establish.",
 			"",
 			'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
 		].join("\n");
@@ -412,10 +429,12 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 	const { report } = input;
 	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
 	const references = formatReferences(input.state, report.sourceIds ?? []);
+	const computation = formatComputationSummary(input.state, report.computationalArtifactIds ?? []);
 	return [
 		"Research workstream completed",
 		"",
 		formatResearchReportPathLabel(input.state, report),
+		...(computation.length > 0 ? ["", "Computation", ...computation] : []),
 		"",
 		"Promising strategy",
 		...bulletsOrFallback(report.promisingStrategy, "No promising strategy identified yet."),
@@ -449,6 +468,8 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 	const critic = report.steps.find((step) => step.role === "critic");
 	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
 	const references = formatReferences(input.state, report.sourceIds ?? []);
+	const computation = formatComputationDetails(input.state, report.computationalArtifactIds ?? []);
+	const attachments = formatComputationAttachments(input.state, report.computationalArtifactIds ?? []);
 	return [
 		"Latest research report",
 		"",
@@ -456,6 +477,7 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 		"",
 		"Coordinator brief",
 		...(coordinator && coordinator.details.length > 0 ? coordinator.details : [report.coordinatorBrief]),
+		...(computation.length > 0 ? ["", "Computation", ...computation] : []),
 		"",
 		specialist?.title ?? "Specialist attempt",
 		...bulletsOrFallback(specialist?.details ?? report.findings, "No attempt details were recorded."),
@@ -465,6 +487,7 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 		"",
 		"Synthesis",
 		...bulletsOrFallback(report.promisingStrategy, "No synthesized strategy was recorded."),
+		...(attachments.length > 0 ? ["", "Attachments", ...attachments] : []),
 		...(supports.length > 0 ? ["", "Claim support", ...supports] : []),
 		...(references.length > 0 ? ["", "References / attachments", ...references] : []),
 		...(report.humanHelpUseful.length > 0
@@ -523,6 +546,88 @@ function formatClaimSupports(
 		.filter((line): line is string => line !== undefined);
 }
 
+function formatComputationSummary(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		computationalArtifacts?: readonly ComputationalArtifact[];
+	},
+	artifactIds: readonly string[],
+): string[] {
+	const artifacts = getComputationalArtifactsByIds(state, artifactIds);
+	if (artifacts.length === 0) {
+		return [];
+	}
+	const script = artifacts.find((artifact) => artifact.kind === "script");
+	const result =
+		artifacts.find((artifact) => artifact.kind === "stdout") ??
+		artifacts.find((artifact) => artifact.kind === "summary");
+	const exitCode = result?.exitCode ?? script?.exitCode;
+	const checkedRange = result?.summary
+		.split("\n")
+		.map((line) => line.trim())
+		.find((line) => /^checked_range:/i.test(line));
+	return [
+		...(script ? [`- Script: ${script.id}`] : []),
+		...(result ? [`- Result: ${result.id}`] : []),
+		...(checkedRange ? [`- Checked range: ${checkedRange.replace(/^checked_range:\s*/i, "")}`] : []),
+		...(exitCode !== undefined ? [`- Exit code: ${exitCode}`] : []),
+	];
+}
+
+function formatComputationDetails(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		computationalArtifacts?: readonly ComputationalArtifact[];
+	},
+	artifactIds: readonly string[],
+): string[] {
+	const artifacts = getComputationalArtifactsByIds(state, artifactIds);
+	if (artifacts.length === 0) {
+		return [];
+	}
+	const script = artifacts.find((artifact) => artifact.kind === "script");
+	const result =
+		artifacts.find((artifact) => artifact.kind === "stdout") ??
+		artifacts.find((artifact) => artifact.kind === "summary");
+	const diagnostics = artifacts.find((artifact) => artifact.kind === "stderr");
+	return [
+		...(script?.filePath ? [`- Script: ${script.filePath}`] : script ? [`- Script: ${script.id}`] : []),
+		...(script?.command ? [`- Command: ${script.command}`] : []),
+		...(result?.exitCode !== undefined ? [`- Exit code: ${result.exitCode}`] : []),
+		...(result ? [`- Result summary: ${summarizeArtifactText(result.summary)}`] : []),
+		...(diagnostics ? [`- Diagnostics: ${summarizeArtifactText(diagnostics.summary)}`] : []),
+	];
+}
+
+function formatComputationAttachments(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		computationalArtifacts?: readonly ComputationalArtifact[];
+	},
+	artifactIds: readonly string[],
+): string[] {
+	return getComputationalArtifactsByIds(state, artifactIds).map((artifact) => {
+		const locator = artifact.filePath ? ` — ${artifact.filePath}` : "";
+		const exitCode = artifact.exitCode !== undefined ? ` — exit code ${artifact.exitCode}` : "";
+		return `- ${artifact.id}: ${artifact.kind}${locator}${exitCode}`;
+	});
+}
+
+function getComputationalArtifactsByIds(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		computationalArtifacts?: readonly ComputationalArtifact[];
+	},
+	artifactIds: readonly string[],
+): ComputationalArtifact[] {
+	const selectedIds = new Set(artifactIds);
+	return (state.computationalArtifacts ?? []).filter((artifact) => selectedIds.has(artifact.id));
+}
+
+function summarizeArtifactText(summary: string): string {
+	const trimmed = summary.trim().replace(/\s+/g, " ");
+	if (trimmed.length <= 240) {
+		return trimmed;
+	}
+	return `${trimmed.slice(0, 237)}...`;
+}
+
 function formatResearchReportPathLabel(
 	state: Pick<CoMathProjectState, "researchPaths">,
 	report: Pick<ResearchWorkstreamReportView, "pathId" | "pathTitle">,
@@ -562,6 +667,9 @@ function formatResearchStage(stage: ResearchWorkstreamRunRecord["currentStage"])
 	if (stage === "literature-search") {
 		return "Literature search";
 	}
+	if (stage === "computation") {
+		return "Computation";
+	}
 	if (stage === "specialist") {
 		return "Specialist attempt";
 	}
@@ -573,6 +681,12 @@ function formatResearchStage(stage: ResearchWorkstreamRunRecord["currentStage"])
 
 function isLiteraturePathTitle(title: string): boolean {
 	return /\b(?:known theorem|literature|reference|source)\b/i.test(title);
+}
+
+function isComputationalPathTitle(title: string): boolean {
+	return /\b(?:small examples?|counterexamples?|finite checks?|computation|computational|search|examples?)\b/i.test(
+		title,
+	);
 }
 
 function formatResearchPathLine(

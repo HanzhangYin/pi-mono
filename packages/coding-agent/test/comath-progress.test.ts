@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ResearchPath, ResearchWorkstreamRunRecord } from "../examples/extensions/co-math/schema.ts";
+import type {
+	ComputationalArtifact,
+	ResearchPath,
+	ResearchWorkstreamRunRecord,
+} from "../examples/extensions/co-math/schema.ts";
 import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../examples/extensions/co-math/storage.ts";
 import {
 	formatBackgroundRunStarted,
@@ -493,6 +497,135 @@ describe("co-math product messages", () => {
 		expectProductCopy(details);
 	});
 
+	it("formats computation reports with concise output and attachments", () => {
+		const path = createComputationPath();
+		const computationalArtifacts: ComputationalArtifact[] = [
+			{
+				id: "computation-artifact-1",
+				pathId: path.id,
+				reportId: "research-report-1",
+				runId: "research-run-1",
+				kind: "script",
+				status: "completed",
+				title: "Computation script",
+				filePath: ".pi/co-math/artifacts/research-run-1/search.py",
+				command: "python3 search.py",
+				exitCode: 0,
+				summary: "Finite search script.",
+				createdAt: "2026-06-05T12:00:00.000Z",
+				updatedAt: "2026-06-05T12:00:00.000Z",
+			},
+			{
+				id: "computation-artifact-2",
+				pathId: path.id,
+				reportId: "research-report-1",
+				runId: "research-run-1",
+				kind: "stdout",
+				status: "completed",
+				title: "Computation output",
+				filePath: ".pi/co-math/artifacts/research-run-1/stdout.txt",
+				command: "python3 search.py",
+				exitCode: 0,
+				summary: "checked_range: 1 <= n <= 20\nprime_values_found: 7",
+				createdAt: "2026-06-05T12:00:00.000Z",
+				updatedAt: "2026-06-05T12:00:00.000Z",
+			},
+		];
+		const report = {
+			pathId: path.id,
+			pathTitle: path.title,
+			status: "completed" as const,
+			coordinatorBrief: "Choose a finite experiment.",
+			steps: [
+				{
+					role: "coordinator" as const,
+					title: "Coordinator brief",
+					summary: "Framed finite check.",
+					details: ["Choose a finite experiment."],
+				},
+				{
+					role: "specialist" as const,
+					title: "Computation script",
+					summary: "Prepared script.",
+					details: ["Finite search script."],
+				},
+				{
+					role: "critic" as const,
+					title: "Computation review",
+					summary: "Reviewed limits.",
+					details: ["A finite computation does not prove an infinite claim."],
+				},
+			],
+			promisingStrategy: ["Use examples to find obstructions."],
+			findings: ["prime_values_found: 7"],
+			criticisms: ["A finite computation does not prove an infinite claim."],
+			gaps: ["A proof is still open."],
+			humanHelpUseful: [],
+			suggestedNextMove: "Use parity to refine the direct-proof path.",
+			workingPaperSectionTitle: "Examples and finite checks",
+			computationalArtifactIds: ["computation-artifact-1", "computation-artifact-2"],
+		};
+		const state = { researchPaths: [path], computationalArtifacts };
+
+		const completed = formatResearchWorkstreamCompleted({ state, report });
+		expect(completed).toContain("Computation");
+		expect(completed).toContain("Script: computation-artifact-1");
+		expect(completed).toContain("Result: computation-artifact-2");
+		expect(completed).toContain("Checked range: 1 <= n <= 20");
+		expect(completed).toContain("Exit code: 0");
+
+		const details = formatResearchWorkstreamReport({ state, report });
+		expect(details).toContain("Script: .pi/co-math/artifacts/research-run-1/search.py");
+		expect(details).toContain("Command: python3 search.py");
+		expect(details).toContain("Result summary: checked_range: 1 <= n <= 20 prime_values_found: 7");
+		expect(details).toContain("Attachments");
+		expect(details).toContain("computation-artifact-1: script");
+		expect(details).toContain("computation-artifact-2: stdout");
+	});
+
+	it("formats failed computation diagnostics without long raw output", () => {
+		const path = createComputationPath();
+		const longDiagnostics = `${"failure detail ".repeat(80)}end`;
+		const state = {
+			researchPaths: [path],
+			computationalArtifacts: [
+				{
+					id: "computation-artifact-1",
+					pathId: path.id,
+					kind: "stderr" as const,
+					status: "failed" as const,
+					title: "Computation diagnostics",
+					filePath: ".pi/co-math/artifacts/research-run-1/stderr.txt",
+					command: "python3 search.py",
+					exitCode: 1,
+					summary: longDiagnostics,
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
+		};
+		const report = {
+			pathId: path.id,
+			pathTitle: path.title,
+			status: "blocked" as const,
+			coordinatorBrief: "Choose a finite experiment.",
+			steps: [],
+			promisingStrategy: [],
+			findings: ["The computation failed."],
+			criticisms: ["A finite computation does not prove an infinite claim."],
+			gaps: ["Repair the script."],
+			humanHelpUseful: [],
+			suggestedNextMove: "Fix the finite check.",
+			workingPaperSectionTitle: "Examples and finite checks",
+			computationalArtifactIds: ["computation-artifact-1"],
+		};
+
+		const details = formatResearchWorkstreamReport({ state, report });
+		expect(details).toContain("Diagnostics:");
+		expect(details).toContain("exit code 1");
+		expect(details.length).toBeLessThan(1_500);
+	});
+
 	it("formats failed research workstream warnings without raw run ids", () => {
 		const path = createResearchPath();
 		const run: ResearchWorkstreamRunRecord = {
@@ -551,6 +684,21 @@ function createLiteraturePath(): ResearchPath {
 		blockers: [],
 		suggestedNextMove: "Find source-backed references.",
 		priority: 5,
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+}
+
+function createComputationPath(): ResearchPath {
+	return {
+		id: "path-1",
+		title: "Small examples and counterexamples",
+		objective: "Gather finite examples.",
+		status: "active",
+		latestFindings: [],
+		blockers: [],
+		suggestedNextMove: "Run a bounded finite check.",
+		priority: 1,
 		createdAt: "2026-06-05T12:00:00.000Z",
 		updatedAt: "2026-06-05T12:00:00.000Z",
 	};

@@ -18,10 +18,12 @@ export type ResearchPathStatus = "active" | "promising" | "blocked" | "abandoned
 export type ResearchWorkstreamRole = "coordinator" | "specialist" | "critic" | "synthesizer";
 export type ResearchWorkstreamReportStatus = "completed" | "blocked";
 export type ResearchWorkstreamRunStatus = "queued" | "running" | "completed" | "blocked" | "failed";
-export type ResearchWorkstreamRunStage = ResearchWorkstreamRole | "literature-search";
+export type ResearchWorkstreamRunStage = ResearchWorkstreamRole | "literature-search" | "computation";
 export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" | "blocked" | "failed";
 export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "user-provided" | "unknown";
 export type LiteratureClaimSupportStatus = "supported" | "partially-supported" | "unsupported" | "conflicting";
+export type ComputationalArtifactKind = "script" | "stdout" | "stderr" | "table" | "summary";
+export type ComputationalArtifactStatus = "created" | "completed" | "failed" | "blocked";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -57,7 +59,8 @@ export type CoMathEventKind =
 	| "research_workstream_recorded"
 	| "research_workstream_run_recorded"
 	| "literature_source_recorded"
-	| "literature_claim_support_recorded";
+	| "literature_claim_support_recorded"
+	| "computational_artifact_recorded";
 export type ArtifactKind =
 	| "source"
 	| "computation"
@@ -301,6 +304,22 @@ export interface LiteratureClaimSupport {
 	updatedAt: string;
 }
 
+export interface ComputationalArtifact {
+	id: string;
+	pathId: string;
+	reportId?: string;
+	runId?: string;
+	kind: ComputationalArtifactKind;
+	status: ComputationalArtifactStatus;
+	title: string;
+	filePath?: string;
+	command?: string;
+	exitCode?: number;
+	summary: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface ResearchWorkstreamStepRecord {
 	role: ResearchWorkstreamRole;
 	title: string;
@@ -328,6 +347,7 @@ export interface ResearchWorkstreamReportRecord {
 	workingPaperSectionId?: string;
 	sourceIds: string[];
 	claimSupportIds: string[];
+	computationalArtifactIds: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -382,6 +402,7 @@ export interface CoMathProjectState {
 	researchWorkstreamRuns: ResearchWorkstreamRunRecord[];
 	literatureSources: LiteratureSourceArtifact[];
 	literatureClaimSupports: LiteratureClaimSupport[];
+	computationalArtifacts: ComputationalArtifact[];
 	researchFocus?: ResearchFocus;
 	updatedAt: string;
 }

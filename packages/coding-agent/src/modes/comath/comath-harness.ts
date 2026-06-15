@@ -1,4 +1,5 @@
 import { stat } from "node:fs/promises";
+import * as nodePath from "node:path";
 import type {
 	CoMathProjectState,
 	LiteratureSourceArtifact,
@@ -7,6 +8,7 @@ import type {
 	ResearchWorkstreamRunStage,
 } from "../../../examples/extensions/co-math/schema.ts";
 import {
+	addComputationalArtifact,
 	addLiteratureClaimSupport,
 	addLiteratureSourceArtifact,
 	addMarginNote,
@@ -23,6 +25,7 @@ import {
 	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 	setResearchFocus,
+	updateComputationalArtifact,
 	updateResearchPath,
 	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
@@ -35,6 +38,13 @@ import {
 	extractTranscriptPath,
 	formatProductReport,
 } from "./comath-backend-output.ts";
+import type { ComputationalExecutor } from "./comath-computation-executor.ts";
+import { createDefaultComputationalExecutor } from "./comath-computation-executor.ts";
+import {
+	type ComputationResearchWorkstreamResult,
+	isComputationalResearchPath,
+	runComputationResearchWorkstreamStaged,
+} from "./comath-computation-workstream.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "./comath-literature-source.ts";
 import { createDefaultLiteratureSourceLookup } from "./comath-literature-source.ts";
 import {
@@ -99,6 +109,7 @@ export interface CoMathHarnessOptions {
 	 */
 	researchModelExecutor?: ResearchWorkstreamModelExecutor;
 	literatureSourceLookup?: LiteratureSourceLookup;
+	computationalExecutor?: ComputationalExecutor;
 }
 
 export class CoMathHarness {
@@ -110,6 +121,7 @@ export class CoMathHarness {
 	private readonly startFirstRun: boolean;
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
 	private readonly literatureSourceLookup: LiteratureSourceLookup;
+	private readonly computationalExecutor: ComputationalExecutor;
 	private readonly activeResearchWorkstreams = new Map<string, Promise<void>>();
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
@@ -122,6 +134,7 @@ export class CoMathHarness {
 		this.startFirstRun = options.startFirstRun ?? true;
 		this.researchModelExecutor = options.researchModelExecutor;
 		this.literatureSourceLookup = options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup();
+		this.computationalExecutor = options.computationalExecutor ?? createDefaultComputationalExecutor();
 	}
 
 	async handlePrompt(problemText: string): Promise<void> {
@@ -654,6 +667,43 @@ export class CoMathHarness {
 				await this.completeLiteratureResearchWorkstreamRun(runId, literatureResult);
 				return;
 			}
+			if (isComputationalResearchPath(path)) {
+				const artifactPaths = this.getComputationArtifactPaths(runId);
+				const computationResult = await runComputationResearchWorkstreamStaged(
+					{
+						rootQuestion: state.rootQuestion,
+						path,
+						allPaths: state.researchPaths,
+						now,
+						executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
+						computationalExecutor: this.computationalExecutor,
+						artifactDirectory: artifactPaths.relative,
+						workingDirectory: artifactPaths.absolute,
+					},
+					{
+						onStageStarted: async (stage, summary) => {
+							await this.saveResearchWorkstreamStage(runId, {
+								stage,
+								status: "running",
+								title: formatStageTitle(stage),
+								summary,
+								details: [],
+							});
+						},
+						onStageCompleted: async (result) => {
+							await this.saveResearchWorkstreamStage(runId, {
+								stage: result.stage,
+								status: "completed",
+								title: result.title,
+								summary: result.summary,
+								details: result.details,
+							});
+						},
+					},
+				);
+				await this.completeComputationResearchWorkstreamRun(runId, computationResult);
+				return;
+			}
 			const report = await runModelBackedResearchWorkstreamStaged(
 				{
 					rootQuestion: state.rootQuestion,
@@ -810,6 +860,66 @@ export class CoMathHarness {
 		};
 		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
 		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = updateResearchWorkstreamRun(nextState, {
+			runId,
+			status: report.status === "blocked" ? "blocked" : "completed",
+			currentStage: "synthesizer",
+			completedAt: report.completedAt,
+			...(finalReportId ? { finalReportId } : {}),
+			now,
+			actor: "synthesizer",
+		});
+		await saveProjectState(this.statePath, nextState);
+		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+	}
+
+	private async completeComputationResearchWorkstreamRun(
+		runId: string,
+		result: ComputationResearchWorkstreamResult,
+	): Promise<void> {
+		const state = await loadProjectState(this.statePath);
+		const path = state?.researchPaths.find((candidate) => candidate.id === result.report.pathId);
+		if (!state || !path) {
+			return;
+		}
+		const now = new Date().toISOString();
+		let nextState = state;
+		const computationalArtifactIds: string[] = [];
+		for (const artifact of result.artifacts) {
+			nextState = addComputationalArtifact(nextState, {
+				pathId: path.id,
+				runId,
+				kind: artifact.kind,
+				status: artifact.status,
+				title: artifact.title,
+				...(artifact.filePath ? { filePath: artifact.filePath } : {}),
+				...(artifact.command ? { command: artifact.command } : {}),
+				...(artifact.exitCode !== undefined ? { exitCode: artifact.exitCode } : {}),
+				summary: artifact.summary,
+				now,
+				actor: "system",
+			});
+			const persisted = nextState.computationalArtifacts.at(-1);
+			if (persisted) {
+				computationalArtifactIds.push(persisted.id);
+			}
+		}
+		const report: ResearchWorkstreamReport = {
+			...result.report,
+			computationalArtifactIds,
+		};
+		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
+		const finalReportId = nextState.researchReports.at(-1)?.id;
+		if (finalReportId) {
+			for (const artifactId of computationalArtifactIds) {
+				nextState = updateComputationalArtifact(nextState, {
+					artifactId,
+					reportId: finalReportId,
+					now,
+					actor: "system",
+				});
+			}
+		}
 		nextState = updateResearchWorkstreamRun(nextState, {
 			runId,
 			status: report.status === "blocked" ? "blocked" : "completed",
@@ -982,6 +1092,7 @@ export class CoMathHarness {
 			...(section ? { workingPaperSectionId: section.id } : {}),
 			sourceIds: report.sourceIds ?? [],
 			claimSupportIds: report.claimSupportIds ?? [],
+			computationalArtifactIds: report.computationalArtifactIds ?? [],
 			now,
 			actor: "synthesizer",
 		});
@@ -1025,6 +1136,15 @@ export class CoMathHarness {
 		}
 		// A run is queued-and-dispatching or running: record context only, never start a duplicate.
 		await this.notify(formatContextRecorded());
+	}
+
+	private getComputationArtifactPaths(runId: string): { relative: string; absolute: string } {
+		const relative = `.pi/co-math/artifacts/${runId}`;
+		const projectRoot = nodePath.dirname(nodePath.dirname(nodePath.dirname(this.statePath)));
+		return {
+			relative,
+			absolute: nodePath.join(projectRoot, relative),
+		};
 	}
 
 	private async hasExistingState(): Promise<boolean> {
@@ -1241,6 +1361,9 @@ function formatStageTitle(stage: ResearchWorkstreamRunStage): string {
 	}
 	if (stage === "literature-search") {
 		return "Literature search";
+	}
+	if (stage === "computation") {
+		return "Computation";
 	}
 	if (stage === "specialist") {
 		return "Specialist attempt";

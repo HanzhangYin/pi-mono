@@ -25,6 +25,7 @@ export interface ResearchWorkstreamReport {
 	workingPaperSummary: string;
 	sourceIds?: string[];
 	claimSupportIds?: string[];
+	computationalArtifactIds?: string[];
 }
 
 export interface RunResearchWorkstreamInput {

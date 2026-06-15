@@ -11,6 +11,9 @@ import type {
 	CoMathEventKind,
 	CoMathProjectState,
 	CoMathRole,
+	ComputationalArtifact,
+	ComputationalArtifactKind,
+	ComputationalArtifactStatus,
 	Evidence,
 	EvidenceKind,
 	GoalStatus,
@@ -69,6 +72,7 @@ type LegacyProjectState = Omit<
 	| "researchWorkstreamRuns"
 	| "literatureSources"
 	| "literatureClaimSupports"
+	| "computationalArtifacts"
 	| "researchFocus"
 > &
 	Partial<
@@ -93,6 +97,7 @@ type LegacyProjectState = Omit<
 				| "researchWorkstreamRuns"
 				| "literatureSources"
 				| "literatureClaimSupports"
+				| "computationalArtifacts"
 				| "researchFocus"
 			>,
 			"roleRuns"
@@ -262,6 +267,7 @@ export interface AddResearchWorkstreamReportInput {
 	workingPaperSectionId?: string;
 	sourceIds?: string[];
 	claimSupportIds?: string[];
+	computationalArtifactIds?: string[];
 	now: string;
 	actor?: CoMathActor;
 }
@@ -288,6 +294,34 @@ export interface AddLiteratureClaimSupportInput {
 	sourceIds: string[];
 	status: LiteratureClaimSupportStatus;
 	note?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddComputationalArtifactInput {
+	id?: string;
+	pathId: string;
+	reportId?: string;
+	runId?: string;
+	kind: ComputationalArtifactKind;
+	status?: ComputationalArtifactStatus;
+	title: string;
+	filePath?: string;
+	command?: string;
+	exitCode?: number;
+	summary: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface UpdateComputationalArtifactInput {
+	artifactId: string;
+	reportId?: string;
+	status?: ComputationalArtifactStatus;
+	filePath?: string;
+	command?: string;
+	exitCode?: number;
+	summary?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -512,6 +546,8 @@ interface AppendEventInput {
 	now: string;
 }
 
+const COMPUTATIONAL_ARTIFACT_SUMMARY_LIMIT = 1_000;
+
 export function createEmptyProjectState(input: CreateEmptyProjectStateInput): CoMathProjectState {
 	return {
 		version: 1,
@@ -537,6 +573,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		researchWorkstreamRuns: [],
 		literatureSources: [],
 		literatureClaimSupports: [],
+		computationalArtifacts: [],
 		events: [
 			{
 				id: "event-1",
@@ -1069,6 +1106,7 @@ export function addResearchWorkstreamReport(
 		...(input.workingPaperSectionId ? { workingPaperSectionId: input.workingPaperSectionId } : {}),
 		sourceIds: uniqueStrings(input.sourceIds ?? []),
 		claimSupportIds: uniqueStrings(input.claimSupportIds ?? []),
+		computationalArtifactIds: uniqueStrings(input.computationalArtifactIds ?? []),
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
@@ -1213,6 +1251,113 @@ export function getLiteratureClaimSupportsForReportOrPath(
 			(input.reportId !== undefined && support.reportId === input.reportId) ||
 			(input.pathId !== undefined && support.pathId === input.pathId),
 	);
+}
+
+export function addComputationalArtifact(
+	state: CoMathProjectState,
+	input: AddComputationalArtifactInput,
+): CoMathProjectState {
+	const pathId = input.pathId.trim();
+	const title = input.title.trim();
+	const summary = capComputationalArtifactSummary(input.summary);
+	if (!pathId) {
+		throw new Error("Computational artifact requires a path id.");
+	}
+	if (!title) {
+		throw new Error("Computational artifact requires a title.");
+	}
+	if (!summary) {
+		throw new Error("Computational artifact requires a summary.");
+	}
+	const id = input.id?.trim() || `computation-artifact-${state.computationalArtifacts.length + 1}`;
+	if (state.computationalArtifacts.some((artifact) => artifact.id === id)) {
+		throw new Error(`Duplicate computational artifact id: ${id}`);
+	}
+	const filePath = input.filePath ? normalizeComputationalArtifactFilePath(input.filePath) : undefined;
+	const artifact: ComputationalArtifact = {
+		id,
+		pathId,
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		...(input.runId?.trim() ? { runId: input.runId.trim() } : {}),
+		kind: input.kind,
+		status: input.status ?? "completed",
+		title,
+		...(filePath ? { filePath } : {}),
+		...(input.command?.trim() ? { command: input.command.trim() } : {}),
+		...(input.exitCode !== undefined ? { exitCode: input.exitCode } : {}),
+		summary,
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			computationalArtifacts: [...state.computationalArtifacts, artifact],
+			updatedAt: input.now,
+		},
+		{
+			kind: "computational_artifact_recorded",
+			actor: input.actor,
+			summary: `Recorded computation output ${id}: ${title}`,
+			subjectId: id,
+			relatedIds: uniqueStrings([pathId, artifact.reportId, artifact.runId].filter((id): id is string => !!id)),
+			now: input.now,
+		},
+	);
+}
+
+export function updateComputationalArtifact(
+	state: CoMathProjectState,
+	input: UpdateComputationalArtifactInput,
+): CoMathProjectState {
+	if (!state.computationalArtifacts.some((artifact) => artifact.id === input.artifactId)) {
+		return state;
+	}
+	const filePath = input.filePath ? normalizeComputationalArtifactFilePath(input.filePath) : undefined;
+	return appendEvent(
+		{
+			...state,
+			computationalArtifacts: state.computationalArtifacts.map((artifact) =>
+				artifact.id === input.artifactId
+					? {
+							...artifact,
+							...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+							...(input.status ? { status: input.status } : {}),
+							...(filePath ? { filePath } : {}),
+							...(input.command?.trim() ? { command: input.command.trim() } : {}),
+							...(input.exitCode !== undefined ? { exitCode: input.exitCode } : {}),
+							...(input.summary !== undefined
+								? { summary: capComputationalArtifactSummary(input.summary) }
+								: {}),
+							updatedAt: input.now,
+						}
+					: artifact,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "computational_artifact_recorded",
+			actor: input.actor,
+			summary: `Updated computation output ${input.artifactId}`,
+			subjectId: input.artifactId,
+			now: input.now,
+		},
+	);
+}
+
+export function getComputationalArtifactsForReport(
+	state: CoMathProjectState,
+	reportId: string,
+): ComputationalArtifact[] {
+	const report = state.researchReports.find((candidate) => candidate.id === reportId);
+	const linkedIds = new Set(report?.computationalArtifactIds ?? []);
+	return state.computationalArtifacts.filter(
+		(artifact) => artifact.reportId === reportId || linkedIds.has(artifact.id),
+	);
+}
+
+export function getComputationalArtifactsForRun(state: CoMathProjectState, runId: string): ComputationalArtifact[] {
+	return state.computationalArtifacts.filter((artifact) => artifact.runId === runId);
 }
 
 export function addResearchWorkstreamRun(
@@ -2173,6 +2318,9 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		literatureClaimSupports: getArrayField(value, "literatureClaimSupports").map((record, index) =>
 			normalizeLiteratureClaimSupport(record, updatedAt, index),
 		),
+		computationalArtifacts: getArrayField(value, "computationalArtifacts").map((record, index) =>
+			normalizeComputationalArtifact(record, updatedAt, index),
+		),
 		...(normalizeResearchFocus(value.researchFocus, updatedAt)
 			? { researchFocus: normalizeResearchFocus(value.researchFocus, updatedAt) }
 			: {}),
@@ -2494,6 +2642,7 @@ function normalizeResearchWorkstreamReport(
 			: {}),
 		sourceIds: getStringArrayField(value, "sourceIds"),
 		claimSupportIds: getStringArrayField(value, "claimSupportIds"),
+		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", fallbackTime),
 	};
@@ -2536,6 +2685,32 @@ function normalizeLiteratureClaimSupport(
 		sourceIds: getStringArrayField(value, "sourceIds"),
 		status: normalizeLiteratureClaimSupportStatus(value.status),
 		...(getOptionalStringField(value, "note") ? { note: getOptionalStringField(value, "note") } : {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeComputationalArtifact(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ComputationalArtifact {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	const filePath = getOptionalStringField(value, "filePath");
+	return {
+		id: getStringField(value, "id", `computation-artifact-${index + 1}`),
+		pathId: getStringField(value, "pathId", "path-legacy"),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		...(getOptionalStringField(value, "runId") ? { runId: getOptionalStringField(value, "runId") } : {}),
+		kind: normalizeComputationalArtifactKind(value.kind),
+		status: normalizeComputationalArtifactStatus(value.status),
+		title: getStringField(value, "title", "Computation output"),
+		...(filePath && isComputationalArtifactFilePath(filePath)
+			? { filePath: normalizeComputationalArtifactFilePath(filePath) }
+			: {}),
+		...(getOptionalStringField(value, "command") ? { command: getOptionalStringField(value, "command") } : {}),
+		...(typeof value.exitCode === "number" && Number.isFinite(value.exitCode) ? { exitCode: value.exitCode } : {}),
+		summary: capComputationalArtifactSummary(getStringField(value, "summary", "")),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
@@ -2604,7 +2779,7 @@ function normalizeResearchWorkstreamRole(value: unknown): ResearchWorkstreamStep
 }
 
 function normalizeResearchWorkstreamStage(value: unknown): ResearchWorkstreamRunStage {
-	if (value === "literature-search") {
+	if (value === "literature-search" || value === "computation") {
 		return value;
 	}
 	return normalizeResearchWorkstreamRole(value);
@@ -2655,6 +2830,20 @@ function normalizeLiteratureClaimSupportStatus(value: unknown): LiteratureClaimS
 		return value;
 	}
 	return "unsupported";
+}
+
+function normalizeComputationalArtifactKind(value: unknown): ComputationalArtifactKind {
+	if (value === "script" || value === "stdout" || value === "stderr" || value === "table" || value === "summary") {
+		return value;
+	}
+	return "summary";
+}
+
+function normalizeComputationalArtifactStatus(value: unknown): ComputationalArtifactStatus {
+	if (value === "created" || value === "completed" || value === "failed" || value === "blocked") {
+		return value;
+	}
+	return "completed";
 }
 
 function normalizeResearchFocus(value: unknown, fallbackTime: string): ResearchFocus | undefined {
@@ -2875,7 +3064,8 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "research_workstream_recorded" ||
 		value === "research_workstream_run_recorded" ||
 		value === "literature_source_recorded" ||
-		value === "literature_claim_support_recorded"
+		value === "literature_claim_support_recorded" ||
+		value === "computational_artifact_recorded"
 	);
 }
 
@@ -2905,6 +3095,33 @@ function getNumberField(value: object, key: string, fallback: number): number {
 function getOptionalStringField(value: object, key: string): string | undefined {
 	const field = (value as Record<string, unknown>)[key];
 	return typeof field === "string" && field.length > 0 ? field : undefined;
+}
+
+function capComputationalArtifactSummary(summary: string): string {
+	const trimmed = summary.trim();
+	if (trimmed.length <= COMPUTATIONAL_ARTIFACT_SUMMARY_LIMIT) {
+		return trimmed;
+	}
+	return `${trimmed.slice(0, COMPUTATIONAL_ARTIFACT_SUMMARY_LIMIT - 3)}...`;
+}
+
+function normalizeComputationalArtifactFilePath(filePath: string): string {
+	const normalized = filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "");
+	if (!isComputationalArtifactFilePath(normalized)) {
+		throw new Error("Computational artifact filePath must be under .pi/co-math/artifacts/.");
+	}
+	return normalized;
+}
+
+function isComputationalArtifactFilePath(filePath: string): boolean {
+	const normalized = filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "");
+	if (!normalized.startsWith(".pi/co-math/artifacts/")) {
+		return false;
+	}
+	if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) {
+		return false;
+	}
+	return !normalized.split("/").includes("..");
 }
 
 function appendEvent(state: CoMathProjectState, input: AppendEventInput): CoMathProjectState {

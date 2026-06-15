@@ -6,6 +6,7 @@ import type { ClaimStatus, CoMathProjectState } from "../examples/extensions/co-
 import {
 	addArtifact,
 	addClaim,
+	addComputationalArtifact,
 	addEvidence,
 	addGoal,
 	addLiteratureClaimSupport,
@@ -29,6 +30,8 @@ import {
 	finishRoleRun,
 	getActiveResearchPaths,
 	getActiveResearchWorkstreamRun,
+	getComputationalArtifactsForReport,
+	getComputationalArtifactsForRun,
 	getDefaultStatePath,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
@@ -50,6 +53,7 @@ import {
 	setGoalStatus,
 	setResearchFocus,
 	startRoleRun,
+	updateComputationalArtifact,
 	updateResearchPath,
 	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
@@ -105,6 +109,7 @@ describe("co-math project state", () => {
 			researchWorkstreamRuns: [],
 			literatureSources: [],
 			literatureClaimSupports: [],
+			computationalArtifacts: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -343,6 +348,122 @@ describe("co-math project state", () => {
 		expect(
 			getLiteratureClaimSupportsForReportOrPath(state, { pathId: "path-1" }).map((support) => support.id),
 		).toEqual(["claim-support-1"]);
+	});
+
+	it("records computational artifacts, links reports, and rejects unsafe file paths", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Small examples and counterexamples",
+			objective: "Run a finite check.",
+			suggestedNextMove: "Use the computation to guide the next proof attempt.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Small examples and counterexamples",
+			currentStage: "computation",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addComputationalArtifact(state, {
+			pathId: "path-1",
+			runId: "research-run-1",
+			kind: "script",
+			status: "completed",
+			title: "Computation script",
+			filePath: ".pi/co-math/artifacts/research-run-1/search.py",
+			command: "python3 search.py",
+			exitCode: 0,
+			summary: "Finite search script.",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addComputationalArtifact(state, {
+			pathId: "path-1",
+			runId: "research-run-1",
+			kind: "stdout",
+			status: "completed",
+			title: "Computation output",
+			filePath: ".pi/co-math/artifacts/research-run-1/stdout.txt",
+			command: "python3 search.py",
+			exitCode: 0,
+			summary: "checked_range: 1 <= n <= 100\nprime_values_found: 19",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addResearchWorkstreamReport(state, {
+			pathId: "path-1",
+			pathTitle: "Small examples and counterexamples",
+			status: "completed",
+			startedAt: FIXED_NOW,
+			completedAt: FIXED_NOW,
+			coordinatorBrief: "Choose a bounded finite check.",
+			steps: [],
+			promisingStrategy: ["Use finite output as evidence only."],
+			findings: ["The check found prime values in the bounded range."],
+			criticisms: ["A finite computation does not prove an infinite claim."],
+			gaps: ["A theorem-level proof is still open."],
+			humanHelpUseful: [],
+			suggestedNextMove: "Use the parity observation in a proof path.",
+			workingPaperSectionTitle: "Examples and finite checks",
+			computationalArtifactIds: ["computation-artifact-1", "computation-artifact-2"],
+			now: FIXED_NOW,
+			actor: "synthesizer",
+		});
+		state = updateComputationalArtifact(state, {
+			artifactId: "computation-artifact-1",
+			reportId: "research-report-1",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = updateComputationalArtifact(state, {
+			artifactId: "computation-artifact-2",
+			reportId: "research-report-1",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+
+		expect(state.computationalArtifacts).toMatchObject([
+			{
+				id: "computation-artifact-1",
+				pathId: "path-1",
+				reportId: "research-report-1",
+				runId: "research-run-1",
+				kind: "script",
+				status: "completed",
+				filePath: ".pi/co-math/artifacts/research-run-1/search.py",
+				exitCode: 0,
+			},
+			{
+				id: "computation-artifact-2",
+				kind: "stdout",
+				summary: "checked_range: 1 <= n <= 100\nprime_values_found: 19",
+			},
+		]);
+		expect(state.events.map((event) => event.kind)).toContain("computational_artifact_recorded");
+		expect(state.researchReports[0]?.computationalArtifactIds).toEqual([
+			"computation-artifact-1",
+			"computation-artifact-2",
+		]);
+		expect(getComputationalArtifactsForReport(state, "research-report-1").map((artifact) => artifact.id)).toEqual([
+			"computation-artifact-1",
+			"computation-artifact-2",
+		]);
+		expect(getComputationalArtifactsForRun(state, "research-run-1").map((artifact) => artifact.id)).toEqual([
+			"computation-artifact-1",
+			"computation-artifact-2",
+		]);
+		expect(() =>
+			addComputationalArtifact(state, {
+				pathId: "path-1",
+				kind: "stdout",
+				title: "Bad output",
+				filePath: "../outside.txt",
+				summary: "Bad path.",
+				now: FIXED_NOW,
+			}),
+		).toThrow(/under \.pi\/co-math\/artifacts/i);
 	});
 
 	it("records and updates research workstream runs with incremental reports", () => {
@@ -1882,6 +2003,7 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.researchWorkstreamRuns;
 			delete legacyWithoutNewFields.literatureSources;
 			delete legacyWithoutNewFields.literatureClaimSupports;
+			delete legacyWithoutNewFields.computationalArtifacts;
 			delete legacyWithoutNewFields.researchFocus;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
@@ -1899,6 +2021,7 @@ describe("co-math project state", () => {
 			expect(loaded?.researchWorkstreamRuns).toEqual([]);
 			expect(loaded?.literatureSources).toEqual([]);
 			expect(loaded?.literatureClaimSupports).toEqual([]);
+			expect(loaded?.computationalArtifacts).toEqual([]);
 			expect(loaded?.researchFocus).toBeUndefined();
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",

@@ -11,6 +11,11 @@ import {
 	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 } from "../examples/extensions/co-math/storage.ts";
+import type {
+	ComputationalExecutionResult,
+	ComputationalExecutor,
+	ComputationalScriptDraft,
+} from "../src/modes/comath/comath-computation-executor.ts";
 import { type CoMathBackendCommandResult, CoMathHarness } from "../src/modes/comath/comath-harness.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "../src/modes/comath/comath-literature-source.ts";
 import type {
@@ -177,6 +182,39 @@ const TWIN_PRIME_LITERATURE_RESPONSES: Record<"specialist" | "critic" | "synthes
 	].join("\n"),
 };
 
+const N_SQUARED_COMPUTATION_RESPONSES: Record<"specialist" | "critic" | "synthesizer", string> = {
+	specialist: [
+		"Finite search for n^2 + 1.",
+		"",
+		"```python",
+		"BOUND = 20",
+		"print('checked_range: 1 <= n <= 20')",
+		"print('prime_values_found: 7')",
+		"```",
+	].join("\n"),
+	critic: [
+		"## Review",
+		"- The computation records an explicit finite range.",
+		"## Limitations",
+		"- A finite computation does not prove an infinite claim.",
+		"## Gaps",
+		"- The bridge from checked cases to a proof remains open.",
+	].join("\n"),
+	synthesizer: [
+		"## Promising strategy",
+		"- Use the checked examples to look for parity and congruence obstructions.",
+		"## Findings",
+		"- checked_range: 1 <= n <= 20",
+		"- prime_values_found: 7",
+		"## Limitations",
+		"- A finite computation does not prove an infinite claim.",
+		"## Gaps",
+		"- The finite check is evidence, not a proof of infinitude.",
+		"## Next",
+		"- Use the parity observation to refine the direct-proof path.",
+	].join("\n"),
+};
+
 function createTwinPrimeExecutor(): {
 	executor: ResearchWorkstreamModelExecutor;
 	roles: string[];
@@ -191,6 +229,20 @@ function createTwinPrimeExecutor(): {
 	return { executor, roles };
 }
 
+function createNSquaredComputationExecutor(): {
+	executor: ResearchWorkstreamModelExecutor;
+	requests: ResearchWorkstreamModelRequest[];
+} {
+	const requests: ResearchWorkstreamModelRequest[] = [];
+	const executor: ResearchWorkstreamModelExecutor = {
+		run: async (request) => {
+			requests.push(request);
+			return { text: N_SQUARED_COMPUTATION_RESPONSES[request.role] };
+		},
+	};
+	return { executor, requests };
+}
+
 function createTwinPrimeLiteratureExecutor(): {
 	executor: ResearchWorkstreamModelExecutor;
 	requests: ResearchWorkstreamModelRequest[];
@@ -203,6 +255,65 @@ function createTwinPrimeLiteratureExecutor(): {
 		},
 	};
 	return { executor, requests };
+}
+
+function createFakeComputationalExecutor(result?: Partial<ComputationalExecutionResult>): {
+	computationalExecutor: ComputationalExecutor;
+	drafts: ComputationalScriptDraft[];
+} {
+	const drafts: ComputationalScriptDraft[] = [];
+	const computationalExecutor: ComputationalExecutor = {
+		runScript: async (draft) => {
+			drafts.push(draft);
+			return {
+				command: "python3 search.py",
+				exitCode: 0,
+				stdout: "checked_range: 1 <= n <= 20\nprime_values_found: 7\n",
+				stderr: "",
+				durationMs: 7,
+				scriptFileName: "search.py",
+				stdoutFileName: "stdout.txt",
+				...result,
+			};
+		},
+	};
+	return { computationalExecutor, drafts };
+}
+
+function createDeferredComputationalExecutor(): {
+	computationalExecutor: ComputationalExecutor;
+	drafts: ComputationalScriptDraft[];
+	resolveNext(result?: Partial<ComputationalExecutionResult>): void;
+} {
+	const drafts: ComputationalScriptDraft[] = [];
+	const pending: Array<(result: ComputationalExecutionResult) => void> = [];
+	return {
+		drafts,
+		computationalExecutor: {
+			runScript: async (draft) => {
+				drafts.push(draft);
+				return new Promise((resolve) => {
+					pending.push(resolve);
+				});
+			},
+		},
+		resolveNext: (result) => {
+			const resolve = pending.shift();
+			if (!resolve) {
+				throw new Error("No pending computation to resolve.");
+			}
+			resolve({
+				command: "python3 search.py",
+				exitCode: 0,
+				stdout: "checked_range: 1 <= n <= 20\nprime_values_found: 7\n",
+				stderr: "",
+				durationMs: 7,
+				scriptFileName: "search.py",
+				stdoutFileName: "stdout.txt",
+				...result,
+			});
+		},
+	};
 }
 
 function createLiteratureLookup(sources: LiteratureSourceResult[]): {
@@ -287,6 +398,7 @@ function createDeferredExecutor(): {
 async function createModelHarnessFixture(
 	executor: ResearchWorkstreamModelExecutor,
 	literatureSourceLookup?: LiteratureSourceLookup,
+	computationalExecutor?: ComputationalExecutor,
 ): Promise<{
 	dir: string;
 	harness: CoMathHarness;
@@ -317,6 +429,7 @@ async function createModelHarnessFixture(
 		},
 		researchModelExecutor: executor,
 		...(literatureSourceLookup ? { literatureSourceLookup } : {}),
+		...(computationalExecutor ? { computationalExecutor } : {}),
 	});
 	return { dir, harness, notices, statePath };
 }
@@ -934,6 +1047,142 @@ describe("co-math harness", () => {
 			expect(visible).not.toContain("Chen");
 			expect(visible).not.toContain("Maynard");
 			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("routes examples paths to a computation workstream and persists computation outputs", async () => {
+		const { executor, requests } = createNSquaredComputationExecutor();
+		const { computationalExecutor, drafts } = createFakeComputationalExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(
+			executor,
+			undefined,
+			computationalExecutor,
+		);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 1");
+			await waitForProjectState(statePath, "completed computation report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
+			expect(drafts[0]?.content).toContain("BOUND = 20");
+			expect(state.researchWorkstreamRuns[0]).toMatchObject({
+				pathTitle: "Small examples and counterexamples",
+				status: "completed",
+				finalReportId: "research-report-1",
+			});
+			expect(state.computationalArtifacts).toMatchObject([
+				{
+					id: "computation-artifact-1",
+					kind: "script",
+					status: "completed",
+					filePath: ".pi/co-math/artifacts/research-run-1/search.py",
+					exitCode: 0,
+				},
+				{
+					id: "computation-artifact-2",
+					kind: "stdout",
+					status: "completed",
+					filePath: ".pi/co-math/artifacts/research-run-1/stdout.txt",
+					exitCode: 0,
+				},
+			]);
+			expect(state.researchReports[0]).toMatchObject({
+				pathTitle: "Small examples and counterexamples",
+				computationalArtifactIds: ["computation-artifact-1", "computation-artifact-2"],
+			});
+			expect(state.literatureSources).toEqual([]);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Coordinator is choosing a bounded finite experiment.");
+			expect(visible).toContain("Computational specialist is preparing a small script.");
+			expect(visible).toContain("Computation");
+			expect(visible).toContain("Script: computation-artifact-1");
+			expect(visible).toContain("Result: computation-artifact-2");
+			expect(visible).toContain("A finite computation does not prove an infinite claim.");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows computation-stage progress while a finite check is running", async () => {
+		const { executor } = createNSquaredComputationExecutor();
+		const deferred = createDeferredComputationalExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(
+			executor,
+			undefined,
+			deferred.computationalExecutor,
+		);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 1");
+			await waitForProjectState(statePath, "computation running", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.currentStage === "computation"),
+			);
+
+			const before = notices.length;
+			await harness.handlePrompt("show progress");
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("Research workstream running");
+			expect(visible).toContain("Path 1: Small examples and counterexamples");
+			expect(visible).toContain("Current stage");
+			expect(visible).toContain("Computation");
+			expect(visible).toContain("Running the bounded finite computation.");
+
+			deferred.resolveNext();
+			await waitForProjectState(statePath, "completed computation after deferred result", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("preserves failed computation outputs and blocks the computation run visibly", async () => {
+		const { executor } = createNSquaredComputationExecutor();
+		const { computationalExecutor } = createFakeComputationalExecutor({
+			exitCode: 1,
+			stdout: "",
+			stderr: "Traceback: finite check failed",
+			durationMs: 4,
+			stderrFileName: "stderr.txt",
+		});
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(
+			executor,
+			undefined,
+			computationalExecutor,
+		);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 1");
+			await waitForProjectState(statePath, "blocked failed computation report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "blocked"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports[0]?.status).toBe("blocked");
+			expect(state.computationalArtifacts.map((artifact) => artifact.status)).toEqual([
+				"failed",
+				"failed",
+				"failed",
+			]);
+			expect(state.computationalArtifacts[2]).toMatchObject({
+				kind: "stderr",
+				summary: "Traceback: finite check failed",
+				exitCode: 1,
+			});
+
+			const before = notices.length;
+			await harness.handlePrompt("show latest report");
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("Traceback: finite check failed");
+			expect(visible).toContain("Exit code: 1");
+			expect(visible).toContain("Attachments");
+			expect(visible).toContain("computation-artifact-3");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

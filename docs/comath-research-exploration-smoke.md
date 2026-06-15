@@ -259,6 +259,61 @@ if p.exists():
 '
 ```
 
+## Computational exploration workstream smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-computation-workstream-demo-1
+cd comath-computation-workstream-demo-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Explore this problem: Are there infinitely many primes of the form n^2 + 1?
+```
+
+```text
+continue path 1
+```
+
+```text
+show progress
+```
+
+```text
+show latest report
+```
+
+```text
+summarize current state
+```
+
+Good signs:
+
+```text
+[ ] Path 1 starts a computational/examples workstream.
+[ ] Progress mentions computation or a finite check.
+[ ] Script/result attachments are saved under .pi/co-math/artifacts/.
+[ ] The report includes a checked range and exit code.
+[ ] The critic says finite search does not prove infinitude.
+[ ] The working paper is updated with observations, not a proof claim.
+```
+
+Optional state check:
+
+```bash
+python3 -c 'import json, pathlib; p=pathlib.Path(".pi/co-math/state.json"); print("exists", p.exists());
+if p.exists():
+ s=json.loads(p.read_text()); print("computationalArtifacts", len(s.get("computationalArtifacts", []))); print("runs", len(s.get("researchWorkstreamRuns", []))); print("reports", len(s.get("researchReports", [])));
+ [print("artifact", a.get("id"), a.get("kind"), a.get("status"), a.get("filePath"), a.get("exitCode")) for a in s.get("computationalArtifacts", [])]
+ [print("report", r.get("id"), r.get("status"), r.get("computationalArtifactIds")) for r in s.get("researchReports", [])]
+'
+```
+
 ## LLM-backed generic problem smoke
 
 `continue path N` runs a real specialist -> critic -> synthesizer model pass when a model/provider
