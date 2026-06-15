@@ -47,6 +47,7 @@ import { hasProjectTrustInputs, ProjectTrustStore } from "./core/trust-manager.t
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
 import { CoMathHarness } from "./modes/comath/comath-harness.ts";
 import { formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
+import { createDefaultResearchModelExecutor } from "./modes/comath/comath-research-model-executor.ts";
 import { resolveCoMathSource } from "./modes/comath/comath-source.ts";
 import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.ts";
 import { ExtensionSelectorComponent } from "./modes/interactive/components/extension-selector.ts";
@@ -820,6 +821,9 @@ export async function main(args: string[], options?: MainOptions) {
 						productMode: true,
 						silent: true,
 					}),
+				// Real specialist/critic/synthesizer model calls for `continue path N`; the harness
+				// falls back to deterministic execution if these fail or no model is configured.
+				researchModelExecutor: createDefaultResearchModelExecutor({ cwd: runtimeCwd }),
 			}),
 		);
 		await sendCoMathNotice(formatCoMathWelcome(source));

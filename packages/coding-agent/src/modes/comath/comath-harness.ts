@@ -3,6 +3,9 @@ import type { CoMathProjectState, ResearchPath } from "../../../examples/extensi
 import {
 	addMarginNote,
 	addResearchPath,
+	addResearchWorkstreamReport,
+	getLatestResearchWorkstreamReport,
+	getLatestResearchWorkstreamReportForPath,
 	loadProjectState,
 	saveProjectState,
 	setResearchFocus,
@@ -26,16 +29,23 @@ import {
 	formatProductProgress,
 	formatReadyForContext,
 	formatResearchFocusUpdated,
+	formatResearchModelFallbackNote,
 	formatResearchPathDropped,
-	formatResearchRoundCompleted,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
+	formatResearchWorkstreamCompleted,
+	formatResearchWorkstreamReport,
+	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatWaitingForContext,
 } from "./comath-progress.ts";
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
-import { runResearchPathRound } from "./comath-research-execution.ts";
+import {
+	type ResearchWorkstreamModelExecutor,
+	runModelBackedResearchWorkstream,
+} from "./comath-research-model-workstream.ts";
+import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
 import type { CoMathSource } from "./comath-source.ts";
 
 export type CoMathHarnessNoticeType = "info" | "warning" | "error";
@@ -54,6 +64,12 @@ export interface CoMathHarnessOptions {
 	runBackendCommand: CoMathBackendCommandRunner;
 	createPlan?: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	startFirstRun?: boolean;
+	/**
+	 * Optional model executor for model-backed research workstreams. When present, `continue path N`
+	 * runs a real specialist/critic/synthesizer model pass; when absent or failing, the harness uses
+	 * the deterministic workstream instead.
+	 */
+	researchModelExecutor?: ResearchWorkstreamModelExecutor;
 }
 
 export class CoMathHarness {
@@ -63,6 +79,7 @@ export class CoMathHarness {
 	private readonly runBackendCommand: CoMathBackendCommandRunner;
 	private readonly createPlan: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	private readonly startFirstRun: boolean;
+	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
 	constructor(options: CoMathHarnessOptions) {
@@ -72,6 +89,7 @@ export class CoMathHarness {
 		this.runBackendCommand = options.runBackendCommand;
 		this.createPlan = options.createPlan ?? createCoMathAutoPlan;
 		this.startFirstRun = options.startFirstRun ?? true;
+		this.researchModelExecutor = options.researchModelExecutor;
 	}
 
 	async handlePrompt(problemText: string): Promise<void> {
@@ -331,6 +349,36 @@ export class CoMathHarness {
 			await this.notify(formatResearchStateSummary(state));
 			return;
 		}
+		const detailsForPath = /^show (?:details|report) for path (\d+)$/i.exec(prompt.trim());
+		if (detailsForPath?.[1]) {
+			const pathNumber = Number.parseInt(detailsForPath[1], 10);
+			const path = state.researchPaths[pathNumber - 1];
+			if (!path) {
+				await this.notify(
+					"I could not find that research path. Ask for a summary to see the current paths.",
+					"warning",
+				);
+				return;
+			}
+			const report = getLatestResearchWorkstreamReportForPath(state, path.id);
+			if (!report) {
+				await this.notify(
+					`No detailed report has been recorded for Path ${pathNumber} yet. Say "continue path ${pathNumber}" to run one.`,
+				);
+				return;
+			}
+			await this.notify(formatResearchWorkstreamReport({ state, report }));
+			return;
+		}
+		if (/^show (?:the )?(?:latest )?report$/i.test(prompt.trim())) {
+			const report = getLatestResearchWorkstreamReport(state);
+			if (!report) {
+				await this.notify("No research report is available yet. Continue a path first.");
+				return;
+			}
+			await this.notify(formatResearchWorkstreamReport({ state, report }));
+			return;
+		}
 		const focus = /^focus on (.+)$/i.exec(prompt);
 		if (focus?.[1]) {
 			const path = findResearchPath(state, focus[1]);
@@ -399,56 +447,114 @@ export class CoMathHarness {
 				);
 				return;
 			}
-			const now = new Date().toISOString();
-			const result = runResearchPathRound({
-				rootQuestion: state.rootQuestion,
-				path,
-				allPaths: state.researchPaths,
-				now,
-			});
-			let nextState = updateResearchPath(state, {
-				pathId: path.id,
-				latestFindings: [...path.latestFindings, ...result.findings],
-				blockers: uniqueStrings([...path.blockers, ...result.uncertainties, ...result.blockers]),
-				suggestedNextMove: result.suggestedNextMove,
-				now,
-				actor: "system",
-			});
-			nextState = upsertWorkingPaperSectionByTitle(nextState, {
-				title: result.workingPaperSectionTitle,
-				body: result.workingPaperSummary,
-				now,
-				actor: "system",
-			});
-			const section = nextState.workingPaperSections.find(
-				(candidate) => candidate.title === result.workingPaperSectionTitle,
-			);
-			for (const note of [...result.uncertainties, ...result.blockers].slice(0, 3)) {
-				nextState = addMarginNote(nextState, {
-					id: `margin-note-${nextState.marginNotes.length + 1}`,
-					kind: result.blockers.includes(note) ? "gap" : "warning",
-					subjectId: path.id,
-					...(section ? { sectionId: section.id } : {}),
-					message: note,
-					now,
-					actor: "system",
-				});
-			}
-			await saveProjectState(this.statePath, nextState);
-			const updatedPath = nextState.researchPaths.find((candidate) => candidate.id === path.id) ?? path;
-			await this.notify(
-				formatResearchRoundCompleted({
-					state: nextState,
-					path: updatedPath,
-					findings: result.findings,
-					uncertainties: [...result.uncertainties, ...result.blockers],
-					suggestedNextMove: result.suggestedNextMove,
-					workingPaperSectionTitle: result.workingPaperSectionTitle,
-				}),
-			);
+			await this.runResearchWorkstreamForPath(state, path);
 			return;
 		}
 		await this.notify(formatResearchStateSummary(state));
+	}
+
+	/**
+	 * Run a coordinator-managed research workstream for a single path: specialist attempt, critic
+	 * review, and synthesis. Use a model-backed pass when an executor is configured, falling back to
+	 * deterministic execution if it is absent or fails. Persist the durable structured report, update
+	 * the path, working paper, and margin notes, then surface only curated progress to the user.
+	 */
+	private async runResearchWorkstreamForPath(state: CoMathProjectState, path: ResearchPath): Promise<void> {
+		const now = new Date().toISOString();
+		let report: ResearchWorkstreamReport;
+		let usedModelFallback = false;
+		if (this.researchModelExecutor) {
+			try {
+				report = await runModelBackedResearchWorkstream({
+					rootQuestion: state.rootQuestion,
+					path,
+					allPaths: state.researchPaths,
+					now,
+					executor: this.researchModelExecutor,
+				});
+			} catch {
+				usedModelFallback = true;
+				report = runResearchWorkstream({
+					rootQuestion: state.rootQuestion,
+					path,
+					allPaths: state.researchPaths,
+					now,
+				});
+			}
+		} else {
+			report = runResearchWorkstream({ rootQuestion: state.rootQuestion, path, allPaths: state.researchPaths, now });
+		}
+		const nextState = this.persistResearchWorkstreamReport(state, path, report, now);
+		await saveProjectState(this.statePath, nextState);
+		if (usedModelFallback) {
+			await this.notify(formatResearchModelFallbackNote());
+		}
+		await this.notify(formatResearchWorkstreamStarted({ state: nextState, report }));
+		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+	}
+
+	/**
+	 * Shared persistence for a completed research workstream (model-backed or deterministic): update
+	 * the path findings/blockers, upsert the working-paper section, record critic gaps/criticisms as
+	 * margin notes, and append the durable structured report. Returns the next state to save.
+	 */
+	private persistResearchWorkstreamReport(
+		state: CoMathProjectState,
+		path: ResearchPath,
+		report: ResearchWorkstreamReport,
+		now: string,
+	): CoMathProjectState {
+		let nextState = updateResearchPath(state, {
+			pathId: path.id,
+			latestFindings: [...path.latestFindings, ...report.findings],
+			blockers: uniqueStrings([...path.blockers, ...report.gaps]),
+			suggestedNextMove: report.suggestedNextMove,
+			now,
+			actor: "system",
+		});
+		nextState = upsertWorkingPaperSectionByTitle(nextState, {
+			title: report.workingPaperSectionTitle,
+			body: report.workingPaperSummary,
+			now,
+			actor: "synthesizer",
+		});
+		const section = nextState.workingPaperSections.find(
+			(candidate) => candidate.title === report.workingPaperSectionTitle,
+		);
+		const noteCandidates = [
+			...report.gaps.map((message) => ({ kind: "gap" as const, message })),
+			...report.criticisms.map((message) => ({ kind: "warning" as const, message })),
+		].slice(0, 3);
+		for (const candidate of noteCandidates) {
+			nextState = addMarginNote(nextState, {
+				id: `margin-note-${nextState.marginNotes.length + 1}`,
+				kind: candidate.kind,
+				subjectId: path.id,
+				...(section ? { sectionId: section.id } : {}),
+				message: candidate.message,
+				now,
+				actor: "reviewer",
+			});
+		}
+		return addResearchWorkstreamReport(nextState, {
+			pathId: report.pathId,
+			pathTitle: report.pathTitle,
+			status: report.status,
+			startedAt: report.startedAt,
+			completedAt: report.completedAt,
+			coordinatorBrief: report.coordinatorBrief,
+			steps: report.steps,
+			promisingStrategy: report.promisingStrategy,
+			findings: report.findings,
+			criticisms: report.criticisms,
+			gaps: report.gaps,
+			humanHelpUseful: report.humanHelpUseful,
+			suggestedNextMove: report.suggestedNextMove,
+			workingPaperSectionTitle: report.workingPaperSectionTitle,
+			...(section ? { workingPaperSectionId: section.id } : {}),
+			now,
+			actor: "synthesizer",
+		});
 	}
 
 	/**

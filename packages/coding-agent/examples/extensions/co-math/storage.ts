@@ -22,6 +22,9 @@ import type {
 	ResearchFocus,
 	ResearchPath,
 	ResearchPathStatus,
+	ResearchWorkstreamReportRecord,
+	ResearchWorkstreamReportStatus,
+	ResearchWorkstreamStepRecord,
 	ReviewQueueItem,
 	ReviewRoundOutcome,
 	ReviewRoundRecord,
@@ -54,6 +57,7 @@ type LegacyProjectState = Omit<
 	| "workingPaperSections"
 	| "marginNotes"
 	| "researchPaths"
+	| "researchReports"
 	| "researchFocus"
 > &
 	Partial<
@@ -74,6 +78,7 @@ type LegacyProjectState = Omit<
 				| "workingPaperSections"
 				| "marginNotes"
 				| "researchPaths"
+				| "researchReports"
 				| "researchFocus"
 			>,
 			"roleRuns"
@@ -220,6 +225,27 @@ export interface UpdateResearchPathInput {
 export interface SetResearchFocusInput {
 	pathIds: string[];
 	reason: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchWorkstreamReportInput {
+	id?: string;
+	pathId: string;
+	pathTitle: string;
+	status: ResearchWorkstreamReportStatus;
+	startedAt: string;
+	completedAt: string;
+	coordinatorBrief: string;
+	steps: ResearchWorkstreamStepRecord[];
+	promisingStrategy: string[];
+	findings: string[];
+	criticisms: string[];
+	gaps: string[];
+	humanHelpUseful: string[];
+	suggestedNextMove: string;
+	workingPaperSectionTitle: string;
+	workingPaperSectionId?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -423,6 +449,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		workingPaperSections: [],
 		marginNotes: [],
 		researchPaths: [],
+		researchReports: [],
 		events: [
 			{
 				id: "event-1",
@@ -917,6 +944,73 @@ export function setResearchFocus(state: CoMathProjectState, input: SetResearchFo
 			now: input.now,
 		},
 	);
+}
+
+export function addResearchWorkstreamReport(
+	state: CoMathProjectState,
+	input: AddResearchWorkstreamReportInput,
+): CoMathProjectState {
+	const pathId = input.pathId.trim();
+	const pathTitle = input.pathTitle.trim();
+	if (!pathId) {
+		throw new Error("Research workstream report requires a path id.");
+	}
+	if (!pathTitle) {
+		throw new Error("Research workstream report requires a path title.");
+	}
+	const id = input.id?.trim() || `research-report-${state.researchReports.length + 1}`;
+	if (state.researchReports.some((report) => report.id === id)) {
+		throw new Error(`Duplicate research workstream report id: ${id}`);
+	}
+	const report: ResearchWorkstreamReportRecord = {
+		id,
+		kind: "research_workstream",
+		pathId,
+		pathTitle,
+		status: input.status,
+		startedAt: input.startedAt,
+		completedAt: input.completedAt,
+		coordinatorBrief: input.coordinatorBrief,
+		steps: input.steps.map((step) => ({ ...step, details: [...step.details] })),
+		promisingStrategy: [...input.promisingStrategy],
+		findings: [...input.findings],
+		criticisms: [...input.criticisms],
+		gaps: [...input.gaps],
+		humanHelpUseful: [...input.humanHelpUseful],
+		suggestedNextMove: input.suggestedNextMove,
+		workingPaperSectionTitle: input.workingPaperSectionTitle,
+		...(input.workingPaperSectionId ? { workingPaperSectionId: input.workingPaperSectionId } : {}),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchReports: [...state.researchReports, report],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_workstream_recorded",
+			actor: input.actor,
+			summary: `Recorded research workstream report ${id} for ${pathTitle}`,
+			subjectId: id,
+			relatedIds: [pathId],
+			now: input.now,
+		},
+	);
+}
+
+export function getLatestResearchWorkstreamReport(
+	state: CoMathProjectState,
+): ResearchWorkstreamReportRecord | undefined {
+	return state.researchReports.at(-1);
+}
+
+export function getLatestResearchWorkstreamReportForPath(
+	state: CoMathProjectState,
+	pathId: string,
+): ResearchWorkstreamReportRecord | undefined {
+	return [...state.researchReports].reverse().find((report) => report.pathId === pathId);
 }
 
 export function getActiveResearchPaths(state: CoMathProjectState): ResearchPath[] {
@@ -1702,6 +1796,9 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		researchPaths: getArrayField(value, "researchPaths").map((record, index) =>
 			normalizeResearchPath(record, updatedAt, index),
 		),
+		researchReports: getArrayField(value, "researchReports").map((record, index) =>
+			normalizeResearchWorkstreamReport(record, updatedAt, index),
+		),
 		...(normalizeResearchFocus(value.researchFocus, updatedAt)
 			? { researchFocus: normalizeResearchFocus(value.researchFocus, updatedAt) }
 			: {}),
@@ -1995,6 +2092,57 @@ function normalizeResearchPath(value: Record<string, unknown>, fallbackTime: str
 	};
 }
 
+function normalizeResearchWorkstreamReport(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchWorkstreamReportRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `research-report-${index + 1}`),
+		kind: "research_workstream",
+		pathId: getStringField(value, "pathId", "path-legacy"),
+		pathTitle: getStringField(value, "pathTitle", "Research path"),
+		status: normalizeResearchWorkstreamReportStatus(value.status),
+		startedAt: getStringField(value, "startedAt", createdAt),
+		completedAt: getStringField(value, "completedAt", createdAt),
+		coordinatorBrief: getStringField(value, "coordinatorBrief", ""),
+		steps: getArrayField(value, "steps").map((step) => normalizeResearchWorkstreamStep(step)),
+		promisingStrategy: getStringArrayField(value, "promisingStrategy"),
+		findings: getStringArrayField(value, "findings"),
+		criticisms: getStringArrayField(value, "criticisms"),
+		gaps: getStringArrayField(value, "gaps"),
+		humanHelpUseful: getStringArrayField(value, "humanHelpUseful"),
+		suggestedNextMove: getStringField(value, "suggestedNextMove", ""),
+		workingPaperSectionTitle: getStringField(value, "workingPaperSectionTitle", ""),
+		...(getOptionalStringField(value, "workingPaperSectionId")
+			? { workingPaperSectionId: getOptionalStringField(value, "workingPaperSectionId") }
+			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeResearchWorkstreamStep(value: Record<string, unknown>): ResearchWorkstreamStepRecord {
+	return {
+		role: normalizeResearchWorkstreamRole(value.role),
+		title: getStringField(value, "title", ""),
+		summary: getStringField(value, "summary", ""),
+		details: getStringArrayField(value, "details"),
+	};
+}
+
+function normalizeResearchWorkstreamRole(value: unknown): ResearchWorkstreamStepRecord["role"] {
+	if (value === "coordinator" || value === "specialist" || value === "critic" || value === "synthesizer") {
+		return value;
+	}
+	return "coordinator";
+}
+
+function normalizeResearchWorkstreamReportStatus(value: unknown): ResearchWorkstreamReportStatus {
+	return value === "blocked" ? "blocked" : "completed";
+}
+
 function normalizeResearchFocus(value: unknown, fallbackTime: string): ResearchFocus | undefined {
 	if (typeof value !== "object" || value === null) {
 		return undefined;
@@ -2209,7 +2357,8 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "working_paper_section_recorded" ||
 		value === "margin_note_recorded" ||
 		value === "margin_note_resolved" ||
-		value === "working_paper_exported"
+		value === "working_paper_exported" ||
+		value === "research_workstream_recorded"
 	);
 }
 

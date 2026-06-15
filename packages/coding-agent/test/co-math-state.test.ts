@@ -11,6 +11,7 @@ import {
 	addMarginNote,
 	addReportReviewRound,
 	addResearchPath,
+	addResearchWorkstreamReport,
 	addReviewDecisionEvent,
 	addReviewRound,
 	addWarning,
@@ -23,6 +24,8 @@ import {
 	finishRoleRun,
 	getActiveResearchPaths,
 	getDefaultStatePath,
+	getLatestResearchWorkstreamReport,
+	getLatestResearchWorkstreamReportForPath,
 	isClaimSynthesisEligible,
 	loadProjectState,
 	queueRoleRun,
@@ -87,6 +90,7 @@ describe("co-math project state", () => {
 			workingPaperSections: [],
 			marginNotes: [],
 			researchPaths: [],
+			researchReports: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -142,6 +146,103 @@ describe("co-math project state", () => {
 			updatedAt: "2026-06-05T12:11:00.000Z",
 		});
 		expect(getActiveResearchPaths(state).map((path) => path.id)).toEqual(["path-1"]);
+	});
+
+	it("records, finds, and round-trips research workstream reports", async () => {
+		let state = addResearchPath(createProject(), {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Look for a congruence obstruction.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchWorkstreamReport(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			status: "completed",
+			startedAt: FIXED_NOW,
+			completedAt: "2026-06-05T12:05:00.000Z",
+			coordinatorBrief: "Frame the direct proof objective.",
+			steps: [
+				{ role: "coordinator", title: "Coordinator brief", summary: "Framed the objective.", details: ["Brief."] },
+				{ role: "specialist", title: "Specialist attempt", summary: "Attempted.", details: ["Finding."] },
+				{ role: "critic", title: "Critic review", summary: "Reviewed.", details: ["Gap: open."] },
+				{ role: "synthesizer", title: "Synthesis", summary: "Synthesized.", details: ["Next: continue."] },
+			],
+			promisingStrategy: ["Reduce to the even case."],
+			findings: ["A Euclid-style argument is not immediate."],
+			criticisms: ["Not a proof of infinitude."],
+			gaps: ["No complete mechanism established."],
+			humanHelpUseful: [],
+			suggestedNextMove: "Try a weaker theorem.",
+			workingPaperSectionTitle: "Direct proof attempts",
+			workingPaperSectionId: "paper-section-1",
+			now: "2026-06-05T12:05:00.000Z",
+			actor: "synthesizer",
+		});
+
+		expect(state.researchReports).toHaveLength(1);
+		expect(state.researchReports[0]).toMatchObject({
+			id: "research-report-1",
+			kind: "research_workstream",
+			pathId: "path-1",
+			status: "completed",
+			workingPaperSectionId: "paper-section-1",
+		});
+		expect(state.events.at(-1)).toMatchObject({
+			kind: "research_workstream_recorded",
+			actor: "synthesizer",
+			subjectId: "research-report-1",
+			relatedIds: ["path-1"],
+		});
+		expect(getLatestResearchWorkstreamReport(state)?.id).toBe("research-report-1");
+		expect(getLatestResearchWorkstreamReportForPath(state, "path-1")?.id).toBe("research-report-1");
+		expect(getLatestResearchWorkstreamReportForPath(state, "path-2")).toBeUndefined();
+
+		const tempDir = await mkdtemp(path.join(tmpdir(), "pi-comath-research-report-"));
+		try {
+			const statePath = getDefaultStatePath(tempDir);
+			await saveProjectState(statePath, state);
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchReports).toEqual(state.researchReports);
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects research workstream reports with empty required fields and duplicate ids", () => {
+		const base = addResearchPath(createProject(), {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Look for a congruence obstruction.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		const validInput = {
+			id: "research-report-1",
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			status: "completed" as const,
+			startedAt: FIXED_NOW,
+			completedAt: FIXED_NOW,
+			coordinatorBrief: "Brief.",
+			steps: [],
+			promisingStrategy: [],
+			findings: [],
+			criticisms: [],
+			gaps: [],
+			humanHelpUseful: [],
+			suggestedNextMove: "Continue.",
+			workingPaperSectionTitle: "Direct proof attempts",
+			now: FIXED_NOW,
+			actor: "synthesizer" as const,
+		};
+		expect(() => addResearchWorkstreamReport(base, { ...validInput, pathId: "  " })).toThrow(/path id/i);
+		expect(() => addResearchWorkstreamReport(base, { ...validInput, pathTitle: "  " })).toThrow(/path title/i);
+		const withReport = addResearchWorkstreamReport(base, validInput);
+		expect(() => addResearchWorkstreamReport(withReport, validInput)).toThrow(/duplicate/i);
 	});
 
 	it("adds a goal with deterministic id and timestamp injection", () => {
@@ -1530,6 +1631,7 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.workingPaperSections;
 			delete legacyWithoutNewFields.marginNotes;
 			delete legacyWithoutNewFields.researchPaths;
+			delete legacyWithoutNewFields.researchReports;
 			delete legacyWithoutNewFields.researchFocus;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 

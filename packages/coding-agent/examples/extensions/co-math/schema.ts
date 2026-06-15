@@ -15,6 +15,8 @@ export type WorkingPaperSectionStatus = "draft" | "needs_revision" | "reviewed";
 export type MarginNoteKind = "gap" | "todo" | "warning" | "provenance" | "comment";
 export type MarginNoteStatus = "open" | "resolved";
 export type ResearchPathStatus = "active" | "promising" | "blocked" | "abandoned" | "resolved";
+export type ResearchWorkstreamRole = "coordinator" | "specialist" | "critic" | "synthesizer";
+export type ResearchWorkstreamReportStatus = "completed" | "blocked";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -46,7 +48,8 @@ export type CoMathEventKind =
 	| "working_paper_section_recorded"
 	| "margin_note_recorded"
 	| "margin_note_resolved"
-	| "working_paper_exported";
+	| "working_paper_exported"
+	| "research_workstream_recorded";
 export type ArtifactKind =
 	| "source"
 	| "computation"
@@ -264,6 +267,35 @@ export interface ResearchFocus {
 	updatedAt: string;
 }
 
+export interface ResearchWorkstreamStepRecord {
+	role: ResearchWorkstreamRole;
+	title: string;
+	summary: string;
+	details: string[];
+}
+
+export interface ResearchWorkstreamReportRecord {
+	id: string;
+	kind: "research_workstream";
+	pathId: string;
+	pathTitle: string;
+	status: ResearchWorkstreamReportStatus;
+	startedAt: string;
+	completedAt: string;
+	coordinatorBrief: string;
+	steps: ResearchWorkstreamStepRecord[];
+	promisingStrategy: string[];
+	findings: string[];
+	criticisms: string[];
+	gaps: string[];
+	humanHelpUseful: string[];
+	suggestedNextMove: string;
+	workingPaperSectionTitle: string;
+	workingPaperSectionId?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -285,6 +317,7 @@ export interface CoMathProjectState {
 	workingPaperSections: WorkingPaperSection[];
 	marginNotes: MarginNote[];
 	researchPaths: ResearchPath[];
+	researchReports: ResearchWorkstreamReportRecord[];
 	researchFocus?: ResearchFocus;
 	updatedAt: string;
 }

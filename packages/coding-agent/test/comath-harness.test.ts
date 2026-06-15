@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createEmptyProjectState, loadProjectState, saveProjectState } from "../examples/extensions/co-math/storage.ts";
 import { type CoMathBackendCommandResult, CoMathHarness } from "../src/modes/comath/comath-harness.ts";
+import type { ResearchWorkstreamModelExecutor } from "../src/modes/comath/comath-research-model-workstream.ts";
 
 const OK: CoMathBackendCommandResult = { ok: true, messages: [] };
 
@@ -65,6 +66,92 @@ async function createResearchHarnessFixture(): Promise<{
 		},
 	});
 	return { commands, dir, harness, notices, statePath };
+}
+
+const TWIN_PRIME_MODEL_RESPONSES: Record<"specialist" | "critic" | "synthesizer", string> = {
+	specialist: [
+		"## Findings",
+		"- Twin primes are prime pairs at distance 2 such as (3, 5) and (5, 7).",
+		"## Promising strategy",
+		"- Consider sieve-theoretic reductions instead of a direct construction.",
+		"## Gaps",
+		"- No mechanism forces infinitely many prime pairs at distance 2.",
+		"## Next",
+		"- Compare against bounded prime gaps as a weaker target.",
+	].join("\n"),
+	critic: [
+		"## Review",
+		"- The specialist did not prove infinitude of twin primes.",
+		"## Gaps",
+		"- Bounded prime gaps are weaker than twin-prime infinitude.",
+		"## Overclaims or source issues",
+		"- No overclaims detected.",
+		"## Human help useful",
+		"- A number theorist could advise on the appropriate sieve method.",
+	].join("\n"),
+	synthesizer: [
+		"## Promising strategy",
+		"- A direct proof of twin-prime infinitude is out of reach; examine bounded prime gaps as context.",
+		"## Findings",
+		"- Twin primes remain conjecturally infinite with strong numerical support.",
+		"## Review",
+		"- The specialist did not prove infinitude of twin primes; do not conflate bounded prime gaps with prime pairs at distance 2.",
+		"## Gap",
+		"- No mechanism forces infinitely many twin primes, i.e. prime pairs at distance 2.",
+		"## Human help useful",
+		"- Literature guidance on sieve theory would help.",
+		"## Next",
+		"- Switch to a literature/source-backed path, or ask for a weaker target such as bounded prime gaps.",
+		"## Working paper summary",
+		"- Twin-prime infinitude is open; bounded prime gaps are a weaker, related result.",
+	].join("\n"),
+};
+
+function createTwinPrimeExecutor(): {
+	executor: ResearchWorkstreamModelExecutor;
+	roles: string[];
+} {
+	const roles: string[] = [];
+	const executor: ResearchWorkstreamModelExecutor = {
+		run: async (request) => {
+			roles.push(request.role);
+			return { text: TWIN_PRIME_MODEL_RESPONSES[request.role] };
+		},
+	};
+	return { executor, roles };
+}
+
+async function createModelHarnessFixture(executor: ResearchWorkstreamModelExecutor): Promise<{
+	dir: string;
+	harness: CoMathHarness;
+	notices: string[];
+	statePath: string;
+}> {
+	const dir = await mkdtemp(join(tmpdir(), "comath-model-harness-"));
+	const statePath = join(dir, ".pi", "co-math", "state.json");
+	const notices: string[] = [];
+	const harness = new CoMathHarness({
+		statePath,
+		notify: (message) => {
+			notices.push(message);
+		},
+		runBackendCommand: async (command) => {
+			if (command.startsWith("init ")) {
+				await saveProjectState(
+					statePath,
+					createEmptyProjectState({
+						projectId: "proj-test",
+						title: command.slice("init ".length),
+						rootQuestion: command.slice("init ".length),
+						now: "2026-06-05T12:00:00.000Z",
+					}),
+				);
+			}
+			return OK;
+		},
+		researchModelExecutor: executor,
+	});
+	return { dir, harness, notices, statePath };
 }
 
 async function loadRequiredProjectState(statePath: string) {
@@ -227,7 +314,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Path updated");
 			expect(visible).toContain("Direct proof attempt");
 			expect(visible).toContain("Weaker special cases");
-			expect(visible).toContain("Research round completed");
+			expect(visible).toContain("Research workstream completed");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -283,7 +370,7 @@ describe("co-math harness", () => {
 			expect(state.researchPaths[1]?.latestFindings.join("\n")).toContain("Euclid-style argument is not immediate");
 			expect(state.researchPaths[1]?.latestFindings.join("\n")).not.toContain("n = 1 gives 2, prime");
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research round completed");
+			expect(visible).toContain("Research workstream completed");
 			expect(visible).toContain("Direct proof attempt");
 			expectProductCopy(visible);
 		} finally {
@@ -299,6 +386,7 @@ describe("co-math harness", () => {
 
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchPaths.every((path) => path.latestFindings.length === 0)).toBe(true);
+			expect(state.researchReports).toEqual([]);
 			const lastNotice = notices[notices.length - 1] ?? "";
 			expect(lastNotice).toContain("I could not find a matching active research path to continue.");
 			expect(lastNotice).not.toContain("Research round completed");
@@ -340,13 +428,186 @@ describe("co-math harness", () => {
 			expect(state.marginNotes.length).toBeGreaterThan(0);
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research round completed");
+			expect(visible).toContain("Research workstream completed");
 			expect(visible).toContain("Path 1: Small examples and counterexamples");
-			expect(visible).toContain("Findings");
-			expect(visible).toContain("Uncertainty");
+			expect(visible).toContain("Promising strategy");
+			expect(visible).toContain("Review");
+			expect(visible).toContain("Gap");
 			expect(visible).toContain("Working paper updated");
 			expect(visible).toContain("Latest findings");
 			expect(visible).toContain("n = 10 gives 101, prime");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("creates a durable research workstream report with curated progress for continue path 2", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 2");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports.length).toBe(1);
+			const report = state.researchReports[0];
+			expect(report?.kind).toBe("research_workstream");
+			expect(report?.pathTitle).toBe("Direct proof attempt");
+			expect(report?.status).toBe("completed");
+			expect(report?.steps.map((step) => step.role)).toEqual(["coordinator", "specialist", "critic", "synthesizer"]);
+			expect(report?.promisingStrategy.join("\n")).toContain("4m^2 + 1");
+			expect(report?.gaps.join("\n")).toContain("infinitely many even n");
+			expect(report?.workingPaperSectionId).toBeTruthy();
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research workstream started");
+			expect(visible).toContain("Research workstream completed");
+			expect(visible).toContain("Promising strategy");
+			expect(visible).toContain("Review");
+			expect(visible).toContain("Gap");
+			expect(visible).toContain("Working paper updated");
+			expect(visible).toContain("show latest report");
+			expect(visible).not.toMatch(/role-run-|workstream-|artifact-|schema|queue/i);
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows coordinator, specialist, critic, and synthesis sections for show latest report", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 2");
+			const before = notices.length;
+			await harness.handlePrompt("show latest report");
+
+			const reportVisible = notices.slice(before).join("\n");
+			expect(reportVisible).toContain("Latest research report");
+			expect(reportVisible).toContain("Path 2: Direct proof attempt");
+			expect(reportVisible).toContain("Coordinator brief");
+			expect(reportVisible).toContain("Specialist attempt");
+			expect(reportVisible).toContain("Critic review");
+			expect(reportVisible).toContain("Synthesis");
+			expect(reportVisible).toContain("Next");
+			expect(reportVisible).toContain("Euclid-style construction does not immediately preserve the form n^2 + 1");
+			expect(reportVisible).not.toMatch(/role-run-|workstream-|artifact-|schema|queue/i);
+			expectProductCopy(reportVisible);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports.length).toBe(1);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows a per-path detailed report after continuing that path", async () => {
+		const { dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 5");
+			const before = notices.length;
+			await harness.handlePrompt("show details for path 5");
+
+			const reportVisible = notices.slice(before).join("\n");
+			expect(reportVisible).toContain("Latest research report");
+			expect(reportVisible).toContain("Path 5: Known theorem or literature reduction");
+			expect(reportVisible).toContain("Critic review");
+			expect(reportVisible).toContain("source-backed literature check");
+			expect(reportVisible).toContain("Human help useful");
+			expectProductCopy(reportVisible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("explains when no detailed report exists yet", async () => {
+		const { dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("show latest report");
+			await harness.handlePrompt("show details for path 3");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("No research report is available yet. Continue a path first.");
+			expect(visible).toContain(
+				'No detailed report has been recorded for Path 3 yet. Say "continue path 3" to run one.',
+			);
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("mentions report availability in the research state summary", async () => {
+		const { dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 2");
+			const before = notices.length;
+			await harness.handlePrompt("summarize current state");
+
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain('Report: available; say "show details for path 2".');
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("uses the model-backed workstream for a generic problem when an executor is configured", async () => {
+		const { executor, roles } = createTwinPrimeExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 2");
+
+			expect(roles).toEqual(["specialist", "critic", "synthesizer"]);
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports.length).toBe(1);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research workstream completed");
+			expect(visible).toContain("twin primes");
+			expect(visible).toContain("distance 2");
+			expect(visible).toContain("bounded prime gaps");
+			expect(visible).not.toContain("I used the local fallback");
+			expect(visible).not.toMatch(/role-run-|workstream-|artifact-|schema|queue/i);
+			expectProductCopy(visible);
+
+			const before = notices.length;
+			await harness.handlePrompt("show latest report");
+			const report = notices.slice(before).join("\n");
+			expect(report).toContain("Latest research report");
+			expect(report).toContain("Specialist attempt");
+			expect(report).toContain("Critic review");
+			expect(report).toContain("Synthesis");
+			expect(report).toContain("Twin primes are prime pairs at distance 2");
+			expectProductCopy(report);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to deterministic workstream when the model executor fails", async () => {
+		const executor: ResearchWorkstreamModelExecutor = {
+			run: async () => {
+				throw new Error("model unavailable");
+			},
+		};
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 2");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports.length).toBe(1);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain(
+				"I used the local fallback for this round because model-backed research was unavailable.",
+			);
+			expect(visible).toContain("Research workstream completed");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

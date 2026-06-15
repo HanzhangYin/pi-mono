@@ -17,11 +17,15 @@ import {
 	formatResearchRoundUpdated,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
+	formatResearchWorkstreamCompleted,
+	formatResearchWorkstreamReport,
+	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatWaitingForContext,
 } from "../src/modes/comath/comath-progress.ts";
 import { createCoMathResearchAutoPlan } from "../src/modes/comath/comath-research-autoplan.ts";
+import { runResearchWorkstream } from "../src/modes/comath/comath-research-workstream.ts";
 
 const FORBIDDEN_PRODUCT_TERMS = [
 	"Co-math research mode",
@@ -285,5 +289,60 @@ describe("co-math product messages", () => {
 				workingPaperSectionTitle: "Examples and evidence",
 			}),
 		);
+	});
+
+	it("formats research workstream started, completed, and report copy", () => {
+		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
+		const paths = plan.paths.map(
+			(planPath, index): ResearchPath => ({
+				id: `path-${index + 1}`,
+				title: planPath.title,
+				objective: planPath.objective,
+				status: "active",
+				latestFindings: [],
+				blockers: [],
+				suggestedNextMove: planPath.suggestedNextMove,
+				priority: planPath.priority,
+				createdAt: "2026-06-05T12:00:00.000Z",
+				updatedAt: "2026-06-05T12:00:00.000Z",
+			}),
+		);
+		const directProof = paths[1];
+		if (!directProof) {
+			throw new Error("Expected a direct proof research path.");
+		}
+		const report = runResearchWorkstream({
+			rootQuestion: plan.rootQuestion,
+			path: directProof,
+			allPaths: paths,
+			now: "2026-06-05T12:30:00.000Z",
+		});
+		const state = { researchPaths: paths };
+
+		const started = formatResearchWorkstreamStarted({ state, report });
+		expect(started).toContain("Research workstream started");
+		expect(started).toContain("Path 2: Direct proof attempt");
+		expect(started).toContain("Progress");
+		expectProductCopy(started);
+
+		const completed = formatResearchWorkstreamCompleted({ state, report });
+		expect(completed).toContain("Research workstream completed");
+		expect(completed).toContain("Promising strategy");
+		expect(completed).toContain("Review");
+		expect(completed).toContain("Gap");
+		expect(completed).toContain("Next");
+		expect(completed).toContain("Working paper updated");
+		expect(completed).toContain("show latest report");
+		expectProductCopy(completed);
+
+		const full = formatResearchWorkstreamReport({ state, report });
+		expect(full).toContain("Latest research report");
+		expect(full).toContain("Path 2: Direct proof attempt");
+		expect(full).toContain("Coordinator brief");
+		expect(full).toContain("Specialist attempt");
+		expect(full).toContain("Critic review");
+		expect(full).toContain("Synthesis");
+		expect(full).toContain("Next");
+		expectProductCopy(full);
 	});
 });

@@ -1,4 +1,8 @@
-import type { CoMathProjectState, ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
+import type {
+	CoMathProjectState,
+	ResearchPath,
+	ResearchWorkstreamReportRecord,
+} from "../../../examples/extensions/co-math/schema.ts";
 import { sanitizeProductIds } from "./comath-backend-output.ts";
 import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import type { CoMathSource } from "./comath-source.ts";
@@ -180,18 +184,25 @@ export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): s
 	].join("\n");
 }
 
-export function formatResearchStateSummary(state: Pick<CoMathProjectState, "researchPaths" | "researchFocus">): string {
+export type ResearchStateSummaryInput = Pick<CoMathProjectState, "researchPaths" | "researchFocus"> & {
+	researchReports?: readonly ResearchWorkstreamReportRecord[];
+};
+
+export function formatResearchStateSummary(state: ResearchStateSummaryInput): string {
 	const active = state.researchPaths.filter((path) => path.status === "active" || path.status === "promising");
 	const blocked = state.researchPaths.filter((path) => path.status === "blocked");
 	const abandoned = state.researchPaths.filter((path) => path.status === "abandoned");
+	const reports = state.researchReports ?? [];
 	const best = chooseResearchPath(state);
 	return [
 		"Current research state",
 		"",
 		"Active paths",
-		...(active.length > 0 ? active.map((path) => formatResearchPathLine(state, path)) : ["- None right now."]),
+		...(active.length > 0
+			? active.map((path) => formatResearchPathLine(state, path, reports))
+			: ["- None right now."]),
 		...(blocked.length > 0
-			? ["", "Blocked paths", ...blocked.map((path) => formatResearchPathLine(state, path))]
+			? ["", "Blocked paths", ...blocked.map((path) => formatResearchPathLine(state, path, reports))]
 			: []),
 		...(abandoned.length > 0
 			? ["", "Abandoned for now", ...abandoned.map((path) => `- ${formatResearchPathLabel(state, path)}`)]
@@ -266,12 +277,131 @@ export function formatResearchRoundCompleted(input: FormatResearchRoundCompleted
 	].join("\n");
 }
 
-function formatResearchPathLine(state: Pick<CoMathProjectState, "researchPaths">, path: ResearchPath): string {
+export type ResearchWorkstreamReportView = Pick<
+	ResearchWorkstreamReportRecord,
+	| "pathId"
+	| "pathTitle"
+	| "status"
+	| "coordinatorBrief"
+	| "steps"
+	| "promisingStrategy"
+	| "findings"
+	| "criticisms"
+	| "gaps"
+	| "humanHelpUseful"
+	| "suggestedNextMove"
+	| "workingPaperSectionTitle"
+>;
+
+export interface FormatResearchWorkstreamInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	report: ResearchWorkstreamReportView;
+}
+
+export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamInput): string {
+	const progress = ["coordinator", "specialist", "critic", "synthesizer"]
+		.map((role) => input.report.steps.find((step) => step.role === role))
+		.filter((step): step is ResearchWorkstreamReportView["steps"][number] => step !== undefined)
+		.map((step) => `- ${step.summary}`);
+	return [
+		"Research workstream started",
+		"",
+		formatResearchReportPathLabel(input.state, input.report),
+		"",
+		"Progress",
+		...(progress.length > 0 ? progress : ["- Working through the path."]),
+	].join("\n");
+}
+
+export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstreamInput): string {
+	const { report } = input;
+	return [
+		"Research workstream completed",
+		"",
+		formatResearchReportPathLabel(input.state, report),
+		"",
+		"Promising strategy",
+		...bulletsOrFallback(report.promisingStrategy, "No promising strategy identified yet."),
+		"",
+		"Review",
+		...bulletsOrFallback(report.criticisms, "No review notes recorded."),
+		"",
+		"Gap",
+		...bulletsOrFallback(report.gaps, "No open gaps recorded."),
+		...(report.humanHelpUseful.length > 0
+			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
+			: []),
+		"",
+		"Next",
+		report.suggestedNextMove,
+		"",
+		"Working paper updated",
+		`- Added synthesized notes under "${report.workingPaperSectionTitle}."`,
+		"",
+		"Details",
+		'- Say "show latest report" to inspect the internal attempt and critique.',
+	].join("\n");
+}
+
+export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamInput): string {
+	const { report } = input;
+	const coordinator = report.steps.find((step) => step.role === "coordinator");
+	const specialist = report.steps.find((step) => step.role === "specialist");
+	const critic = report.steps.find((step) => step.role === "critic");
+	return [
+		"Latest research report",
+		"",
+		formatResearchReportPathLabel(input.state, report),
+		"",
+		"Coordinator brief",
+		...(coordinator && coordinator.details.length > 0 ? coordinator.details : [report.coordinatorBrief]),
+		"",
+		"Specialist attempt",
+		...bulletsOrFallback(specialist?.details ?? report.findings, "No attempt details were recorded."),
+		"",
+		"Critic review",
+		...bulletsOrFallback(critic?.details ?? report.criticisms, "No review details were recorded."),
+		"",
+		"Synthesis",
+		...bulletsOrFallback(report.promisingStrategy, "No synthesized strategy was recorded."),
+		...(report.humanHelpUseful.length > 0
+			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
+			: []),
+		"",
+		"Next",
+		report.suggestedNextMove,
+	].join("\n");
+}
+
+export function formatResearchModelFallbackNote(): string {
+	return "I used the local fallback for this round because model-backed research was unavailable.";
+}
+
+function bulletsOrFallback(items: readonly string[], fallback: string): string[] {
+	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
+}
+
+function formatResearchReportPathLabel(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	report: Pick<ResearchWorkstreamReportView, "pathId" | "pathTitle">,
+): string {
+	const pathIndex = state.researchPaths.findIndex((candidate) => candidate.id === report.pathId);
+	return pathIndex >= 0 ? `Path ${pathIndex + 1}: ${report.pathTitle}` : report.pathTitle;
+}
+
+function formatResearchPathLine(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	path: ResearchPath,
+	reports: readonly ResearchWorkstreamReportRecord[],
+): string {
 	const findings = path.latestFindings.slice(-3);
+	const pathIndex = state.researchPaths.findIndex((candidate) => candidate.id === path.id);
+	const hasReport = reports.some((report) => report.pathId === path.id);
 	return [
 		`- ${formatResearchPathLabel(state, path)}: ${path.status}`,
 		...(findings.length > 0 ? ["  Latest findings", ...findings.map((finding) => `  - ${finding}`)] : []),
 		`  Next: ${path.suggestedNextMove}`,
+		...(hasReport && pathIndex >= 0 ? [`  Report: available; say "show details for path ${pathIndex + 1}".`] : []),
 	].join("\n");
 }
 
