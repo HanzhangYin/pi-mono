@@ -26,6 +26,9 @@ import type {
 	Report,
 	ReportReviewOutcome,
 	ReportReviewRoundRecord,
+	ResearchCoordinatorNextMove,
+	ResearchCoordinatorNextMovePriority,
+	ResearchCoordinatorReportRecord,
 	ResearchFocus,
 	ResearchPath,
 	ResearchPathStatus,
@@ -73,6 +76,7 @@ type LegacyProjectState = Omit<
 	| "literatureSources"
 	| "literatureClaimSupports"
 	| "computationalArtifacts"
+	| "researchCoordinatorReports"
 	| "researchFocus"
 > &
 	Partial<
@@ -98,6 +102,7 @@ type LegacyProjectState = Omit<
 				| "literatureSources"
 				| "literatureClaimSupports"
 				| "computationalArtifacts"
+				| "researchCoordinatorReports"
 				| "researchFocus"
 			>,
 			"roleRuns"
@@ -268,6 +273,23 @@ export interface AddResearchWorkstreamReportInput {
 	sourceIds?: string[];
 	claimSupportIds?: string[];
 	computationalArtifactIds?: string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchCoordinatorReportInput {
+	id?: string;
+	inputReportIds?: string[];
+	inputPathIds?: string[];
+	inputSourceIds?: string[];
+	inputComputationalArtifactIds?: string[];
+	whatWeKnow: string[];
+	roadblocks: string[];
+	recommendedNextMoves: ResearchCoordinatorNextMove[];
+	humanHelpUseful?: string[];
+	suggestedPathId?: string;
+	suggestedPrompt?: string;
+	workingPaperSectionId?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -574,6 +596,7 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		literatureSources: [],
 		literatureClaimSupports: [],
 		computationalArtifacts: [],
+		researchCoordinatorReports: [],
 		events: [
 			{
 				id: "event-1",
@@ -1138,6 +1161,71 @@ export function getLatestResearchWorkstreamReportForPath(
 	pathId: string,
 ): ResearchWorkstreamReportRecord | undefined {
 	return [...state.researchReports].reverse().find((report) => report.pathId === pathId);
+}
+
+export function addResearchCoordinatorReport(
+	state: CoMathProjectState,
+	input: AddResearchCoordinatorReportInput,
+): CoMathProjectState {
+	const id = input.id?.trim() || `coordinator-report-${state.researchCoordinatorReports.length + 1}`;
+	if (state.researchCoordinatorReports.some((report) => report.id === id)) {
+		throw new Error(`Duplicate research coordinator report id: ${id}`);
+	}
+	const recommendedNextMoves = input.recommendedNextMoves
+		.map(normalizeResearchCoordinatorNextMoveInput)
+		.filter((move): move is ResearchCoordinatorNextMove => move !== undefined);
+	const report: ResearchCoordinatorReportRecord = {
+		id,
+		inputReportIds: sanitizeStringArray(input.inputReportIds ?? []),
+		inputPathIds: sanitizeStringArray(input.inputPathIds ?? []),
+		inputSourceIds: sanitizeStringArray(input.inputSourceIds ?? []),
+		inputComputationalArtifactIds: sanitizeStringArray(input.inputComputationalArtifactIds ?? []),
+		whatWeKnow: fallbackStringArray(input.whatWeKnow, "No durable findings have been recorded yet."),
+		roadblocks: fallbackStringArray(input.roadblocks, "No current roadblock was identified."),
+		recommendedNextMoves:
+			recommendedNextMoves.length > 0
+				? recommendedNextMoves
+				: [
+						{
+							title: "Choose a research path to continue",
+							rationale: "No specific next move was identified from the current project state.",
+							priority: "medium",
+						},
+					],
+		humanHelpUseful: sanitizeStringArray(input.humanHelpUseful ?? []),
+		...(input.suggestedPathId?.trim() ? { suggestedPathId: input.suggestedPathId.trim() } : {}),
+		...(input.suggestedPrompt?.trim() ? { suggestedPrompt: input.suggestedPrompt.trim() } : {}),
+		...(input.workingPaperSectionId?.trim() ? { workingPaperSectionId: input.workingPaperSectionId.trim() } : {}),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchCoordinatorReports: [...state.researchCoordinatorReports, report],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_coordinator_report_recorded",
+			actor: input.actor,
+			summary: `Recorded project coordinator report ${id}`,
+			subjectId: id,
+			relatedIds: uniqueStrings([
+				...report.inputReportIds,
+				...report.inputPathIds,
+				...report.inputSourceIds,
+				...report.inputComputationalArtifactIds,
+				...(report.suggestedPathId ? [report.suggestedPathId] : []),
+			]),
+			now: input.now,
+		},
+	);
+}
+
+export function getLatestResearchCoordinatorReport(
+	state: CoMathProjectState,
+): ResearchCoordinatorReportRecord | undefined {
+	return state.researchCoordinatorReports.at(-1);
 }
 
 export function addLiteratureSourceArtifact(
@@ -2321,6 +2409,9 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		computationalArtifacts: getArrayField(value, "computationalArtifacts").map((record, index) =>
 			normalizeComputationalArtifact(record, updatedAt, index),
 		),
+		researchCoordinatorReports: getArrayField(value, "researchCoordinatorReports").map((record, index) =>
+			normalizeResearchCoordinatorReport(record, updatedAt, index),
+		),
 		...(normalizeResearchFocus(value.researchFocus, updatedAt)
 			? { researchFocus: normalizeResearchFocus(value.researchFocus, updatedAt) }
 			: {}),
@@ -2716,6 +2807,40 @@ function normalizeComputationalArtifact(
 	};
 }
 
+function normalizeResearchCoordinatorReport(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchCoordinatorReportRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `coordinator-report-${index + 1}`),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+		inputReportIds: getStringArrayField(value, "inputReportIds"),
+		inputPathIds: getStringArrayField(value, "inputPathIds"),
+		inputSourceIds: getStringArrayField(value, "inputSourceIds"),
+		inputComputationalArtifactIds: getStringArrayField(value, "inputComputationalArtifactIds"),
+		whatWeKnow: fallbackStringArray(getStringArrayField(value, "whatWeKnow"), "No durable findings were recorded."),
+		roadblocks: fallbackStringArray(getStringArrayField(value, "roadblocks"), "No current roadblock was identified."),
+		recommendedNextMoves: fallbackResearchCoordinatorNextMoves(
+			getArrayField(value, "recommendedNextMoves")
+				.map(normalizeResearchCoordinatorNextMoveRecord)
+				.filter((move): move is ResearchCoordinatorNextMove => move !== undefined),
+		),
+		humanHelpUseful: getStringArrayField(value, "humanHelpUseful"),
+		...(getOptionalStringField(value, "suggestedPathId")
+			? { suggestedPathId: getOptionalStringField(value, "suggestedPathId") }
+			: {}),
+		...(getOptionalStringField(value, "suggestedPrompt")
+			? { suggestedPrompt: getOptionalStringField(value, "suggestedPrompt") }
+			: {}),
+		...(getOptionalStringField(value, "workingPaperSectionId")
+			? { workingPaperSectionId: getOptionalStringField(value, "workingPaperSectionId") }
+			: {}),
+	};
+}
+
 function normalizeResearchWorkstreamStep(value: Record<string, unknown>): ResearchWorkstreamStepRecord {
 	return {
 		role: normalizeResearchWorkstreamRole(value.role),
@@ -2844,6 +2969,13 @@ function normalizeComputationalArtifactStatus(value: unknown): ComputationalArti
 		return value;
 	}
 	return "completed";
+}
+
+function normalizeResearchCoordinatorNextMovePriority(value: unknown): ResearchCoordinatorNextMovePriority {
+	if (value === "high" || value === "medium" || value === "low") {
+		return value;
+	}
+	return "medium";
 }
 
 function normalizeResearchFocus(value: unknown, fallbackTime: string): ResearchFocus | undefined {
@@ -3065,7 +3197,8 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "research_workstream_run_recorded" ||
 		value === "literature_source_recorded" ||
 		value === "literature_claim_support_recorded" ||
-		value === "computational_artifact_recorded"
+		value === "computational_artifact_recorded" ||
+		value === "research_coordinator_report_recorded"
 	);
 }
 
@@ -3095,6 +3228,62 @@ function getNumberField(value: object, key: string, fallback: number): number {
 function getOptionalStringField(value: object, key: string): string | undefined {
 	const field = (value as Record<string, unknown>)[key];
 	return typeof field === "string" && field.length > 0 ? field : undefined;
+}
+
+function normalizeResearchCoordinatorNextMoveInput(
+	move: ResearchCoordinatorNextMove,
+): ResearchCoordinatorNextMove | undefined {
+	const title = move.title.trim();
+	const rationale = move.rationale.trim();
+	if (!title && !rationale) {
+		return undefined;
+	}
+	return {
+		title: title || "Recommended next move",
+		...(move.pathId?.trim() ? { pathId: move.pathId.trim() } : {}),
+		rationale: rationale || "This move follows from the current project state.",
+		...(move.prompt?.trim() ? { prompt: move.prompt.trim() } : {}),
+		priority: normalizeResearchCoordinatorNextMovePriority(move.priority),
+	};
+}
+
+function normalizeResearchCoordinatorNextMoveRecord(
+	value: Record<string, unknown>,
+): ResearchCoordinatorNextMove | undefined {
+	const title = getStringField(value, "title", "").trim();
+	const rationale = getStringField(value, "rationale", "").trim();
+	if (!title && !rationale) {
+		return undefined;
+	}
+	return {
+		title: title || "Recommended next move",
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		rationale: rationale || "This move follows from the current project state.",
+		...(getOptionalStringField(value, "prompt") ? { prompt: getOptionalStringField(value, "prompt") } : {}),
+		priority: normalizeResearchCoordinatorNextMovePriority(value.priority),
+	};
+}
+
+function fallbackResearchCoordinatorNextMoves(moves: ResearchCoordinatorNextMove[]): ResearchCoordinatorNextMove[] {
+	if (moves.length > 0) {
+		return moves;
+	}
+	return [
+		{
+			title: "Choose a research path to continue",
+			rationale: "No specific next move was identified from the current project state.",
+			priority: "medium",
+		},
+	];
+}
+
+function sanitizeStringArray(values: readonly string[]): string[] {
+	return uniqueStrings(values.map((value) => value.trim()).filter((value) => value.length > 0));
+}
+
+function fallbackStringArray(values: readonly string[], fallback: string): string[] {
+	const normalized = sanitizeStringArray(values);
+	return normalized.length > 0 ? normalized : [fallback];
 }
 
 function capComputationalArtifactSummary(summary: string): string {

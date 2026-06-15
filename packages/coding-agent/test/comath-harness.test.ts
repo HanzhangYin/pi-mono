@@ -2,9 +2,13 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
 import {
+	addComputationalArtifact,
+	addLiteratureClaimSupport,
 	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
+	addResearchWorkstreamReport,
 	addResearchWorkstreamRun,
 	createEmptyProjectState,
 	loadProjectState,
@@ -462,6 +466,142 @@ async function loadRequiredProjectState(statePath: string) {
 	return state;
 }
 
+async function createCoordinatorHarnessFixture(input?: {
+	state?: CoMathProjectState;
+	executor?: ResearchWorkstreamModelExecutor;
+}): Promise<{
+	commands: string[];
+	dir: string;
+	harness: CoMathHarness;
+	notices: string[];
+	statePath: string;
+}> {
+	const dir = await mkdtemp(join(tmpdir(), "comath-coordinator-harness-"));
+	const statePath = join(dir, ".pi", "co-math", "state.json");
+	if (input?.state) {
+		await saveProjectState(statePath, input.state);
+	}
+	const commands: string[] = [];
+	const notices: string[] = [];
+	const harness = new CoMathHarness({
+		statePath,
+		notify: (message) => {
+			notices.push(message);
+		},
+		runBackendCommand: async (command) => {
+			commands.push(command);
+			return OK;
+		},
+		...(input?.executor ? { researchModelExecutor: input.executor } : {}),
+	});
+	return { commands, dir, harness, notices, statePath };
+}
+
+function createCoordinatorHarnessState(): CoMathProjectState {
+	let state = createEmptyProjectState({
+		projectId: "proj-test",
+		title: "n^2 + 1 primes",
+		rootQuestion: "Are there infinitely many primes of the form n^2 + 1?",
+		now: "2026-06-05T12:00:00.000Z",
+	});
+	for (const path of [
+		{
+			title: "Small examples and counterexamples",
+			objective: "Run bounded finite checks.",
+			suggestedNextMove: "Use finite examples to guide proof attempts.",
+			priority: 1,
+		},
+		{
+			title: "Direct proof attempt",
+			objective: "Try a direct proof using parity and congruences.",
+			suggestedNextMove: "Use parity observations.",
+			priority: 2,
+		},
+		{
+			title: "Reformulation",
+			objective: "Connect the problem to known conjectural frameworks.",
+			suggestedNextMove: "Compare against prime-values-of-polynomials heuristics.",
+			priority: 3,
+		},
+		{
+			title: "Weaker special cases",
+			objective: "Study bounded or restricted variants.",
+			suggestedNextMove: "Try a weaker theorem.",
+			priority: 4,
+		},
+		{
+			title: "Known theorem or literature reduction",
+			objective: "Find theorem references.",
+			suggestedNextMove: "Find source-backed theorem statements.",
+			priority: 5,
+		},
+	]) {
+		state = addResearchPath(state, {
+			...path,
+			now: "2026-06-05T12:00:00.000Z",
+			actor: "human",
+		});
+	}
+	state = addComputationalArtifact(state, {
+		pathId: "path-1",
+		kind: "stdout",
+		status: "completed",
+		title: "Finite check output",
+		exitCode: 0,
+		summary: "checked_range: 1 <= n <= 20\nprime_values_found: 7",
+		now: "2026-06-05T12:00:00.000Z",
+		actor: "system",
+	});
+	state = addResearchWorkstreamReport(state, {
+		pathId: "path-1",
+		pathTitle: "Small examples and counterexamples",
+		status: "completed",
+		startedAt: "2026-06-05T12:00:00.000Z",
+		completedAt: "2026-06-05T12:00:00.000Z",
+		coordinatorBrief: "Choose a bounded finite check.",
+		steps: [],
+		promisingStrategy: ["Use examples to identify parity and congruence obstructions."],
+		findings: ["checked_range: 1 <= n <= 20", "prime_values_found: 7"],
+		criticisms: ["A finite computation does not prove an infinite claim."],
+		gaps: ["A theorem-level proof is still open."],
+		humanHelpUseful: [],
+		suggestedNextMove: "Use the parity observation in a proof path.",
+		workingPaperSectionTitle: "Examples and finite checks",
+		computationalArtifactIds: ["computation-artifact-1"],
+		now: "2026-06-05T12:00:00.000Z",
+		actor: "synthesizer",
+	});
+	state = addLiteratureClaimSupport(state, {
+		pathId: "path-5",
+		claim: "Known theorems prove infinitely many primes of the form n^2 + 1.",
+		sourceIds: [],
+		status: "unsupported",
+		note: "No source-backed theorem was available.",
+		now: "2026-06-05T12:00:00.000Z",
+		actor: "reviewer",
+	});
+	state = addResearchWorkstreamReport(state, {
+		pathId: "path-5",
+		pathTitle: "Known theorem or literature reduction",
+		status: "blocked",
+		startedAt: "2026-06-05T12:00:00.000Z",
+		completedAt: "2026-06-05T12:00:00.000Z",
+		coordinatorBrief: "Check exact source support.",
+		steps: [],
+		promisingStrategy: [],
+		findings: [],
+		criticisms: ["No source proves the needed theorem."],
+		gaps: ["No source-backed theorem is available."],
+		humanHelpUseful: ["Provide a reference for quadratic prime values."],
+		suggestedNextMove: "Provide a source or use a reformulation path.",
+		workingPaperSectionTitle: "Literature/theorem targets",
+		claimSupportIds: ["claim-support-1"],
+		now: "2026-06-05T12:00:00.000Z",
+		actor: "synthesizer",
+	});
+	return state;
+}
+
 describe("co-math harness", () => {
 	it("creates a research workspace for exploration prompts", async () => {
 		const { commands, dir, harness, notices } = await createResearchHarnessFixture();
@@ -849,6 +989,191 @@ describe("co-math harness", () => {
 
 			const visible = notices.slice(before).join("\n");
 			expect(visible).toContain('Report: available; say "show details for path 2".');
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("creates and displays a project coordinator report from current research state", async () => {
+		const requests: ResearchWorkstreamModelRequest[] = [];
+		const executor: ResearchWorkstreamModelExecutor = {
+			run: async (request) => {
+				requests.push(request);
+				return {
+					text: [
+						"## What we know",
+						"- The finite check found examples but does not prove infinitude.",
+						"- The literature path has no source-backed theorem yet.",
+						"## Roadblocks",
+						"- A theorem-level proof is still missing.",
+						"- Source support is still missing for the literature route.",
+						"## Recommended next moves",
+						"- Path 3: Reformulation - Connect finite patterns to prime-values-of-polynomials heuristics.",
+						"- Path 2: Direct proof attempt - Use parity observations from the finite check.",
+						"## Human help useful",
+						"- Provide a reference for quadratic prime values.",
+						"## Suggested next step",
+						"- continue path 3",
+					].join("\n"),
+				};
+			},
+		};
+		const { dir, harness, notices, statePath } = await createCoordinatorHarnessFixture({
+			state: createCoordinatorHarnessState(),
+			executor,
+		});
+		try {
+			await harness.handlePrompt("what should we try next?");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(requests).toHaveLength(1);
+			expect(requests[0]?.prompt).toContain("A theorem-level proof is still open.");
+			expect(state.researchCoordinatorReports).toHaveLength(1);
+			expect(state.researchCoordinatorReports[0]).toMatchObject({
+				id: "coordinator-report-1",
+				suggestedPathId: "path-3",
+				suggestedPrompt: "continue path 3",
+				inputReportIds: ["research-report-1", "research-report-2"],
+				inputComputationalArtifactIds: ["computation-artifact-1"],
+			});
+			expect(state.workingPaperSections.some((section) => section.title === "Project coordinator synthesis")).toBe(
+				true,
+			);
+			expect(state.marginNotes.some((note) => note.message === "Suggested next step: continue path 3")).toBe(true);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Project coordinator summary");
+			expect(visible).toContain("What we know");
+			expect(visible).toContain("Current roadblocks");
+			expect(visible).toContain("Recommended next moves");
+			expect(visible).toContain("Continue Path 3: Reformulation");
+			expect(visible).toContain("Suggested next step\ncontinue path 3");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("shows the latest project coordinator report without creating a duplicate", async () => {
+		const { dir, harness, notices, statePath } = await createCoordinatorHarnessFixture({
+			state: createCoordinatorHarnessState(),
+		});
+		try {
+			await harness.handlePrompt("what should we try next?");
+			const beforeShow = notices.length;
+			await harness.handlePrompt("show latest coordinator report");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchCoordinatorReports).toHaveLength(1);
+			const visible = notices.slice(beforeShow).join("\n");
+			expect(visible).toContain("Project coordinator summary");
+			expect(visible).toContain("Suggested next step");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("asks to start exploration before coordinator prompts in an empty workspace", async () => {
+		const { commands, dir, harness, notices, statePath } = await createCoordinatorHarnessFixture();
+		try {
+			await harness.handlePrompt("what next?");
+
+			expect(commands).toEqual([]);
+			expect(await loadProjectState(statePath)).toBeUndefined();
+			expect(notices.join("\n")).toContain('Start a research workspace first. Try: "Explore this problem: ..."');
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("mentions active research runs in coordinator summaries without blocking synthesis", async () => {
+		const requests: ResearchWorkstreamModelRequest[] = [];
+		const pending: Array<(response: { text: string }) => void> = [];
+		const executor: ResearchWorkstreamModelExecutor = {
+			run: async (request) => {
+				requests.push(request);
+				if (request.prompt.includes("project coordinator")) {
+					return {
+						text: [
+							"## What we know",
+							"- Path 2: Direct proof attempt is still running at specialist attempt.",
+							"## Roadblocks",
+							"- The active path has no final report yet.",
+							"## Recommended next moves",
+							"- Path 3: Reformulation - Keep another route ready after the active path reports.",
+							"## Suggested next step",
+							"- continue path 3",
+						].join("\n"),
+					};
+				}
+				return new Promise((resolve) => {
+					pending.push(resolve);
+				});
+			},
+		};
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		const resolveNext = (text: string) => {
+			const resolve = pending.shift();
+			if (!resolve) {
+				throw new Error("No pending model request to resolve.");
+			}
+			resolve({ text });
+		};
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			await harness.handlePrompt("continue path 2");
+			await waitForProjectState(statePath, "active research run", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "running"),
+			);
+			await waitForCondition("specialist request before coordinator summary", () => requests.length >= 1);
+			await harness.handlePrompt("what is blocked?");
+
+			const nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchCoordinatorReports).toHaveLength(1);
+			expect(nextState.researchWorkstreamRuns[0]?.status).toBe("running");
+			expect(requests[1]?.prompt).toContain("Path 2: Direct proof attempt: running");
+			const visible = notices.join("\n");
+			expect(visible).toContain("Project coordinator summary");
+			expect(visible).toContain("Path 2: Direct proof attempt is still running");
+			expectProductCopy(visible);
+
+			resolveNext(TWIN_PRIME_MODEL_RESPONSES.specialist);
+			await waitForCondition("critic request after coordinator summary", () =>
+				requests.some((request) => request.role === "critic"),
+			);
+			resolveNext(TWIN_PRIME_MODEL_RESPONSES.critic);
+			await waitForCondition(
+				"final synthesizer request after coordinator summary",
+				() => requests.filter((request) => request.role === "synthesizer").length >= 2,
+			);
+			resolveNext(TWIN_PRIME_MODEL_RESPONSES.synthesizer);
+			await waitForProjectState(statePath, "completed active run after coordinator summary", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps show latest report scoped to research reports after coordinator summaries", async () => {
+		const { dir, harness, notices, statePath } = await createCoordinatorHarnessFixture({
+			state: createCoordinatorHarnessState(),
+		});
+		try {
+			await harness.handlePrompt("what should we try next?");
+			const beforeReport = notices.length;
+			await harness.handlePrompt("show latest report");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchCoordinatorReports).toHaveLength(1);
+			expect(state.researchReports).toHaveLength(2);
+			const visible = notices.slice(beforeReport).join("\n");
+			expect(visible).toContain("Latest research report");
+			expect(visible).toContain("Known theorem or literature reduction");
+			expect(visible).not.toContain("Project coordinator summary");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

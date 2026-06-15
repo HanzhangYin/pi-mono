@@ -24,6 +24,7 @@ export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "us
 export type LiteratureClaimSupportStatus = "supported" | "partially-supported" | "unsupported" | "conflicting";
 export type ComputationalArtifactKind = "script" | "stdout" | "stderr" | "table" | "summary";
 export type ComputationalArtifactStatus = "created" | "completed" | "failed" | "blocked";
+export type ResearchCoordinatorNextMovePriority = "high" | "medium" | "low";
 export type CoMathActor = "human" | "system" | "coordinator" | "workstream" | "reviewer" | "synthesizer";
 export type CoMathEventKind =
 	| "project_initialized"
@@ -60,7 +61,8 @@ export type CoMathEventKind =
 	| "research_workstream_run_recorded"
 	| "literature_source_recorded"
 	| "literature_claim_support_recorded"
-	| "computational_artifact_recorded";
+	| "computational_artifact_recorded"
+	| "research_coordinator_report_recorded";
 export type ArtifactKind =
 	| "source"
 	| "computation"
@@ -377,6 +379,31 @@ export interface ResearchWorkstreamRunRecord {
 	usedFallback?: boolean;
 }
 
+export interface ResearchCoordinatorNextMove {
+	title: string;
+	pathId?: string;
+	rationale: string;
+	prompt?: string;
+	priority: ResearchCoordinatorNextMovePriority;
+}
+
+export interface ResearchCoordinatorReportRecord {
+	id: string;
+	createdAt: string;
+	updatedAt: string;
+	inputReportIds: string[];
+	inputPathIds: string[];
+	inputSourceIds: string[];
+	inputComputationalArtifactIds: string[];
+	whatWeKnow: string[];
+	roadblocks: string[];
+	recommendedNextMoves: ResearchCoordinatorNextMove[];
+	humanHelpUseful: string[];
+	suggestedPathId?: string;
+	suggestedPrompt?: string;
+	workingPaperSectionId?: string;
+}
+
 export interface CoMathProjectState {
 	version: 1;
 	projectId: string;
@@ -403,6 +430,7 @@ export interface CoMathProjectState {
 	literatureSources: LiteratureSourceArtifact[];
 	literatureClaimSupports: LiteratureClaimSupport[];
 	computationalArtifacts: ComputationalArtifact[];
+	researchCoordinatorReports: ResearchCoordinatorReportRecord[];
 	researchFocus?: ResearchFocus;
 	updatedAt: string;
 }

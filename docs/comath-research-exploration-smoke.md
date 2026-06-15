@@ -314,6 +314,72 @@ if p.exists():
 '
 ```
 
+## Cross-workstream coordinator smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-coordinator-demo-1
+cd comath-coordinator-demo-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Explore this problem: Are there infinitely many primes of the form n^2 + 1?
+```
+
+```text
+continue path 1
+```
+
+```text
+show latest report
+```
+
+```text
+continue path 5
+```
+
+```text
+show latest report
+```
+
+```text
+what should we try next?
+```
+
+```text
+show latest coordinator report
+```
+
+```text
+summarize current state
+```
+
+Good signs:
+
+```text
+[ ] The project coordinator summary references both computation and literature reports.
+[ ] Finite computation is not treated as proof.
+[ ] Blocked literature/source state is recognized.
+[ ] The summary recommends a concrete next path or source-help action.
+[ ] show latest coordinator report displays the saved summary without creating another one.
+[ ] summarize current state stays the compact path summary.
+```
+
+Optional state check:
+
+```bash
+python3 -c 'import json, pathlib; p=pathlib.Path(".pi/co-math/state.json"); print("exists", p.exists());
+if p.exists():
+ s=json.loads(p.read_text()); print("coordinatorReports", len(s.get("researchCoordinatorReports", []))); print("researchReports", len(s.get("researchReports", []))); print("computationalArtifacts", len(s.get("computationalArtifacts", []))); print("literatureClaimSupports", len(s.get("literatureClaimSupports", [])));
+ [print("coordinator", r.get("id"), "inputs", r.get("inputReportIds"), "suggested", r.get("suggestedPathId"), r.get("suggestedPrompt")) for r in s.get("researchCoordinatorReports", [])]
+'
+```
+
 ## LLM-backed generic problem smoke
 
 `continue path N` runs a real specialist -> critic -> synthesizer model pass when a model/provider

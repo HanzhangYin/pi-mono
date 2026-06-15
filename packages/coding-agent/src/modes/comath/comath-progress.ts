@@ -3,6 +3,7 @@ import type {
 	ComputationalArtifact,
 	LiteratureClaimSupport,
 	LiteratureSourceArtifact,
+	ResearchCoordinatorReportRecord,
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
@@ -499,12 +500,84 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 	].join("\n");
 }
 
+export type ResearchCoordinatorReportView = Pick<
+	ResearchCoordinatorReportRecord,
+	"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "humanHelpUseful" | "suggestedPathId" | "suggestedPrompt"
+>;
+
+export interface FormatResearchCoordinatorReportInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	report: ResearchCoordinatorReportView;
+}
+
+export function formatResearchCoordinatorReport(input: FormatResearchCoordinatorReportInput): string {
+	const suggested = formatCoordinatorSuggestedNextStep(input);
+	return [
+		"Project coordinator summary",
+		"",
+		"What we know",
+		...bulletsOrFallback(input.report.whatWeKnow, "No durable findings have been recorded yet."),
+		"",
+		"Current roadblocks",
+		...bulletsOrFallback(input.report.roadblocks, "No current roadblock was identified."),
+		"",
+		"Recommended next moves",
+		...formatCoordinatorNextMoves(input),
+		...(input.report.humanHelpUseful.length > 0
+			? ["", "Human help useful", ...input.report.humanHelpUseful.map((item) => `- ${item}`)]
+			: []),
+		"",
+		"Suggested next step",
+		suggested,
+	].join("\n");
+}
+
+export function formatLatestResearchCoordinatorReportMissing(): string {
+	return 'No project coordinator summary is available yet. Ask "what should we try next?" to create one.';
+}
+
 export function formatResearchModelFallbackNote(): string {
 	return "I used the local fallback for this round because model-backed research was unavailable.";
 }
 
 function bulletsOrFallback(items: readonly string[], fallback: string): string[] {
 	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
+}
+
+function formatCoordinatorNextMoves(input: FormatResearchCoordinatorReportInput): string[] {
+	if (input.report.recommendedNextMoves.length === 0) {
+		return ["1. Choose a research path to continue."];
+	}
+	return input.report.recommendedNextMoves.map((move, index) => {
+		const path = move.pathId
+			? input.state.researchPaths.find((candidate) => candidate.id === move.pathId)
+			: undefined;
+		const pathPrefix = path ? `Continue ${formatResearchPathLabel(input.state, path)}: ` : "";
+		const title = move.title.replace(/^continue\s+path\s+\d+\s*:?\s*/i, "").trim();
+		return `${index + 1}. ${pathPrefix}${title}${move.rationale ? ` - ${move.rationale}` : ""}`;
+	});
+}
+
+function formatCoordinatorSuggestedNextStep(input: FormatResearchCoordinatorReportInput): string {
+	if (input.report.suggestedPrompt) {
+		return input.report.suggestedPrompt;
+	}
+	const suggestedPath = input.report.suggestedPathId
+		? input.state.researchPaths.find((path) => path.id === input.report.suggestedPathId)
+		: undefined;
+	if (suggestedPath) {
+		const index = input.state.researchPaths.findIndex((path) => path.id === suggestedPath.id);
+		return `continue path ${index + 1}`;
+	}
+	const firstMove = input.report.recommendedNextMoves[0];
+	const firstMovePath = firstMove?.pathId
+		? input.state.researchPaths.find((path) => path.id === firstMove.pathId)
+		: undefined;
+	if (firstMovePath) {
+		const index = input.state.researchPaths.findIndex((path) => path.id === firstMovePath.id);
+		return `continue path ${index + 1}`;
+	}
+	return firstMove?.prompt ?? "Choose one recommended move.";
 }
 
 function formatReferences(

@@ -13,6 +13,7 @@ import {
 	addLiteratureSourceArtifact,
 	addMarginNote,
 	addReportReviewRound,
+	addResearchCoordinatorReport,
 	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
@@ -33,6 +34,7 @@ import {
 	getComputationalArtifactsForReport,
 	getComputationalArtifactsForRun,
 	getDefaultStatePath,
+	getLatestResearchCoordinatorReport,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
 	getLatestResearchWorkstreamRun,
@@ -110,6 +112,7 @@ describe("co-math project state", () => {
 			literatureSources: [],
 			literatureClaimSupports: [],
 			computationalArtifacts: [],
+			researchCoordinatorReports: [],
 			updatedAt: FIXED_NOW,
 		});
 	});
@@ -464,6 +467,94 @@ describe("co-math project state", () => {
 				now: FIXED_NOW,
 			}),
 		).toThrow(/under \.pi\/co-math\/artifacts/i);
+	});
+
+	it("records structured project coordinator reports with input links and next moves", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Small examples and counterexamples",
+			objective: "Run a finite check.",
+			suggestedNextMove: "Use examples to guide proof attempts.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchPath(state, {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Use parity observations.",
+			priority: 2,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchCoordinatorReport(state, {
+			inputReportIds: [" research-report-1 ", "research-report-1"],
+			inputPathIds: ["path-1", "path-2"],
+			inputSourceIds: ["source-1"],
+			inputComputationalArtifactIds: ["computation-artifact-1"],
+			whatWeKnow: ["Finite checks found examples."],
+			roadblocks: ["Finite checks do not prove infinitude."],
+			recommendedNextMoves: [
+				{
+					title: "Continue Path 2",
+					pathId: "path-2",
+					rationale: "Use parity observations from the finite check.",
+					prompt: "continue path 2",
+					priority: "high",
+				},
+			],
+			humanHelpUseful: ["Provide a theorem reference for quadratic prime values."],
+			suggestedPathId: "path-2",
+			suggestedPrompt: "continue path 2",
+			now: "2026-06-05T12:20:00.000Z",
+			actor: "coordinator",
+		});
+		state = addResearchCoordinatorReport(state, {
+			whatWeKnow: ["Second summary."],
+			roadblocks: [],
+			recommendedNextMoves: [],
+			now: "2026-06-05T12:25:00.000Z",
+			actor: "coordinator",
+		});
+
+		expect(state.researchCoordinatorReports[0]).toMatchObject({
+			id: "coordinator-report-1",
+			inputReportIds: ["research-report-1"],
+			inputPathIds: ["path-1", "path-2"],
+			inputSourceIds: ["source-1"],
+			inputComputationalArtifactIds: ["computation-artifact-1"],
+			whatWeKnow: ["Finite checks found examples."],
+			roadblocks: ["Finite checks do not prove infinitude."],
+			humanHelpUseful: ["Provide a theorem reference for quadratic prime values."],
+			suggestedPathId: "path-2",
+			suggestedPrompt: "continue path 2",
+		});
+		expect(state.researchCoordinatorReports[0]?.recommendedNextMoves).toEqual([
+			{
+				title: "Continue Path 2",
+				pathId: "path-2",
+				rationale: "Use parity observations from the finite check.",
+				prompt: "continue path 2",
+				priority: "high",
+			},
+		]);
+		expect(state.researchCoordinatorReports[1]).toMatchObject({
+			id: "coordinator-report-2",
+			roadblocks: ["No current roadblock was identified."],
+			recommendedNextMoves: [
+				{
+					title: "Choose a research path to continue",
+					rationale: "No specific next move was identified from the current project state.",
+					priority: "medium",
+				},
+			],
+		});
+		expect(getLatestResearchCoordinatorReport(state)?.id).toBe("coordinator-report-2");
+		expect(state.events.at(-2)).toMatchObject({
+			kind: "research_coordinator_report_recorded",
+			actor: "coordinator",
+			subjectId: "coordinator-report-1",
+			relatedIds: ["research-report-1", "path-1", "path-2", "source-1", "computation-artifact-1"],
+		});
 	});
 
 	it("records and updates research workstream runs with incremental reports", () => {
@@ -2004,6 +2095,7 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.literatureSources;
 			delete legacyWithoutNewFields.literatureClaimSupports;
 			delete legacyWithoutNewFields.computationalArtifacts;
+			delete legacyWithoutNewFields.researchCoordinatorReports;
 			delete legacyWithoutNewFields.researchFocus;
 			await saveProjectState(statePath, legacyWithoutNewFields as unknown as CoMathProjectState);
 
@@ -2022,6 +2114,7 @@ describe("co-math project state", () => {
 			expect(loaded?.literatureSources).toEqual([]);
 			expect(loaded?.literatureClaimSupports).toEqual([]);
 			expect(loaded?.computationalArtifacts).toEqual([]);
+			expect(loaded?.researchCoordinatorReports).toEqual([]);
 			expect(loaded?.researchFocus).toBeUndefined();
 			expect(loaded?.workstreams[0]).toMatchObject({
 				id: "workstream-legacy",

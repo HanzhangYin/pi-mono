@@ -3,6 +3,7 @@ import * as nodePath from "node:path";
 import type {
 	CoMathProjectState,
 	LiteratureSourceArtifact,
+	ResearchCoordinatorReportRecord,
 	ResearchPath,
 	ResearchWorkstreamRunRecord,
 	ResearchWorkstreamRunStage,
@@ -12,12 +13,14 @@ import {
 	addLiteratureClaimSupport,
 	addLiteratureSourceArtifact,
 	addMarginNote,
+	addResearchCoordinatorReport,
 	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
 	addResearchWorkstreamRun,
 	failStaleResearchWorkstreamRuns,
 	getActiveResearchWorkstreamRun,
+	getLatestResearchCoordinatorReport,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
 	getLatestResearchWorkstreamRun,
@@ -45,6 +48,7 @@ import {
 	isComputationalResearchPath,
 	runComputationResearchWorkstreamStaged,
 } from "./comath-computation-workstream.ts";
+import { runResearchCoordinatorSynthesis } from "./comath-coordinator-synthesis.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "./comath-literature-source.ts";
 import { createDefaultLiteratureSourceLookup } from "./comath-literature-source.ts";
 import {
@@ -58,8 +62,10 @@ import {
 	formatContextRecorded,
 	formatFocusNoted,
 	formatInitialValidationPlan,
+	formatLatestResearchCoordinatorReportMissing,
 	formatProductProgress,
 	formatReadyForContext,
+	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
 	formatResearchModelFallbackNote,
 	formatResearchPathDropped,
@@ -180,6 +186,10 @@ export class CoMathHarness {
 		const explorationProblem = parseExplorationPrompt(problem);
 		if (explorationProblem) {
 			await this.handleInitialResearchProblem(explorationProblem);
+			return;
+		}
+		if (isResearchCoordinatorPrompt(problem) || isShowLatestResearchCoordinatorReportPrompt(problem)) {
+			await this.notify('Start a research workspace first. Try: "Explore this problem: ..."', "warning");
 			return;
 		}
 		await this.handleInitialProblem(problem);
@@ -389,6 +399,19 @@ export class CoMathHarness {
 		const reconciled = await this.reconcileStaleResearchWorkstreamRuns(state);
 		state = reconciled.state;
 		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
+		if (isShowLatestResearchCoordinatorReportPrompt(prompt)) {
+			const report = getLatestResearchCoordinatorReport(state);
+			if (!report) {
+				await this.notify(formatLatestResearchCoordinatorReportMissing());
+				return;
+			}
+			await this.notify(formatResearchCoordinatorReport({ state, report }));
+			return;
+		}
+		if (isResearchCoordinatorPrompt(prompt)) {
+			await this.createResearchCoordinatorReport(state);
+			return;
+		}
 		if (/^(?:summari[sz]e current state|show research state|show progress|status)$/i.test(prompt)) {
 			if (/^(?:show progress|status)$/i.test(prompt) && latestInterruptedRun) {
 				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
@@ -530,6 +553,50 @@ export class CoMathHarness {
 			return;
 		}
 		await this.notify(formatResearchStateSummary(state));
+	}
+
+	private async createResearchCoordinatorReport(state: CoMathProjectState): Promise<void> {
+		const latestState = (await loadProjectState(this.statePath)) ?? state;
+		const now = new Date().toISOString();
+		const result = await runResearchCoordinatorSynthesis({
+			state: latestState,
+			executor: this.researchModelExecutor,
+			now,
+		});
+		let nextState = upsertWorkingPaperSectionByTitle(latestState, {
+			title: "Project coordinator synthesis",
+			body: buildResearchCoordinatorWorkingPaperBody(result.report),
+			now,
+			actor: "coordinator",
+		});
+		const section = nextState.workingPaperSections.find(
+			(candidate) => candidate.title === "Project coordinator synthesis",
+		);
+		nextState = addResearchCoordinatorReport(nextState, {
+			...result.report,
+			...(section ? { workingPaperSectionId: section.id } : {}),
+			now,
+			actor: "coordinator",
+		});
+		const report = nextState.researchCoordinatorReports.at(-1);
+		if (report) {
+			const suggested = getCoordinatorSuggestedPrompt(nextState, report);
+			if (suggested) {
+				nextState = addMarginNote(nextState, {
+					id: `margin-note-${nextState.marginNotes.length + 1}`,
+					kind: "todo",
+					subjectId: report.id,
+					...(section ? { sectionId: section.id } : {}),
+					message: `Suggested next step: ${suggested}`,
+					now,
+					actor: "coordinator",
+				});
+			}
+		}
+		await saveProjectState(this.statePath, nextState);
+		if (report) {
+			await this.notify(formatResearchCoordinatorReport({ state: nextState, report }));
+		}
 	}
 
 	private async reconcileStaleResearchWorkstreamRuns(state: CoMathProjectState): Promise<{
@@ -1297,6 +1364,16 @@ function isIncompleteExplorationProblem(problem: string): boolean {
 	return /^this\s+(?:problem|conjecture|question):?$/i.test(problem.trim());
 }
 
+function isShowLatestResearchCoordinatorReportPrompt(prompt: string): boolean {
+	return /^show (?:the )?(?:latest )?(?:project )?coordinator (?:report|summary)$/i.test(prompt.trim());
+}
+
+function isResearchCoordinatorPrompt(prompt: string): boolean {
+	return /^(?:what should we try next\??|what next\??|recommend (?:the )?next path|make a plan from current reports|summari[sz]e current state and recommend next steps|what is blocked\??|compare paths|project coordinator summary)$/i.test(
+		prompt.trim(),
+	);
+}
+
 function findResearchPath(state: Pick<CoMathProjectState, "researchPaths">, query: string): ResearchPath | undefined {
 	const numbered = parseResearchPathNumber(query);
 	if (numbered !== undefined) {
@@ -1396,6 +1473,50 @@ function remapSourceLabels(value: string, sourceIdMap: ReadonlyMap<string, strin
 		remapped = remapped.replaceAll(`[${temporaryId}]`, `[${persistedId}]`);
 	}
 	return remapped;
+}
+
+function buildResearchCoordinatorWorkingPaperBody(
+	report: Pick<
+		ResearchCoordinatorReportRecord,
+		"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "humanHelpUseful" | "suggestedPrompt" | "suggestedPathId"
+	>,
+): string {
+	return [
+		"Project coordinator synthesis",
+		"",
+		"What we know:",
+		...report.whatWeKnow.map((item) => `- ${item}`),
+		"",
+		"Current roadblocks:",
+		...report.roadblocks.map((item) => `- ${item}`),
+		"",
+		"Recommended next moves:",
+		...report.recommendedNextMoves.map((move, index) => {
+			const prompt = move.prompt ? ` (${move.prompt})` : "";
+			return `${index + 1}. ${move.title}${prompt}: ${move.rationale}`;
+		}),
+		...(report.humanHelpUseful.length > 0
+			? ["", "Human help useful:", ...report.humanHelpUseful.map((item) => `- ${item}`)]
+			: []),
+		...(report.suggestedPrompt ? ["", `Suggested next step: ${report.suggestedPrompt}`] : []),
+	].join("\n");
+}
+
+function getCoordinatorSuggestedPrompt(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	report: Pick<ResearchCoordinatorReportRecord, "suggestedPrompt" | "suggestedPathId" | "recommendedNextMoves">,
+): string | undefined {
+	if (report.suggestedPrompt) {
+		return report.suggestedPrompt;
+	}
+	const path = report.suggestedPathId
+		? state.researchPaths.find((candidate) => candidate.id === report.suggestedPathId)
+		: undefined;
+	if (path) {
+		const index = state.researchPaths.findIndex((candidate) => candidate.id === path.id);
+		return `continue path ${index + 1}`;
+	}
+	return report.recommendedNextMoves[0]?.prompt;
 }
 
 function safeErrorMessage(error: unknown): string {

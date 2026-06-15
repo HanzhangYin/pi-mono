@@ -13,9 +13,11 @@ import {
 	formatExistingProjectHelp,
 	formatFocusNoted,
 	formatInitialValidationPlan,
+	formatLatestResearchCoordinatorReportMissing,
 	formatProductActivity,
 	formatProductProgress,
 	formatReadyForContext,
+	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
 	formatResearchPathDropped,
 	formatResearchRoundCompleted,
@@ -624,6 +626,71 @@ describe("co-math product messages", () => {
 		expect(details).toContain("Diagnostics:");
 		expect(details).toContain("exit code 1");
 		expect(details.length).toBeLessThan(1_500);
+	});
+
+	it("formats project coordinator summaries with friendly path labels", () => {
+		const paths = [createComputationPath(), createResearchPath()];
+		const text = formatResearchCoordinatorReport({
+			state: { researchPaths: paths },
+			report: {
+				whatWeKnow: ["Finite checks found examples of n^2 + 1 primes."],
+				roadblocks: ["Finite checks do not prove infinitude."],
+				recommendedNextMoves: [
+					{
+						title: "Continue Path 2",
+						pathId: "path-1",
+						rationale: "Use the finite observations in a direct proof attempt.",
+						prompt: "continue path 2",
+						priority: "high",
+					},
+					{
+						title: "Provide a theorem reference",
+						rationale: "The literature route needs a source-backed statement.",
+						priority: "medium",
+					},
+				],
+				humanHelpUseful: ["Share a reference for quadratic prime values."],
+				suggestedPathId: "path-1",
+				suggestedPrompt: "continue path 2",
+			},
+		});
+
+		expect(text).toContain("Project coordinator summary");
+		expect(text).toContain("What we know");
+		expect(text).toContain("Current roadblocks");
+		expect(text).toContain("Recommended next moves");
+		expect(text).toContain("1. Continue Path 1: Small examples and counterexamples");
+		expect(text).toContain("Human help useful");
+		expect(text).toContain("Suggested next step\ncontinue path 2");
+		expect(text).not.toContain("research-report-1");
+		expect(text).not.toContain("computation-artifact-1");
+		expectProductCopy(text);
+	});
+
+	it("omits empty coordinator human-help sections and explains missing summaries", () => {
+		const path = createResearchPath();
+		const text = formatResearchCoordinatorReport({
+			state: { researchPaths: [path] },
+			report: {
+				whatWeKnow: ["No proof has been established."],
+				roadblocks: ["The direct route has a gap."],
+				recommendedNextMoves: [
+					{
+						title: "Continue direct proof",
+						pathId: path.id,
+						rationale: "Clarify the gap.",
+						priority: "high",
+					},
+				],
+				humanHelpUseful: [],
+			},
+		});
+
+		expect(text).not.toContain("Human help useful");
+		expect(text).toContain("Suggested next step\ncontinue path 1");
+		expect(formatLatestResearchCoordinatorReportMissing()).toContain("what should we try next?");
+		expectProductCopy(text);
+		expectProductCopy(formatLatestResearchCoordinatorReportMissing());
 	});
 
 	it("formats failed research workstream warnings without raw run ids", () => {
