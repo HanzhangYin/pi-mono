@@ -1711,6 +1711,10 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
+	setCoMathActivityStatus(text: string | undefined): void {
+		this.setExtensionStatus("co-math", text);
+	}
+
 	private getWorkingLoaderMessage(): string {
 		return this.workingMessage ?? this.defaultWorkingMessage;
 	}

@@ -7,6 +7,7 @@ import type {
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
+	ResearchWorkstreamRunStage,
 } from "../../../examples/extensions/co-math/schema.ts";
 import { sanitizeProductIds } from "./comath-backend-output.ts";
 import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
@@ -185,7 +186,10 @@ export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): s
 		...plan.paths.map((path, index) => `- Path ${index + 1}: ${path.title}: ${path.objective}`),
 		"",
 		"Next",
-		`I’ll start with ${plan.paths[0] ? `Path 1: ${plan.paths[0].title}` : "the most concrete path"}, because it can quickly reveal what is plausible.`,
+		plan.paths[0]
+			? `Start with Path 1: ${plan.paths[0].title}. It can quickly reveal what is plausible. To begin, type:`
+			: "Start with the most concrete path. To begin, type:",
+		"continue path 1",
 	].join("\n");
 }
 
@@ -199,6 +203,7 @@ export function formatResearchStateSummary(state: ResearchStateSummaryInput): st
 	const abandoned = state.researchPaths.filter((path) => path.status === "abandoned");
 	const reports = state.researchReports ?? [];
 	const best = chooseResearchPath(state);
+	const bestIndex = best ? state.researchPaths.findIndex((path) => path.id === best.id) : -1;
 	return [
 		"Current research state",
 		"",
@@ -213,8 +218,9 @@ export function formatResearchStateSummary(state: ResearchStateSummaryInput): st
 			? ["", "Abandoned for now", ...abandoned.map((path) => `- ${formatResearchPathLabel(state, path)}`)]
 			: []),
 		"",
-		"Most promising next move",
-		best ? `${best.suggestedNextMove}` : "Choose a path to continue.",
+		...(best && bestIndex >= 0
+			? ["Why", best.suggestedNextMove, "", "Suggested command", `continue path ${bestIndex + 1}`]
+			: ["Suggested command", "Choose a path to continue."]),
 	].join("\n");
 }
 
@@ -316,6 +322,25 @@ export interface FormatResearchWorkstreamRunInput {
 	run: ResearchWorkstreamRunRecord;
 }
 
+export interface FormatResearchWorkstreamStageStartedInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	run: Pick<ResearchWorkstreamRunRecord, "pathId" | "pathTitle">;
+	stage: ResearchWorkstreamRunStage;
+	summary: string;
+}
+
+export interface FormatCoMathResearchActivityStatusInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	run: Pick<ResearchWorkstreamRunRecord, "currentStage" | "pathId">;
+	stage?: ResearchWorkstreamRunStage;
+}
+
+export function formatCoMathResearchActivityStatus(input: FormatCoMathResearchActivityStatusInput): string {
+	const pathIndex = input.state.researchPaths.findIndex((candidate) => candidate.id === input.run.pathId);
+	const pathLabel = pathIndex >= 0 ? `Path ${pathIndex + 1}` : "Path";
+	return `co-math: ${pathLabel} running · ${formatResearchActivityStage(input.stage ?? input.run.currentStage)}`;
+}
+
 export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamInput): string {
 	const progress = ["coordinator", "specialist", "critic", "synthesizer"]
 		.map((role) => input.report.steps.find((step) => step.role === role))
@@ -334,41 +359,56 @@ export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamI
 export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstreamRunInput): string {
 	if (isLiteraturePathTitle(input.run.pathTitle)) {
 		return [
-			"Research workstream started",
+			"Research workstream running in the background",
 			"",
 			formatResearchRunPathLabel(input.state, input.run),
 			"",
-			"Current status",
+			"Pi is still working on this path.",
+			"",
+			"Current stage",
+			formatResearchStage(input.run.currentStage),
+			"",
+			"What is happening",
 			"- Coordinator is identifying what needs source support.",
 			"- Literature specialist is looking for relevant known theorems and references.",
 			"",
-			'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
+			'You can keep typing while Pi works. Say "show progress" for the latest status.',
 		].join("\n");
 	}
 	if (isComputationalPathTitle(input.run.pathTitle)) {
 		return [
-			"Research workstream started",
+			"Research workstream running in the background",
 			"",
 			formatResearchRunPathLabel(input.state, input.run),
 			"",
-			"Current status",
+			"Pi is still working on this path.",
+			"",
+			"Current stage",
+			formatResearchStage(input.run.currentStage),
+			"",
+			"What is happening",
 			"- Coordinator is choosing a bounded finite experiment.",
 			"- Computational specialist is preparing a small script.",
 			"- Critic will check what the computation does and does not establish.",
 			"",
-			'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
+			'You can keep typing while Pi works. Say "show progress" for the latest status.',
 		].join("\n");
 	}
 	return [
-		"Research workstream started",
+		"Research workstream running in the background",
 		"",
 		formatResearchRunPathLabel(input.state, input.run),
 		"",
-		"Current status",
+		"Pi is still working on this path.",
+		"",
+		"Current stage",
+		formatResearchStage(input.run.currentStage),
+		"",
+		"What is happening",
 		"- Coordinator framed the path.",
 		"- Specialist research is running in the background.",
 		"",
-		'You can keep steering while it runs. Try: "show progress", "show latest report", or "summarize current state".',
+		'You can keep typing while Pi works. Say "show progress" for the latest status.',
 	].join("\n");
 }
 
@@ -379,13 +419,42 @@ export function formatResearchWorkstreamRunProgress(input: FormatResearchWorkstr
 		"",
 		formatResearchRunPathLabel(input.state, input.run),
 		"",
+		input.run.status === "queued" || input.run.status === "running"
+			? "Pi is still working in the background. You can keep typing."
+			: "This run is no longer active.",
+		"",
 		"Current stage",
 		formatResearchStage(input.run.currentStage),
 		"",
-		"Latest incremental report",
+		"Latest update",
 		...(latest
-			? [`- ${latest.title}: ${latest.summary}`, ...latest.details.slice(0, 3).map((detail) => `- ${detail}`)]
+			? [
+					`- ${formatResearchStage(latest.stage)}: ${latest.summary}`,
+					...latest.details.slice(0, 3).map((detail) => `- ${detail}`),
+				]
 			: ["- Coordinator has framed the path; the first research attempt has not reported back yet."]),
+		"",
+		input.run.finalReportId
+			? "Report: ready."
+			: 'Report: not ready yet. Say "show latest report" for partial updates.',
+	].join("\n");
+}
+
+export function formatResearchWorkstreamStageStarted(input: FormatResearchWorkstreamStageStartedInput): string {
+	return [
+		"Research update",
+		"",
+		formatResearchRunPathLabel(input.state, input.run),
+		"",
+		"Pi is still working in the background.",
+		"",
+		"Current stage",
+		formatResearchStage(input.stage),
+		"",
+		"What is happening",
+		`- ${input.summary}`,
+		"",
+		'Say "show progress" any time for the latest status.',
 	].join("\n");
 }
 
@@ -431,8 +500,10 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
 	const references = formatReferences(input.state, report.sourceIds ?? []);
 	const computation = formatComputationSummary(input.state, report.computationalArtifactIds ?? []);
+	const nextPath = chooseNextResearchPathAfter(input.state, report.pathId);
+	const nextPathIndex = nextPath ? input.state.researchPaths.findIndex((path) => path.id === nextPath.id) : -1;
 	return [
-		"Research workstream completed",
+		"Research run completed",
 		"",
 		formatResearchReportPathLabel(input.state, report),
 		...(computation.length > 0 ? ["", "Computation", ...computation] : []),
@@ -452,7 +523,9 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 		...(references.length > 0 ? ["", "References", ...references] : []),
 		"",
 		"Next",
-		report.suggestedNextMove,
+		...(nextPath && nextPathIndex >= 0
+			? [describeNextPathHint(nextPath), `continue path ${nextPathIndex + 1}`]
+			: ['Say "show latest report" to review the full write-up.']),
 		"",
 		"Working paper updated",
 		`- Added synthesized notes under "${report.workingPaperSectionTitle}."`,
@@ -735,21 +808,31 @@ function formatResearchRunStatus(status: ResearchWorkstreamRunRecord["status"]):
 
 function formatResearchStage(stage: ResearchWorkstreamRunRecord["currentStage"]): string {
 	if (stage === "coordinator") {
-		return "Coordinator brief";
+		return "Choosing the plan";
 	}
 	if (stage === "literature-search") {
-		return "Literature search";
+		return "Searching references";
 	}
 	if (stage === "computation") {
-		return "Computation";
+		return "Running finite computation";
 	}
 	if (stage === "specialist") {
-		return "Specialist attempt";
+		return "Trying the research path";
 	}
 	if (stage === "critic") {
-		return "Critic review";
+		return "Reviewing gaps and limits";
 	}
-	return "Synthesis";
+	return "Writing the summary";
+}
+
+function formatResearchActivityStage(stage: ResearchWorkstreamRunStage): string {
+	if (stage === "synthesizer") {
+		return "synthesis";
+	}
+	if (stage === "literature-search") {
+		return "literature";
+	}
+	return stage;
 }
 
 function isLiteraturePathTitle(title: string): boolean {
@@ -773,7 +856,8 @@ function formatResearchPathLine(
 	return [
 		`- ${formatResearchPathLabel(state, path)}: ${path.status}`,
 		...(findings.length > 0 ? ["  Latest findings", ...findings.map((finding) => `  - ${finding}`)] : []),
-		`  Next: ${path.suggestedNextMove}`,
+		`  Why: ${path.suggestedNextMove}`,
+		...(pathIndex >= 0 ? [`  Next: continue path ${pathIndex + 1}`] : []),
 		...(hasReport && pathIndex >= 0 ? [`  Report: available; say "show details for path ${pathIndex + 1}".`] : []),
 	].join("\n");
 }
@@ -781,6 +865,30 @@ function formatResearchPathLine(
 function formatResearchPathLabel(state: Pick<CoMathProjectState, "researchPaths">, path: ResearchPath): string {
 	const pathIndex = state.researchPaths.findIndex((candidate) => candidate.id === path.id);
 	return pathIndex >= 0 ? `Path ${pathIndex + 1}: ${path.title}` : path.title;
+}
+
+function chooseNextResearchPathAfter(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	completedPathId: string,
+): ResearchPath | undefined {
+	const completedIndex = state.researchPaths.findIndex((path) => path.id === completedPathId);
+	const isCandidate = (path: ResearchPath): boolean =>
+		path.id !== completedPathId && (path.status === "active" || path.status === "promising");
+	const after = state.researchPaths.slice(completedIndex + 1).find(isCandidate);
+	return after ?? state.researchPaths.find(isCandidate);
+}
+
+function describeNextPathHint(path: ResearchPath): string {
+	if (/proof/i.test(path.title)) {
+		return "Try a proof-oriented path:";
+	}
+	if (isLiteraturePathTitle(path.title)) {
+		return "Try a source-backed path:";
+	}
+	if (isComputationalPathTitle(path.title)) {
+		return "Try the examples path:";
+	}
+	return "Try the next path:";
 }
 
 function chooseResearchPath(

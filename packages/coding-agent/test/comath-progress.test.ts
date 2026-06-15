@@ -8,6 +8,7 @@ import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../examples/extensions/co-
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
+	formatCoMathResearchActivityStatus,
 	formatCoMathWelcome,
 	formatContextRecorded,
 	formatExistingProjectHelp,
@@ -28,7 +29,9 @@ import {
 	formatResearchWorkstreamReport,
 	formatResearchWorkstreamRunFailed,
 	formatResearchWorkstreamRunProgress,
+	formatResearchWorkstreamRunStarted,
 	formatResearchWorkstreamRunStillRunningReport,
+	formatResearchWorkstreamStageStarted,
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
@@ -230,6 +233,7 @@ describe("co-math product messages", () => {
 		expect(workspace).toContain("Research workspace prepared");
 		expect(workspace).toContain("Path 1: Small examples and counterexamples");
 		expect(workspace).toContain("Next");
+		expect(workspace).toContain("continue path 1");
 		expectProductCopy(workspace);
 
 		const paths = plan.paths.map(
@@ -257,7 +261,8 @@ describe("co-math product messages", () => {
 		expect(summary).toContain("Latest findings");
 		expect(summary).toContain("n = 1 gives 2, prime.");
 		expect(summary).toContain("Abandoned for now");
-		expect(summary).toContain("Most promising next move");
+		expect(summary).toContain("Suggested command");
+		expect(summary).toContain("continue path 1");
 		expectProductCopy(summary);
 	});
 
@@ -336,11 +341,12 @@ describe("co-math product messages", () => {
 		expectProductCopy(started);
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
-		expect(completed).toContain("Research workstream completed");
+		expect(completed).toContain("Research run completed");
 		expect(completed).toContain("Promising strategy");
 		expect(completed).toContain("Review");
 		expect(completed).toContain("Gap");
 		expect(completed).toContain("Next");
+		expect(completed).toContain("continue path");
 		expect(completed).toContain("Working paper updated");
 		expect(completed).toContain("show latest report");
 		expectProductCopy(completed);
@@ -356,6 +362,46 @@ describe("co-math product messages", () => {
 		expectProductCopy(full);
 	});
 
+	it("makes active async research workstreams visibly running", () => {
+		const path = createComputationPath();
+		const run: ResearchWorkstreamRunRecord = {
+			id: "research-run-1",
+			pathId: path.id,
+			pathTitle: path.title,
+			status: "running",
+			currentStage: "coordinator",
+			startedAt: "2026-06-05T12:00:00.000Z",
+			updatedAt: "2026-06-05T12:00:00.000Z",
+			incrementalReports: [],
+		};
+		const state = { researchPaths: [path] };
+
+		const started = formatResearchWorkstreamRunStarted({ state, run });
+		expect(started).toContain("Research workstream running in the background");
+		expect(started).toContain("Pi is still working on this path.");
+		expect(started).toContain("Current stage\nChoosing the plan");
+		expect(started).toContain('Say "show progress" for the latest status.');
+		expectProductCopy(started);
+
+		const stageUpdate = formatResearchWorkstreamStageStarted({
+			state,
+			run,
+			stage: "computation",
+			summary: "Running the bounded finite computation.",
+		});
+		expect(stageUpdate).toContain("Research update");
+		expect(stageUpdate).toContain("Pi is still working in the background.");
+		expect(stageUpdate).toContain("Current stage\nRunning finite computation");
+		expect(stageUpdate).toContain("Running the bounded finite computation.");
+		expect(stageUpdate).toContain("show progress");
+		expectProductCopy(stageUpdate);
+
+		expect(formatCoMathResearchActivityStatus({ state, run })).toBe("co-math: Path 1 running · coordinator");
+		expect(formatCoMathResearchActivityStatus({ state, run, stage: "computation" })).toBe(
+			"co-math: Path 1 running · computation",
+		);
+	});
+
 	it("formats active research workstream progress without raw run ids", () => {
 		const path = createResearchPath();
 		const run = createRunningResearchWorkstreamRun(path);
@@ -363,10 +409,12 @@ describe("co-math product messages", () => {
 
 		expect(progress).toContain("Research workstream running");
 		expect(progress).toContain("Path 1: Direct proof attempt");
+		expect(progress).toContain("Pi is still working in the background. You can keep typing.");
 		expect(progress).toContain("Current stage");
-		expect(progress).toContain("Specialist attempt");
-		expect(progress).toContain("Latest incremental report");
+		expect(progress).toContain("Trying the research path");
+		expect(progress).toContain("Latest update");
 		expect(progress).toContain("Testing whether a sieve formulation can produce prime pairs at distance 2.");
+		expect(progress).toContain('Report: not ready yet. Say "show latest report" for partial updates.');
 		expect(progress).not.toContain("research-run-1");
 		expectProductCopy(progress);
 	});
@@ -392,7 +440,7 @@ describe("co-math product messages", () => {
 		};
 		const progress = formatResearchWorkstreamRunProgress({ state: { researchPaths: [path] }, run });
 
-		expect(progress).toContain("Literature search");
+		expect(progress).toContain("Searching references");
 		expect(progress).toContain("Looking for references related to the twin-prime conjecture.");
 		expect(progress).not.toContain("research-run-1");
 		expectProductCopy(progress);

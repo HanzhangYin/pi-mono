@@ -404,6 +404,7 @@ function parseMarkdown(text: string): ParsedMarkdown {
 	const sections: MarkdownSection[] = [];
 	const raw: string[] = [];
 	let current: MarkdownSection | undefined;
+	let lastWasBullet = false;
 	for (const rawLine of text.split("\n")) {
 		const line = rawLine.trim();
 		if (!line) continue;
@@ -411,14 +412,39 @@ function parseMarkdown(text: string): ParsedMarkdown {
 		if (headingMatch?.[1]) {
 			current = { heading: headingMatch[1].trim(), items: [] };
 			sections.push(current);
+			lastWasBullet = false;
 			continue;
 		}
+		const isBullet = /^\s*(?:[-*]|\d+[.)])\s+/.test(rawLine);
 		const item = line.replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").trim();
 		if (!item) continue;
+		// Fold display-math delimiters and other non-bullet continuation lines into the preceding list
+		// item so multi-line LaTeX (e.g. "\[", "n^2+1.", "\]") does not render as orphan "- \[" bullets.
+		if (lastWasBullet && (!isBullet || isMathFragmentLine(item))) {
+			appendToLastItem(raw, item);
+			if (current) {
+				appendToLastItem(current.items, item);
+			}
+			continue;
+		}
 		raw.push(item);
 		current?.items.push(item);
+		lastWasBullet = isBullet;
 	}
 	return { sections, raw };
+}
+
+/** A line that is only a display-math delimiter, e.g. `\[`, `\]`, `\(`, `\)`, `\begin{...}`, `\end{...}`. */
+function isMathFragmentLine(item: string): boolean {
+	return /^(?:\\\[|\\\]|\\\(|\\\)|\\begin\{[^}]*\}|\\end\{[^}]*\})$/.test(item.trim());
+}
+
+function appendToLastItem(items: string[], text: string): void {
+	if (items.length === 0) {
+		items.push(text);
+		return;
+	}
+	items[items.length - 1] = `${items[items.length - 1]} ${text}`.replace(/\s+/g, " ").trim();
 }
 
 function sectionItems(parsed: ParsedMarkdown, keyword: string): string[] {

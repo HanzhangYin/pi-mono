@@ -1,5 +1,49 @@
 # Co-Math Research Exploration Smoke
 
+## Beginner Path 1 smoke
+
+The simplest end-to-end check. From a fresh folder (no cleanup commands needed):
+
+```bash
+cd /tmp
+mkdir comath-beginner-path1-demo
+cd comath-beginner-path1-demo
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Explore this problem: Are there infinitely many primes of the form n^2 + 1?
+```
+
+```text
+please continue path 1
+```
+
+```text
+show research state
+```
+
+```text
+show latest report
+```
+
+Pass checklist:
+
+```text
+[ ] The first response is "Research workspace prepared" and lists the paths.
+[ ] It ends with an executable next command: continue path 1.
+[ ] "please continue path 1" starts Path 1 (it does not just print "Current research state").
+[ ] A Pi-native status indicator (for example `co-math: Path 1 running · ...`) shows while Path 1 runs and clears when it finishes.
+[ ] The editor stays usable while Path 1 runs; "show progress" works if typed.
+[ ] Completion is concise, says the finite search is evidence and not a proof, and ends with a concrete next command.
+[ ] "show research state" includes an executable suggested command (continue path N), not a sentence Pi cannot run.
+[ ] "show latest report" still shows the detailed attempt, critique, and any script/result details.
+```
+
+The sections below are advanced/developer smokes.
+
 Run from a clean folder:
 
 ```bash
@@ -80,7 +124,12 @@ Good signs:
 
 ```text
 [ ] Path 1 reports concrete n^2 + 1 examples.
-[ ] Output says Research workstream started and Research workstream completed.
+[ ] The footer/status area shows a persistent indicator such as `co-math: Path 1 running · coordinator`.
+[ ] Output says Research workstream running in the background before the final result appears.
+[ ] While Path 1 is active, the copy says Pi is still working and suggests show progress.
+[ ] The footer/status indicator advances as the current stage changes.
+[ ] The final output says Research run completed.
+[ ] The footer/status indicator clears after completion.
 [ ] Completion includes Promising strategy, Review, Gap, Next, and Working paper updated.
 [ ] Summary includes compact latest findings and mentions report availability.
 [ ] Path 2 reports direct-proof attempt content, not path 1 examples.
@@ -189,11 +238,54 @@ Good signs:
 
 ```text
 [ ] continue path 2 starts work and returns control quickly.
-[ ] show progress works before completion and reports the current stage.
+[ ] The footer/status area keeps showing that a co-math path is running after control returns.
+[ ] The first response says Research workstream running in the background.
+[ ] The first response says Pi is still working and that the user can keep typing.
+[ ] Stage updates appear while the run is active, for example Research update / Current stage.
+[ ] The footer/status indicator updates as stages advance, for example coordinator, specialist, critic, synthesis.
+[ ] show progress works before completion and reports the current stage in beginner-friendly terms.
+[ ] show progress says the report is not ready yet while work is still active.
 [ ] show latest report shows incremental details while running, or final details after completion.
 [ ] The final report is saved and linked from the run.
 [ ] The final report remains problem-specific and does not claim a proof of twin-prime infinitude.
 [ ] continue path 99 warns and leaves report/run counts unchanged.
+```
+
+## Beginner async loading smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-beginner-loading-demo
+cd comath-beginner-loading-demo
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter:
+
+```text
+Explore this problem: Are there infinitely many primes of the form n^2 + 1?
+```
+
+Then enter:
+
+```text
+continue path 1
+```
+
+Pass criteria:
+
+```text
+[ ] The user can immediately tell Path 1 is still running.
+[ ] The footer/status area shows `co-math: Path 1 running · ...` while the editor remains usable.
+[ ] The interface does not look like Pi is silently waiting for the next instruction.
+[ ] The visible copy says Pi is still working in the background.
+[ ] The visible copy tells the user they can keep typing and can say show progress.
+[ ] The footer/status indicator advances as Path 1 moves through planning, computation, review, and synthesis.
+[ ] The footer/status indicator clears after Path 1 completes or fails.
+[ ] show progress gives meaningful current-stage information such as Running finite computation or Reviewing gaps and limits.
+[ ] The final result still appears when complete.
 ```
 
 Optional state check:

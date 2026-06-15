@@ -166,6 +166,57 @@ describe("computation research workstream", () => {
 		]);
 	});
 
+	it("folds multi-line display math into a single synthesis bullet", async () => {
+		const path = buildExamplesPath();
+		const { executor } = createExecutor({
+			specialist: ["Finite search.", "", "```python", "print('checked_range: 1 <= n <= 20')", "```"].join("\n"),
+			critic: "## Review\n- A finite computation does not prove an infinite claim.\n## Gaps\n- Still open.",
+			synthesizer: [
+				"## Promising strategy",
+				"- Use small bounded computation to study values of",
+				"\\[",
+				"n^2+1.",
+				"\\]",
+				"This is evidence, not a proof.",
+				"## Findings",
+				"- checked_range: 1 <= n <= 20",
+				"## Limitations",
+				"- A finite computation does not prove an infinite claim.",
+				"## Gaps",
+				"- Still open.",
+				"## Next",
+				"- Refine the direct-proof path.",
+			].join("\n"),
+		});
+		const { computationalExecutor } = createComputationalExecutor({
+			command: "python3 search.py",
+			exitCode: 0,
+			stdout: "checked_range: 1 <= n <= 20\n",
+			stderr: "",
+			durationMs: 5,
+			scriptFileName: "search.py",
+			stdoutFileName: "stdout.txt",
+		});
+
+		const result = await runComputationResearchWorkstreamStaged(
+			{
+				rootQuestion: QUESTION,
+				path,
+				allPaths: [path],
+				now: "2026-06-05T12:30:00.000Z",
+				executor,
+				computationalExecutor,
+				artifactDirectory: ".pi/co-math/artifacts/research-run-1",
+			},
+			{},
+		);
+
+		expect(result.report.promisingStrategy).toEqual([
+			"Use small bounded computation to study values of \\[ n^2+1. \\] This is evidence, not a proof.",
+		]);
+		expect(result.report.promisingStrategy.some((item) => item === "\\[" || item === "\\]")).toBe(false);
+	});
+
 	it("rejects unsafe model scripts and falls back to a deterministic bounded script", async () => {
 		const path = buildExamplesPath();
 		const { executor } = createExecutor({

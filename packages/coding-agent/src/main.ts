@@ -45,8 +45,13 @@ import { SettingsManager } from "./core/settings-manager.ts";
 import { printTimings, resetTimings, time } from "./core/timings.ts";
 import { hasProjectTrustInputs, ProjectTrustStore } from "./core/trust-manager.ts";
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
-import { CoMathHarness } from "./modes/comath/comath-harness.ts";
-import { formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
+import {
+	CoMathHarness,
+	type CoMathResearchWorkstreamActivityEndInput,
+	type CoMathResearchWorkstreamActivityStartInput,
+	type CoMathResearchWorkstreamActivityUpdateInput,
+} from "./modes/comath/comath-harness.ts";
+import { formatCoMathResearchActivityStatus, formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
 import { createDefaultResearchModelExecutor } from "./modes/comath/comath-research-model-executor.ts";
 import { resolveCoMathSource } from "./modes/comath/comath-source.ts";
 import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.ts";
@@ -103,6 +108,33 @@ function isTruthyEnvFlag(value: string | undefined): boolean {
 }
 
 type AppMode = "interactive" | "print" | "json" | "rpc";
+
+interface CoMathInteractiveActivityBridge {
+	start(input: CoMathResearchWorkstreamActivityStartInput): void;
+	update(input: CoMathResearchWorkstreamActivityUpdateInput): void;
+	end(input: CoMathResearchWorkstreamActivityEndInput): void;
+}
+
+function createCoMathInteractiveActivityBridge(interactiveMode: InteractiveMode): CoMathInteractiveActivityBridge {
+	const statusesByRunId = new Map<string, string>();
+	const render = () => {
+		interactiveMode.setCoMathActivityStatus(Array.from(statusesByRunId.values()).at(-1));
+	};
+	return {
+		start(input) {
+			statusesByRunId.set(input.run.id, formatCoMathResearchActivityStatus(input));
+			render();
+		},
+		update(input) {
+			statusesByRunId.set(input.run.id, formatCoMathResearchActivityStatus(input));
+			render();
+		},
+		end(input) {
+			statusesByRunId.delete(input.runId);
+			render();
+		},
+	};
+}
 
 function resolveAppMode(parsed: Args, stdinIsTTY: boolean): AppMode {
 	if (parsed.mode === "rpc") {
@@ -784,6 +816,7 @@ export async function main(args: string[], options?: MainOptions) {
 	const { services, session, modelFallbackMessage } = runtime;
 	const { settingsManager, modelRegistry, resourceLoader } = services;
 	configureHttpDispatcher(settingsManager.getHttpIdleTimeoutMs());
+	let coMathActivityBridge: CoMathInteractiveActivityBridge | undefined;
 
 	if (parsed.help) {
 		const extensionFlags = resourceLoader
@@ -824,6 +857,9 @@ export async function main(args: string[], options?: MainOptions) {
 				// Real specialist/critic/synthesizer model calls for `continue path N`; the harness
 				// falls back to deterministic execution if these fail or no model is configured.
 				researchModelExecutor: createDefaultResearchModelExecutor({ cwd: runtimeCwd }),
+				onResearchWorkstreamActivityStart: (input) => coMathActivityBridge?.start(input),
+				onResearchWorkstreamActivityUpdate: (input) => coMathActivityBridge?.update(input),
+				onResearchWorkstreamActivityEnd: (input) => coMathActivityBridge?.end(input),
 			}),
 		);
 		await sendCoMathNotice(formatCoMathWelcome(source));
@@ -883,6 +919,9 @@ export async function main(args: string[], options?: MainOptions) {
 			initialMessages: parsed.messages,
 			verbose: parsed.verbose,
 		});
+		if (parsed.productMode === "comath") {
+			coMathActivityBridge = createCoMathInteractiveActivityBridge(interactiveMode);
+		}
 		if (startupBenchmark) {
 			await interactiveMode.init();
 			time("interactiveMode.init");

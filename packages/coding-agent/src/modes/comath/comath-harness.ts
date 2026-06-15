@@ -78,6 +78,7 @@ import {
 	formatResearchWorkstreamRunProgress,
 	formatResearchWorkstreamRunStarted,
 	formatResearchWorkstreamRunStillRunningReport,
+	formatResearchWorkstreamStageStarted,
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
@@ -100,6 +101,26 @@ export interface CoMathBackendCommandResult {
 	messages: string[];
 }
 export type CoMathBackendCommandRunner = (args: string) => Promise<CoMathBackendCommandResult>;
+export interface CoMathResearchWorkstreamActivityStartInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	run: ResearchWorkstreamRunRecord;
+}
+export interface CoMathResearchWorkstreamActivityUpdateInput extends CoMathResearchWorkstreamActivityStartInput {
+	stage: ResearchWorkstreamRunStage;
+	summary: string;
+}
+export interface CoMathResearchWorkstreamActivityEndInput {
+	runId: string;
+}
+export type CoMathResearchWorkstreamActivityStart = (
+	input: CoMathResearchWorkstreamActivityStartInput,
+) => void | Promise<void>;
+export type CoMathResearchWorkstreamActivityUpdate = (
+	input: CoMathResearchWorkstreamActivityUpdateInput,
+) => void | Promise<void>;
+export type CoMathResearchWorkstreamActivityEnd = (
+	input: CoMathResearchWorkstreamActivityEndInput,
+) => void | Promise<void>;
 
 export interface CoMathHarnessOptions {
 	source?: CoMathSource;
@@ -116,6 +137,9 @@ export interface CoMathHarnessOptions {
 	researchModelExecutor?: ResearchWorkstreamModelExecutor;
 	literatureSourceLookup?: LiteratureSourceLookup;
 	computationalExecutor?: ComputationalExecutor;
+	onResearchWorkstreamActivityStart?: CoMathResearchWorkstreamActivityStart;
+	onResearchWorkstreamActivityUpdate?: CoMathResearchWorkstreamActivityUpdate;
+	onResearchWorkstreamActivityEnd?: CoMathResearchWorkstreamActivityEnd;
 }
 
 export class CoMathHarness {
@@ -128,6 +152,9 @@ export class CoMathHarness {
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
 	private readonly literatureSourceLookup: LiteratureSourceLookup;
 	private readonly computationalExecutor: ComputationalExecutor;
+	private readonly onResearchWorkstreamActivityStart: CoMathResearchWorkstreamActivityStart | undefined;
+	private readonly onResearchWorkstreamActivityUpdate: CoMathResearchWorkstreamActivityUpdate | undefined;
+	private readonly onResearchWorkstreamActivityEnd: CoMathResearchWorkstreamActivityEnd | undefined;
 	private readonly activeResearchWorkstreams = new Map<string, Promise<void>>();
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
@@ -141,6 +168,9 @@ export class CoMathHarness {
 		this.researchModelExecutor = options.researchModelExecutor;
 		this.literatureSourceLookup = options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup();
 		this.computationalExecutor = options.computationalExecutor ?? createDefaultComputationalExecutor();
+		this.onResearchWorkstreamActivityStart = options.onResearchWorkstreamActivityStart;
+		this.onResearchWorkstreamActivityUpdate = options.onResearchWorkstreamActivityUpdate;
+		this.onResearchWorkstreamActivityEnd = options.onResearchWorkstreamActivityEnd;
 	}
 
 	async handlePrompt(problemText: string): Promise<void> {
@@ -530,8 +560,9 @@ export class CoMathHarness {
 			}
 			return;
 		}
-		if (/^continue(?:\s+.+)?$/i.test(prompt)) {
-			const { explicit, path } = resolveContinueResearchPath(state, prompt);
+		const continuation = parseResearchPathContinuationPrompt(state, prompt);
+		if (continuation) {
+			const { explicit, path } = continuation;
 			if (!path) {
 				await this.notify(
 					explicit
@@ -617,6 +648,9 @@ export class CoMathHarness {
 			reason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 		});
 		await saveProjectState(this.statePath, nextState);
+		for (const staleRunId of staleRunIds) {
+			await this.notifyResearchWorkstreamActivityEnd(staleRunId);
+		}
 		const staleRunIdSet = new Set(staleRunIds);
 		return {
 			state: nextState,
@@ -645,14 +679,16 @@ export class CoMathHarness {
 			await saveProjectState(this.statePath, nextState);
 			const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
 			if (run) {
+				await this.notifyResearchWorkstreamActivityStart(nextState, run);
 				await this.notify(formatResearchWorkstreamRunStarted({ state: nextState, run }));
 			}
 			const workstream = this.executeResearchWorkstreamInBackground(runId)
 				.catch(async (error: unknown) => {
 					await this.markResearchWorkstreamRunFailed(runId, safeErrorMessage(error));
 				})
-				.finally(() => {
+				.finally(async () => {
 					this.activeResearchWorkstreams.delete(runId);
+					await this.notifyResearchWorkstreamActivityEnd(runId);
 				});
 			this.activeResearchWorkstreams.set(runId, workstream);
 			void workstream;
@@ -712,13 +748,7 @@ export class CoMathHarness {
 					},
 					{
 						onStageStarted: async (stage, summary) => {
-							await this.saveResearchWorkstreamStage(runId, {
-								stage,
-								status: "running",
-								title: formatStageTitle(stage),
-								summary,
-								details: [],
-							});
+							await this.saveResearchWorkstreamStageStarted(state, run, stage, summary);
 						},
 						onStageCompleted: async (result) => {
 							await this.saveResearchWorkstreamStage(runId, {
@@ -749,13 +779,7 @@ export class CoMathHarness {
 					},
 					{
 						onStageStarted: async (stage, summary) => {
-							await this.saveResearchWorkstreamStage(runId, {
-								stage,
-								status: "running",
-								title: formatStageTitle(stage),
-								summary,
-								details: [],
-							});
+							await this.saveResearchWorkstreamStageStarted(state, run, stage, summary);
 						},
 						onStageCompleted: async (result) => {
 							await this.saveResearchWorkstreamStage(runId, {
@@ -781,13 +805,7 @@ export class CoMathHarness {
 				},
 				{
 					onStageStarted: async (stage, summary) => {
-						await this.saveResearchWorkstreamStage(runId, {
-							stage,
-							status: "running",
-							title: formatStageTitle(stage),
-							summary,
-							details: [],
-						});
+						await this.saveResearchWorkstreamStageStarted(state, run, stage, summary);
 					},
 					onStageCompleted: async (result) => {
 						await this.saveResearchWorkstreamStage(runId, {
@@ -804,6 +822,26 @@ export class CoMathHarness {
 		} catch (error: unknown) {
 			await this.completeResearchWorkstreamWithFallback(runId, error);
 		}
+	}
+
+	private async saveResearchWorkstreamStageStarted(
+		state: CoMathProjectState,
+		run: ResearchWorkstreamRunRecord,
+		stage: ResearchWorkstreamRunStage,
+		summary: string,
+	): Promise<void> {
+		await this.saveResearchWorkstreamStage(run.id, {
+			stage,
+			status: "running",
+			title: formatStageTitle(stage),
+			summary,
+			details: [],
+		});
+		await this.notifyResearchWorkstreamActivityUpdate(state, run, stage, summary);
+		if (stage === "coordinator") {
+			return;
+		}
+		await this.notify(formatResearchWorkstreamStageStarted({ state, run, stage, summary }));
 	}
 
 	private async saveResearchWorkstreamStage(
@@ -1249,6 +1287,38 @@ export class CoMathHarness {
 			return undefined;
 		}
 	}
+
+	private async notifyResearchWorkstreamActivityStart(
+		state: Pick<CoMathProjectState, "researchPaths">,
+		run: ResearchWorkstreamRunRecord,
+	): Promise<void> {
+		try {
+			await this.onResearchWorkstreamActivityStart?.({ state, run });
+		} catch {
+			// UI status updates are best-effort and must not affect research execution.
+		}
+	}
+
+	private async notifyResearchWorkstreamActivityUpdate(
+		state: Pick<CoMathProjectState, "researchPaths">,
+		run: ResearchWorkstreamRunRecord,
+		stage: ResearchWorkstreamRunStage,
+		summary: string,
+	): Promise<void> {
+		try {
+			await this.onResearchWorkstreamActivityUpdate?.({ state, run, stage, summary });
+		} catch {
+			// UI status updates are best-effort and must not affect research execution.
+		}
+	}
+
+	private async notifyResearchWorkstreamActivityEnd(runId: string): Promise<void> {
+		try {
+			await this.onResearchWorkstreamActivityEnd?.({ runId });
+		} catch {
+			// UI status updates are best-effort and must not affect research execution.
+		}
+	}
 }
 
 function trimTerminalPunctuation(value: string): string {
@@ -1398,18 +1468,58 @@ function parseResearchPathNumber(query: string): number | undefined {
 	return pathNumber > 0 ? pathNumber : undefined;
 }
 
-function resolveContinueResearchPath(
+const RESEARCH_PATH_ORDINALS: Record<string, number> = {
+	first: 1,
+	second: 2,
+	third: 3,
+	fourth: 4,
+	fifth: 5,
+};
+
+/**
+ * Match natural beginner phrasings that should start (or continue) a numbered research path, e.g.
+ * "continue path 1", "please continue with path 1", "run path 2", "start the first path", or a bare
+ * "continue". Returns `undefined` when the prompt is not a continuation request so normal handling
+ * (the research-state summary) takes over.
+ */
+function parseResearchPathContinuationPrompt(
 	state: CoMathProjectState,
 	prompt: string,
-): { explicit: boolean; path?: ResearchPath } {
-	const explicitPath = /^continue\s+(.+)$/i.exec(prompt.trim())?.[1];
-	if (explicitPath) {
-		const path = findResearchPath(state, explicitPath);
+): { explicit: boolean; path?: ResearchPath } | undefined {
+	const stripped = stripPolitePrefix(prompt.trim());
+	const match = /^(continue|run|start|try)\b\s*(?:with\s+)?(.*)$/i.exec(stripped);
+	if (!match) {
+		return undefined;
+	}
+	const verb = match[1].toLowerCase();
+	const target = (match[2] ?? "").trim();
+	if (target.length === 0) {
+		// A bare verb. "continue" keeps the focus/priority fallback; "run"/"start"/"try" on their own
+		// are too ambiguous to treat as a path continuation.
+		return verb === "continue" ? resolveDefaultContinueResearchPath(state) : undefined;
+	}
+	const index = parseResearchPathOrdinal(target) ?? parseResearchPathNumber(target);
+	if (index !== undefined) {
+		const path = state.researchPaths[index - 1];
 		if (path && path.status !== "abandoned") {
 			return { explicit: true, path };
 		}
 		return { explicit: true };
 	}
+	// A non-numeric target. Keep fuzzy path-name matching for "continue …" only; the beginner verbs
+	// require an explicit numbered/ordinal path so unrelated prompts ("run a quick check") still fall
+	// through to the normal summary.
+	if (verb !== "continue") {
+		return undefined;
+	}
+	const path = findResearchPath(state, target);
+	if (path && path.status !== "abandoned") {
+		return { explicit: true, path };
+	}
+	return { explicit: true };
+}
+
+function resolveDefaultContinueResearchPath(state: CoMathProjectState): { explicit: boolean; path?: ResearchPath } {
 	const focused = state.researchFocus?.pathIds
 		.map((pathId) => state.researchPaths.find((path) => path.id === pathId))
 		.find((path): path is ResearchPath => path !== undefined && path.status !== "abandoned");
@@ -1422,6 +1532,38 @@ function resolveContinueResearchPath(
 			.filter((path) => path.status === "active" || path.status === "promising")
 			.sort((a, b) => a.priority - b.priority)[0],
 	};
+}
+
+/**
+ * Strip leading polite/filler phrases ("please", "can you", "let's", …) so the verb that follows can
+ * be matched. Repeats to handle stacked prefixes such as "could you please continue path 1".
+ */
+function stripPolitePrefix(prompt: string): string {
+	const politePattern = /^(?:please|can you|could you|would you|will you|kindly|let'?s)\b[\s,]*/i;
+	let result = prompt.trim();
+	while (politePattern.test(result)) {
+		const next = result.replace(politePattern, "").trim();
+		if (next === result) {
+			break;
+		}
+		result = next;
+	}
+	return result;
+}
+
+/**
+ * Resolve a small set of ordinal words ("first" … "fifth", optionally wrapped in "the …" / "… path")
+ * to a 1-based path index. Returns `undefined` for anything that is not purely an ordinal so free-text
+ * like "first-order logic" falls through to fuzzy matching instead.
+ */
+function parseResearchPathOrdinal(query: string): number | undefined {
+	const normalized = query
+		.toLowerCase()
+		.replace(/[^a-z\s]/g, " ")
+		.replace(/\b(?:the|path|paths|with|one)\b/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+	return RESEARCH_PATH_ORDINALS[normalized];
 }
 
 function normalizePathQuery(value: string): string {
