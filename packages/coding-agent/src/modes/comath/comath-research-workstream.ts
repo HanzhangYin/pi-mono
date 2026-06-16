@@ -120,10 +120,10 @@ export function buildCoordinatorBrief(path: ResearchPath): string {
 		return "The examples path should gather evidence and expose obstructions without mistaking examples for a proof.";
 	}
 	if (title === "reformulation") {
-		return "The reformulation path should restate the question in terms of better-understood structures while flagging analogies that are not yet proved.";
+		return "The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test.";
 	}
 	if (title === "weaker special cases") {
-		return "The weaker-cases path should isolate statements that can be settled now and keep them separate from the full problem.";
+		return "The weaker-cases path should list candidate lemmas or weaker targets, mark their status, and keep proved statements separate from computational evidence and open targets.";
 	}
 	if (title === "known theorem or literature reduction") {
 		return "The literature path should locate source-backed context and avoid citing theorems the project has not verified.";
@@ -169,14 +169,16 @@ function buildCriticReview(rootQuestion: string, path: ResearchPath, round: Rese
 		return {
 			criticisms: nSquaredPlusOne
 				? [
-						"Mapping to prime values of f(n) = n^2 + 1 is a search target, not a proved equivalence.",
-						"A reformulation is only a guidepost until an equivalence is proved or sourced.",
+						"The polynomial-prime-values frame is a restatement and search direction, not a proof of infinitude.",
+						"Bunyakovsky/Schinzel-type frames are conjectural or literature-search targets unless a source verifies the exact claim.",
 					]
 				: [
 						"A reformulation is only a guidepost until an equivalence is proved or sourced.",
 						"Conjectural analogies must be separated from definitional restatements.",
 					],
-			gaps: ["No proved equivalence yet links the reformulation to the original statement."],
+			gaps: nSquaredPlusOne
+				? ["The even-index reduction leaves the hard question of infinitely many prime values of 4m^2 + 1 open."]
+				: ["No proved equivalence yet links the reformulation to the original statement."],
 		};
 	}
 	if (title === "weaker special cases") {
@@ -184,7 +186,7 @@ function buildCriticReview(rootQuestion: string, path: ResearchPath, round: Rese
 			criticisms: nSquaredPlusOne
 				? [
 						"The proved parity lemma must not be presented as the full theorem.",
-						"Finite evidence for even n does not bridge to infinitely many.",
+						"Finite evidence and small-prime obstruction checks do not bridge to infinitely many primes.",
 					]
 				: [
 						"A proved special case must not be presented as the full theorem.",
@@ -246,19 +248,29 @@ function buildSynthesis(rootQuestion: string, path: ResearchPath, round: Researc
 	if (title === "reformulation") {
 		return {
 			promisingStrategy: nSquaredPlusOne
-				? ["Treat the question as prime values of f(n) = n^2 + 1 and compare it with provable weaker cases."]
+				? [
+						"Use the map: original question -> polynomial prime values -> even-index target 4m^2 + 1.",
+						"Treat Bunyakovsky/Schinzel-type statements as source-backed search targets, not proofs.",
+					]
 				: ["Restate the problem via simpler equivalent subclaims and test them separately."],
 			humanHelpUseful: [],
-			suggestedNextMove: round.suggestedNextMove,
+			suggestedNextMove: nSquaredPlusOne
+				? "Turn this into smaller targets: continue path 4."
+				: round.suggestedNextMove,
 		};
 	}
 	if (title === "weaker special cases") {
 		return {
 			promisingStrategy: nSquaredPlusOne
-				? ["Prove the parity lemma cleanly, then test even n in a larger finite range for supporting evidence."]
+				? [
+						"Use the proved parity obstruction to focus proof attempts on the even-index target 4m^2 + 1.",
+						"Use finite evidence and small-prime obstruction checks as supporting diagnostics, not proofs.",
+					]
 				: ["Prove a weaker statement that removes one source of complexity, kept separate from the full claim."],
 			humanHelpUseful: [],
-			suggestedNextMove: round.suggestedNextMove,
+			suggestedNextMove: nSquaredPlusOne
+				? "Use these lemmas in a proof attempt: continue path 2."
+				: round.suggestedNextMove,
 		};
 	}
 	if (title === "known theorem or literature reduction") {

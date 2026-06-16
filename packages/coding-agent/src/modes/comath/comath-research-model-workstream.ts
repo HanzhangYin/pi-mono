@@ -148,9 +148,11 @@ export async function runModelBackedResearchWorkstreamStaged(
 		sectionItems(specialist, "gap"),
 	);
 	const humanHelpUseful = pickItems(sectionItems(synthesizer, "human"), sectionItems(critic, "human"));
-	const suggestedNextMove =
-		pickSuggestedNextMove(sectionItems(synthesizer, "next"), sectionItems(specialist, "next")) ??
-		"Review this attempt and choose the next research move.";
+	const parsedSuggestedNextMove = pickSuggestedNextMove(
+		sectionItems(synthesizer, "next"),
+		sectionItems(specialist, "next"),
+	);
+	const suggestedNextMove = formatPathSpecificSuggestedNextMove(path, allPaths, parsedSuggestedNextMove);
 	const workingPaperSummary = buildWorkingPaperSummary(path, {
 		workingPaperLines: sectionItems(synthesizer, "working paper"),
 		promisingStrategy,
@@ -228,6 +230,7 @@ export function buildSpecialistPrompt(
 		"",
 		"Task:",
 		"Attempt this path. Produce useful partial progress, not polished certainty.",
+		...formatPathSpecificGuidance(path),
 		"Preserve uncertainty. Do not claim a proof of a famous or open problem unless you actually provide a complete proof from the information given.",
 		"Do not fabricate citations.",
 		"",
@@ -250,6 +253,7 @@ export function buildCriticPrompt(rootQuestion: string, path: ResearchPath, spec
 		"",
 		"Task:",
 		"Review the specialist attempt for mathematical gaps, overclaims, missing assumptions, and unsupported citations.",
+		...formatPathSpecificGuidance(path),
 		"Do not solve the whole problem; critique what was attempted. Preserve uncertainty. Do not fabricate citations.",
 		"",
 		"Return markdown with these headings:",
@@ -279,6 +283,7 @@ export function buildSynthesizerPrompt(
 		"",
 		"Task:",
 		"Write a cautious research-workstream synthesis for the user and the working paper.",
+		...formatPathSpecificGuidance(path),
 		"Keep useful ideas. Preserve gaps. Do not claim proofs of famous or open problems. Avoid fabricated citations.",
 		"",
 		"Return markdown with these headings:",
@@ -290,6 +295,66 @@ export function buildSynthesizerPrompt(
 		"## Next",
 		"## Working paper summary",
 	].join("\n");
+}
+
+function formatPathSpecificGuidance(path: ResearchPath): string[] {
+	const title = path.title.trim().replace(/\s+/g, " ").toLowerCase();
+	if (title === "reformulation") {
+		return [
+			"For this reformulation path:",
+			"- Include the original question.",
+			"- Separate equivalent or directly reduced frames from conjectural/literature search targets.",
+			"- Explain what changes operationally for examples or proof attempts.",
+			"- State what is not proved.",
+			"- Make the next step executable: continue path 4.",
+		];
+	}
+	if (title === "weaker special cases") {
+		return [
+			"For this weaker-special-cases path:",
+			"- List candidate lemmas or weaker targets.",
+			"- Mark each status: proved, equivalent target, computational evidence only, or open next target.",
+			"- Separate finite checks from theorem-level claims.",
+			"- Make the next step executable: continue path 2.",
+		];
+	}
+	return [];
+}
+
+function formatPathSpecificSuggestedNextMove(
+	path: ResearchPath,
+	allPaths: readonly ResearchPath[],
+	suggestedNextMove: string | undefined,
+): string {
+	const title = normalizeTitle(path.title);
+	const command =
+		title === "reformulation"
+			? commandForPathTitle(allPaths, "weaker special cases")
+			: title === "weaker special cases"
+				? commandForPathTitle(allPaths, "direct proof attempt")
+				: undefined;
+	if (!command) {
+		return suggestedNextMove ?? "Review this attempt and choose the next research move.";
+	}
+	if (!suggestedNextMove) {
+		return title === "reformulation"
+			? `Turn this into smaller targets: ${command}.`
+			: `Use these lemmas in a proof attempt: ${command}.`;
+	}
+	if (suggestedNextMove.includes(command)) {
+		return suggestedNextMove;
+	}
+	return `${suggestedNextMove} Next command: ${command}.`;
+}
+
+function commandForPathTitle(allPaths: readonly ResearchPath[], title: string): string | undefined {
+	const normalizedTitle = normalizeTitle(title);
+	const index = allPaths.findIndex((path) => normalizeTitle(path.title) === normalizedTitle);
+	return index >= 0 ? `continue path ${index + 1}` : undefined;
+}
+
+function normalizeTitle(title: string): string {
+	return title.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function formatPriorFindings(priorFindings: readonly string[]): string[] {

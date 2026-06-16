@@ -261,6 +261,60 @@ at least 1 working-paper section
 at least 1 margin note
 ```
 
+## Path 3/4 bridge smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-path3-path4-bridge-test-1
+cd comath-path3-path4-bridge-test-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Are there infinitely many primes of the form n^2 + 1?
+```
+
+```text
+please continue path 1
+```
+
+Wait for Path 1 to finish, then:
+
+```text
+continue path 3
+```
+
+```text
+continue path 4
+```
+
+```text
+show research state
+```
+
+```text
+show report
+```
+
+Good signs:
+
+```text
+[ ] Path 3 explains prime-values-of-polynomial framing.
+[ ] Path 3 explains even-index / 4m^2 + 1 reduction.
+[ ] Path 3 says conjectural frames are not proofs.
+[ ] Path 3 suggests `continue path 4`.
+[ ] Path 4 lists candidate lemmas or weaker targets.
+[ ] Path 4 marks parity obstruction as proved.
+[ ] Path 4 marks finite evidence as computational-only.
+[ ] Path 4 suggests `continue path 2`.
+[ ] show research state includes an executable suggested command.
+[ ] show report shows the latest detailed report with the same next move.
+```
+
 ## Async research workstream smoke
 
 From a new folder (no destructive cleanup):

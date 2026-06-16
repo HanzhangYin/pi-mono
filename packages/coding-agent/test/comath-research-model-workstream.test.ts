@@ -30,6 +30,22 @@ function buildDirectProofPath(): ResearchPath {
 	};
 }
 
+function buildPaths(rootQuestion: string): ResearchPath[] {
+	const plan = createCoMathResearchAutoPlan(rootQuestion);
+	return plan.paths.map((planPath, index) => ({
+		id: `path-${index + 1}`,
+		title: planPath.title,
+		objective: planPath.objective,
+		status: "active",
+		latestFindings: [],
+		blockers: [],
+		suggestedNextMove: planPath.suggestedNextMove,
+		priority: planPath.priority,
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	}));
+}
+
 const TWIN_PRIME_RESPONSES: Record<ResearchWorkstreamModelRequest["role"], string> = {
 	specialist: [
 		"## Findings",
@@ -236,6 +252,68 @@ describe("model-backed research workstream", () => {
 		expect(report.suggestedNextMove).toContain("Check whether a bounded-gap theorem is a useful weaker target.");
 		expect(report.suggestedNextMove).toContain("Ask for source-backed literature context");
 		expect(report.suggestedNextMove).toContain("Compare this direct path against a reformulation path.");
+	});
+
+	it("keeps Path 3 and Path 4 model-backed next steps executable", async () => {
+		const rootQuestion = "Are there infinitely many primes of the form n^2 + 1?";
+		const paths = buildPaths(rootQuestion);
+		const reformulation = paths[2];
+		const weakerCases = paths[3];
+		if (!reformulation || !weakerCases) {
+			throw new Error("Expected Path 3 and Path 4.");
+		}
+		const { executor } = createRecordingExecutor({
+			specialist: [
+				"## Findings",
+				"- Frame the problem as prime values of f(n)=n^2+1.",
+				"## Promising strategy",
+				"- Use the even-index target.",
+				"## Gaps",
+				"- This is not a proof.",
+				"## Next",
+				"- Turn this into smaller targets.",
+			].join("\n"),
+			critic: [
+				"## Review",
+				"- The attempt preserves uncertainty.",
+				"## Gaps",
+				"- The even-index target remains open.",
+				"## Overclaims or source issues",
+				"- No citation was claimed.",
+				"## Human help useful",
+				"- Source guidance could help.",
+			].join("\n"),
+			synthesizer: [
+				"## Promising strategy",
+				"- Use the reformulation map.",
+				"## Findings",
+				"- Polynomial prime values are a useful frame.",
+				"## Review",
+				"- Do not claim a proof.",
+				"## Gap",
+				"- Infinitude remains open.",
+				"## Next",
+				"- Turn these into candidate lemmas.",
+			].join("\n"),
+		});
+
+		const path3Report = await runModelBackedResearchWorkstream({
+			rootQuestion,
+			path: reformulation,
+			allPaths: paths,
+			now: "2026-06-05T12:30:00.000Z",
+			executor,
+		});
+		expect(path3Report.suggestedNextMove).toContain("continue path 4");
+
+		const path4Report = await runModelBackedResearchWorkstream({
+			rootQuestion,
+			path: weakerCases,
+			allPaths: paths,
+			now: "2026-06-05T12:45:00.000Z",
+			executor,
+		});
+		expect(path4Report.suggestedNextMove).toContain("continue path 2");
 	});
 
 	it("falls back safely when role responses have no markdown sections", async () => {

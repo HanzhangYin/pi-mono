@@ -57,6 +57,45 @@ describe("co-math research execution", () => {
 		expect(result.workingPaperSectionTitle).toBe("Direct proof attempts");
 	});
 
+	it("makes the n^2 + 1 reformulation path actionable", () => {
+		const path = createPath("Reformulation");
+		const result = runResearchPathRound({
+			rootQuestion: "Are there infinitely many primes of the form n^2 + 1?",
+			path,
+			allPaths: [path],
+			now: FIXED_NOW,
+		});
+
+		const text = [...result.findings, ...result.uncertainties].join("\n");
+		expect(text).toContain("Polynomial prime values");
+		expect(text).toContain("f(n) = n^2 + 1");
+		expect(text).toContain("4m^2 + 1");
+		expect(text).toContain("this is not a proof");
+		expect(text).toContain("search targets");
+		expect(result.suggestedNextMove).toContain("smaller lemmas and weaker targets");
+		expect(result.workingPaperSectionTitle).toBe("Reformulations");
+	});
+
+	it("makes the n^2 + 1 weaker-special-cases path actionable", () => {
+		const path = createPath("Weaker special cases");
+		const result = runResearchPathRound({
+			rootQuestion: "Are there infinitely many primes of the form n^2 + 1?",
+			path,
+			allPaths: [path],
+			now: FIXED_NOW,
+		});
+
+		const text = [...result.findings, ...result.uncertainties].join("\n");
+		expect(text).toContain("Parity obstruction");
+		expect(text).toContain("Status: proved");
+		expect(text).toContain("Status: equivalent target");
+		expect(text).toContain("computational evidence only");
+		expect(text).toContain("Small-prime obstructions");
+		expect(text).toContain("do not prove infinitude");
+		expect(result.suggestedNextMove).toContain("proof attempt");
+		expect(result.workingPaperSectionTitle).toBe("Weaker statements");
+	});
+
 	it("uses source-needed language for known theorem targets", () => {
 		const path = createPath("Known theorem or literature reduction");
 		const result = runResearchPathRound({

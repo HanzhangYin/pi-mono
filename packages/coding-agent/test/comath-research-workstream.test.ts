@@ -62,6 +62,45 @@ describe("co-math research workstream", () => {
 		expect(report.criticisms.join("\n")).toContain("does not establish that infinitely many");
 	});
 
+	it("turns the reformulation path into an actionable bridge to weaker targets", () => {
+		const report = runForTitle("Reformulation");
+		const text = [
+			report.coordinatorBrief,
+			...report.findings,
+			...report.criticisms,
+			...report.gaps,
+			...report.promisingStrategy,
+			report.suggestedNextMove,
+		].join("\n");
+
+		expect(text).toContain("equivalent or related frames");
+		expect(text).toContain("Polynomial prime values");
+		expect(text).toContain("4m^2 + 1");
+		expect(text).toContain("not a proof");
+		expect(text).toContain("source-backed search targets");
+		expect(report.suggestedNextMove).toContain("continue path 4");
+	});
+
+	it("turns the weaker-special-cases path into candidate lemmas for a proof attempt", () => {
+		const report = runForTitle("Weaker special cases");
+		const text = [
+			report.coordinatorBrief,
+			...report.findings,
+			...report.criticisms,
+			...report.gaps,
+			...report.promisingStrategy,
+			report.suggestedNextMove,
+		].join("\n");
+
+		expect(text).toContain("candidate lemmas or weaker targets");
+		expect(text).toContain("Parity obstruction");
+		expect(text).toContain("Status: proved");
+		expect(text).toContain("computational evidence only");
+		expect(text).toContain("Small-prime obstructions");
+		expect(text).toContain("do not bridge to infinitely many primes");
+		expect(report.suggestedNextMove).toContain("continue path 2");
+	});
+
 	it("requests source-backed literature verification for the known theorem path", () => {
 		const report = runForTitle("Known theorem or literature reduction");
 		expect(report.criticisms.join("\n")).toContain("search targets, not verified citations");

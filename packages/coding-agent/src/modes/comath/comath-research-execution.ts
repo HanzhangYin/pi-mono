@@ -99,12 +99,9 @@ function buildDirectProofRound(path: ResearchPath, rootQuestion: string): Resear
 }
 
 function buildReformulationRound(path: ResearchPath, rootQuestion: string): ResearchRoundResult {
-	const findings = isNSquaredPlusOneQuestion(rootQuestion)
-		? [
-				"Reformulate the question as asking for infinitely many prime values of the polynomial f(n) = n^2 + 1.",
-				"After the parity reduction, focus on even n; writing n = 2m gives values 4m^2 + 1.",
-				"This suggests a literature-search target around prime-producing polynomials, not a verified theorem citation.",
-			]
+	const nSquaredPlusOne = isNSquaredPlusOneQuestion(rootQuestion);
+	const findings = nSquaredPlusOne
+		? buildNSquaredPlusOneReformulationFindings(rootQuestion)
 		: [
 				"Restate the question in terms of simpler equivalent subclaims before attempting the full problem.",
 				"Separate definitional reformulations from conjectural analogies.",
@@ -112,23 +109,24 @@ function buildReformulationRound(path: ResearchPath, rootQuestion: string): Rese
 			];
 	return createResult(path, {
 		findings,
-		uncertainties: [
-			"The reformulations are guideposts; they do not by themselves prove the original statement.",
-			"Any equivalence to a known theorem needs source-backed verification.",
-		],
+		uncertainties: nSquaredPlusOne
+			? buildNSquaredPlusOneReformulationUncertainties()
+			: [
+					"The reformulations are guideposts; they do not by themselves prove the original statement.",
+					"Any equivalence to a known theorem needs source-backed verification.",
+				],
 		blockers: [],
-		suggestedNextMove: "Compare the reformulated statement with weaker special cases that can be proved directly.",
+		suggestedNextMove: nSquaredPlusOne
+			? "Turn these reformulations into smaller lemmas and weaker targets."
+			: "Compare the reformulated statement with weaker special cases that can be proved directly.",
 		workingPaperSectionTitle: "Reformulations",
 	});
 }
 
 function buildWeakerSpecialCasesRound(path: ResearchPath, rootQuestion: string): ResearchRoundResult {
-	const findings = isNSquaredPlusOneQuestion(rootQuestion)
-		? [
-				"The parity lemma is proved: if n is odd and n > 1, then n^2 is odd, so n^2 + 1 is even and greater than 2, hence composite.",
-				"A weaker computational goal is to find many even n for which n^2 + 1 is prime within a finite bound.",
-				"Another weaker goal is to show infinitely many n for which n^2 + 1 has no small prime factor up to a chosen bound.",
-			]
+	const nSquaredPlusOne = isNSquaredPlusOneQuestion(rootQuestion);
+	const findings = nSquaredPlusOne
+		? buildNSquaredPlusOneWeakerCaseFindings()
 		: [
 				"Choose a special case that removes one source of complexity from the main statement.",
 				"Look for a finite verification task that can produce reliable evidence without proving the full claim.",
@@ -136,13 +134,16 @@ function buildWeakerSpecialCasesRound(path: ResearchPath, rootQuestion: string):
 			];
 	return createResult(path, {
 		findings,
-		uncertainties: [
-			"These weaker statements do not settle the full question.",
-			"The bridge from finite evidence or special cases to the full claim remains open.",
-		],
+		uncertainties: nSquaredPlusOne
+			? buildNSquaredPlusOneWeakerCaseUncertainties()
+			: [
+					"These weaker statements do not settle the full question.",
+					"The bridge from finite evidence or special cases to the full claim remains open.",
+				],
 		blockers: [],
-		suggestedNextMove:
-			"Prove the parity lemma cleanly in the working paper, then test even n in a larger finite range.",
+		suggestedNextMove: nSquaredPlusOne
+			? "Use the parity lemma and even reduction to guide a proof attempt."
+			: "Prove the parity lemma cleanly in the working paper, then test even n in a larger finite range.",
 		workingPaperSectionTitle: "Weaker statements",
 	});
 }
@@ -218,6 +219,39 @@ function formatWorkingPaperSummary(
 
 function isNSquaredPlusOneQuestion(rootQuestion: string): boolean {
 	return /\bn\s*(?:\^2|²)\s*\+\s*1\b/i.test(rootQuestion);
+}
+
+function buildNSquaredPlusOneReformulationFindings(rootQuestion: string): string[] {
+	return [
+		`Original question: ${rootQuestion}`,
+		"Frame 1 - Polynomial prime values: ask whether f(n) = n^2 + 1 takes prime values infinitely often.",
+		"Frame 2 - Even-index reduction: odd n > 1 never work; the unresolved part is whether 4m^2 + 1 is prime infinitely often.",
+		"Frame 3 - Conjectural/literature frame: Bunyakovsky/Schinzel-type heuristics would predict infinitude, but this is not a proof and needs source-backed context.",
+		"Practical consequence: stop spending computation on odd n > 1; focus examples and proof attempts on even n.",
+	];
+}
+
+function buildNSquaredPlusOneReformulationUncertainties(): string[] {
+	return [
+		"The even-index reduction is useful, but it does not prove infinitely many prime values.",
+		"Conjectural frames are search targets unless a source verifies the exact statement.",
+	];
+}
+
+function buildNSquaredPlusOneWeakerCaseFindings(): string[] {
+	return [
+		"Lemma 1 - Parity obstruction: if n > 1 is odd, then n^2 + 1 is composite. Status: proved.",
+		"Lemma 2 - Even reduction: the open part is whether 4m^2 + 1 is prime infinitely often. Status: equivalent target after excluding odd n > 1; not a proof.",
+		"Target 3 - Finite evidence: among checked n, record prime values of n^2 + 1. Status: computational evidence only.",
+		"Target 4 - Small-prime obstructions: for small primes p, identify residue classes where n^2 + 1 is divisible by p. Status: good next computation/proof target.",
+	];
+}
+
+function buildNSquaredPlusOneWeakerCaseUncertainties(): string[] {
+	return [
+		"The parity lemma is a real theorem but much weaker than the original claim.",
+		"Finite evidence and small-prime obstruction checks do not prove infinitude.",
+	];
 }
 
 function normalizeTitle(title: string): string {

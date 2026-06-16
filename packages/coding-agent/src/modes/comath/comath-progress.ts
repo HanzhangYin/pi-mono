@@ -216,11 +216,14 @@ export function formatResearchStateSummary(state: ResearchStateSummaryInput): st
 	const blocked = state.researchPaths.filter((path) => path.status === "blocked");
 	const abandoned = state.researchPaths.filter((path) => path.status === "abandoned");
 	const reports = state.researchReports ?? [];
-	const best = chooseResearchPath(state);
+	const latestReport = reports.at(-1);
+	const best = chooseResearchPathFromLatestReport(state, latestReport) ?? chooseResearchPath(state);
 	const bestIndex = best ? state.researchPaths.findIndex((path) => path.id === best.id) : -1;
+	const recentProgress = latestReport ? formatRecentResearchProgress(state, latestReport) : undefined;
 	return [
 		"Current research state",
 		"",
+		...(recentProgress ? ["Recent progress", `- ${recentProgress}`, ""] : []),
 		"Active paths",
 		...(active.length > 0
 			? active.map((path) => formatResearchPathLine(state, path, reports))
@@ -520,12 +523,14 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
 	const references = formatReferences(input.state, report.sourceIds ?? []);
 	const computation = formatComputationSummary(input.state, report.computationalArtifactIds ?? []);
-	const nextPath = chooseNextResearchPathAfter(input.state, report.pathId);
+	const bridgeResults = formatBridgeResultSection(report);
+	const nextPath = chooseNextResearchPathAfter(input.state, report);
 	const nextPathIndex = nextPath ? input.state.researchPaths.findIndex((path) => path.id === nextPath.id) : -1;
 	return [
 		"Research run completed",
 		"",
 		formatResearchReportPathLabel(input.state, report),
+		...(bridgeResults.length > 0 ? ["", ...bridgeResults] : []),
 		...(computation.length > 0 ? ["", "Computation", ...computation] : []),
 		"",
 		"Promising strategy",
@@ -639,6 +644,20 @@ export function formatResearchModelFallbackNote(): string {
 
 function bulletsOrFallback(items: readonly string[], fallback: string): string[] {
 	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
+}
+
+function formatBridgeResultSection(report: Pick<ResearchWorkstreamReportView, "pathTitle" | "findings">): string[] {
+	const title = normalizeResearchPathTitle(report.pathTitle);
+	if (title === "reformulation") {
+		return ["Equivalent or related frames", ...bulletsOrFallback(report.findings, "No reformulation was recorded.")];
+	}
+	if (title === "weaker special cases") {
+		return [
+			"Candidate lemmas and weaker targets",
+			...bulletsOrFallback(report.findings, "No weaker target was recorded."),
+		];
+	}
+	return [];
 }
 
 function formatCoordinatorNextMoves(input: FormatResearchCoordinatorReportInput): string[] {
@@ -898,16 +917,30 @@ function formatResearchPathLabel(state: Pick<CoMathProjectState, "researchPaths"
 
 function chooseNextResearchPathAfter(
 	state: Pick<CoMathProjectState, "researchPaths">,
-	completedPathId: string,
+	report: Pick<ResearchWorkstreamReportView, "pathId" | "pathTitle">,
 ): ResearchPath | undefined {
-	const completedIndex = state.researchPaths.findIndex((path) => path.id === completedPathId);
+	const title = normalizeResearchPathTitle(report.pathTitle);
+	if (title === "reformulation") {
+		return findActiveResearchPathByTitle(state, "weaker special cases");
+	}
+	if (title === "weaker special cases") {
+		return findActiveResearchPathByTitle(state, "direct proof attempt");
+	}
+	const completedIndex = state.researchPaths.findIndex((path) => path.id === report.pathId);
 	const isCandidate = (path: ResearchPath): boolean =>
-		path.id !== completedPathId && (path.status === "active" || path.status === "promising");
+		path.id !== report.pathId && (path.status === "active" || path.status === "promising");
 	const after = state.researchPaths.slice(completedIndex + 1).find(isCandidate);
 	return after ?? state.researchPaths.find(isCandidate);
 }
 
 function describeNextPathHint(path: ResearchPath): string {
+	const title = normalizeResearchPathTitle(path.title);
+	if (title === "weaker special cases") {
+		return "Turn this into smaller targets:";
+	}
+	if (title === "direct proof attempt") {
+		return "Use these lemmas in a proof attempt:";
+	}
 	if (/proof/i.test(path.title)) {
 		return "Try a proof-oriented path:";
 	}
@@ -918,6 +951,54 @@ function describeNextPathHint(path: ResearchPath): string {
 		return "Try the examples path:";
 	}
 	return "Try the next path:";
+}
+
+function chooseResearchPathFromLatestReport(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	report: Pick<ResearchWorkstreamReportRecord, "pathTitle"> | undefined,
+): ResearchPath | undefined {
+	if (!report) {
+		return undefined;
+	}
+	const title = normalizeResearchPathTitle(report.pathTitle);
+	if (title === "reformulation") {
+		return findActiveResearchPathByTitle(state, "weaker special cases");
+	}
+	if (title === "weaker special cases") {
+		return findActiveResearchPathByTitle(state, "direct proof attempt");
+	}
+	return undefined;
+}
+
+function formatRecentResearchProgress(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	report: Pick<ResearchWorkstreamReportRecord, "pathId" | "pathTitle">,
+): string {
+	const label = formatResearchReportPathLabel(state, report);
+	const title = normalizeResearchPathTitle(report.pathTitle);
+	if (title === "reformulation") {
+		return `${label} reframed the problem as prime values of n^2 + 1 and reduced attention to even n / 4m^2 + 1.`;
+	}
+	if (title === "weaker special cases") {
+		return `${label} isolated weaker targets: parity lemma, even reduction, finite evidence, and small-prime obstruction checks.`;
+	}
+	return `${label} recorded a research update.`;
+}
+
+function findActiveResearchPathByTitle(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	title: string,
+): ResearchPath | undefined {
+	const normalizedTitle = normalizeResearchPathTitle(title);
+	return state.researchPaths.find(
+		(path) =>
+			normalizeResearchPathTitle(path.title) === normalizedTitle &&
+			(path.status === "active" || path.status === "promising"),
+	);
+}
+
+function normalizeResearchPathTitle(title: string): string {
+	return title.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function chooseResearchPath(

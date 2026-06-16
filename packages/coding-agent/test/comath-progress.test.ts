@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type {
 	ComputationalArtifact,
 	ResearchPath,
+	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
 } from "../examples/extensions/co-math/schema.ts";
 import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../examples/extensions/co-math/storage.ts";
@@ -360,6 +361,92 @@ describe("co-math product messages", () => {
 		expect(full).toContain("Synthesis");
 		expect(full).toContain("Next");
 		expectProductCopy(full);
+	});
+
+	it("formats Path 3 and Path 4 completion with executable bridge commands", () => {
+		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
+		const paths = createResearchPathsFromPlan(plan);
+		const reformulation = paths[2];
+		const weakerCases = paths[3];
+		if (!reformulation || !weakerCases) {
+			throw new Error("Expected Path 3 and Path 4.");
+		}
+		const state = { researchPaths: paths };
+
+		const path3Report = runResearchWorkstream({
+			rootQuestion: plan.rootQuestion,
+			path: reformulation,
+			allPaths: paths,
+			now: "2026-06-05T12:30:00.000Z",
+		});
+		const path3Completed = formatResearchWorkstreamCompleted({ state, report: path3Report });
+		expect(path3Completed).toContain("Path 3: Reformulation");
+		expect(path3Completed).toContain("Polynomial prime values");
+		expect(path3Completed).toContain("Turn this into smaller targets:");
+		expect(path3Completed).toContain("continue path 4");
+		expectProductCopy(path3Completed);
+
+		const path4Report = runResearchWorkstream({
+			rootQuestion: plan.rootQuestion,
+			path: weakerCases,
+			allPaths: paths,
+			now: "2026-06-05T12:30:00.000Z",
+		});
+		const path4Completed = formatResearchWorkstreamCompleted({ state, report: path4Report });
+		expect(path4Completed).toContain("Path 4: Weaker special cases");
+		expect(path4Completed).toContain("Parity obstruction");
+		expect(path4Completed).toContain("Use these lemmas in a proof attempt:");
+		expect(path4Completed).toContain("continue path 2");
+		expectProductCopy(path4Completed);
+	});
+
+	it("formats research state summaries with Path 3 and Path 4 bridge suggestions", () => {
+		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
+		const paths = createResearchPathsFromPlan(plan);
+		const reformulation = paths[2];
+		const weakerCases = paths[3];
+		if (!reformulation || !weakerCases) {
+			throw new Error("Expected Path 3 and Path 4.");
+		}
+
+		const path3Report = toResearchReportRecord(
+			runResearchWorkstream({
+				rootQuestion: plan.rootQuestion,
+				path: reformulation,
+				allPaths: paths,
+				now: "2026-06-05T12:30:00.000Z",
+			}),
+			"research-report-1",
+		);
+		const afterPath3 = formatResearchStateSummary({
+			researchPaths: paths,
+			researchFocus: { pathIds: ["path-1"], reason: "Start with examples.", updatedAt: "2026-06-05T12:00:00.000Z" },
+			researchReports: [path3Report],
+		});
+		expect(afterPath3).toContain("Recent progress");
+		expect(afterPath3).toContain("Path 3: Reformulation reframed the problem");
+		expect(afterPath3).toContain("Suggested command");
+		expect(afterPath3).toContain("continue path 4");
+		expectProductCopy(afterPath3);
+
+		const path4Report = toResearchReportRecord(
+			runResearchWorkstream({
+				rootQuestion: plan.rootQuestion,
+				path: weakerCases,
+				allPaths: paths,
+				now: "2026-06-05T12:45:00.000Z",
+			}),
+			"research-report-2",
+		);
+		const afterPath4 = formatResearchStateSummary({
+			researchPaths: paths,
+			researchFocus: { pathIds: ["path-1"], reason: "Start with examples.", updatedAt: "2026-06-05T12:00:00.000Z" },
+			researchReports: [path3Report, path4Report],
+		});
+		expect(afterPath4).toContain("Path 4: Weaker special cases isolated weaker targets");
+		expect(afterPath4).toContain("Suggested command");
+		expect(afterPath4).toContain("continue path 2");
+		expectProductCopy(afterPath4);
 	});
 
 	it("makes active async research workstreams visibly running", () => {
@@ -776,6 +863,39 @@ describe("co-math product messages", () => {
 		expectProductCopy(warning);
 	});
 });
+
+function createResearchPathsFromPlan(plan: ReturnType<typeof createCoMathResearchAutoPlan>): ResearchPath[] {
+	return plan.paths.map(
+		(path, index): ResearchPath => ({
+			id: `path-${index + 1}`,
+			title: path.title,
+			objective: path.objective,
+			status: "active",
+			latestFindings: [],
+			blockers: [],
+			suggestedNextMove: path.suggestedNextMove,
+			priority: path.priority,
+			createdAt: "2026-06-05T12:00:00.000Z",
+			updatedAt: "2026-06-05T12:00:00.000Z",
+		}),
+	);
+}
+
+function toResearchReportRecord(
+	report: ReturnType<typeof runResearchWorkstream>,
+	id: string,
+): ResearchWorkstreamReportRecord {
+	return {
+		...report,
+		id,
+		kind: "research_workstream",
+		sourceIds: report.sourceIds ?? [],
+		claimSupportIds: report.claimSupportIds ?? [],
+		computationalArtifactIds: report.computationalArtifactIds ?? [],
+		createdAt: report.completedAt,
+		updatedAt: report.completedAt,
+	};
+}
 
 function createResearchPath(): ResearchPath {
 	return {

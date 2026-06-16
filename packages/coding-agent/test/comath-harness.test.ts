@@ -1194,6 +1194,39 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("makes Path 3 and Path 4 actionable in the product flow", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 3");
+			await harness.handlePrompt("summarize current state");
+			await harness.handlePrompt("continue path 4");
+			await harness.handlePrompt("summarize current state");
+
+			const state = await loadRequiredProjectState(statePath);
+			const path3 = state.researchPaths[2];
+			const path4 = state.researchPaths[3];
+			expect(path3?.latestFindings.join("\n")).toContain("Polynomial prime values");
+			expect(path3?.latestFindings.join("\n")).toContain("4m^2 + 1");
+			expect(path3?.latestFindings.join("\n")).toContain("not a proof");
+			expect(path4?.latestFindings.join("\n")).toContain("Parity obstruction");
+			expect(path4?.latestFindings.join("\n")).toContain("Status: proved");
+			expect(path4?.latestFindings.join("\n")).toContain("computational evidence only");
+			expect(path4?.latestFindings.join("\n")).toContain("Small-prime obstructions");
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Path 3: Reformulation");
+			expect(visible).toContain("Turn this into smaller targets:");
+			expect(visible).toContain("continue path 4");
+			expect(visible).toContain("Path 4: Weaker special cases");
+			expect(visible).toContain("Use these lemmas in a proof attempt:");
+			expect(visible).toContain("continue path 2");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("explains when no detailed report exists yet", async () => {
 		const { dir, harness, notices } = await createResearchHarnessFixture();
 		try {
