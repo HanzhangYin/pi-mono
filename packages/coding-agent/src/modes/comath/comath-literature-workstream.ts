@@ -496,8 +496,8 @@ function buildPath5ClaimSupports(input: {
 		return [];
 	}
 	const noProofClaim = isNSquaredPlusOneQuestion(input.rootQuestion)
-		? "The provided sources establish an unconditional proof of infinitely many primes of the form n^2 + 1."
-		: "The provided sources establish the target theorem claim for this path.";
+		? "An unconditional proof of infinitely many primes of the form n^2 + 1."
+		: "The target theorem claim for this path.";
 	if (input.sourceIds.length === 0) {
 		return [
 			{

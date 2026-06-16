@@ -365,6 +365,63 @@ claimSupports: at least 1
 latest claimSupportIds: non-empty
 ```
 
+## Path 5 user-provided source smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-path5-source-ingestion-test-1
+cd comath-path5-source-ingestion-test-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Are there infinitely many primes of the form n^2 + 1?
+```
+
+```text
+I found a reference: Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials, but this is conjectural and not an unconditional theorem.
+```
+
+```text
+continue path 5
+```
+
+```text
+show report
+```
+
+Good signs:
+
+```text
+[ ] The reference is registered as source context for Path 5.
+[ ] Path 5 uses the registered source.
+[ ] The no-source warning does not appear.
+[ ] Conjectural context is partially-supported.
+[ ] The unconditional proof claim is unsupported.
+[ ] No supported claim says the original problem is proved.
+```
+
+State probe:
+
+```bash
+python3 -c 'import json, pathlib; s=json.loads(pathlib.Path(".pi/co-math/state.json").read_text()); print("sources:", len(s.get("literatureSources", []))); print("claimSupports:", len(s.get("literatureClaimSupports", []))); r=s.get("researchReports", [])[-1]; print("sourceIds:", r.get("sourceIds", [])); print("claimSupportIds:", r.get("claimSupportIds", [])); print([(c.get("status"), c.get("claim")) for c in s.get("literatureClaimSupports", [])])'
+```
+
+Expected:
+
+```text
+sources: >= 1
+claimSupports: >= 2
+sourceIds: non-empty
+claimSupportIds: non-empty
+partially-supported
+unsupported
+```
+
 ## Async research workstream smoke
 
 From a new folder (no destructive cleanup):

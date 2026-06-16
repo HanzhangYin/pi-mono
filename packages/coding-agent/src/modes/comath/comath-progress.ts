@@ -206,6 +206,12 @@ export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): s
 	].join("\n");
 }
 
+export function formatUserProvidedLiteratureSourceRegistered(input: { title: string }): string {
+	return ["Registered source context for Path 5", `- ${input.title}`, "", "Next command", "continue path 5"].join(
+		"\n",
+	);
+}
+
 export type ResearchStateSummaryInput = Pick<CoMathProjectState, "researchPaths" | "researchFocus"> & {
 	researchReports?: readonly ResearchWorkstreamReportRecord[];
 };
@@ -520,8 +526,8 @@ export function formatResearchWorkstreamAlreadyRunning(input: FormatResearchWork
  */
 export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstreamInput): string {
 	const { report } = input;
-	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
-	const references = formatReferences(input.state, report.sourceIds ?? []);
+	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? [], { includeSourceIds: false });
+	const references = formatReferences(input.state, report.sourceIds ?? [], { includeIds: false });
 	const computation = formatComputationSummary(input.state, report.computationalArtifactIds ?? []);
 	const bridgeResults = formatBridgeResultSection(report);
 	const nextLines = formatResearchCompletionNextLines(input.state, report);
@@ -533,15 +539,15 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 		...(computation.length > 0 ? ["", "Computation", ...computation] : []),
 		"",
 		"Promising strategy",
-		...bulletsOrFallback(report.promisingStrategy, "No promising strategy identified yet."),
+		...completionBulletsOrFallback(report.promisingStrategy, "No promising strategy identified yet."),
 		"",
 		"Review",
-		...bulletsOrFallback(report.criticisms, "No review notes recorded."),
+		...completionBulletsOrFallback(report.criticisms, "No review notes recorded."),
 		"",
 		"Gap",
-		...bulletsOrFallback(report.gaps, "No open gaps recorded."),
+		...completionBulletsOrFallback(report.gaps, "No open gaps recorded."),
 		...(report.humanHelpUseful.length > 0
-			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
+			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${stripInlineSourceLabels(item)}`)]
 			: []),
 		...(supports.length > 0 ? ["", "Source-backed distinctions", ...supports] : []),
 		...(references.length > 0 ? ["", "References", ...references] : []),
@@ -643,6 +649,10 @@ function bulletsOrFallback(items: readonly string[], fallback: string): string[]
 	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
 }
 
+function completionBulletsOrFallback(items: readonly string[], fallback: string): string[] {
+	return bulletsOrFallback(items.map(stripInlineSourceLabels), fallback);
+}
+
 function formatBridgeResultSection(
 	report: Pick<ResearchWorkstreamReportView, "pathTitle" | "findings" | "criticisms" | "gaps">,
 ): string[] {
@@ -657,16 +667,23 @@ function formatBridgeResultSection(
 		];
 	}
 	if (title === "known theorem or literature reduction") {
-		const meaning = [...report.criticisms, ...report.gaps].slice(0, 4);
+		const meaning = [...report.criticisms, ...report.gaps].map(stripInlineSourceLabels).slice(0, 4);
 		return [
 			"Source-backed status",
-			...bulletsOrFallback(report.findings, "No source-backed theorem claim was recorded."),
+			...completionBulletsOrFallback(report.findings, "No source-backed theorem claim was recorded."),
 			"",
 			"What this means",
 			...bulletsOrFallback(meaning, "Continue treating the full problem as unresolved in this workspace."),
 		];
 	}
 	return [];
+}
+
+function stripInlineSourceLabels(value: string): string {
+	return value
+		.replace(/\s*\[source-\d+\]/g, "")
+		.replace(/\s+/g, " ")
+		.trim();
 }
 
 function formatCoordinatorNextMoves(input: FormatResearchCoordinatorReportInput): string[] {
@@ -710,8 +727,10 @@ function formatReferences(
 		literatureSources?: readonly LiteratureSourceArtifact[];
 	},
 	sourceIds: readonly string[],
+	options: { includeIds?: boolean } = {},
 ): string[] {
 	const sourceById = new Map((state.literatureSources ?? []).map((source) => [source.id, source]));
+	const includeIds = options.includeIds ?? true;
 	return sourceIds
 		.map((sourceId) => {
 			const source = sourceById.get(sourceId);
@@ -719,7 +738,8 @@ function formatReferences(
 				return undefined;
 			}
 			const locator = source.url ?? source.path ?? source.kind;
-			return `- ${source.id}: ${source.title}${locator ? ` — ${locator}` : ""}`;
+			const label = includeIds ? `${source.id}: ${source.title}` : source.title;
+			return `- ${label}${locator ? ` — ${locator}` : ""}`;
 		})
 		.filter((line): line is string => line !== undefined);
 }
@@ -729,17 +749,25 @@ function formatClaimSupports(
 		literatureClaimSupports?: readonly LiteratureClaimSupport[];
 	},
 	claimSupportIds: readonly string[],
+	options: { includeSourceIds?: boolean } = {},
 ): string[] {
 	const supportById = new Map((state.literatureClaimSupports ?? []).map((support) => [support.id, support]));
+	const includeSourceIds = options.includeSourceIds ?? true;
 	return claimSupportIds
 		.map((supportId) => {
 			const support = supportById.get(supportId);
 			if (!support) {
 				return undefined;
 			}
-			const sources = support.sourceIds.length > 0 ? ` (${support.sourceIds.join(", ")})` : "";
-			const note = support.note ? ` — ${support.note}` : "";
-			return `- ${support.status}: ${support.claim}${sources}${note}`;
+			const sources = includeSourceIds && support.sourceIds.length > 0 ? ` (${support.sourceIds.join(", ")})` : "";
+			const claim = includeSourceIds ? support.claim : stripInlineSourceLabels(support.claim);
+			const noteText = includeSourceIds
+				? support.note
+				: support.note
+					? stripInlineSourceLabels(support.note)
+					: undefined;
+			const note = noteText ? ` — ${noteText}` : "";
+			return `- ${support.status}: ${claim}${sources}${note}`;
 		})
 		.filter((line): line is string => line !== undefined);
 }

@@ -762,6 +762,24 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("does not create state for source context before a research workspace exists", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt(
+				"I found a reference: Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials.",
+			);
+
+			expect(await loadProjectState(statePath)).toBeUndefined();
+			expect(commands).toEqual([]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Start by asking a math research question");
+			expect(visible).toContain("n^2 + 1");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("does not start research for exec/dev or non-math prose from a fresh workspace", async () => {
 		for (const prompt of ["run tests", "run a quick sanity check", "report that this theorem is false"]) {
 			const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
@@ -1742,7 +1760,9 @@ describe("co-math harness", () => {
 			const visible = notices.join("\n");
 			expect(visible).toContain("Literature specialist is looking for relevant known theorems and references.");
 			expect(visible).toContain("References");
-			expect(visible).toContain("source-1: Twin prime conjecture status note");
+			expect(visible).toContain("Twin prime conjecture status note");
+			expect(visible).not.toContain("source-1: Twin prime conjecture status note");
+			expect(visible).not.toContain("[source-1]");
 			expect(visible).toContain("Bounded prime gaps are known but do not imply gaps exactly 2");
 			expectProductCopy(visible);
 
@@ -1752,6 +1772,7 @@ describe("co-math harness", () => {
 			expect(report).toContain("Literature findings");
 			expect(report).toContain("Source-support review");
 			expect(report).toContain("References / attachments");
+			expect(report).toContain("source-1: Twin prime conjecture status note");
 			expect(report).toContain("supported:");
 			expectProductCopy(report);
 		} finally {
@@ -1796,6 +1817,41 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("registers user-provided Path 5 sources after research workspace setup", async () => {
+		const { executor } = createNSquaredLiteratureExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			const before = notices.length;
+			await harness.handlePrompt(
+				"I found a reference: Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials, but this is conjectural and not an unconditional theorem.",
+			);
+			await harness.handlePrompt(
+				"Literature note: Landau-style problem lists treat primes of the form n^2 + 1 as unresolved.",
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.literatureSources).toHaveLength(2);
+			expect(state.literatureSources[0]).toMatchObject({
+				kind: "user-provided",
+				title: expect.stringContaining("Schinzel's hypothesis H predicts prime values"),
+				summary: expect.stringContaining("Schinzel's hypothesis H predicts prime values"),
+				extractedText: expect.stringContaining("not an unconditional theorem"),
+			});
+			expect(state.literatureSources[1]).toMatchObject({
+				kind: "user-provided",
+				title: expect.stringContaining("Landau-style problem lists"),
+			});
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("Registered source context for Path 5");
+			expect(visible).toContain("Next command");
+			expect(visible).toContain("continue path 5");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("records unsupported n^2 + 1 Path 5 status when no source backend is available", async () => {
 		const { executor, requests } = createNSquaredLiteratureExecutor();
 		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
@@ -1828,6 +1884,57 @@ describe("co-math harness", () => {
 			expect(visible).toContain("search targets only");
 			expect(visible).toContain("No unconditional proof");
 			expect(visible).toContain("what should we try next?");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("uses registered Path 5 sources for source-backed claim classification", async () => {
+		const { executor, requests } = createNSquaredLiteratureExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt(
+				"I found a reference: Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials, but this is conjectural and not an unconditional theorem.",
+			);
+			await harness.handlePrompt("continue path 5");
+			await waitForProjectState(statePath, "completed registered-source literature report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
+			expect(requests[0]?.prompt).toContain("[source-1] Schinzel's hypothesis H predicts prime values");
+			expect(requests[0]?.prompt).toContain("Extract: Schinzel's hypothesis H predicts prime values");
+			expect(state.literatureSources).toHaveLength(1);
+			expect(state.researchReports[0]).toMatchObject({
+				pathTitle: "Known theorem or literature reduction",
+				status: "completed",
+				sourceIds: ["source-1"],
+			});
+			expect(state.researchReports[0]?.claimSupportIds.length).toBeGreaterThanOrEqual(2);
+			expect(state.literatureClaimSupports).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						status: "partially-supported",
+						sourceIds: ["source-1"],
+						claim: expect.stringContaining("conjectural prime-values-of-polynomials framing"),
+					}),
+					expect.objectContaining({
+						status: "unsupported",
+						sourceIds: [],
+						claim: expect.stringContaining("unconditional proof"),
+					}),
+				]),
+			);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Registered source context for Path 5");
+			expect(visible).not.toContain("No source was available");
+			expect(visible).toContain("partially-supported:");
+			expect(visible).toContain("unsupported:");
+			expect(visible).not.toContain("[source-1]");
+			expect(visible).not.toMatch(/^-\s+supported:.*infinitely many primes of the form n\^2 \+ 1/im);
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

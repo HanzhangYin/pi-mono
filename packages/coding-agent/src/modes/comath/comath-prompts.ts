@@ -27,6 +27,13 @@ export function normalizeCoMathPrompt(prompt: string): string {
 	return stripCoMathPolitePrefix(prompt).replace(/\s+/g, " ").trim();
 }
 
+export interface ParsedUserProvidedLiteratureSource {
+	title?: string;
+	url?: string;
+	path?: string;
+	text: string;
+}
+
 /** `show progress`, `status`, `what are you doing`, `show latest run`, and polite variants. */
 export function isShowProgressPrompt(prompt: string): boolean {
 	return /^(?:show (?:the )?(?:current )?progress|status|what are you doing\??|show (?:the )?latest run)$/i.test(
@@ -59,6 +66,57 @@ export function isShowLatestCoordinatorReportPrompt(prompt: string): boolean {
 	return /^show (?:the )?(?:latest )?(?:project )?coordinator (?:report|summary)$/i.test(
 		normalizeCoMathPrompt(prompt),
 	);
+}
+
+/**
+ * Parse natural prompts that provide literature/reference context for Path 5. This is metadata/text
+ * intake only: local paths are recorded as source metadata and are not read here.
+ */
+export function parseUserProvidedLiteratureSourcePrompt(
+	prompt: string,
+): ParsedUserProvidedLiteratureSource | undefined {
+	const stripped = stripCoMathPolitePrefix(prompt);
+	const normalized = normalizeCoMathPrompt(stripped);
+	if (
+		normalized.length === 0 ||
+		isShowProgressPrompt(stripped) ||
+		isShowResearchStatePrompt(stripped) ||
+		isShowLatestReportPrompt(stripped) ||
+		isShowReportForPathPrompt(stripped) !== undefined ||
+		isShowLatestCoordinatorReportPrompt(stripped) ||
+		/^(?:continue|run|start|try)\b/i.test(normalized)
+	) {
+		return undefined;
+	}
+	const match =
+		/^(?:(?:i\s+(?:found|have)\s+(?:a\s+)?(?:reference|source|paper|theorem\s+note))|(?:use\s+this\s+(?:reference|source|paper)(?:\s+for\s+path\s+\d+)?)|(?:here\s+is\s+(?:a\s+)?(?:theorem\s+note|reference|source|paper))|(?:register\s+this\s+(?:reference|source|paper))|(?:reference\s+for\s+path\s+\d+)|(?:literature\s+note))\s*:?\s*(.+)$/is.exec(
+			stripped.trim(),
+		);
+	const text = match?.[1]?.trim();
+	if (!text) {
+		return undefined;
+	}
+	const url = extractSourceUrl(text);
+	const path = extractSourcePath(text, url);
+	return {
+		...(url ? { url } : {}),
+		...(path ? { path } : {}),
+		text,
+	};
+}
+
+function extractSourceUrl(text: string): string | undefined {
+	const match = /\bhttps?:\/\/[^\s<>)]+/i.exec(text);
+	return match?.[0]?.replace(/[.,;:!?]+$/, "");
+}
+
+function extractSourcePath(text: string, url: string | undefined): string | undefined {
+	const withoutUrl = url ? text.replace(url, " ") : text;
+	const match =
+		/(?:^|\s)((?:\.{1,2}\/|\/|~\/)[^\s,;:]+|[A-Za-z0-9._-]+\.(?:bib|html?|md|markdown|pdf|tex|txt))(?:\s|$)/i.exec(
+			withoutUrl,
+		);
+	return match?.[1]?.replace(/[.,;:!?]+$/, "");
 }
 
 // Math/research vocabulary that signals a question is a mathematical research problem.

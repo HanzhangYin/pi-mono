@@ -50,7 +50,10 @@ import {
 } from "./comath-computation-workstream.ts";
 import { runResearchCoordinatorSynthesis } from "./comath-coordinator-synthesis.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "./comath-literature-source.ts";
-import { createDefaultLiteratureSourceLookup } from "./comath-literature-source.ts";
+import {
+	createDefaultLiteratureSourceLookup,
+	createWorkspaceLiteratureSourceLookup,
+} from "./comath-literature-source.ts";
 import {
 	isLiteratureResearchPath,
 	type LiteratureResearchWorkstreamResult,
@@ -83,6 +86,7 @@ import {
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
+	formatUserProvidedLiteratureSourceRegistered,
 	formatWaitingForContext,
 } from "./comath-progress.ts";
 import {
@@ -92,7 +96,9 @@ import {
 	isShowProgressPrompt,
 	isShowReportForPathPrompt,
 	isShowResearchStatePrompt,
+	type ParsedUserProvidedLiteratureSource,
 	parseNaturalResearchQuestion,
+	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
 } from "./comath-prompts.ts";
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
@@ -217,6 +223,13 @@ export class CoMathHarness {
 		}
 		if (await this.hasExistingState()) {
 			await this.handleSteeringPrompt(problem);
+			return;
+		}
+		if (parseUserProvidedLiteratureSourcePrompt(problem)) {
+			await this.notify(
+				'Start by asking a math research question before adding source context, for example: "Are there infinitely many primes of the form n^2 + 1?"',
+				"warning",
+			);
 			return;
 		}
 		if (isIncompleteExplorationPrompt(problem)) {
@@ -381,6 +394,13 @@ export class CoMathHarness {
 
 	private async handleSteeringPrompt(prompt: string): Promise<void> {
 		const state = await loadProjectState(this.statePath);
+		if (parseUserProvidedLiteratureSourcePrompt(prompt) && !state?.researchPaths.length) {
+			await this.notify(
+				'Source context for Path 5 is available after you start a research workspace. Ask a math question first, for example: "Are there infinitely many primes of the form n^2 + 1?"',
+				"warning",
+			);
+			return;
+		}
 		if (state?.researchPaths.length) {
 			await this.handleResearchSteeringPrompt(state, prompt);
 			return;
@@ -466,6 +486,11 @@ export class CoMathHarness {
 		const reconciled = await this.reconcileStaleResearchWorkstreamRuns(state);
 		state = reconciled.state;
 		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
+		const providedSource = parseUserProvidedLiteratureSourcePrompt(prompt);
+		if (providedSource) {
+			await this.registerUserProvidedLiteratureSource(state, providedSource);
+			return;
+		}
 		if (isShowLatestCoordinatorReportPrompt(prompt)) {
 			const report = getLatestResearchCoordinatorReport(state);
 			if (!report) {
@@ -621,6 +646,35 @@ export class CoMathHarness {
 			return;
 		}
 		await this.notify(formatResearchStateSummary(state));
+	}
+
+	private async registerUserProvidedLiteratureSource(
+		state: CoMathProjectState,
+		source: ParsedUserProvidedLiteratureSource,
+	): Promise<void> {
+		const now = new Date().toISOString();
+		const title = deriveUserProvidedLiteratureSourceTitle(source);
+		const result: LiteratureSourceResult = {
+			kind: "user-provided",
+			title,
+			...(source.url ? { url: source.url } : {}),
+			...(source.path ? { path: source.path } : {}),
+			summary: summarizeUserProvidedLiteratureSource(source),
+			extractedText: source.text,
+		};
+		const nextState = addLiteratureSourceArtifact(state, {
+			kind: result.kind,
+			title: result.title,
+			...(result.url ? { url: result.url } : {}),
+			...(result.path ? { path: result.path } : {}),
+			summary: result.summary,
+			...(result.extractedText ? { extractedText: result.extractedText } : {}),
+			now,
+			actor: "human",
+		});
+		await saveProjectState(this.statePath, nextState);
+		const persisted = findPersistedLiteratureSource(nextState.literatureSources, state.literatureSources, result);
+		await this.notify(formatUserProvidedLiteratureSourceRegistered({ title: persisted?.title ?? result.title }));
 	}
 
 	private async createResearchCoordinatorReport(state: CoMathProjectState): Promise<void> {
@@ -781,7 +835,10 @@ export class CoMathHarness {
 						allPaths: state.researchPaths,
 						now,
 						executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
-						sourceLookup: this.literatureSourceLookup,
+						sourceLookup: createWorkspaceLiteratureSourceLookup({
+							sources: state.literatureSources,
+							fallback: this.literatureSourceLookup,
+						}),
 					},
 					{
 						onStageStarted: async (stage, summary) => {
@@ -1365,6 +1422,55 @@ export class CoMathHarness {
 
 function trimTerminalPunctuation(value: string): string {
 	return value.replace(/[.?!]+$/, "");
+}
+
+function deriveUserProvidedLiteratureSourceTitle(source: ParsedUserProvidedLiteratureSource): string {
+	if (source.title?.trim()) {
+		return truncateSourceText(source.title.trim(), 96);
+	}
+	const sourceText = firstSubstantiveSourceText(source);
+	if (sourceText) {
+		return truncateSourceText(sourceText, 96);
+	}
+	return source.url ?? source.path ?? "User-provided literature note";
+}
+
+function summarizeUserProvidedLiteratureSource(source: ParsedUserProvidedLiteratureSource): string {
+	const sourceText = firstSubstantiveSourceText(source);
+	if (sourceText) {
+		return truncateSourceText(sourceText, 220);
+	}
+	if (source.url) {
+		return `User-provided source URL: ${source.url}`;
+	}
+	if (source.path) {
+		return `User-provided source path: ${source.path}`;
+	}
+	return truncateSourceText(source.text, 220);
+}
+
+function firstSubstantiveSourceText(source: ParsedUserProvidedLiteratureSource): string | undefined {
+	let text = source.text.trim();
+	if (source.url) {
+		text = text.replaceAll(source.url, " ");
+	}
+	if (source.path) {
+		text = text.replaceAll(source.path, " ");
+	}
+	text = text.replace(/\s+/g, " ").trim();
+	if (!text) {
+		return undefined;
+	}
+	const firstSentence = /^(.+?[.!?])(?:\s|$)/.exec(text)?.[1]?.trim();
+	return trimTerminalPunctuation(firstSentence ?? text);
+}
+
+function truncateSourceText(text: string, maxLength: number): string {
+	const normalized = text.replace(/\s+/g, " ").trim();
+	if (normalized.length <= maxLength) {
+		return normalized;
+	}
+	return `${normalized.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
 function cleanProblemStatement(problem: string): string {

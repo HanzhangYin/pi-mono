@@ -10,6 +10,7 @@ import {
 	isShowResearchStatePrompt,
 	normalizeCoMathPrompt,
 	parseNaturalResearchQuestion,
+	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
 } from "../src/modes/comath/comath-prompts.ts";
 
@@ -168,6 +169,46 @@ describe("fresh-workspace validation vs operational gate", () => {
 	it("does not treat commands, help, or empty prose as validation prompts", () => {
 		for (const prompt of ["show report", "show progress", "help", "the weather is nice today", "check the code"]) {
 			expect(isLikelyMathValidationPrompt(prompt), prompt).toBe(false);
+		}
+	});
+});
+
+describe("user-provided literature source prompts", () => {
+	it("parses pasted reference text", () => {
+		expect(
+			parseUserProvidedLiteratureSourcePrompt(
+				"I found a reference: Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials, but this is conjectural and not an unconditional theorem.",
+			),
+		).toEqual({
+			text: "Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials, but this is conjectural and not an unconditional theorem.",
+		});
+	});
+
+	it("parses URL metadata", () => {
+		expect(
+			parseUserProvidedLiteratureSourcePrompt(
+				"Register this reference: https://example.test/schinzel-h Note says Schinzel's hypothesis H is conjectural.",
+			),
+		).toEqual({
+			url: "https://example.test/schinzel-h",
+			text: "https://example.test/schinzel-h Note says Schinzel's hypothesis H is conjectural.",
+		});
+	});
+
+	it("parses local path metadata without reading it", () => {
+		expect(
+			parseUserProvidedLiteratureSourcePrompt(
+				"Use this source for path 5: ./notes/schinzel.md Schinzel H is conjectural context only.",
+			),
+		).toEqual({
+			path: "./notes/schinzel.md",
+			text: "./notes/schinzel.md Schinzel H is conjectural context only.",
+		});
+	});
+
+	it("rejects operational and steering prompts", () => {
+		for (const prompt of ["show report", "continue path 5", "run tests", "what branch am I on?"]) {
+			expect(parseUserProvidedLiteratureSourcePrompt(prompt), prompt).toBeUndefined();
 		}
 	});
 });

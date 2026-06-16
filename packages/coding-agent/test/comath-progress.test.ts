@@ -36,6 +36,7 @@ import {
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
+	formatUserProvidedLiteratureSourceRegistered,
 	formatWaitingForContext,
 } from "../src/modes/comath/comath-progress.ts";
 import { createCoMathResearchAutoPlan } from "../src/modes/comath/comath-research-autoplan.ts";
@@ -236,6 +237,15 @@ describe("co-math product messages", () => {
 		expect(workspace).toContain("Next");
 		expect(workspace).toContain("continue path 1");
 		expectProductCopy(workspace);
+
+		const registered = formatUserProvidedLiteratureSourceRegistered({
+			title: "Schinzel's hypothesis H predicts prime values for suitable irreducible polynomials",
+		});
+		expect(registered).toContain("Registered source context for Path 5");
+		expect(registered).toContain("Schinzel's hypothesis H");
+		expect(registered).toContain("Next command");
+		expect(registered).toContain("continue path 5");
+		expectProductCopy(registered);
 
 		const paths = plan.paths.map(
 			(path, index): ResearchPath => ({
@@ -621,7 +631,10 @@ describe("co-math product messages", () => {
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
 		expect(completed).toContain("References");
-		expect(completed).toContain("source-1: Twin prime conjecture status note");
+		expect(completed).toContain("Twin prime conjecture status note");
+		expect(completed).not.toContain("source-1:");
+		expect(completed).not.toContain("(source-1)");
+		expect(completed).not.toContain("[source-1]");
 		expect(completed).toContain("unsupported: A source proves twin-prime infinitude.");
 		expect(completed).not.toContain("research-run-1");
 		expectProductCopy(completed);
@@ -630,6 +643,7 @@ describe("co-math product messages", () => {
 		expect(details).toContain("Literature findings");
 		expect(details).toContain("Source-support review");
 		expect(details).toContain("References / attachments");
+		expect(details).toContain("source-1: Twin prime conjecture status note");
 		expect(details).toContain("Claim support");
 		expectProductCopy(details);
 	});
@@ -733,7 +747,7 @@ describe("co-math product messages", () => {
 				},
 				{
 					id: "claim-support-2",
-					claim: "The provided sources establish an unconditional proof of infinitely many primes of the form n^2 + 1.",
+					claim: "An unconditional proof of infinitely many primes of the form n^2 + 1.",
 					sourceIds: [],
 					status: "unsupported" as const,
 					note: "No source in this run established this unconditional theorem claim.",

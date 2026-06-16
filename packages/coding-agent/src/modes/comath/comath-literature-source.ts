@@ -1,4 +1,4 @@
-import type { LiteratureSourceKind } from "../../../examples/extensions/co-math/schema.ts";
+import type { LiteratureSourceArtifact, LiteratureSourceKind } from "../../../examples/extensions/co-math/schema.ts";
 
 export interface LiteratureSourceQuery {
 	rootQuestion: string;
@@ -32,6 +32,19 @@ export function createDefaultLiteratureSourceLookup(): LiteratureSourceLookup {
 	return new NullLiteratureSourceLookup();
 }
 
+export function createWorkspaceLiteratureSourceLookup(input: {
+	sources: readonly LiteratureSourceArtifact[];
+	fallback: LiteratureSourceLookup;
+}): LiteratureSourceLookup {
+	return {
+		search: async (query) => {
+			const registered = input.sources.map(literatureSourceArtifactToResult);
+			const fallbackSources = await input.fallback.search(query);
+			return uniqueLiteratureSources([...registered, ...fallbackSources]).slice(0, query.maxSources);
+		},
+	};
+}
+
 export function formatLiteratureSourceForPrompt(source: LiteratureSourceResult, index: number): string {
 	const sourceId = `source-${index + 1}`;
 	return [
@@ -43,4 +56,29 @@ export function formatLiteratureSourceForPrompt(source: LiteratureSourceResult, 
 		`Summary: ${source.summary}`,
 		...(source.extractedText ? [`Extract: ${source.extractedText}`] : []),
 	].join("\n");
+}
+
+function literatureSourceArtifactToResult(source: LiteratureSourceArtifact): LiteratureSourceResult {
+	return {
+		title: source.title,
+		kind: source.kind,
+		...(source.url ? { url: source.url } : {}),
+		...(source.path ? { path: source.path } : {}),
+		summary: source.summary,
+		...(source.extractedText ? { extractedText: source.extractedText } : {}),
+		authors: source.authors,
+		...(source.year ? { year: source.year } : {}),
+	};
+}
+
+function uniqueLiteratureSources(sources: readonly LiteratureSourceResult[]): LiteratureSourceResult[] {
+	const seen = new Set<string>();
+	return sources.filter((source) => {
+		const key = source.url ?? source.path ?? source.title.trim().toLowerCase();
+		if (seen.has(key)) {
+			return false;
+		}
+		seen.add(key);
+		return true;
+	});
 }
