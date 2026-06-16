@@ -2213,6 +2213,9 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Previous Pi session ended before completion.");
+			// Paper checkpoint: stale runs surface explicit, executable recovery.
+			expect(visible).toContain("Recovery");
+			expect(visible).toContain("This earlier run is stale");
 			expect(visible).toContain("Research run completed");
 			expect(visible).not.toContain("already running on Path 1");
 			expectProductCopy(visible);

@@ -61,6 +61,16 @@ export function isShowReportForPathPrompt(prompt: string): { pathNumber: number 
 	return pathNumber > 0 ? { pathNumber } : undefined;
 }
 
+/**
+ * Requests for the project coordinator to synthesize across paths ("what should we try next?",
+ * "what is blocked?", "compare paths", …). Distinct from showing an already-created coordinator report.
+ */
+export function isResearchCoordinatorPrompt(prompt: string): boolean {
+	return /^(?:what should we try next\??|what next\??|recommend (?:the )?next path|make a plan from current reports|summari[sz]e current state and recommend next steps|what is blocked\??|compare paths|project coordinator summary)$/i.test(
+		prompt.trim(),
+	);
+}
+
 /** `show [latest] [project] coordinator report/summary` and polite variants (distinct from a research report). */
 export function isShowLatestCoordinatorReportPrompt(prompt: string): boolean {
 	return /^show (?:the )?(?:latest )?(?:project )?coordinator (?:report|summary)$/i.test(

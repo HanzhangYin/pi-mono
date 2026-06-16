@@ -9,6 +9,7 @@ import type {
 	ResearchWorkstreamRunRecord,
 	ResearchWorkstreamRunStage,
 } from "../../../examples/extensions/co-math/schema.ts";
+import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../../../examples/extensions/co-math/storage.ts";
 import { sanitizeProductIds } from "./comath-backend-output.ts";
 import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import type { CoMathSource } from "./comath-source.ts";
@@ -500,6 +501,9 @@ export function formatResearchWorkstreamRunStillRunningReport(input: FormatResea
 }
 
 export function formatResearchWorkstreamRunFailed(input: FormatResearchWorkstreamRunInput): string {
+	const pathIndex = input.state.researchPaths.findIndex((candidate) => candidate.id === input.run.pathId);
+	const isStale = input.run.failureReason === STALE_RESEARCH_WORKSTREAM_RUN_REASON;
+	const retryCommand = pathIndex >= 0 ? `continue path ${pathIndex + 1}` : undefined;
 	return [
 		"Research workstream failed",
 		"",
@@ -508,7 +512,10 @@ export function formatResearchWorkstreamRunFailed(input: FormatResearchWorkstrea
 		"Reason",
 		input.run.failureReason ?? "The research attempt stopped before producing a final report.",
 		"",
-		'You can inspect progress with "show latest report" or try another path.',
+		"Recovery",
+		...(isStale ? ["- This earlier run is stale; it did not finish."] : []),
+		retryCommand ? `- Re-run this path: ${retryCommand}` : '- Try another path or say "show research state".',
+		'- Inspect progress with "show latest report".',
 	].join("\n");
 }
 

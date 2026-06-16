@@ -5,6 +5,7 @@ import {
 	extractStatus,
 	extractTranscriptPath,
 	formatProductReport,
+	friendlyReviewStatus,
 	parseRawReportSummary,
 	sanitizeProductIds,
 } from "../src/modes/comath/comath-backend-output.ts";
@@ -172,5 +173,36 @@ describe("co-math backend output parsing", () => {
 		expect(report).toContain("Status: completed");
 		expect(report).not.toContain("Blockers");
 		expect(formatProductReport(["No report found for latest."])).toBeUndefined();
+	});
+
+	it("preserves blocked status, blockers, and review uncertainty (paper checkpoint)", () => {
+		// A blocked background run keeps its status, execution mode, and blockers through extraction.
+		const blockedRun = [
+			"role-run-9",
+			"Status: blocked",
+			"Execution mode: background",
+			"Report: none",
+			"Blockers:",
+			"- Claim is unsupported by any provided source.",
+			"- Needs human review of the boundary step.",
+		].join("\n");
+		const summary = extractRunSummary([blockedRun]);
+		expect(summary?.status).toBe("blocked");
+		expect(summary?.background).toBe(true);
+		expect(summary?.blockers).toEqual([
+			"Claim is unsupported by any provided source.",
+			"Needs human review of the boundary step.",
+		]);
+
+		// Review status maps to explicit, machine-checkable copy (uncertainty is never silently dropped).
+		expect(friendlyReviewStatus(undefined)).toBe("needs review");
+		expect(friendlyReviewStatus("disproved")).toBe("has a flaw");
+		expect(friendlyReviewStatus("proved")).toBe("looks valid");
+
+		// A blocked report keeps its blockers visible to the user rather than reporting success.
+		const blockedReport = formatProductReport([REPORT_STATUS_MESSAGE]);
+		expect(blockedReport).toContain("Status: blocked");
+		expect(blockedReport).toContain("Blockers");
+		expect(blockedReport).toContain("No target claim id or exact Question 3 statement was provided.");
 	});
 });

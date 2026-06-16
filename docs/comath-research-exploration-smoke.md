@@ -106,6 +106,97 @@ Repeat (each in its own fresh folder) for `show me the files` and `what branch a
 In contrast, a validation prompt such as `Validate the claim: every even integer greater than 2 is a
 sum of two primes.` does create a validation workspace.
 
+## Paper alignment checkpoint smoke (developer)
+
+A deterministic one-shot checkpoint that validates the paper-aligned invariants in
+`docs/codex-comath-paper-workflow-alignment-matrix.md`. Run from the repo root.
+
+1. Repo clean check (no unstaged changes before/after running tests):
+
+```bash
+cd /home/hermes/developer/pi-mono-comath
+git status --short            # expected: empty (clean tree)
+git diff --check             # expected: no output
+```
+
+2. Deterministic alignment evidence (the regression harness for the matrix):
+
+```bash
+cd /home/hermes/developer/pi-mono-comath/packages/coding-agent
+node ../../node_modules/vitest/dist/cli.js --run test/comath-paper-alignment-checkpoint.test.ts
+```
+
+Expected: `Tests  5 passed`. The five blocks correspond to matrix criteria
+{7,8} (operational guard), {1,2} (intent split), {3} (unsupported vs supported), {4,9,11} (stale
+recovery), {10} (uncertainty preserved).
+
+3. Fresh-workspace + uncertainty + stale-recovery + report surfaces (manual TUI, one folder):
+
+```bash
+cd /tmp
+mkdir comath-alignment-checkpoint-1
+cd comath-alignment-checkpoint-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Inside Pi (one message at a time):
+
+```text
+run tests
+Are there infinitely many primes of the form n^2 + 1?
+please continue path 1
+show progress
+show research state
+show report
+```
+
+Output snapshots that must be preserved (substrings):
+
+```text
+- "Pi co-math is for mathematical validation and exploration."     # operational prose -> no state
+- "Research workspace prepared"                                    # math question -> research
+- "continue path 1"                                               # executable next command
+- "A finite computation does not prove an infinite claim."         # uncertainty preserved in completion
+- "Suggested command" + "continue path 1"                          # show research state stays executable
+```
+
+4. Optional developer inspection for review queue, raw report detail, and paper export retaining
+warnings. The deterministic supported-vs-unsupported claim check is step 2; this manual inspection is
+for a workspace that already has reports/warnings, and may require a configured model for the audit:
+
+```text
+/comath review-queue        # lists claims and warnings waiting for review (unsupported stay listed)
+/comath report-status latest # raw developer detail keeps "Blockers:" and "Report review rounds:"
+/comath paper               # living working paper renders open margin notes / warnings
+/comath export-paper        # writes the working-paper markdown snapshot, warnings included
+```
+
+5. Stale-run recovery (interrupt mid-run): start `please continue path 1`, quit Pi while it is
+running (the footer still shows `co-math: Path 1 running · ...`), relaunch in the same folder, then:
+
+```text
+show progress
+```
+
+Expected substrings (research mode): `Research workstream failed`, `Recovery`,
+`This earlier run is stale`, `continue path 1`. Validation mode equivalent:
+`/comath run-status <id>` shows `Status: running` with `use /comath recover-run if stale`, and
+`/comath recover-run <id> failed: <reason>` prints `Recovered stale role run <id> as failed: <reason>`.
+
+Pass/fail markers:
+
+```text
+[ ] git status clean before and after; git diff --check empty
+[ ] comath-paper-alignment-checkpoint.test.ts: 5 passed
+[ ] operational prose ("run tests") creates no .pi/co-math/state.json
+[ ] bare math question creates research paths and suggests continue path 1
+[ ] completion states finite computation is not a proof
+[ ] backend/product report output keeps blockers / "needs review" for blocked/unsupported reports
+[ ] checkpoint test separates supported claims from unsupported/uncertain items
+[ ] stale/interrupted run shows explicit Recovery with an executable command
+[ ] export-paper / paper retains warnings and open margin notes
+```
+
 The sections below are advanced/developer smokes (Path 5 literature, coordinator summary).
 
 Run from a clean folder:

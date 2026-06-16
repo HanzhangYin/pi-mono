@@ -91,6 +91,7 @@ import {
 } from "./comath-progress.ts";
 import {
 	isLikelyMathValidationPrompt,
+	isResearchCoordinatorPrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowProgressPrompt,
@@ -1580,12 +1581,6 @@ function isIncompleteExplorationPrompt(prompt: string): boolean {
 
 function isIncompleteExplorationProblem(problem: string): boolean {
 	return /^this\s+(?:problem|conjecture|question):?$/i.test(problem.trim());
-}
-
-function isResearchCoordinatorPrompt(prompt: string): boolean {
-	return /^(?:what should we try next\??|what next\??|recommend (?:the )?next path|make a plan from current reports|summari[sz]e current state and recommend next steps|what is blocked\??|compare paths|project coordinator summary)$/i.test(
-		prompt.trim(),
-	);
 }
 
 function findResearchPath(state: Pick<CoMathProjectState, "researchPaths">, query: string): ResearchPath | undefined {
