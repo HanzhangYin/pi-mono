@@ -84,6 +84,15 @@ import {
 	formatSteeringNoted,
 	formatWaitingForContext,
 } from "./comath-progress.ts";
+import {
+	isShowLatestCoordinatorReportPrompt,
+	isShowLatestReportPrompt,
+	isShowProgressPrompt,
+	isShowReportForPathPrompt,
+	isShowResearchStatePrompt,
+	parseNaturalResearchQuestion,
+	stripCoMathPolitePrefix,
+} from "./comath-prompts.ts";
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import {
 	type ResearchWorkstreamModelExecutor,
@@ -218,8 +227,29 @@ export class CoMathHarness {
 			await this.handleInitialResearchProblem(explorationProblem);
 			return;
 		}
-		if (isResearchCoordinatorPrompt(problem) || isShowLatestResearchCoordinatorReportPrompt(problem)) {
-			await this.notify('Start a research workspace first. Try: "Explore this problem: ..."', "warning");
+		// Recognized report/progress/state commands need a workspace first; never create state for them.
+		if (
+			isResearchCoordinatorPrompt(problem) ||
+			isShowLatestCoordinatorReportPrompt(problem) ||
+			isShowProgressPrompt(problem) ||
+			isShowResearchStatePrompt(problem) ||
+			isShowLatestReportPrompt(problem) ||
+			isShowReportForPathPrompt(problem) !== undefined
+		) {
+			await this.notify(
+				'Start by asking a math question, for example: "Are there infinitely many primes of the form n^2 + 1?"',
+				"warning",
+			);
+			return;
+		}
+		// Let beginners start exploration by typing a bare math question (no "Explore this problem:" prefix).
+		// Only when no source is pinned: a pinned source means validation mode, where the first message is
+		// the statement to audit, so bare questions must keep flowing to the validation path.
+		const hasUsableSource = !!(this.source?.exists && this.source.isFile);
+		const naturalResearchQuestion = hasUsableSource ? undefined : parseNaturalResearchQuestion(problem);
+		if (naturalResearchQuestion) {
+			await this.notify("This looks like a math research question. I’ll explore it as a co-math problem.");
+			await this.handleInitialResearchProblem(naturalResearchQuestion);
 			return;
 		}
 		await this.handleInitialProblem(problem);
@@ -374,9 +404,7 @@ export class CoMathHarness {
 			}
 			return;
 		}
-		if (
-			/^(?:show (?:the )?(?:current )?progress|status|what are you doing\??|show (?:the )?latest run)$/i.test(prompt)
-		) {
+		if (isShowProgressPrompt(prompt)) {
 			const result = await this.tryCommand("run-status latest");
 			if (!result?.ok) {
 				await this.notify(formatProductProgress(undefined));
@@ -385,7 +413,7 @@ export class CoMathHarness {
 			await this.notify(formatProductProgress(extractRunSummary(result.messages)));
 			return;
 		}
-		if (/^show (?:the )?(?:latest )?report$/i.test(prompt)) {
+		if (isShowLatestReportPrompt(prompt)) {
 			const result = await this.tryCommand("report-status latest");
 			if (!result?.ok) {
 				await this.notify('No report yet. The first audit may still be running; say "show progress" to check.');
@@ -429,7 +457,7 @@ export class CoMathHarness {
 		const reconciled = await this.reconcileStaleResearchWorkstreamRuns(state);
 		state = reconciled.state;
 		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
-		if (isShowLatestResearchCoordinatorReportPrompt(prompt)) {
+		if (isShowLatestCoordinatorReportPrompt(prompt)) {
 			const report = getLatestResearchCoordinatorReport(state);
 			if (!report) {
 				await this.notify(formatLatestResearchCoordinatorReportMissing());
@@ -442,13 +470,13 @@ export class CoMathHarness {
 			await this.createResearchCoordinatorReport(state);
 			return;
 		}
-		if (/^(?:summari[sz]e current state|show research state|show progress|status)$/i.test(prompt)) {
-			if (/^(?:show progress|status)$/i.test(prompt) && latestInterruptedRun) {
+		if (isShowProgressPrompt(prompt) || isShowResearchStatePrompt(prompt)) {
+			if (isShowProgressPrompt(prompt) && latestInterruptedRun) {
 				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
 				return;
 			}
 			const activeRun = getActiveResearchWorkstreamRun(state);
-			if (/^(?:show progress|status)$/i.test(prompt) && activeRun) {
+			if (isShowProgressPrompt(prompt) && activeRun) {
 				await this.notify(formatResearchWorkstreamRunProgress({ state, run: activeRun }));
 				return;
 			}
@@ -459,9 +487,9 @@ export class CoMathHarness {
 			await this.notify(formatResearchStateSummary(state));
 			return;
 		}
-		const detailsForPath = /^show (?:details|report) for path (\d+)$/i.exec(prompt.trim());
-		if (detailsForPath?.[1]) {
-			const pathNumber = Number.parseInt(detailsForPath[1], 10);
+		const detailsForPath = isShowReportForPathPrompt(prompt);
+		if (detailsForPath) {
+			const pathNumber = detailsForPath.pathNumber;
 			const path = state.researchPaths[pathNumber - 1];
 			if (!path) {
 				await this.notify(
@@ -485,7 +513,7 @@ export class CoMathHarness {
 			await this.notify(formatResearchWorkstreamReport({ state, report }));
 			return;
 		}
-		if (/^show (?:the )?(?:latest )?report$/i.test(prompt.trim())) {
+		if (isShowLatestReportPrompt(prompt)) {
 			const latestRun = getLatestResearchWorkstreamRun(state);
 			if (latestRun && (latestRun.status === "queued" || latestRun.status === "running")) {
 				await this.notify(formatResearchWorkstreamRunStillRunningReport({ state, run: latestRun }));
@@ -1288,6 +1316,11 @@ export class CoMathHarness {
 		}
 	}
 
+	// Research runs execute as background promises after the agent turn ends, so the normal streaming
+	// loader does not cover them. These callbacks let a host (interactive mode) surface a footer status
+	// for the active run; they are best-effort and decoupled from execution. The interactive wiring is
+	// a stopgap pending a first-class background-activity API — see
+	// docs/comath-background-activity-api-notes.md.
 	private async notifyResearchWorkstreamActivityStart(
 		state: Pick<CoMathProjectState, "researchPaths">,
 		run: ResearchWorkstreamRunRecord,
@@ -1434,10 +1467,6 @@ function isIncompleteExplorationProblem(problem: string): boolean {
 	return /^this\s+(?:problem|conjecture|question):?$/i.test(problem.trim());
 }
 
-function isShowLatestResearchCoordinatorReportPrompt(prompt: string): boolean {
-	return /^show (?:the )?(?:latest )?(?:project )?coordinator (?:report|summary)$/i.test(prompt.trim());
-}
-
 function isResearchCoordinatorPrompt(prompt: string): boolean {
 	return /^(?:what should we try next\??|what next\??|recommend (?:the )?next path|make a plan from current reports|summari[sz]e current state and recommend next steps|what is blocked\??|compare paths|project coordinator summary)$/i.test(
 		prompt.trim(),
@@ -1486,7 +1515,7 @@ function parseResearchPathContinuationPrompt(
 	state: CoMathProjectState,
 	prompt: string,
 ): { explicit: boolean; path?: ResearchPath } | undefined {
-	const stripped = stripPolitePrefix(prompt.trim());
+	const stripped = stripCoMathPolitePrefix(prompt.trim());
 	const match = /^(continue|run|start|try)\b\s*(?:with\s+)?(.*)$/i.exec(stripped);
 	if (!match) {
 		return undefined;
@@ -1532,23 +1561,6 @@ function resolveDefaultContinueResearchPath(state: CoMathProjectState): { explic
 			.filter((path) => path.status === "active" || path.status === "promising")
 			.sort((a, b) => a.priority - b.priority)[0],
 	};
-}
-
-/**
- * Strip leading polite/filler phrases ("please", "can you", "let's", …) so the verb that follows can
- * be matched. Repeats to handle stacked prefixes such as "could you please continue path 1".
- */
-function stripPolitePrefix(prompt: string): string {
-	const politePattern = /^(?:please|can you|could you|would you|will you|kindly|let'?s)\b[\s,]*/i;
-	let result = prompt.trim();
-	while (politePattern.test(result)) {
-		const next = result.replace(politePattern, "").trim();
-		if (next === result) {
-			break;
-		}
-		result = next;
-	}
-	return result;
 }
 
 /**

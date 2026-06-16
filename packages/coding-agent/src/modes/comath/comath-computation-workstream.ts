@@ -8,6 +8,12 @@ import type {
 	ComputationalExecutor,
 	ComputationalScriptDraft,
 } from "./comath-computation-executor.ts";
+import {
+	type CoMathParsedMarkdown as ParsedMarkdown,
+	parseCoMathMarkdown as parseMarkdown,
+	getCoMathMarkdownSectionItems as sectionItems,
+	stripCoMathBulletMarker as stripBulletMarker,
+} from "./comath-markdown.ts";
 import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
@@ -44,16 +50,6 @@ export interface RunComputationResearchWorkstreamInput {
 export interface ComputationResearchWorkstreamResult {
 	report: ResearchWorkstreamReport;
 	artifacts: ComputationalArtifactDraft[];
-}
-
-interface MarkdownSection {
-	heading: string;
-	items: string[];
-}
-
-interface ParsedMarkdown {
-	sections: MarkdownSection[];
-	raw: string[];
 }
 
 interface ScriptSelection {
@@ -620,63 +616,6 @@ function buildFallbackSynthesizerText(execution: ComputationalExecutionResult): 
 	].join("\n");
 }
 
-function parseMarkdown(text: string): ParsedMarkdown {
-	const sections: MarkdownSection[] = [];
-	const raw: string[] = [];
-	let current: MarkdownSection | undefined;
-	let lastWasBullet = false;
-	for (const rawLine of text.split("\n")) {
-		const line = rawLine.trim();
-		if (line.length === 0 || line.startsWith("```")) {
-			lastWasBullet = false;
-			continue;
-		}
-		const headingMatch = /^#{1,6}\s+(.*)$/.exec(line);
-		if (headingMatch?.[1]) {
-			current = { heading: headingMatch[1].trim(), items: [] };
-			sections.push(current);
-			lastWasBullet = false;
-			continue;
-		}
-		const isBullet = /^\s*(?:[-*]|\d+[.)])\s+/.test(rawLine);
-		const item = stripBulletMarker(line);
-		if (item.length === 0) {
-			continue;
-		}
-		// Fold display-math delimiters and other non-bullet continuation lines into the preceding list
-		// item so multi-line LaTeX (e.g. "\[", "n^2+1.", "\]") does not render as orphan "- \[" bullets.
-		if (lastWasBullet && (!isBullet || isMathFragmentLine(item))) {
-			appendToLastItem(raw, item);
-			if (current) {
-				appendToLastItem(current.items, item);
-			}
-			continue;
-		}
-		raw.push(item);
-		current?.items.push(item);
-		lastWasBullet = isBullet;
-	}
-	return { sections, raw };
-}
-
-/** A line that is only a display-math delimiter, e.g. `\[`, `\]`, `\(`, `\)`, `\begin{...}`, `\end{...}`. */
-function isMathFragmentLine(item: string): boolean {
-	return /^(?:\\\[|\\\]|\\\(|\\\)|\\begin\{[^}]*\}|\\end\{[^}]*\})$/.test(item.trim());
-}
-
-function appendToLastItem(items: string[], text: string): void {
-	if (items.length === 0) {
-		items.push(text);
-		return;
-	}
-	items[items.length - 1] = `${items[items.length - 1]} ${text}`.replace(/\s+/g, " ").trim();
-}
-
-function sectionItems(parsed: ParsedMarkdown, keyword: string): string[] {
-	const section = parsed.sections.find((candidate) => candidate.heading.toLowerCase().includes(keyword));
-	return section ? section.items.filter((item) => item.length > 0) : [];
-}
-
 function renderRoleDetails(parsed: ParsedMarkdown): string[] {
 	const items = parsed.sections.flatMap((section) => section.items);
 	return items.length > 0 ? items : parsed.raw.slice(0, 12);
@@ -830,10 +769,6 @@ function firstNonEmptyLineBeforeFence(text: string): string | undefined {
 		?.split("\n")
 		.map((line) => stripBulletMarker(line.trim()))
 		.find((line) => line.length > 0);
-}
-
-function stripBulletMarker(line: string): string {
-	return line.replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").trim();
 }
 
 function sanitizeScriptFileName(fileName: string): string {

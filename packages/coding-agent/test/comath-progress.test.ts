@@ -619,10 +619,13 @@ describe("co-math product messages", () => {
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
 		expect(completed).toContain("Computation");
-		expect(completed).toContain("Script: computation-artifact-1");
-		expect(completed).toContain("Result: computation-artifact-2");
+		// The beginner completion stays product-clean: no raw artifact IDs as primary content.
+		expect(completed).not.toContain("computation-artifact-1");
+		expect(completed).not.toContain("computation-artifact-2");
 		expect(completed).toContain("Checked range: 1 <= n <= 20");
 		expect(completed).toContain("Exit code: 0");
+		expect(completed).toContain("show latest report");
+		expectProductCopy(completed);
 
 		const details = formatResearchWorkstreamReport({ state, report });
 		expect(details).toContain("Script: .pi/co-math/artifacts/research-run-1/search.py");

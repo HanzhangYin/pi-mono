@@ -115,6 +115,14 @@ interface CoMathInteractiveActivityBridge {
 	end(input: CoMathResearchWorkstreamActivityEndInput): void;
 }
 
+/**
+ * Co-math research runs execute as background promises *after* the normal agent turn ends, so they
+ * are not covered by `AgentSession.isStreaming` and the standard loader. This bridge maps the
+ * harness's per-run activity callbacks onto a footer extension status so the user still sees a
+ * persistent "running" indicator. It is a deliberate stopgap for the single co-math consumer; see
+ * docs/comath-background-activity-api-notes.md for the proposed first-class background-activity API.
+ * It keeps the latest status per run so concurrent runs do not clobber one another.
+ */
 function createCoMathInteractiveActivityBridge(interactiveMode: InteractiveMode): CoMathInteractiveActivityBridge {
 	const statusesByRunId = new Map<string, string>();
 	const render = () => {

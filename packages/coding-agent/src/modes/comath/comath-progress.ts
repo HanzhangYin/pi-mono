@@ -197,6 +197,7 @@ export type ResearchStateSummaryInput = Pick<CoMathProjectState, "researchPaths"
 	researchReports?: readonly ResearchWorkstreamReportRecord[];
 };
 
+/** Research-state overview shown by `show research state` / `summarize current state`. */
 export function formatResearchStateSummary(state: ResearchStateSummaryInput): string {
 	const active = state.researchPaths.filter((path) => path.status === "active" || path.status === "promising");
 	const blocked = state.researchPaths.filter((path) => path.status === "blocked");
@@ -412,6 +413,7 @@ export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstre
 	].join("\n");
 }
 
+/** Running progress shown by `show progress` while a research run is active. */
 export function formatResearchWorkstreamRunProgress(input: FormatResearchWorkstreamRunInput): string {
 	const latest = input.run.incrementalReports.at(-1);
 	return [
@@ -495,6 +497,11 @@ export function formatResearchWorkstreamAlreadyRunning(input: FormatResearchWork
 	].join("\n");
 }
 
+/**
+ * Beginner-facing summary emitted automatically when a research run finishes. Stays concise: no raw
+ * artifact IDs, ends with a concrete next command. The full attempt/critique/artifacts live in
+ * {@link formatResearchWorkstreamReport} (`show latest report`).
+ */
 export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstreamInput): string {
 	const { report } = input;
 	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
@@ -535,6 +542,10 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 	].join("\n");
 }
 
+/**
+ * Detailed report shown by `show latest report` / `show details for path N`. May expose internal
+ * detail (script paths, artifact IDs, attachments) that the beginner completion deliberately omits.
+ */
 export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamInput): string {
 	const { report } = input;
 	const coordinator = report.steps.find((step) => step.role === "coordinator");
@@ -692,6 +703,11 @@ function formatClaimSupports(
 		.filter((line): line is string => line !== undefined);
 }
 
+/**
+ * Beginner-facing computation summary for the automatic completion message. Intentionally omits raw
+ * artifact IDs and file paths so the completion stays product-clean; the script path, command, and
+ * output live in the detailed `show latest report` view (see {@link formatComputationDetails}).
+ */
 function formatComputationSummary(
 	state: Pick<CoMathProjectState, "researchPaths"> & {
 		computationalArtifacts?: readonly ComputationalArtifact[];
@@ -712,10 +728,10 @@ function formatComputationSummary(
 		.map((line) => line.trim())
 		.find((line) => /^checked_range:/i.test(line));
 	return [
-		...(script ? [`- Script: ${script.id}`] : []),
-		...(result ? [`- Result: ${result.id}`] : []),
+		...(script ? ["- Ran a small bounded script and recorded its output."] : []),
 		...(checkedRange ? [`- Checked range: ${checkedRange.replace(/^checked_range:\s*/i, "")}`] : []),
 		...(exitCode !== undefined ? [`- Exit code: ${exitCode}`] : []),
+		...(script || result ? ['- Full script and output: say "show latest report".'] : []),
 	];
 }
 

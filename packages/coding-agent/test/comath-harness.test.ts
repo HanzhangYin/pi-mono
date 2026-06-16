@@ -630,6 +630,126 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("starts research exploration from a bare math question", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
+			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
+			const visible = notices.join("\n");
+			expect(visible).toContain("This looks like a math research question");
+			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("continue path 1");
+			expectProductCopy(visible);
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("starts research exploration from natural help phrasing and strips the preamble", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Can you help me explore whether there are infinitely many twin primes?");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research workspace prepared");
+			expectProductCopy(visible);
+			expect(commands).toEqual(["init there are infinitely many twin primes?"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("does not create state for report/progress/state commands from a fresh workspace", async () => {
+		for (const prompt of [
+			"show report",
+			"show latest report",
+			"show progress",
+			"status",
+			"what are you doing?",
+			"show research state",
+			"show latest coordinator report",
+		]) {
+			const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+			try {
+				await harness.handlePrompt(prompt);
+				expect(await loadProjectState(statePath), prompt).toBeUndefined();
+				expect(commands, prompt).toEqual([]);
+				expect(notices.at(-1) ?? "", prompt).toContain("Start by asking a math question");
+				expectProductCopy(notices.join("\n"));
+			} finally {
+				await rm(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("does not create any state for help from a fresh workspace", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("help");
+			expect(await loadProjectState(statePath)).toBeUndefined();
+			expect(commands).toEqual([]);
+			expect(notices.join("\n")).toContain("Pi math validation help");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("does not start research for exec/dev or non-math prose from a fresh workspace", async () => {
+		for (const prompt of ["run tests", "run a quick sanity check", "report that this theorem is false"]) {
+			const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+			try {
+				await harness.handlePrompt(prompt);
+				const state = await loadProjectState(statePath);
+				expect(state?.researchPaths ?? [], prompt).toEqual([]);
+				expect(notices.join("\n"), prompt).not.toContain("Research workspace prepared");
+			} finally {
+				await rm(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("keeps validation behavior for a bare math question when a source is pinned", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
+		try {
+			const commands: string[] = [];
+			const notices: string[] = [];
+			const sourcePath = join(dir, "paper.pdf");
+			const harness = new CoMathHarness({
+				source: {
+					input: sourcePath,
+					absolutePath: sourcePath,
+					displayName: "paper.pdf",
+					exists: true,
+					isFile: true,
+				},
+				statePath: join(dir, ".pi", "co-math", "state.json"),
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async (command) => {
+					commands.push(command);
+					return OK;
+				},
+			});
+
+			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
+
+			const visible = notices.join("\n");
+			expect(visible).not.toContain("Research workspace prepared");
+			expect(visible).not.toContain("This looks like a math research question");
+			expect(visible).toContain("source-backed validation run");
+			expect(commands.some((command) => command.startsWith("init "))).toBe(true);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("waits for the problem after an incomplete exploration prompt", async () => {
 		const { commands, dir, harness, notices } = await createResearchHarnessFixture();
 		try {
@@ -1163,7 +1283,7 @@ describe("co-math harness", () => {
 
 			expect(commands).toEqual([]);
 			expect(await loadProjectState(statePath)).toBeUndefined();
-			expect(notices.join("\n")).toContain('Start a research workspace first. Try: "Explore this problem: ..."');
+			expect(notices.join("\n")).toContain("Start by asking a math question");
 			expectProductCopy(notices.join("\n"));
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -1596,8 +1716,9 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Coordinator is choosing a bounded finite experiment.");
 			expect(visible).toContain("Computational specialist is preparing a small script.");
 			expect(visible).toContain("Computation");
-			expect(visible).toContain("Script: computation-artifact-1");
-			expect(visible).toContain("Result: computation-artifact-2");
+			// Beginner completion stays product-clean: no raw artifact IDs, points to the detailed report.
+			expect(visible).toContain("Ran a small bounded script and recorded its output.");
+			expect(visible).not.toContain("computation-artifact-1");
 			expect(visible).toContain("A finite computation does not prove an infinite claim.");
 		} finally {
 			await rm(dir, { recursive: true, force: true });

@@ -1,5 +1,10 @@
 import type { ResearchPath, ResearchWorkstreamRunStage } from "../../../examples/extensions/co-math/schema.ts";
 import {
+	type CoMathParsedMarkdown as ParsedMarkdown,
+	parseCoMathMarkdown as parseMarkdown,
+	getCoMathMarkdownSectionItems as sectionItems,
+} from "./comath-markdown.ts";
+import {
 	buildCoordinatorBrief,
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
@@ -46,17 +51,6 @@ export interface ResearchWorkstreamStageResult {
 export interface ResearchWorkstreamStageCallbacks {
 	onStageStarted?: (stage: ResearchWorkstreamRunStage, summary: string) => Promise<void> | void;
 	onStageCompleted?: (result: ResearchWorkstreamStageResult) => Promise<void> | void;
-}
-
-interface MarkdownSection {
-	heading: string;
-	items: string[];
-}
-
-interface ParsedMarkdown {
-	sections: MarkdownSection[];
-	/** Non-heading, non-empty lines (used when no headings are present). */
-	raw: string[];
 }
 
 /**
@@ -301,68 +295,6 @@ export function buildSynthesizerPrompt(
 function formatPriorFindings(priorFindings: readonly string[]): string[] {
 	const findings = priorFindings.filter((finding) => finding.trim().length > 0);
 	return findings.length > 0 ? findings.map((finding) => `- ${finding}`) : ["- (none yet)"];
-}
-
-function parseMarkdown(text: string): ParsedMarkdown {
-	const sections: MarkdownSection[] = [];
-	const raw: string[] = [];
-	let current: MarkdownSection | undefined;
-	let lastWasBullet = false;
-	for (const rawLine of text.split("\n")) {
-		const line = rawLine.trim();
-		if (line.length === 0) {
-			continue;
-		}
-		const headingMatch = /^#{1,6}\s+(.*)$/.exec(line);
-		if (headingMatch?.[1]) {
-			current = { heading: headingMatch[1].trim(), items: [] };
-			sections.push(current);
-			lastWasBullet = false;
-			continue;
-		}
-		const isBullet = /^\s*(?:[-*•]|\d+[.)])\s+/.test(rawLine);
-		const item = stripBulletMarker(line);
-		if (item.length === 0) {
-			continue;
-		}
-		// Fold display-math delimiters and other non-bullet continuation lines into the preceding list
-		// item so multi-line LaTeX (e.g. "\[", "n^2+1.", "\]") does not render as orphan "- \[" bullets.
-		if (lastWasBullet && (!isBullet || isMathFragmentLine(item))) {
-			appendToLastItem(raw, item);
-			if (current) {
-				appendToLastItem(current.items, item);
-			}
-			continue;
-		}
-		raw.push(item);
-		if (current) {
-			current.items.push(item);
-		}
-		lastWasBullet = isBullet;
-	}
-	return { sections, raw };
-}
-
-function stripBulletMarker(line: string): string {
-	return line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim();
-}
-
-/** A line that is only a display-math delimiter, e.g. `\[`, `\]`, `\(`, `\)`, `\begin{...}`, `\end{...}`. */
-function isMathFragmentLine(item: string): boolean {
-	return /^(?:\\\[|\\\]|\\\(|\\\)|\\begin\{[^}]*\}|\\end\{[^}]*\})$/.test(item.trim());
-}
-
-function appendToLastItem(items: string[], text: string): void {
-	if (items.length === 0) {
-		items.push(text);
-		return;
-	}
-	items[items.length - 1] = `${items[items.length - 1]} ${text}`.replace(/\s+/g, " ").trim();
-}
-
-function sectionItems(parsed: ParsedMarkdown, keyword: string): string[] {
-	const section = parsed.sections.find((candidate) => candidate.heading.toLowerCase().includes(keyword));
-	return section ? section.items.filter((item) => item.length > 0) : [];
 }
 
 function renderRoleDetails(parsed: ParsedMarkdown): string[] {

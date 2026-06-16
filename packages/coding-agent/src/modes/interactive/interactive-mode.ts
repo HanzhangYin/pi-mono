@@ -1711,6 +1711,9 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
+	// Footer status for co-math background research runs (they run outside normal agent streaming).
+	// Stopgap until a generic background-activity API exists; see
+	// docs/comath-background-activity-api-notes.md.
 	setCoMathActivityStatus(text: string | undefined): void {
 		this.setExtensionStatus("co-math", text);
 	}

@@ -11,14 +11,24 @@ cd comath-beginner-path1-demo
 /home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
 ```
 
-Then enter, one message at a time:
+This beginner smoke uses only Path 1. Path 5 (literature) and the coordinator summary are exercised
+in the advanced/developer sections below.
+
+Then enter, one message at a time. Just ask the math question — no special prefix needed:
 
 ```text
-Explore this problem: Are there infinitely many primes of the form n^2 + 1?
+Are there infinitely many primes of the form n^2 + 1?
 ```
+
+Pi recognizes this as a math research question and prepares the workspace. The explicit form
+`Explore this problem: ...` is still supported but no longer required for obvious math questions.
 
 ```text
 please continue path 1
+```
+
+```text
+show progress
 ```
 
 ```text
@@ -26,23 +36,42 @@ show research state
 ```
 
 ```text
+show report
+```
+
+```text
 show latest report
+```
+
+Command notes:
+
+```text
+- show latest report  -> the detailed report (attempt, critique, script path, results).
+- show report         -> alias for show latest report.
+- show progress       -> status of the active/last run while it is working.
+- show research state -> the path overview with an executable suggested command.
+- Polite phrasings work too, e.g. "please show the latest report".
 ```
 
 Pass checklist:
 
 ```text
+[ ] The bare math question (no "Explore this problem:" prefix) starts research exploration.
+[ ] Pi explains it is exploring the question as a co-math problem.
 [ ] The first response is "Research workspace prepared" and lists the paths.
 [ ] It ends with an executable next command: continue path 1.
 [ ] "please continue path 1" starts Path 1 (it does not just print "Current research state").
 [ ] A Pi-native status indicator (for example `co-math: Path 1 running · ...`) shows while Path 1 runs and clears when it finishes.
 [ ] The editor stays usable while Path 1 runs; "show progress" works if typed.
 [ ] Completion is concise, says the finite search is evidence and not a proof, and ends with a concrete next command.
+[ ] Completion does not lead with raw artifact IDs; the script/output is reachable via "show latest report".
 [ ] "show research state" includes an executable suggested command (continue path N), not a sentence Pi cannot run.
-[ ] "show latest report" still shows the detailed attempt, critique, and any script/result details.
+[ ] "show report" and "show latest report" both show the latest detailed report.
+[ ] The detailed report still includes computation artifact paths.
+[ ] No orphan math bullets such as `- \[` or `- \]`.
 ```
 
-The sections below are advanced/developer smokes.
+The sections below are advanced/developer smokes (Path 5 literature, coordinator summary).
 
 Run from a clean folder:
 

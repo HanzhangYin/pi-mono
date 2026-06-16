@@ -1,0 +1,126 @@
+/**
+ * Prompt-routing helpers for the co-math interactive harness.
+ *
+ * Centralizing the report/progress/state command matching keeps it out of scattered regexes in the
+ * harness and lets every command accept polite phrasings ("please show progress") without each call
+ * site re-implementing prefix stripping. Matchers anchor on the normalized prompt so arbitrary prose
+ * ("report that this theorem is false") is not turned into a command.
+ */
+
+const POLITE_PREFIX = /^(?:please|can you|could you|would you|will you|kindly|let'?s)\b[\s,]*/i;
+
+/** Remove leading polite/filler phrases ("please", "can you", "let's", …); repeats for stacked prefixes. */
+export function stripCoMathPolitePrefix(prompt: string): string {
+	let result = prompt.trim();
+	while (POLITE_PREFIX.test(result)) {
+		const next = result.replace(POLITE_PREFIX, "").trim();
+		if (next === result) {
+			break;
+		}
+		result = next;
+	}
+	return result;
+}
+
+/** Strip polite prefixes and collapse whitespace so command matchers can use simple anchored patterns. */
+export function normalizeCoMathPrompt(prompt: string): string {
+	return stripCoMathPolitePrefix(prompt).replace(/\s+/g, " ").trim();
+}
+
+/** `show progress`, `status`, `what are you doing`, `show latest run`, and polite variants. */
+export function isShowProgressPrompt(prompt: string): boolean {
+	return /^(?:show (?:the )?(?:current )?progress|status|what are you doing\??|show (?:the )?latest run)$/i.test(
+		normalizeCoMathPrompt(prompt),
+	);
+}
+
+/** `show research state`, `summarize current state`, and polite variants. */
+export function isShowResearchStatePrompt(prompt: string): boolean {
+	return /^(?:show research state|summari[sz]e current state)$/i.test(normalizeCoMathPrompt(prompt));
+}
+
+/** `show report`, `show the report`, `show latest report`, `show the latest report`, and polite variants. */
+export function isShowLatestReportPrompt(prompt: string): boolean {
+	return /^show (?:the )?(?:latest )?report$/i.test(normalizeCoMathPrompt(prompt));
+}
+
+/** `show details for path N` / `show report for path N` and polite variants; returns the 1-based path number. */
+export function isShowReportForPathPrompt(prompt: string): { pathNumber: number } | undefined {
+	const match = /^show (?:details|report) for path (\d+)$/i.exec(normalizeCoMathPrompt(prompt));
+	if (!match?.[1]) {
+		return undefined;
+	}
+	const pathNumber = Number.parseInt(match[1], 10);
+	return pathNumber > 0 ? { pathNumber } : undefined;
+}
+
+/** `show [latest] [project] coordinator report/summary` and polite variants (distinct from a research report). */
+export function isShowLatestCoordinatorReportPrompt(prompt: string): boolean {
+	return /^show (?:the )?(?:latest )?(?:project )?coordinator (?:report|summary)$/i.test(
+		normalizeCoMathPrompt(prompt),
+	);
+}
+
+// Math/research vocabulary that signals a question is a mathematical research problem.
+const MATH_RESEARCH_TERMS =
+	/\b(?:primes?|integers?|theorem|conjecture|proofs?|prove|disprove|infinitely\s+many|infinitude|polynomials?|equations?|sequences?|series|graphs?|groups?|rings?|fields?|numbers?|divisors?|divisible|composite|modulo|congruence|congruent|factorial|fibonacci|collatz|goldbach|twin\s+primes?|squares?|sum\s+of|rational|irrational|even\s+(?:integer|number)|odd\s+(?:integer|number)|natural\s+number)\b/i;
+
+// Mathematical notation such as n^2, x^k, "mod", or comparison/quantifier symbols.
+const MATH_NOTATION = /\b[a-z]\^[0-9a-z]|[0-9]\^[0-9]|\bmod\b|≡|∑|∏|∀|∃|∈|≤|≥|≠/i;
+
+// Phrasing that frames a prompt as a research/exploration request even without a trailing "?".
+const NATURAL_RESEARCH_PHRASING = /\b(?:explore|investigate|study|examine|look\s+into|figure\s+out|determine)\b/i;
+
+// Leading exec/dev verbs that should never start co-math research, even if math words follow.
+const DEV_COMMAND_PREFIX =
+	/^(?:run|npm|npx|yarn|pnpm|git|make|build|rebuild|lint|install|deploy|compile|cd|ls|cat|grep|open|edit)\b/i;
+
+// Polite/help preamble plus a research verb (and optional "whether/if") to strip from a natural question.
+const NATURAL_RESEARCH_PREAMBLE =
+	/^(?:(?:can|could|would|will)\s+you\s+|please\s+|i(?:'d|\s+would|\s+want\s+to|\s+wanna)\s+(?:like\s+to\s+)?|let'?s\s+|let\s+us\s+|can\s+we\s+|help\s+me\s+)*(?:help\s+me\s+)?(?:explore|investigate|study|examine|look\s+into|figure\s+out|determine)\s+(?:whether\s+|if\s+|the\s+question\s+of\s+(?:whether\s+)?)?/i;
+
+/**
+ * True when a fresh-workspace prompt looks like a mathematical research question that should start
+ * co-math exploration. Conservative and deterministic (no LLM): requires a math/notation signal and
+ * either a trailing "?" or explicit research phrasing, and rejects recognized commands and exec/dev
+ * prompts so operational prose does not accidentally start research.
+ */
+export function isLikelyMathResearchQuestion(prompt: string): boolean {
+	const trimmed = prompt.trim();
+	if (trimmed.length === 0) {
+		return false;
+	}
+	if (
+		isShowProgressPrompt(prompt) ||
+		isShowResearchStatePrompt(prompt) ||
+		isShowLatestReportPrompt(prompt) ||
+		isShowReportForPathPrompt(prompt) !== undefined ||
+		isShowLatestCoordinatorReportPrompt(prompt)
+	) {
+		return false;
+	}
+	if (DEV_COMMAND_PREFIX.test(normalizeCoMathPrompt(prompt))) {
+		return false;
+	}
+	const hasMathSignal = MATH_RESEARCH_TERMS.test(trimmed) || MATH_NOTATION.test(trimmed);
+	if (!hasMathSignal) {
+		return false;
+	}
+	const endsWithQuestion = /\?\s*$/.test(trimmed);
+	const hasResearchPhrasing = NATURAL_RESEARCH_PHRASING.test(trimmed);
+	return endsWithQuestion || hasResearchPhrasing;
+}
+
+/**
+ * If the prompt is a natural math research question, return it (with any leading "can you help me
+ * explore whether …" preamble stripped); otherwise `undefined`. Used to start research exploration
+ * from a bare question without the explicit "Explore this problem:" prefix.
+ */
+export function parseNaturalResearchQuestion(prompt: string): string | undefined {
+	if (!isLikelyMathResearchQuestion(prompt)) {
+		return undefined;
+	}
+	const trimmed = prompt.trim();
+	const stripped = trimmed.replace(NATURAL_RESEARCH_PREAMBLE, "").trim();
+	return stripped.length > 0 ? stripped : trimmed;
+}
