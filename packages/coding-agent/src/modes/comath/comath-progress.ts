@@ -64,6 +64,19 @@ export function formatCoMathProductHelp(): string {
 	].join("\n");
 }
 
+/** Guidance shown when a fresh-workspace prompt is operational/non-math and should not create state. */
+export function formatCoMathNonMathEntryGuidance(): string {
+	return [
+		"Pi co-math is for mathematical validation and exploration.",
+		"",
+		"Start with a math question, for example:",
+		"Are there infinitely many primes of the form n^2 + 1?",
+		"",
+		"Or ask for validation, for example:",
+		"Validate this proof: ...",
+	].join("\n");
+}
+
 export function formatExistingProjectHelp(): string {
 	return [
 		"A validation run already exists in this workspace.",

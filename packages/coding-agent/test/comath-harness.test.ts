@@ -714,6 +714,38 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("does not create state for operational/dev prompts in a fresh workspace", async () => {
+		for (const prompt of ["run tests", "run a quick sanity check", "show me the files", "what branch am I on?"]) {
+			const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+			try {
+				await harness.handlePrompt(prompt);
+				expect(await loadProjectState(statePath), prompt).toBeUndefined();
+				expect(commands, prompt).toEqual([]);
+				const visible = notices.join("\n");
+				expect(visible, prompt).toContain("Pi co-math is for mathematical validation and exploration.");
+				expectProductCopy(visible);
+			} finally {
+				await rm(dir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("creates a validation workspace for a clear math validation prompt in a fresh workspace", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Validate the claim: every even integer greater than 2 is a sum of two primes.");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths).toEqual([]);
+			expect(commands.some((command) => command.startsWith("init "))).toBe(true);
+			const visible = notices.join("\n");
+			expect(visible).not.toContain("Pi co-math is for mathematical validation and exploration.");
+			expect(visible).not.toContain("Research workspace prepared");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("keeps validation behavior for a bare math question when a source is pinned", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "comath-harness-"));
 		try {

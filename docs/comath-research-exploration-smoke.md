@@ -71,6 +71,41 @@ Pass checklist:
 [ ] No orphan math bullets such as `- \[` or `- \]`.
 ```
 
+## Fresh workspace non-math guard
+
+A fresh `pi comath` workspace is for math validation/exploration: operational/dev prose must not
+create a project. From a fresh folder:
+
+```bash
+cd /tmp
+mkdir comath-nonmath-guard-test-1
+cd comath-nonmath-guard-test-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Inside Pi:
+
+```text
+run tests
+```
+
+Pi should respond with guidance ("Pi co-math is for mathematical validation and exploration. …") and
+not create any state. Exit Pi, then:
+
+```bash
+python3 -c 'from pathlib import Path; print("state exists:", Path(".pi/co-math/state.json").exists())'
+```
+
+Expected:
+
+```text
+state exists: False
+```
+
+Repeat (each in its own fresh folder) for `show me the files` and `what branch am I on?` — same result.
+In contrast, a validation prompt such as `Validate the claim: every even integer greater than 2 is a
+sum of two primes.` does create a validation workspace.
+
 The sections below are advanced/developer smokes (Path 5 literature, coordinator summary).
 
 Run from a clean folder:

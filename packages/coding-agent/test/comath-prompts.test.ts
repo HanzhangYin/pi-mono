@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	isLikelyMathResearchQuestion,
+	isLikelyMathValidationPrompt,
+	isLikelyOperationalNonMathPrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowProgressPrompt,
@@ -126,6 +128,46 @@ describe("natural math research question detection", () => {
 		]) {
 			expect(parseNaturalResearchQuestion(prompt), prompt).toBeUndefined();
 			expect(isLikelyMathResearchQuestion(prompt), prompt).toBe(false);
+		}
+	});
+});
+
+describe("fresh-workspace validation vs operational gate", () => {
+	it("recognizes operational/dev prompts", () => {
+		for (const prompt of [
+			"run tests",
+			"run a quick sanity check",
+			"git status",
+			"npm test",
+			"what branch am I on?",
+			"show me the files",
+			"list files",
+			"open package.json",
+			"build the project",
+		]) {
+			expect(isLikelyOperationalNonMathPrompt(prompt), prompt).toBe(true);
+			expect(isLikelyMathValidationPrompt(prompt), prompt).toBe(false);
+		}
+	});
+
+	it("recognizes math validation prompts", () => {
+		for (const prompt of [
+			"Validate the claim: every even integer greater than 2 is a sum of two primes.",
+			"Validate Question 3.",
+			"Check this proof: assume n is even, then n^2 + 1 is odd.",
+			"Review this proof of the lemma: ...",
+			"Prove or disprove: there are infinitely many primes of the form n^2 + 1.",
+			"Is this proof valid? Suppose the sequence is bounded.",
+			"Audit the following theorem and proof: ...",
+		]) {
+			expect(isLikelyMathValidationPrompt(prompt), prompt).toBe(true);
+			expect(isLikelyOperationalNonMathPrompt(prompt), prompt).toBe(false);
+		}
+	});
+
+	it("does not treat commands, help, or empty prose as validation prompts", () => {
+		for (const prompt of ["show report", "show progress", "help", "the weather is nice today", "check the code"]) {
+			expect(isLikelyMathValidationPrompt(prompt), prompt).toBe(false);
 		}
 	});
 });

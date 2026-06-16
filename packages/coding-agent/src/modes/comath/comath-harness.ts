@@ -58,6 +58,7 @@ import {
 } from "./comath-literature-workstream.ts";
 import {
 	formatBackgroundRunStarted,
+	formatCoMathNonMathEntryGuidance,
 	formatCoMathProductHelp,
 	formatContextRecorded,
 	formatFocusNoted,
@@ -85,6 +86,7 @@ import {
 	formatWaitingForContext,
 } from "./comath-progress.ts";
 import {
+	isLikelyMathValidationPrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowProgressPrompt,
@@ -250,6 +252,13 @@ export class CoMathHarness {
 		if (naturalResearchQuestion) {
 			await this.notify("This looks like a math research question. I’ll explore it as a co-math problem.");
 			await this.handleInitialResearchProblem(naturalResearchQuestion);
+			return;
+		}
+		// Sourceless fresh workspace: only create a validation project for clear math validation prompts.
+		// Operational/dev prose and other non-math input get guidance instead of durable state. A pinned
+		// source keeps the existing validation behavior (the first message is the statement to audit).
+		if (!hasUsableSource && !isLikelyMathValidationPrompt(problem)) {
+			await this.notify(formatCoMathNonMathEntryGuidance(), "warning");
 			return;
 		}
 		await this.handleInitialProblem(problem);

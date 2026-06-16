@@ -124,3 +124,39 @@ export function parseNaturalResearchQuestion(prompt: string): string | undefined
 	const stripped = trimmed.replace(NATURAL_RESEARCH_PREAMBLE, "").trim();
 	return stripped.length > 0 ? stripped : trimmed;
 }
+
+// Leading exec/dev verbs and operational phrases that should never create co-math state.
+const OPERATIONAL_PROMPT =
+	/^(?:run|npm|npx|yarn|pnpm|git|make|build|rebuild|lint|install|deploy|compile|cd|ls|cat|grep|open|edit|mkdir|touch|rm|mv|cp|chmod|export|sudo|cargo|docker|kubectl)\b|^(?:show\s+me\b|list\s+files?\b|what\s+(?:branch|files?|directory|dir|commit|status)\b|which\s+branch\b)/i;
+
+// Proof/claim vocabulary that signals a validation request even without an explicit "validate" verb.
+const MATH_PROOF_TERMS =
+	/\b(?:proofs?|prove|theorem|lemma|claims?|conjecture|corollary|derivation|identity|inequality|equation)\b/i;
+
+// Explicit framing that asks Pi to validate/audit/review a piece of mathematics.
+const VALIDATION_FRAMING =
+	/\b(?:validate|verify|disprove|audit)\b|\bprove\b|\bcheck\s+(?:this|the|my|the\s+following)\s+(?:proof|claim|argument|theorem|lemma|solution|derivation|reasoning|step)\b|\breview\s+(?:this|the|my)\s+(?:proof|claim|argument|theorem|lemma|solution)\b|\bis\s+(?:this|the\s+following|my)\s+(?:proof|argument|claim|solution|reasoning)\s+(?:valid|correct|right|sound|complete)\b/i;
+
+/**
+ * True for fresh-workspace prompts that are operational/dev requests rather than mathematics, e.g.
+ * "run tests", "git status", "show me the files", "what branch am I on?". Deterministic (no LLM).
+ */
+export function isLikelyOperationalNonMathPrompt(prompt: string): boolean {
+	return OPERATIONAL_PROMPT.test(normalizeCoMathPrompt(prompt));
+}
+
+/**
+ * True for fresh-workspace prompts that clearly ask for mathematical validation/proof/audit, or that
+ * otherwise carry a math signal. Used as the allowlist for the sourceless validation entrypoint:
+ * operational/dev prose and other non-math input are excluded so they do not create durable state.
+ */
+export function isLikelyMathValidationPrompt(prompt: string): boolean {
+	const normalized = normalizeCoMathPrompt(prompt);
+	if (normalized.length === 0 || isLikelyOperationalNonMathPrompt(prompt)) {
+		return false;
+	}
+	if (VALIDATION_FRAMING.test(normalized)) {
+		return true;
+	}
+	return MATH_PROOF_TERMS.test(normalized) || MATH_RESEARCH_TERMS.test(normalized) || MATH_NOTATION.test(normalized);
+}
