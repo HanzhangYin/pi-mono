@@ -634,6 +634,126 @@ describe("co-math product messages", () => {
 		expectProductCopy(details);
 	});
 
+	it("formats Path 5 no-source completion with source status and coordinator command", () => {
+		const path = createLiteraturePath();
+		const report = {
+			pathId: path.id,
+			pathTitle: path.title,
+			status: "blocked" as const,
+			coordinatorBrief: "Check exact source support.",
+			steps: [],
+			promisingStrategy: [],
+			findings: [
+				"No source was available, so no theorem claim is established for this path.",
+				"Treat Bunyakovsky and Schinzel names as search targets only until a source verifies the exact statement.",
+				"No unconditional proof of infinitely many primes n^2 + 1 is established in this workspace.",
+			],
+			criticisms: ["No source in this run supports a theorem-level claim."],
+			gaps: [
+				"A source-backed literature check is needed before citing named theorems.",
+				"Conjectural implications must be separated from unconditional results.",
+			],
+			humanHelpUseful: ["Provide references or a source file for the relevant theorem targets."],
+			suggestedNextMove: "Provide a reference or ask the coordinator what to try next: what should we try next?",
+			workingPaperSectionTitle: "Literature/theorem targets",
+			sourceIds: [],
+			claimSupportIds: ["claim-support-1"],
+		};
+		const state = {
+			researchPaths: [path],
+			literatureClaimSupports: [
+				{
+					id: "claim-support-1",
+					claim: "No source-backed theorem claim is established for this path yet.",
+					sourceIds: [],
+					status: "unsupported" as const,
+					note: "A source-backed literature check is needed before citing named theorems.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
+		};
+
+		const completed = formatResearchWorkstreamCompleted({ state, report });
+		expect(completed).toContain("Source-backed status");
+		expect(completed).toContain("No source was available");
+		expect(completed).toContain("search targets only");
+		expect(completed).toContain("What this means");
+		expect(completed).toContain("Conjectural implications must be separated");
+		expect(completed).toContain("Source-backed distinctions");
+		expect(completed).toContain("unsupported:");
+		expect(completed).toContain("what should we try next?");
+		expectProductCopy(completed);
+	});
+
+	it("formats Path 5 source-backed completion with references and unsupported proof status", () => {
+		const path = createLiteraturePath();
+		const report = {
+			pathId: path.id,
+			pathTitle: path.title,
+			status: "completed" as const,
+			coordinatorBrief: "Check exact source support.",
+			steps: [],
+			promisingStrategy: ["Schinzel-style implications are conjectural, not unconditional proofs. [source-1]"],
+			findings: [
+				"Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1]",
+				"No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+				"Conjectural implications are not proofs of the original claim.",
+			],
+			criticisms: ["Do not treat the original infinitude claim as proved."],
+			gaps: ["No source here proves infinitely many primes of the form n^2 + 1."],
+			humanHelpUseful: [],
+			suggestedNextMove: "Ask the coordinator what to try next.",
+			workingPaperSectionTitle: "Literature/theorem targets",
+			sourceIds: ["source-1"],
+			claimSupportIds: ["claim-support-1", "claim-support-2"],
+		};
+		const state = {
+			researchPaths: [path],
+			literatureSources: [
+				{
+					id: "source-1",
+					kind: "user-provided" as const,
+					title: "Test note on prime values of polynomials",
+					authors: [],
+					summary: "Conjectural context only.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
+			literatureClaimSupports: [
+				{
+					id: "claim-support-1",
+					claim: "Provided sources give source-backed context for conjectural prime-values-of-polynomials framing.",
+					sourceIds: ["source-1"],
+					status: "partially-supported" as const,
+					note: "Context only; this does not by itself prove the target theorem claim.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+				{
+					id: "claim-support-2",
+					claim: "The provided sources establish an unconditional proof of infinitely many primes of the form n^2 + 1.",
+					sourceIds: [],
+					status: "unsupported" as const,
+					note: "No source in this run established this unconditional theorem claim.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
+		};
+
+		const completed = formatResearchWorkstreamCompleted({ state, report });
+		expect(completed).toContain("Source-backed status");
+		expect(completed).toContain("No source in this run established an unconditional proof");
+		expect(completed).toContain("References");
+		expect(completed).toContain("Test note on prime values of polynomials");
+		expect(completed).toContain("partially-supported:");
+		expect(completed).toContain("unsupported:");
+		expect(completed).toContain("what should we try next?");
+		expectProductCopy(completed);
+	});
+
 	it("formats computation reports with concise output and attachments", () => {
 		const path = createComputationPath();
 		const computationalArtifacts: ComputationalArtifact[] = [

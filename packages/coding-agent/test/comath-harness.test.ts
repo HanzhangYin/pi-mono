@@ -190,6 +190,54 @@ const TWIN_PRIME_LITERATURE_RESPONSES: Record<"specialist" | "critic" | "synthes
 	].join("\n"),
 };
 
+const N_SQUARED_LITERATURE_SOURCES: LiteratureSourceResult[] = [
+	{
+		kind: "user-provided",
+		title: "Test note on prime values of polynomials",
+		summary:
+			"Discusses Bunyakovsky/Schinzel-style conjectural context for prime values of polynomials; does not prove infinitude for n^2 + 1.",
+		extractedText:
+			"Schinzel's hypothesis H would imply many prime-value statements for suitable polynomials, but this is conjectural. This note does not prove that n^2 + 1 is prime infinitely often.",
+	},
+];
+
+const N_SQUARED_LITERATURE_RESPONSES: Record<"specialist" | "critic" | "synthesizer", string> = {
+	specialist: [
+		"## Source-backed status",
+		"- The source discusses Schinzel-style conjectural context for prime values of polynomials. [source-1]",
+		"## Conjectural or heuristic context",
+		"- Schinzel's hypothesis H is conjectural in the supplied source. [source-1]",
+		"## Unsupported or unresolved",
+		"- The source does not prove that n^2 + 1 is prime infinitely often. [source-1]",
+		"## Next",
+		"- Ask the coordinator what to try next.",
+	].join("\n"),
+	critic: [
+		"## Review",
+		"- The specialist correctly treats the source as conjectural context.",
+		"## Unsupported or unresolved",
+		"- No unconditional proof of n^2 + 1 prime infinitude appears in the source.",
+		"## Gaps",
+		"- A source-backed unconditional theorem is still missing.",
+		"## Human help useful",
+		"- A reference on Landau's problems would help.",
+	].join("\n"),
+	synthesizer: [
+		"## Source-backed status",
+		"- Source-backed context supports only conjectural prime-values-of-polynomials framing. [source-1]",
+		"## Conjectural or heuristic context",
+		"- Schinzel-style implications are conjectural, not unconditional proofs. [source-1]",
+		"## Source-backed distinctions",
+		"- Do not treat the original infinitude claim as proved.",
+		"## Unsupported or unresolved",
+		"- No source here proves infinitely many primes of the form n^2 + 1.",
+		"## Human help useful",
+		"- A source on Landau's fourth problem would help.",
+		"## Next",
+		"- Ask the coordinator what to try next.",
+	].join("\n"),
+};
+
 const N_SQUARED_COMPUTATION_RESPONSES: Record<"specialist" | "critic" | "synthesizer", string> = {
 	specialist: [
 		"Finite search for n^2 + 1.",
@@ -260,6 +308,20 @@ function createTwinPrimeLiteratureExecutor(): {
 		run: async (request) => {
 			requests.push(request);
 			return { text: TWIN_PRIME_LITERATURE_RESPONSES[request.role] };
+		},
+	};
+	return { executor, requests };
+}
+
+function createNSquaredLiteratureExecutor(): {
+	executor: ResearchWorkstreamModelExecutor;
+	requests: ResearchWorkstreamModelRequest[];
+} {
+	const requests: ResearchWorkstreamModelRequest[] = [];
+	const executor: ResearchWorkstreamModelExecutor = {
+		run: async (request) => {
+			requests.push(request);
+			return { text: N_SQUARED_LITERATURE_RESPONSES[request.role] };
 		},
 	};
 	return { executor, requests };
@@ -1722,10 +1784,104 @@ describe("co-math harness", () => {
 				sourceIds: [],
 			});
 			const visible = notices.join("\n");
-			expect(visible).toContain("Source-backed literature support is still needed");
+			expect(visible).toContain("No source lookup backend returned references for this path.");
+			expect(visible).toContain("No source-backed theorem claim is established for this path yet.");
+			expect(visible).toContain("what should we try next?");
 			expect(visible).toContain("unsupported:");
 			expect(visible).not.toContain("Chen");
 			expect(visible).not.toContain("Maynard");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("records unsupported n^2 + 1 Path 5 status when no source backend is available", async () => {
+		const { executor, requests } = createNSquaredLiteratureExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 5");
+			await waitForProjectState(statePath, "blocked default no-source literature report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "blocked"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(requests).toEqual([]);
+			expect(state.literatureSources).toEqual([]);
+			expect(state.literatureClaimSupports).toMatchObject([
+				{
+					status: "unsupported",
+					sourceIds: [],
+					claim: "No source-backed theorem claim is established for this path yet.",
+				},
+			]);
+			expect(state.researchReports[0]).toMatchObject({
+				pathTitle: "Known theorem or literature reduction",
+				status: "blocked",
+				sourceIds: [],
+				claimSupportIds: ["claim-support-1"],
+			});
+			const visible = notices.join("\n");
+			expect(visible).toContain("No source was available");
+			expect(visible).toContain("Bunyakovsky-type conjectures");
+			expect(visible).toContain("search targets only");
+			expect(visible).toContain("No unconditional proof");
+			expect(visible).toContain("what should we try next?");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("records source-backed and unsupported n^2 + 1 Path 5 claim supports", async () => {
+		const { executor, requests } = createNSquaredLiteratureExecutor();
+		const { lookup } = createLiteratureLookup(N_SQUARED_LITERATURE_SOURCES);
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, lookup);
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 5");
+			await waitForProjectState(statePath, "completed source-backed n squared literature report", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
+			expect(requests[0]?.prompt).toContain("Bunyakovsky-type conjectures");
+			expect(state.literatureSources).toMatchObject([
+				{
+					id: "source-1",
+					title: "Test note on prime values of polynomials",
+				},
+			]);
+			expect(state.literatureClaimSupports).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						status: "partially-supported",
+						sourceIds: ["source-1"],
+						claim: expect.stringContaining("conjectural prime-values-of-polynomials framing"),
+					}),
+					expect.objectContaining({
+						status: "unsupported",
+						sourceIds: [],
+						claim: expect.stringContaining("unconditional proof"),
+					}),
+				]),
+			);
+			expect(state.researchReports[0]).toMatchObject({
+				pathTitle: "Known theorem or literature reduction",
+				status: "completed",
+				sourceIds: ["source-1"],
+			});
+			expect(state.researchReports[0]?.claimSupportIds.length).toBeGreaterThanOrEqual(2);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Source-backed context was reviewed");
+			expect(visible).toContain("No source in this run established an unconditional proof");
+			expect(visible).toContain("Conjectural implications are not proofs");
+			expect(visible).toContain("partially-supported:");
+			expect(visible).toContain("unsupported:");
+			expect(visible).toContain("Test note on prime values of polynomials");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

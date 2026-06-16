@@ -315,6 +315,56 @@ Good signs:
 [ ] show report shows the latest detailed report with the same next move.
 ```
 
+## Path 5 source-backed literature smoke
+
+From a new folder (no destructive cleanup):
+
+```bash
+cd /tmp
+mkdir comath-path5-nosource-test-1
+cd comath-path5-nosource-test-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Then enter, one message at a time:
+
+```text
+Are there infinitely many primes of the form n^2 + 1?
+```
+
+```text
+continue path 5
+```
+
+```text
+show report
+```
+
+Good signs:
+
+```text
+[ ] Path 5 runs or blocks productively.
+[ ] It says no source was available.
+[ ] It does not claim the problem is proved.
+[ ] It treats Bunyakovsky/Schinzel as search/conjectural targets only.
+[ ] It suggests a concrete next command.
+[ ] show report displays unsupported/source-needed status.
+```
+
+State probe:
+
+```bash
+python3 -c 'import json, pathlib; p=pathlib.Path(".pi/co-math/state.json"); print("state exists:", p.exists()); s=json.loads(p.read_text()); print("reports:", len(s.get("researchReports", []))); print("sources:", len(s.get("literatureSources", []))); print("claimSupports:", len(s.get("literatureClaimSupports", []))); print("latest sourceIds:", s.get("researchReports", [])[-1].get("sourceIds", [])); print("latest claimSupportIds:", s.get("researchReports", [])[-1].get("claimSupportIds", []))'
+```
+
+Expected for no-source:
+
+```text
+sources: 0
+claimSupports: at least 1
+latest claimSupportIds: non-empty
+```
+
 ## Async research workstream smoke
 
 From a new folder (no destructive cleanup):

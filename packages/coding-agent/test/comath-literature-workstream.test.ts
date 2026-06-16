@@ -12,6 +12,7 @@ import type {
 } from "../src/modes/comath/comath-research-model-workstream.ts";
 
 const TWIN_PRIME_QUESTION = "Are there infinitely many twin primes?";
+const N_SQUARED_PLUS_ONE_QUESTION = "Are there infinitely many primes of the form n^2 + 1?";
 
 function buildLiteraturePath(): ResearchPath {
 	return {
@@ -25,6 +26,13 @@ function buildLiteraturePath(): ResearchPath {
 		priority: 5,
 		createdAt: "2026-06-05T12:00:00.000Z",
 		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+}
+
+function buildNSquaredPlusOneLiteraturePath(): ResearchPath {
+	return {
+		...buildLiteraturePath(),
+		objective: "Identify whether known theorems settle, imply, or obstruct n^2 + 1 prime infinitude.",
 	};
 }
 
@@ -51,6 +59,54 @@ const TWIN_PRIME_SOURCES: LiteratureSourceResult[] = [
 		extractedText: "There are infinitely many primes p such that p + 2 is prime or semiprime.",
 	},
 ];
+
+const N_SQUARED_PLUS_ONE_SOURCES: LiteratureSourceResult[] = [
+	{
+		kind: "user-provided",
+		title: "Test note on prime values of polynomials",
+		summary:
+			"Discusses Bunyakovsky/Schinzel-style conjectural context for prime values of polynomials; does not prove infinitude for n^2 + 1.",
+		extractedText:
+			"Schinzel's hypothesis H would imply many prime-value statements for suitable polynomials, but this is conjectural. This note does not prove that n^2 + 1 is prime infinitely often.",
+	},
+];
+
+const N_SQUARED_PLUS_ONE_RESPONSES: Record<ResearchWorkstreamModelRequest["role"], string> = {
+	specialist: [
+		"## Source-backed status",
+		"- The source discusses Schinzel-style conjectural context for prime values of polynomials. [source-1]",
+		"## Conjectural or heuristic context",
+		"- Schinzel's hypothesis H is conjectural in the supplied source. [source-1]",
+		"## Unsupported or unresolved",
+		"- The source does not prove that n^2 + 1 is prime infinitely often. [source-1]",
+		"## Next",
+		"- Keep the original claim unresolved and ask the coordinator what to try next.",
+	].join("\n"),
+	critic: [
+		"## Review",
+		"- The specialist correctly treats the source as conjectural context.",
+		"## Unsupported or unresolved",
+		"- No unconditional proof of n^2 + 1 prime infinitude appears in the source.",
+		"## Gaps",
+		"- A source-backed unconditional theorem is still missing.",
+		"## Human help useful",
+		"- A reference on Landau's problems would help.",
+	].join("\n"),
+	synthesizer: [
+		"## Source-backed status",
+		"- Source-backed context supports only conjectural prime-values-of-polynomials framing. [source-1]",
+		"## Conjectural or heuristic context",
+		"- Schinzel-style implications are conjectural, not unconditional proofs. [source-1]",
+		"## Source-backed distinctions",
+		"- Do not treat the original infinitude claim as proved.",
+		"## Unsupported or unresolved",
+		"- No source here proves infinitely many primes of the form n^2 + 1.",
+		"## Human help useful",
+		"- A source on Landau's fourth problem would help.",
+		"## Next",
+		"- Ask the coordinator what to try next.",
+	].join("\n"),
+};
 
 const TWIN_PRIME_RESPONSES: Record<ResearchWorkstreamModelRequest["role"], string> = {
 	specialist: [
@@ -127,6 +183,22 @@ function createExecutor(): {
 	};
 }
 
+function createExecutorWithResponses(responses: Record<ResearchWorkstreamModelRequest["role"], string>): {
+	executor: ResearchWorkstreamModelExecutor;
+	requests: ResearchWorkstreamModelRequest[];
+} {
+	const requests: ResearchWorkstreamModelRequest[] = [];
+	return {
+		requests,
+		executor: {
+			run: async (request) => {
+				requests.push(request);
+				return { text: responses[request.role] };
+			},
+		},
+	};
+}
+
 describe("literature research workstream", () => {
 	it("passes fake sources into source-aware role prompts and returns source-linked supports", async () => {
 		const { lookup, queries } = createLookup(TWIN_PRIME_SOURCES);
@@ -167,7 +239,9 @@ describe("literature research workstream", () => {
 		expect(requests[0]?.prompt).toContain("[source-1] Twin prime conjecture status note");
 		expect(requests[0]?.prompt).toContain("Bounded gaps between primes");
 		expect(requests[1]?.prompt).toContain("Flag unsupported claims");
+		expect(requests[1]?.prompt).toContain("Separate unconditional theorem claims from conjectural claims");
 		expect(requests[2]?.prompt).toContain("Do not fabricate citations");
+		expect(requests[2]?.prompt).toContain("Conjectural or heuristic context");
 
 		expect(result.sources).toHaveLength(3);
 		expect(result.report.sourceIds).toEqual(["source-1", "source-2", "source-3"]);
@@ -178,6 +252,50 @@ describe("literature research workstream", () => {
 		expect(result.report.gaps.join("\n")).toContain(
 			"No provided source proves infinitely many prime pairs at distance 2",
 		);
+	});
+
+	it("classifies n^2 + 1 fake-source context without treating conjectures as proof", async () => {
+		const { lookup } = createLookup(N_SQUARED_PLUS_ONE_SOURCES);
+		const { executor, requests } = createExecutorWithResponses(N_SQUARED_PLUS_ONE_RESPONSES);
+		const path = buildNSquaredPlusOneLiteraturePath();
+
+		const result = await runLiteratureResearchWorkstreamStaged(
+			{
+				rootQuestion: N_SQUARED_PLUS_ONE_QUESTION,
+				path,
+				allPaths: [path],
+				now: "2026-06-05T12:30:00.000Z",
+				executor,
+				sourceLookup: lookup,
+			},
+			{},
+		);
+
+		expect(requests).toHaveLength(3);
+		expect(requests[0]?.prompt).toContain("whether the source context treats the problem as open");
+		expect(result.sources).toHaveLength(1);
+		expect(result.report.sourceIds).toEqual(["source-1"]);
+		expect(result.report.findings.join("\n")).toContain("Source-backed context was reviewed");
+		expect(result.report.findings.join("\n")).toContain("No source in this run established an unconditional proof");
+		expect(result.report.findings.join("\n")).toContain("Conjectural implications are not proofs");
+		expect(result.report.findings.join("\n")).toContain("[source-1]");
+		expect(result.claimSupports).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					status: "partially-supported",
+					sourceIds: ["source-1"],
+					claim: expect.stringContaining("conjectural prime-values-of-polynomials framing"),
+				}),
+				expect.objectContaining({
+					status: "unsupported",
+					sourceIds: [],
+					claim: expect.stringContaining("unconditional proof"),
+				}),
+			]),
+		);
+		expect(
+			[...result.report.findings, ...result.report.promisingStrategy, ...result.report.criticisms].join("\n"),
+		).not.toMatch(/\b(proves|proved|establishes) infinitely many primes of the form n\^2 \+ 1\b/i);
 	});
 
 	it("returns a safe unsupported report without model calls when no sources are available", async () => {
@@ -209,7 +327,44 @@ describe("literature research workstream", () => {
 				claim: "No source-backed theorem claim is established for this path yet.",
 				sourceIds: [],
 				status: "unsupported",
-				note: "Source-backed literature support is still needed before citing named theorems as established context.",
+				note: "A source-backed literature check is needed before citing named theorems.",
+			},
+		]);
+	});
+
+	it("returns an actionable n^2 + 1 no-source Path 5 report", async () => {
+		const { lookup } = createLookup([]);
+		const { executor, requests } = createExecutor();
+		const path = buildNSquaredPlusOneLiteraturePath();
+
+		const result = await runLiteratureResearchWorkstreamStaged(
+			{
+				rootQuestion: N_SQUARED_PLUS_ONE_QUESTION,
+				path,
+				allPaths: [path],
+				now: "2026-06-05T12:30:00.000Z",
+				executor,
+				sourceLookup: lookup,
+			},
+			{},
+		);
+
+		expect(requests).toEqual([]);
+		expect(result.sources).toEqual([]);
+		expect(result.report.status).toBe("blocked");
+		expect(result.report.findings.join("\n")).toContain("No source was available");
+		expect(result.report.findings.join("\n")).toContain("Bunyakovsky-type conjectures");
+		expect(result.report.findings.join("\n")).toContain("search targets only");
+		expect(result.report.findings.join("\n")).toContain("No unconditional proof");
+		expect(result.report.gaps.join("\n")).toContain("source-backed literature check");
+		expect(result.report.gaps.join("\n")).toContain("Conjectural implications");
+		expect(result.report.suggestedNextMove).toContain("what should we try next?");
+		expect(result.claimSupports).toEqual([
+			{
+				claim: "No source-backed theorem claim is established for this path yet.",
+				sourceIds: [],
+				status: "unsupported",
+				note: "A source-backed literature check is needed before citing named theorems.",
 			},
 		]);
 	});

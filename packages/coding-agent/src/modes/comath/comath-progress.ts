@@ -524,8 +524,7 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 	const references = formatReferences(input.state, report.sourceIds ?? []);
 	const computation = formatComputationSummary(input.state, report.computationalArtifactIds ?? []);
 	const bridgeResults = formatBridgeResultSection(report);
-	const nextPath = chooseNextResearchPathAfter(input.state, report);
-	const nextPathIndex = nextPath ? input.state.researchPaths.findIndex((path) => path.id === nextPath.id) : -1;
+	const nextLines = formatResearchCompletionNextLines(input.state, report);
 	return [
 		"Research run completed",
 		"",
@@ -548,9 +547,7 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 		...(references.length > 0 ? ["", "References", ...references] : []),
 		"",
 		"Next",
-		...(nextPath && nextPathIndex >= 0
-			? [describeNextPathHint(nextPath), `continue path ${nextPathIndex + 1}`]
-			: ['Say "show latest report" to review the full write-up.']),
+		...nextLines,
 		"",
 		"Working paper updated",
 		`- Added synthesized notes under "${report.workingPaperSectionTitle}."`,
@@ -646,7 +643,9 @@ function bulletsOrFallback(items: readonly string[], fallback: string): string[]
 	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
 }
 
-function formatBridgeResultSection(report: Pick<ResearchWorkstreamReportView, "pathTitle" | "findings">): string[] {
+function formatBridgeResultSection(
+	report: Pick<ResearchWorkstreamReportView, "pathTitle" | "findings" | "criticisms" | "gaps">,
+): string[] {
 	const title = normalizeResearchPathTitle(report.pathTitle);
 	if (title === "reformulation") {
 		return ["Equivalent or related frames", ...bulletsOrFallback(report.findings, "No reformulation was recorded.")];
@@ -655,6 +654,16 @@ function formatBridgeResultSection(report: Pick<ResearchWorkstreamReportView, "p
 		return [
 			"Candidate lemmas and weaker targets",
 			...bulletsOrFallback(report.findings, "No weaker target was recorded."),
+		];
+	}
+	if (title === "known theorem or literature reduction") {
+		const meaning = [...report.criticisms, ...report.gaps].slice(0, 4);
+		return [
+			"Source-backed status",
+			...bulletsOrFallback(report.findings, "No source-backed theorem claim was recorded."),
+			"",
+			"What this means",
+			...bulletsOrFallback(meaning, "Continue treating the full problem as unresolved in this workspace."),
 		];
 	}
 	return [];
@@ -926,11 +935,29 @@ function chooseNextResearchPathAfter(
 	if (title === "weaker special cases") {
 		return findActiveResearchPathByTitle(state, "direct proof attempt");
 	}
+	if (title === "known theorem or literature reduction") {
+		return undefined;
+	}
 	const completedIndex = state.researchPaths.findIndex((path) => path.id === report.pathId);
 	const isCandidate = (path: ResearchPath): boolean =>
 		path.id !== report.pathId && (path.status === "active" || path.status === "promising");
 	const after = state.researchPaths.slice(completedIndex + 1).find(isCandidate);
 	return after ?? state.researchPaths.find(isCandidate);
+}
+
+function formatResearchCompletionNextLines(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	report: Pick<ResearchWorkstreamReportView, "pathId" | "pathTitle">,
+): string[] {
+	if (normalizeResearchPathTitle(report.pathTitle) === "known theorem or literature reduction") {
+		return ["Ask the coordinator for the next useful move:", "what should we try next?"];
+	}
+	const nextPath = chooseNextResearchPathAfter(state, report);
+	const nextPathIndex = nextPath ? state.researchPaths.findIndex((path) => path.id === nextPath.id) : -1;
+	if (nextPath && nextPathIndex >= 0) {
+		return [describeNextPathHint(nextPath), `continue path ${nextPathIndex + 1}`];
+	}
+	return ['Say "show latest report" to review the full write-up.'];
 }
 
 function describeNextPathHint(path: ResearchPath): string {

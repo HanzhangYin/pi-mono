@@ -140,17 +140,34 @@ export async function runLiteratureResearchWorkstreamStaged(
 	});
 
 	const sourceIds = sources.map((_source, index) => sourceLabel(index));
-	const findings = pickItems(sectionItems(synthesizer, "finding"), sectionItems(specialist, "finding"));
+	const path5Status = buildPath5SourceBackedStatus({
+		rootQuestion,
+		path,
+		sourceIds,
+	});
+	const findings = uniqueStrings([
+		...path5Status,
+		...pickItems(
+			sectionItems(synthesizer, "source-backed status"),
+			sectionItems(synthesizer, "finding"),
+			sectionItems(specialist, "source-backed status"),
+			sectionItems(specialist, "finding"),
+		),
+	]);
 	const promisingStrategy = pickItems(
 		sectionItems(synthesizer, "known result"),
 		sectionItems(synthesizer, "promising"),
+		sectionItems(synthesizer, "conjectural"),
 		sectionItems(specialist, "known result"),
+		sectionItems(specialist, "conjectural"),
 		sectionItems(specialist, "finding"),
 	);
 	const criticisms = pickItems(sectionItems(synthesizer, "distinction"), sectionItems(critic, "review"));
 	const gaps = pickItems(
+		sectionItems(synthesizer, "unresolved"),
 		sectionItems(synthesizer, "unsupported"),
 		sectionItems(synthesizer, "gap"),
+		sectionItems(critic, "unresolved"),
 		sectionItems(critic, "unsupported"),
 		sectionItems(critic, "gap"),
 	);
@@ -161,6 +178,11 @@ export async function runLiteratureResearchWorkstreamStaged(
 		findings,
 		criticisms,
 		gaps,
+		sourceIds,
+	});
+	const path5ClaimSupports = buildPath5ClaimSupports({
+		rootQuestion,
+		path,
 		sourceIds,
 	});
 	const steps: ResearchWorkstreamStep[] = [
@@ -191,7 +213,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 	];
 	return {
 		sources,
-		claimSupports,
+		claimSupports: uniqueClaimSupports([...path5ClaimSupports, ...claimSupports]),
 		report: {
 			pathId: path.id,
 			pathTitle: path.title,
@@ -229,9 +251,11 @@ function buildNoSourceResult(
 	input: RunLiteratureResearchWorkstreamInput,
 	coordinatorBrief: string,
 ): LiteratureResearchWorkstreamResult {
-	const finding = "No source lookup backend returned references for this path.";
-	const gap = "Source-backed literature support is still needed before citing named theorems as established context.";
-	const next = "Ask for references, attach a source file, or provide exact theorem statements to review.";
+	const sourceStatus = buildNoSourceFindings(input);
+	const gaps = buildNoSourceGaps(input);
+	const next = isKnownTheoremOrLiteraturePath(input.path)
+		? "Provide a reference or ask the coordinator what to try next: what should we try next?"
+		: "Ask for references, attach a source file, or provide exact theorem statements to review.";
 	const steps: ResearchWorkstreamStep[] = [
 		{
 			role: "coordinator",
@@ -243,13 +267,13 @@ function buildNoSourceResult(
 			role: "specialist",
 			title: "Literature findings",
 			summary: "No sources were available to review.",
-			details: [finding],
+			details: sourceStatus,
 		},
 		{
 			role: "critic",
 			title: "Source-support review",
 			summary: "Marked literature claims as unsupported without source artifacts.",
-			details: [gap],
+			details: gaps,
 		},
 		{
 			role: "synthesizer",
@@ -260,14 +284,11 @@ function buildNoSourceResult(
 	];
 	return {
 		sources: [],
-		claimSupports: [
-			{
-				claim: "No source-backed theorem claim is established for this path yet.",
-				sourceIds: [],
-				status: "unsupported",
-				note: gap,
-			},
-		],
+		claimSupports: buildPath5ClaimSupports({
+			rootQuestion: input.rootQuestion,
+			path: input.path,
+			sourceIds: [],
+		}),
 		report: {
 			pathId: input.path.id,
 			pathTitle: input.path.title,
@@ -277,16 +298,16 @@ function buildNoSourceResult(
 			coordinatorBrief,
 			steps,
 			promisingStrategy: [],
-			findings: [finding],
-			criticisms: ["No source in this workstream supports a theorem-level claim."],
-			gaps: [gap],
+			findings: sourceStatus,
+			criticisms: ["No source in this run supports a theorem-level claim."],
+			gaps,
 			humanHelpUseful: ["Provide references or a source file for the relevant theorem targets."],
 			suggestedNextMove: next,
 			workingPaperSectionTitle: "Literature/theorem targets",
 			workingPaperSummary: buildWorkingPaperSummary(input.path, {
-				findings: [finding],
-				criticisms: ["No source in this workstream supports a theorem-level claim."],
-				gaps: [gap],
+				findings: sourceStatus,
+				criticisms: ["No source in this run supports a theorem-level claim."],
+				gaps,
 				suggestedNextMove: next,
 				sourceIds: [],
 			}),
@@ -310,12 +331,16 @@ function buildLiteratureSpecialistPrompt(rootQuestion: string, path: ResearchPat
 		"Summarize only source-backed known results relevant to this path.",
 		"Use source ids like [source-1] for every sourced claim.",
 		"Do not fabricate citations or infer that a source proves more than the supplied text supports.",
+		"Separate unconditional theorem claims from conjectural or heuristic claims.",
+		"Mark unsupported claims explicitly.",
+		"For n^2 + 1, say whether the source context treats the problem as open, unresolved, conjectural, or proved.",
+		"Never infer that Bunyakovsky-type conjectures or Schinzel's hypothesis H prove the original statement unconditionally.",
 		"Separate exact results from weaker or related results.",
 		"",
 		"Return markdown with these headings:",
-		"## Findings",
-		"## Known results",
-		"## Unsupported or unclear",
+		"## Source-backed status",
+		"## Conjectural or heuristic context",
+		"## Unsupported or unresolved",
 		"## Next",
 	].join("\n");
 }
@@ -340,11 +365,14 @@ function buildLiteratureCriticPrompt(
 		"Task:",
 		"Flag unsupported claims, overclaims, fabricated citations, and conflations between exact and weaker results.",
 		"Require source ids like [source-1] for source-backed claims.",
+		"Separate unconditional theorem claims from conjectural claims.",
+		"Mark unsupported claims explicitly.",
 		"For famous open problems, do not accept a proof claim unless the supplied source text explicitly supports it.",
+		"For n^2 + 1, reject any unconditional proof claim unless the supplied source text explicitly proves it.",
 		"",
 		"Return markdown with these headings:",
 		"## Review",
-		"## Unsupported or unclear",
+		"## Unsupported or unresolved",
 		"## Gaps",
 		"## Human help useful",
 	].join("\n");
@@ -374,13 +402,16 @@ function buildLiteratureSynthesizerPrompt(
 		"Task:",
 		"Produce a cautious source-aware report. Use source ids like [source-1] for supported claims.",
 		"Clearly mark unsupported claims. Do not fabricate citations.",
+		"Separate unconditional theorem claims from conjectural or heuristic claims.",
 		"Distinguish the exact target statement from weaker related theorems.",
+		"Never infer that Bunyakovsky-type conjectures or Schinzel's hypothesis H prove the original statement unconditionally.",
+		"For n^2 + 1, say whether the source context treats the problem as open, unresolved, conjectural, or proved.",
 		"",
 		"Return markdown with these headings:",
-		"## Known results",
-		"## Findings",
+		"## Source-backed status",
+		"## Conjectural or heuristic context",
 		"## Source-backed distinctions",
-		"## Unsupported or unclear",
+		"## Unsupported or unresolved",
 		"## Human help useful",
 		"## Next",
 		"## Working paper summary",
@@ -431,6 +462,121 @@ function buildClaimSupports(input: {
 			note: "Recorded as an unsupported or unresolved literature claim.",
 		})),
 	];
+}
+
+function buildPath5SourceBackedStatus(input: {
+	rootQuestion: string;
+	path: ResearchPath;
+	sourceIds: string[];
+}): string[] {
+	if (!isKnownTheoremOrLiteraturePath(input.path)) {
+		return [];
+	}
+	if (isNSquaredPlusOneQuestion(input.rootQuestion)) {
+		const sourceList =
+			input.sourceIds.length > 0 ? ` ${input.sourceIds.map((sourceId) => `[${sourceId}]`).join(" ")}` : "";
+		return [
+			`Source-backed context was reviewed for prime-producing polynomial and conjectural framing.${sourceList}`,
+			"No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"Conjectural implications are not proofs of the original claim.",
+		];
+	}
+	return [
+		"Source-backed context was reviewed for this theorem/literature path.",
+		"No theorem claim should be treated as established unless it is supported by a listed source.",
+	];
+}
+
+function buildPath5ClaimSupports(input: {
+	rootQuestion: string;
+	path: ResearchPath;
+	sourceIds: string[];
+}): LiteratureClaimSupportDraft[] {
+	if (!isKnownTheoremOrLiteraturePath(input.path)) {
+		return [];
+	}
+	const noProofClaim = isNSquaredPlusOneQuestion(input.rootQuestion)
+		? "The provided sources establish an unconditional proof of infinitely many primes of the form n^2 + 1."
+		: "The provided sources establish the target theorem claim for this path.";
+	if (input.sourceIds.length === 0) {
+		return [
+			{
+				claim: "No source-backed theorem claim is established for this path yet.",
+				sourceIds: [],
+				status: "unsupported",
+				note: "A source-backed literature check is needed before citing named theorems.",
+			},
+		];
+	}
+	return [
+		{
+			claim: isNSquaredPlusOneQuestion(input.rootQuestion)
+				? "Provided sources give source-backed context for conjectural prime-values-of-polynomials framing."
+				: "Provided sources give source-backed context for this literature path.",
+			sourceIds: input.sourceIds,
+			status: "partially-supported",
+			note: "Context only; this does not by itself prove the target theorem claim.",
+		},
+		{
+			claim: noProofClaim,
+			sourceIds: [],
+			status: "unsupported",
+			note: "No source in this run established this unconditional theorem claim.",
+		},
+	];
+}
+
+function buildNoSourceFindings(input: RunLiteratureResearchWorkstreamInput): string[] {
+	if (isKnownTheoremOrLiteraturePath(input.path) && isNSquaredPlusOneQuestion(input.rootQuestion)) {
+		return [
+			"No source was available, so no theorem claim is established for this path.",
+			"Search targets: prime values of polynomials, Bunyakovsky-type conjectures, Schinzel's hypothesis H, Landau-style problem lists, and primes of the form n^2 + 1.",
+			"Treat those names as search targets only until a source verifies the exact statement.",
+			"No unconditional proof of infinitely many primes n^2 + 1 is established in this workspace.",
+		];
+	}
+	return [
+		"No source lookup backend returned references for this path.",
+		"No source-backed theorem claim is established for this path yet.",
+	];
+}
+
+function buildNoSourceGaps(input: RunLiteratureResearchWorkstreamInput): string[] {
+	if (isKnownTheoremOrLiteraturePath(input.path)) {
+		return [
+			"A source-backed literature check is needed before citing named theorems.",
+			"Conjectural implications must be separated from unconditional results.",
+		];
+	}
+	return ["Source-backed literature support is still needed before citing named theorems as established context."];
+}
+
+function isKnownTheoremOrLiteraturePath(path: ResearchPath): boolean {
+	const title = path.title.trim().replace(/\s+/g, " ").toLowerCase();
+	return (
+		title === "known theorem or literature reduction" ||
+		/\b(?:known theorem|literature|reference|source)\b/.test(title)
+	);
+}
+
+function isNSquaredPlusOneQuestion(rootQuestion: string): boolean {
+	return /\bn\s*(?:\^2|²)\s*\+\s*1\b/i.test(rootQuestion);
+}
+
+function uniqueClaimSupports(supports: LiteratureClaimSupportDraft[]): LiteratureClaimSupportDraft[] {
+	const seen = new Set<string>();
+	return supports.filter((support) => {
+		const key = `${support.status}\n${support.claim}\n${support.sourceIds.join(",")}`;
+		if (seen.has(key)) {
+			return false;
+		}
+		seen.add(key);
+		return true;
+	});
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+	return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 }
 
 function extractSourceIds(text: string): string[] {
