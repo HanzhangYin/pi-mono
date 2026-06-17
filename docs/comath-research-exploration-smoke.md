@@ -197,6 +197,51 @@ Pass/fail markers:
 [ ] export-paper / paper retains warnings and open margin notes
 ```
 
+## Human scrutiny highlights smoke
+
+Confirms the living working paper exposes a distinct attention layer (paper alignment criterion 6).
+
+```bash
+cd /tmp
+mkdir comath-scrutiny-highlights-demo-1
+cd comath-scrutiny-highlights-demo-1
+/home/hermes/developer/pi-mono-comath/pi-test.sh comath --approve
+```
+
+Inside Pi, one message at a time:
+
+```text
+Are there infinitely many primes of the form n^2 + 1?
+please continue path 1
+show latest report
+/comath paper
+/comath export-paper .pi/co-math/working-paper.md --force
+```
+
+Expected substrings:
+
+```text
+- "Needs human attention"          # in show latest report when the run records gaps
+- "## Human scrutiny highlights"   # in /comath paper and in the exported markdown
+```
+
+The exported file should contain the same section:
+
+```bash
+grep -c "## Human scrutiny highlights" .pi/co-math/working-paper.md   # expected: 1
+```
+
+Pass/fail markers:
+
+```text
+[ ] research starts from the bare math question
+[ ] show latest report points to human attention / gaps without claiming a finite check proves the infinite statement
+[ ] /comath paper contains "## Human scrutiny highlights" listing open scrutiny/gap/warning notes
+[ ] exported markdown contains "## Human scrutiny highlights"
+[ ] resolved notes do not appear as open highlights
+[ ] No claim is promoted to proved by a highlight; highlights are attention/provenance markers only
+```
+
 The sections below are advanced/developer smokes (Path 5 literature, coordinator summary).
 
 Run from a clean folder:

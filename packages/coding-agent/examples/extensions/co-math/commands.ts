@@ -3961,6 +3961,37 @@ function formatMarginNote(note: MarginNote): string {
 	return `- ${note.id} [${note.kind}/${note.status}] ${subject}: ${note.message}${resolution}`;
 }
 
+/** Margin-note kinds that warrant explicit human scrutiny of the working paper. */
+function isHumanScrutinyNoteKind(kind: MarginNoteKind): boolean {
+	return kind === "scrutiny" || kind === "gap" || kind === "warning";
+}
+
+function formatHumanScrutinyHighlight(state: CoMathProjectState, note: MarginNote): string {
+	const section = note.sectionId
+		? state.workingPaperSections.find((candidate) => candidate.id === note.sectionId)
+		: undefined;
+	const label = section?.title ?? note.sectionId ?? note.subjectId;
+	const kindLabel = `${note.kind.charAt(0).toUpperCase()}${note.kind.slice(1)}`;
+	return `- ${label}: ${kindLabel} — ${note.message}`;
+}
+
+/**
+ * Group open scrutiny/gap/warning margin notes into a distinct attention layer. Highlights are
+ * attention/provenance markers only — they never promote a claim to proved or synthesis-eligible.
+ */
+function formatHumanScrutinyHighlights(state: CoMathProjectState): string[] {
+	const seenMessages = new Set<string>();
+	const highlights: string[] = [];
+	for (const note of state.marginNotes) {
+		if (note.status !== "open" || !isHumanScrutinyNoteKind(note.kind) || seenMessages.has(note.message)) {
+			continue;
+		}
+		seenMessages.add(note.message);
+		highlights.push(formatHumanScrutinyHighlight(state, note));
+	}
+	return highlights.length === 0 ? ["No human scrutiny highlights are open."] : highlights;
+}
+
 function buildLivingWorkingPaperMarkdown(state: CoMathProjectState): string {
 	return [
 		`# ${state.title}`,
@@ -3977,6 +4008,9 @@ function buildLivingWorkingPaperMarkdown(state: CoMathProjectState): string {
 		"",
 		"## Claims and Evidence",
 		...formatPaperClaimsAndEvidence(state),
+		"",
+		"## Human scrutiny highlights",
+		...formatHumanScrutinyHighlights(state),
 		"",
 		"## Working paper sections",
 		...formatWorkingPaperSections(state),

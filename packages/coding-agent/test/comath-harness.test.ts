@@ -1180,6 +1180,14 @@ describe("co-math harness", () => {
 			expect(state.workingPaperSections.some((section) => section.title.includes("Examples"))).toBe(true);
 			expect(state.marginNotes.length).toBeGreaterThan(0);
 
+			// A first-class human-scrutiny note is created from report uncertainty and linked to the section.
+			const scrutiny = state.marginNotes.find((note) => note.kind === "scrutiny");
+			expect(scrutiny).toBeDefined();
+			expect(scrutiny?.status).toBe("open");
+			const examplesSection = state.workingPaperSections.find((section) => section.title.includes("Examples"));
+			expect(scrutiny?.sectionId).toBe(examplesSection?.id);
+			expect(examplesSection?.marginNoteIds).toContain(scrutiny?.id);
+
 			const visible = notices.join("\n");
 			expect(visible).toContain("Research run completed");
 			expect(visible).toContain("Path 1: Small examples and counterexamples");

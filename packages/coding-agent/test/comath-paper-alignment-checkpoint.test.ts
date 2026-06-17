@@ -10,12 +10,17 @@ import type {
 	ResearchWorkstreamRunRecord,
 } from "../examples/extensions/co-math/schema.ts";
 import {
+	addClaim,
+	addMarginNote,
 	createEmptyProjectState,
 	getDefaultStatePath,
+	isClaimSynthesisEligible,
 	loadProjectState,
+	resolveMarginNote,
 	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 	startRoleRun,
+	upsertWorkingPaperSectionByTitle,
 } from "../examples/extensions/co-math/storage.ts";
 import {
 	extractRunSummary,
@@ -251,5 +256,86 @@ describe("co-math paper alignment checkpoint", () => {
 		const report = formatProductReport([reportMessage]);
 		expect(report).toContain("blocked");
 		expect(report).toContain("unsupported by any source");
+	});
+
+	it("surfaces human scrutiny highlights without promoting unsupported claims", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "comath-checkpoint-scrutiny-"));
+		try {
+			const statePath = getDefaultStatePath(cwd);
+			let state = createEmptyProjectState({
+				projectId: "proj",
+				title: "Twin primes",
+				rootQuestion: "Are there infinitely many twin primes?",
+				now: NOW,
+			});
+			state = upsertWorkingPaperSectionByTitle(state, {
+				title: "Examples and evidence",
+				body: "Bounded finite checks only.",
+				now: NOW,
+				actor: "synthesizer",
+			});
+			const section = state.workingPaperSections[0];
+			if (!section) {
+				throw new Error("Expected a working-paper section.");
+			}
+			state = addMarginNote(state, {
+				id: "margin-note-1",
+				kind: "scrutiny",
+				subjectId: "path-1",
+				sectionId: section.id,
+				message: "A human should verify the boundary step.",
+				now: NOW,
+				actor: "reviewer",
+			});
+			state = addMarginNote(state, {
+				id: "margin-note-2",
+				kind: "gap",
+				subjectId: "path-1",
+				sectionId: section.id,
+				message: "This gap was resolved later.",
+				now: NOW,
+				actor: "reviewer",
+			});
+			state = resolveMarginNote(state, {
+				noteId: "margin-note-2",
+				resolution: "Resolved by a later proof note.",
+				now: NOW,
+				actor: "human",
+			});
+			// An uncertain claim must never be synthesis-eligible just because a highlight exists.
+			state = addClaim(state, {
+				id: "claim-1",
+				workstreamId: "workstream-1",
+				statement: "Twin primes are infinite.",
+				status: "needs_review",
+				now: NOW,
+			});
+			await saveProjectState(statePath, state);
+
+			const saved = await loadProjectState(statePath);
+			if (!saved) {
+				throw new Error("Expected saved co-math state.");
+			}
+			expect(isClaimSynthesisEligible(saved, "claim-1")).toBe(false);
+
+			const notes: string[] = [];
+			const paper = await runCoMathBackendCommand("paper", {
+				cwd,
+				notify: (message) => {
+					notes.push(message);
+				},
+			});
+			expect(paper.ok).toBe(true);
+			const out = notes.join("\n");
+			expect(out).toContain("## Human scrutiny highlights");
+			expect(out).toContain("A human should verify the boundary step.");
+			// Resolved notes do not count as open highlights.
+			const highlightsBlock = (out.split("## Human scrutiny highlights")[1] ?? "").split(
+				"## Working paper sections",
+			)[0];
+			expect(highlightsBlock).not.toContain("This gap was resolved later.");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
 	});
 });

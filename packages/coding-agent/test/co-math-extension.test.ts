@@ -11,11 +11,15 @@ import {
 import coMathExtension from "../examples/extensions/co-math/index.ts";
 import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
 import {
+	addMarginNote,
+	createEmptyProjectState,
 	getDefaultStatePath,
 	isClaimSynthesisEligible,
 	loadProjectState,
+	resolveMarginNote,
 	saveProjectState,
 	startRoleRun,
+	upsertWorkingPaperSectionByTitle,
 } from "../examples/extensions/co-math/storage.ts";
 import type { ExtensionAPI, ExtensionCommandContext } from "../src/core/extensions/types.ts";
 import { formatProductReport } from "../src/modes/comath/comath-backend-output.ts";
@@ -4925,6 +4929,126 @@ describe("co-math extension registration", () => {
 			expect(content).toContain("Working paper sections");
 			expect(content).toContain("Open margin notes");
 			expect(content).toContain("File-backed artifacts");
+		});
+	});
+
+	describe("human scrutiny highlights", () => {
+		const NOW = "2026-06-17T00:00:00.000Z";
+
+		it("preserves the scrutiny margin-note kind across save/load", async () => {
+			const cwd = await mkdtemp(join(tmpdir(), "co-math-scrutiny-kind-"));
+			try {
+				const statePath = getDefaultStatePath(cwd);
+				let state = createEmptyProjectState({
+					projectId: "proj",
+					title: "Twin primes",
+					rootQuestion: "Are there infinitely many twin primes?",
+					now: NOW,
+				});
+				state = addMarginNote(state, {
+					id: "margin-note-1",
+					kind: "scrutiny",
+					subjectId: "path-1",
+					message: "A human should check the boundary step.",
+					now: NOW,
+					actor: "reviewer",
+				});
+				await saveProjectState(statePath, state);
+
+				const loaded = await loadProjectState(statePath);
+				expect(loaded?.marginNotes.at(-1)?.kind).toBe("scrutiny");
+			} finally {
+				await rm(cwd, { recursive: true, force: true });
+			}
+		});
+
+		it("renders a Human scrutiny highlights section in /comath paper and export", async () => {
+			const cwd = await mkdtemp(join(tmpdir(), "co-math-scrutiny-paper-"));
+			try {
+				const statePath = getDefaultStatePath(cwd);
+				let state = createEmptyProjectState({
+					projectId: "proj",
+					title: "Twin primes",
+					rootQuestion: "Are there infinitely many twin primes?",
+					now: NOW,
+				});
+				state = upsertWorkingPaperSectionByTitle(state, {
+					title: "Examples and evidence",
+					body: "Bounded finite checks only.",
+					now: NOW,
+					actor: "synthesizer",
+				});
+				const section = state.workingPaperSections[0];
+				if (!section) {
+					throw new Error("Expected a working-paper section.");
+				}
+				const notes: Array<{ id: string; kind: "scrutiny" | "gap" | "warning" | "comment"; message: string }> = [
+					{ id: "margin-note-1", kind: "scrutiny", message: "A human should check the boundary step." },
+					{ id: "margin-note-2", kind: "gap", message: "Need a written lemma for the endpoint case." },
+					{
+						id: "margin-note-3",
+						kind: "warning",
+						message: "Literature claim is unsupported by registered sources.",
+					},
+					{ id: "margin-note-4", kind: "comment", message: "A plain comment that is not a scrutiny item." },
+					{ id: "margin-note-5", kind: "gap", message: "This gap was already resolved." },
+				];
+				for (const note of notes) {
+					state = addMarginNote(state, {
+						id: note.id,
+						kind: note.kind,
+						subjectId: "path-1",
+						sectionId: section.id,
+						message: note.message,
+						now: NOW,
+						actor: "reviewer",
+					});
+				}
+				state = resolveMarginNote(state, {
+					noteId: "margin-note-5",
+					resolution: "Resolved by a later proof note.",
+					now: NOW,
+					actor: "human",
+				});
+				await saveProjectState(statePath, state);
+
+				const notifications: string[] = [];
+				const paper = await runCoMathBackendCommand("paper", {
+					cwd,
+					notify: (message) => {
+						notifications.push(message);
+					},
+				});
+				expect(paper.ok).toBe(true);
+				const out = notifications.join("\n");
+
+				expect(out).toContain("## Human scrutiny highlights");
+				const highlightsBlock = (out.split("## Human scrutiny highlights")[1] ?? "").split(
+					"## Working paper sections",
+				)[0];
+				// Open scrutiny / gap / warning notes appear in the highlights block.
+				expect(highlightsBlock).toContain("A human should check the boundary step.");
+				expect(highlightsBlock).toContain("Need a written lemma for the endpoint case.");
+				expect(highlightsBlock).toContain("Literature claim is unsupported by registered sources.");
+				expect(highlightsBlock).toContain("Examples and evidence");
+				// Resolved notes and ordinary comments do not appear as scrutiny highlights.
+				expect(highlightsBlock).not.toContain("This gap was already resolved.");
+				expect(highlightsBlock).not.toContain("A plain comment that is not a scrutiny item.");
+				// The ordinary comment still appears elsewhere (open margin notes).
+				expect(out).toContain("A plain comment that is not a scrutiny item.");
+
+				const exportPath = join(cwd, "working-paper.md");
+				const exported = await runCoMathBackendCommand(`export-paper ${exportPath} --force`, {
+					cwd,
+					notify: () => {},
+				});
+				expect(exported.ok).toBe(true);
+				const fileContent = await readFile(exportPath, "utf8");
+				expect(fileContent).toContain("## Human scrutiny highlights");
+				expect(fileContent).toContain("A human should check the boundary step.");
+			} finally {
+				await rm(cwd, { recursive: true, force: true });
+			}
 		});
 	});
 });

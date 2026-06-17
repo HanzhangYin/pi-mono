@@ -369,6 +369,10 @@ describe("co-math product messages", () => {
 		expect(full).toContain("Specialist attempt");
 		expect(full).toContain("Critic review");
 		expect(full).toContain("Synthesis");
+		// Detailed report surfaces a human-attention section when the report records gaps.
+		expect(report.gaps.length).toBeGreaterThan(0);
+		expect(full).toContain("Needs human attention");
+		expect(full).toContain(report.gaps[0] ?? "");
 		expect(full).toContain("Next");
 		expectProductCopy(full);
 	});

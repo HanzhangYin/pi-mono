@@ -3,6 +3,7 @@ import * as nodePath from "node:path";
 import type {
 	CoMathProjectState,
 	LiteratureSourceArtifact,
+	MarginNoteKind,
 	ResearchCoordinatorReportRecord,
 	ResearchPath,
 	ResearchWorkstreamRunRecord,
@@ -1274,6 +1275,20 @@ export class CoMathHarness {
 				actor: "reviewer",
 			});
 		}
+		// One explicit "human scrutiny" attention marker per report (preferring the clearest human-facing
+		// item). Skip when the same message already exists as an open note on this section to avoid noise.
+		const scrutinyMessage = report.humanHelpUseful[0] ?? report.gaps[0] ?? report.criticisms[0];
+		if (scrutinyMessage && !hasOpenMarginNote(nextState, section?.id, "scrutiny", scrutinyMessage)) {
+			nextState = addMarginNote(nextState, {
+				id: `margin-note-${nextState.marginNotes.length + 1}`,
+				kind: "scrutiny",
+				subjectId: path.id,
+				...(section ? { sectionId: section.id } : {}),
+				message: scrutinyMessage,
+				now,
+				actor: "reviewer",
+			});
+		}
 		return addResearchWorkstreamReport(nextState, {
 			pathId: report.pathId,
 			pathTitle: report.pathTitle,
@@ -1423,6 +1438,19 @@ export class CoMathHarness {
 
 function trimTerminalPunctuation(value: string): string {
 	return value.replace(/[.?!]+$/, "");
+}
+
+/** True when an open margin note with the same section, kind, and exact message already exists. */
+function hasOpenMarginNote(
+	state: Pick<CoMathProjectState, "marginNotes">,
+	sectionId: string | undefined,
+	kind: MarginNoteKind,
+	message: string,
+): boolean {
+	return state.marginNotes.some(
+		(note) =>
+			note.status === "open" && note.kind === kind && note.sectionId === sectionId && note.message === message,
+	);
 }
 
 function deriveUserProvidedLiteratureSourceTitle(source: ParsedUserProvidedLiteratureSource): string {

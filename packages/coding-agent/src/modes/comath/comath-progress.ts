@@ -603,6 +603,7 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 		...(attachments.length > 0 ? ["", "Attachments", ...attachments] : []),
 		...(supports.length > 0 ? ["", "Claim support", ...supports] : []),
 		...(references.length > 0 ? ["", "References / attachments", ...references] : []),
+		...(report.gaps.length > 0 ? ["", "Needs human attention", ...report.gaps.map((item) => `- ${item}`)] : []),
 		...(report.humanHelpUseful.length > 0
 			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
 			: []),

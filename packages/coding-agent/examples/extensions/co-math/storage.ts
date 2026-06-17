@@ -3101,7 +3101,14 @@ function normalizeWorkingPaperSectionStatus(value: unknown): WorkingPaperSection
 }
 
 function normalizeMarginNoteKind(value: unknown): MarginNoteKind {
-	if (value === "gap" || value === "todo" || value === "warning" || value === "provenance" || value === "comment") {
+	if (
+		value === "gap" ||
+		value === "todo" ||
+		value === "warning" ||
+		value === "provenance" ||
+		value === "comment" ||
+		value === "scrutiny"
+	) {
 		return value;
 	}
 	return "comment";
