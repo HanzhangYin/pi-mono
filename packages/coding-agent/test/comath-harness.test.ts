@@ -1833,10 +1833,12 @@ describe("co-math harness", () => {
 				sourceIds: ["source-1", "source-2"],
 			});
 			expect(state.researchReports[0]?.claimSupportIds.length).toBeGreaterThan(0);
+			expect(state.researchReports[0]?.steps.flatMap((step) => step.details).join("\n")).toContain(
+				"The twin-prime conjecture remains open.",
+			);
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Checking source-backed context.");
-			expect(visible).toContain("The twin-prime conjecture remains open.");
 			expect(visible).not.toContain("source-1: Twin prime conjecture status note");
 			expect(visible).not.toContain("[source-1]");
 			expect(visible).toContain("No provided source proves infinitely many prime pairs at distance 2.");
@@ -2392,10 +2394,11 @@ describe("co-math harness", () => {
 				runIds: ["research-run-1", "research-run-2"],
 			});
 			expect(state.researchWorkstreamRuns.map((run) => run.status)).toEqual(["completed", "completed"]);
+			expect(
+				state.researchReports.flatMap((report) => report.steps.flatMap((step) => step.details)).join("\n"),
+			).toContain("Twin primes are prime pairs at distance 2");
 			const visible = notices.join("\n");
 			expect(visible).toContain("Finished: Trying the research path.");
-			expect(visible).toContain("Twin primes are prime pairs at distance 2");
-			expect(visible).toContain("The specialist did not prove infinitude of twin primes");
 			expect(visible).toContain("Research steps completed");
 			expectProductCopy(visible);
 		} finally {
@@ -2508,12 +2511,12 @@ describe("co-math harness", () => {
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchReports.length).toBe(1);
 			expect(state.researchWorkstreamRuns[0]?.finalReportId).toBe("research-report-1");
+			expect(state.researchReports[0]?.promisingStrategy.join("\n")).toContain("bounded prime gaps");
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Finished this step.");
 			expect(visible).toContain("twin primes");
 			expect(visible).toContain("distance 2");
-			expect(visible).toContain("bounded prime gaps");
 			expect(visible).not.toContain("I used the local fallback");
 			expect(visible).not.toMatch(/role-run-|workstream-|artifact-|schema|queue/i);
 			expectProductCopy(visible);

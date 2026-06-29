@@ -1,5 +1,4 @@
 import { stat } from "node:fs/promises";
-import * as nodePath from "node:path";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
 import { createCoMathAutoPlan } from "./comath-autoplan.ts";
 import {
@@ -10,22 +9,15 @@ import {
 } from "./comath-backend-output.ts";
 import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import { createDefaultComputationalExecutor } from "./comath-computation-executor.ts";
-import {
-	type ComputationResearchWorkstreamResult,
-	isComputationalResearchPath,
-	runComputationResearchWorkstreamStaged,
-} from "./comath-computation-workstream.ts";
 import { runResearchCoordinatorSynthesis } from "./comath-coordinator-synthesis.ts";
+import {
+	formatResearchWorkstreamAlreadyRunning,
+	formatResearchWorkstreamRunFailed,
+	formatResearchWorkstreamRunProgress,
+	formatResearchWorkstreamRunStillRunningReport,
+} from "./comath-foreground-progress.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "./comath-literature-source.ts";
-import {
-	createDefaultLiteratureSourceLookup,
-	createWorkspaceLiteratureSourceLookup,
-} from "./comath-literature-source.ts";
-import {
-	isLiteratureResearchPath,
-	type LiteratureResearchWorkstreamResult,
-	runLiteratureResearchWorkstreamStaged,
-} from "./comath-literature-workstream.ts";
+import { createDefaultLiteratureSourceLookup } from "./comath-literature-source.ts";
 import {
 	formatBackgroundRunStarted,
 	formatCoMathNonMathEntryGuidance,
@@ -37,28 +29,15 @@ import {
 	formatProductProgress,
 	formatReadyForContext,
 	formatResearchBatchCancelled,
-	formatResearchBatchCompleted,
-	formatResearchBatchFailed,
 	formatResearchBatchPaused,
 	formatResearchBatchProgress,
 	formatResearchBatchStarted,
-	formatResearchBatchStepCompleted,
 	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
-	formatResearchModelFallbackNote,
 	formatResearchPathDropped,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
-	formatResearchWorkstreamAlreadyRunning,
-	formatResearchWorkstreamCompleted,
 	formatResearchWorkstreamReport,
-	formatResearchWorkstreamRunFailed,
-	formatResearchWorkstreamRunProgress,
-	formatResearchWorkstreamRunStarted,
-	formatResearchWorkstreamRunStillRunningReport,
-	formatResearchWorkstreamStageCompleted,
-	formatResearchWorkstreamStageStarted,
-	formatResearchWorkstreamStarted,
 	formatSetupStep,
 	formatSteeringNoted,
 	formatUserProvidedLiteratureSourceRegistered,
@@ -81,35 +60,30 @@ import {
 	stripCoMathPolitePrefix,
 } from "./comath-prompts.ts";
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
+import { CoMathResearchBatchRunner } from "./comath-research-batches.ts";
+import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import {
-	type ResearchWorkstreamModelExecutor,
-	type ResearchWorkstreamStageResult,
-	runModelBackedResearchWorkstreamStaged,
-} from "./comath-research-model-workstream.ts";
-import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
+	CoMathResearchRunner,
+	type CoMathResearchWorkstreamActivityEnd,
+	type CoMathResearchWorkstreamActivityEndInput,
+	type CoMathResearchWorkstreamActivityStart,
+	type CoMathResearchWorkstreamActivityStartInput,
+	type CoMathResearchWorkstreamActivityUpdate,
+	type CoMathResearchWorkstreamActivityUpdateInput,
+} from "./comath-research-runner.ts";
 import type { CoMathSource } from "./comath-source.ts";
 import type {
 	CoMathProjectState,
 	LiteratureSourceArtifact,
-	MarginNoteKind,
-	ResearchBatchRecord,
 	ResearchCoordinatorReportRecord,
 	ResearchPath,
-	ResearchWorkstreamRunRecord,
-	ResearchWorkstreamRunStage,
 } from "./schema.ts";
 import {
-	addComputationalArtifact,
-	addLiteratureClaimSupport,
 	addLiteratureSourceArtifact,
 	addMarginNote,
 	addResearchBatch,
 	addResearchCoordinatorReport,
 	addResearchPath,
-	addResearchWorkstreamIncrementalReport,
-	addResearchWorkstreamReport,
-	addResearchWorkstreamRun,
-	failStaleResearchWorkstreamRuns,
 	getActiveResearchBatch,
 	getActiveResearchWorkstreamRun,
 	getLatestResearchCoordinatorReport,
@@ -118,13 +92,10 @@ import {
 	getLatestResearchWorkstreamRun,
 	getPausedResearchBatch,
 	loadProjectState,
-	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 	setResearchFocus,
-	updateComputationalArtifact,
 	updateResearchBatch,
 	updateResearchPath,
-	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
 } from "./storage.ts";
 
@@ -136,26 +107,14 @@ export interface CoMathBackendCommandResult {
 	messages: string[];
 }
 export type CoMathBackendCommandRunner = (args: string) => Promise<CoMathBackendCommandResult>;
-export interface CoMathResearchWorkstreamActivityStartInput {
-	state: Pick<CoMathProjectState, "researchPaths">;
-	run: ResearchWorkstreamRunRecord;
-}
-export interface CoMathResearchWorkstreamActivityUpdateInput extends CoMathResearchWorkstreamActivityStartInput {
-	stage: ResearchWorkstreamRunStage;
-	summary: string;
-}
-export interface CoMathResearchWorkstreamActivityEndInput {
-	runId: string;
-}
-export type CoMathResearchWorkstreamActivityStart = (
-	input: CoMathResearchWorkstreamActivityStartInput,
-) => void | Promise<void>;
-export type CoMathResearchWorkstreamActivityUpdate = (
-	input: CoMathResearchWorkstreamActivityUpdateInput,
-) => void | Promise<void>;
-export type CoMathResearchWorkstreamActivityEnd = (
-	input: CoMathResearchWorkstreamActivityEndInput,
-) => void | Promise<void>;
+export type {
+	CoMathResearchWorkstreamActivityEnd,
+	CoMathResearchWorkstreamActivityEndInput,
+	CoMathResearchWorkstreamActivityStart,
+	CoMathResearchWorkstreamActivityStartInput,
+	CoMathResearchWorkstreamActivityUpdate,
+	CoMathResearchWorkstreamActivityUpdateInput,
+};
 
 export interface CoMathHarnessOptions {
 	source?: CoMathSource;
@@ -185,13 +144,8 @@ export class CoMathHarness {
 	private readonly createPlan: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	private readonly startFirstRun: boolean;
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
-	private readonly literatureSourceLookup: LiteratureSourceLookup;
-	private readonly computationalExecutor: ComputationalExecutor;
-	private readonly onResearchWorkstreamActivityStart: CoMathResearchWorkstreamActivityStart | undefined;
-	private readonly onResearchWorkstreamActivityUpdate: CoMathResearchWorkstreamActivityUpdate | undefined;
-	private readonly onResearchWorkstreamActivityEnd: CoMathResearchWorkstreamActivityEnd | undefined;
-	private readonly activeResearchWorkstreams = new Map<string, Promise<void>>();
-	private readonly activeResearchBatches = new Map<string, Promise<void>>();
+	private readonly researchRunner: CoMathResearchRunner;
+	private readonly researchBatchRunner: CoMathResearchBatchRunner;
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
 	constructor(options: CoMathHarnessOptions) {
@@ -202,11 +156,21 @@ export class CoMathHarness {
 		this.createPlan = options.createPlan ?? createCoMathAutoPlan;
 		this.startFirstRun = options.startFirstRun ?? true;
 		this.researchModelExecutor = options.researchModelExecutor;
-		this.literatureSourceLookup = options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup();
-		this.computationalExecutor = options.computationalExecutor ?? createDefaultComputationalExecutor();
-		this.onResearchWorkstreamActivityStart = options.onResearchWorkstreamActivityStart;
-		this.onResearchWorkstreamActivityUpdate = options.onResearchWorkstreamActivityUpdate;
-		this.onResearchWorkstreamActivityEnd = options.onResearchWorkstreamActivityEnd;
+		this.researchRunner = new CoMathResearchRunner({
+			statePath: this.statePath,
+			notify: this.notify,
+			researchModelExecutor: this.researchModelExecutor,
+			literatureSourceLookup: options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup(),
+			computationalExecutor: options.computationalExecutor ?? createDefaultComputationalExecutor(),
+			onResearchWorkstreamActivityStart: options.onResearchWorkstreamActivityStart,
+			onResearchWorkstreamActivityUpdate: options.onResearchWorkstreamActivityUpdate,
+			onResearchWorkstreamActivityEnd: options.onResearchWorkstreamActivityEnd,
+		});
+		this.researchBatchRunner = new CoMathResearchBatchRunner({
+			statePath: this.statePath,
+			notify: this.notify,
+			researchRunner: this.researchRunner,
+		});
 	}
 
 	async handlePrompt(problemText: string): Promise<void> {
@@ -330,7 +294,7 @@ export class CoMathHarness {
 		await saveProjectState(this.statePath, nextState);
 		await this.notify(formatResearchWorkspacePrepared(plan));
 		if (this.startFirstRun && initialPath) {
-			await this.runResearchWorkstreamForPath(nextState, initialPath);
+			await this.researchRunner.runResearchWorkstreamForPath(nextState, initialPath);
 		}
 		return true;
 	}
@@ -515,7 +479,7 @@ export class CoMathHarness {
 	}
 
 	private async handleResearchSteeringPrompt(state: CoMathProjectState, prompt: string): Promise<void> {
-		const reconciled = await this.reconcileStaleResearchWorkstreamRuns(state);
+		const reconciled = await this.researchRunner.reconcileStaleResearchWorkstreamRuns(state);
 		state = reconciled.state;
 		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
 		const cancelBatchReason = parseCancelResearchBatchPrompt(prompt);
@@ -569,7 +533,7 @@ export class CoMathHarness {
 			const resumedBatch =
 				nextState.researchBatches.find((candidate) => candidate.id === pausedBatch.id) ?? pausedBatch;
 			await this.notify(formatResearchBatchProgress({ state: nextState, batch: resumedBatch }));
-			this.startResearchBatchExecution(resumedBatch.id);
+			this.researchBatchRunner.startResearchBatchExecution(resumedBatch.id);
 			return;
 		}
 		const providedSource = parseUserProvidedLiteratureSourcePrompt(prompt);
@@ -607,7 +571,7 @@ export class CoMathHarness {
 						formatResearchBatchPaused({
 							state,
 							batch: pausedBatch,
-							run: this.findResearchBatchRun(state, pausedBatch.interruptedRunId),
+							run: this.researchRunner.findResearchRun(state, pausedBatch.interruptedRunId),
 						}),
 						"warning",
 					);
@@ -716,7 +680,7 @@ export class CoMathHarness {
 				return;
 			}
 			await this.notify(formatResearchBatchStarted({ state: nextState, batch }));
-			this.startResearchBatchExecution(batch.id);
+			this.researchBatchRunner.startResearchBatchExecution(batch.id);
 			return;
 		}
 		const focus = /^focus on (.+)$/i.exec(prompt);
@@ -803,7 +767,7 @@ export class CoMathHarness {
 			if (latestInterruptedRun) {
 				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
 			}
-			await this.runResearchWorkstreamForPath(state, path);
+			await this.researchRunner.runResearchWorkstreamForPath(state, path);
 			return;
 		}
 		await this.notify(formatResearchStateSummary(state));
@@ -882,854 +846,6 @@ export class CoMathHarness {
 		}
 	}
 
-	private async reconcileStaleResearchWorkstreamRuns(state: CoMathProjectState): Promise<{
-		state: CoMathProjectState;
-		interruptedRuns: ResearchWorkstreamRunRecord[];
-	}> {
-		const inProcessRunIds = new Set(this.activeResearchWorkstreams.keys());
-		const staleRunIds = state.researchWorkstreamRuns
-			.filter((run) => (run.status === "queued" || run.status === "running") && !inProcessRunIds.has(run.id))
-			.map((run) => run.id);
-		if (staleRunIds.length === 0) {
-			return { state, interruptedRuns: [] };
-		}
-		const nextState = failStaleResearchWorkstreamRuns(state, {
-			activeRunIds: [...inProcessRunIds],
-			now: new Date().toISOString(),
-			actor: "system",
-			reason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
-		});
-		await saveProjectState(this.statePath, nextState);
-		for (const staleRunId of staleRunIds) {
-			await this.notifyResearchWorkstreamActivityEnd(staleRunId);
-		}
-		const staleRunIdSet = new Set(staleRunIds);
-		return {
-			state: nextState,
-			interruptedRuns: nextState.researchWorkstreamRuns.filter((run) => staleRunIdSet.has(run.id)),
-		};
-	}
-
-	/**
-	 * Run a coordinator-managed research workstream for a single path: specialist attempt, critic
-	 * review, and synthesis. Use a model-backed pass when an executor is configured, falling back to
-	 * deterministic execution if it is absent or fails. Persist the durable structured report, update
-	 * the path, working paper, and margin notes, then surface only curated progress to the user.
-	 */
-	private findResearchBatchRun(
-		state: CoMathProjectState,
-		runId: string | undefined,
-	): ResearchWorkstreamRunRecord | undefined {
-		return runId ? state.researchWorkstreamRuns.find((candidate) => candidate.id === runId) : undefined;
-	}
-
-	private startResearchBatchExecution(batchId: string): void {
-		if (this.activeResearchBatches.has(batchId)) {
-			return;
-		}
-		const batchRun = this.executeResearchBatch(batchId)
-			.catch(async (error: unknown) => {
-				const state = await loadProjectState(this.statePath);
-				const batch = state?.researchBatches.find((candidate) => candidate.id === batchId);
-				if (!state || !batch) {
-					return;
-				}
-				const now = new Date().toISOString();
-				const failedState = updateResearchBatch(state, {
-					batchId,
-					status: "failed",
-					failureReason: safeErrorMessage(error),
-					now,
-					actor: "system",
-				});
-				await saveProjectState(this.statePath, failedState);
-				const failedBatch = failedState.researchBatches.find((candidate) => candidate.id === batchId) ?? batch;
-				await this.notify(formatResearchBatchFailed({ state: failedState, batch: failedBatch }), "error");
-			})
-			.finally(() => {
-				this.activeResearchBatches.delete(batchId);
-			});
-		this.activeResearchBatches.set(batchId, batchRun);
-		void batchRun;
-	}
-
-	private async executeResearchBatch(batchId: string): Promise<void> {
-		for (;;) {
-			const state = await loadProjectState(this.statePath);
-			const batch = state?.researchBatches.find((candidate) => candidate.id === batchId);
-			if (!state || !batch || batch.status !== "running") {
-				return;
-			}
-			if (batch.completedStepCount >= batch.requestedStepCount) {
-				await this.completeResearchBatch(state, batch);
-				return;
-			}
-			const path = chooseNextResearchBatchPath(state, batch);
-			if (!path) {
-				await this.failResearchBatch(state, batch, "No active research path is available for the next step.");
-				return;
-			}
-			const stepIndex = batch.completedStepCount + 1;
-			const now = new Date().toISOString();
-			const runningState = updateResearchBatch(state, {
-				batchId,
-				status: "running",
-				currentPathId: path.id,
-				nextPathId: path.id,
-				now,
-				actor: "system",
-			});
-			await saveProjectState(this.statePath, runningState);
-			const runId = await this.runResearchWorkstreamStepForBatch(runningState, path, batchId, stepIndex);
-			const postRunState = await loadProjectState(this.statePath);
-			const postRunBatch = postRunState?.researchBatches.find((candidate) => candidate.id === batchId);
-			const run = postRunState?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-			if (!postRunState || !postRunBatch || !run) {
-				return;
-			}
-			if (postRunBatch.status === "cancelled") {
-				await this.notify(formatResearchBatchCancelled({ state: postRunState, batch: postRunBatch }));
-				return;
-			}
-			if (run.status === "interrupted") {
-				const pausedState = updateResearchBatch(postRunState, {
-					batchId,
-					status: "paused",
-					nextPathId: run.pathId,
-					interruptedRunId: run.id,
-					now: new Date().toISOString(),
-					actor: "system",
-				});
-				await saveProjectState(this.statePath, pausedState);
-				const pausedBatch =
-					pausedState.researchBatches.find((candidate) => candidate.id === batchId) ?? postRunBatch;
-				await this.notify(formatResearchBatchPaused({ state: pausedState, batch: pausedBatch, run }), "warning");
-				return;
-			}
-			if (run.status === "failed") {
-				await this.failResearchBatch(postRunState, postRunBatch, run.failureReason ?? "The research step failed.");
-				return;
-			}
-			const completedState = updateResearchBatch(postRunState, {
-				batchId,
-				completedStepCount: stepIndex,
-				addRunId: run.id,
-				lastCompletedPathId: run.pathId,
-				clearInterruptedRunId: true,
-				now: new Date().toISOString(),
-				actor: "system",
-			});
-			const completedBatch =
-				completedState.researchBatches.find((candidate) => candidate.id === batchId) ?? postRunBatch;
-			const nextPath = chooseNextResearchBatchPath(completedState, completedBatch);
-			const nextState =
-				nextPath && stepIndex < completedBatch.requestedStepCount
-					? updateResearchBatch(completedState, {
-							batchId,
-							nextPathId: nextPath.id,
-							now: new Date().toISOString(),
-							actor: "system",
-						})
-					: completedState;
-			await saveProjectState(this.statePath, nextState);
-			const latestBatch = nextState.researchBatches.find((candidate) => candidate.id === batchId) ?? completedBatch;
-			await this.notify(formatResearchBatchStepCompleted({ state: nextState, batch: latestBatch }));
-			if (latestBatch.completedStepCount >= latestBatch.requestedStepCount) {
-				await this.completeResearchBatch(nextState, latestBatch);
-				return;
-			}
-		}
-	}
-
-	private async runResearchWorkstreamStepForBatch(
-		state: CoMathProjectState,
-		path: ResearchPath,
-		batchId: string,
-		stepIndex: number,
-	): Promise<string> {
-		const now = new Date().toISOString();
-		const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
-		let nextState = addResearchWorkstreamRun(state, {
-			id: runId,
-			pathId: path.id,
-			pathTitle: path.title,
-			currentStage: "coordinator",
-			batchId,
-			batchStepIndex: stepIndex,
-			now,
-			actor: "system",
-		});
-		await saveProjectState(this.statePath, nextState);
-		const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		if (run) {
-			await this.notifyResearchWorkstreamActivityStart(nextState, run);
-		}
-		if (this.researchModelExecutor) {
-			const workstream = this.executeResearchWorkstreamInBackground(runId).finally(async () => {
-				this.activeResearchWorkstreams.delete(runId);
-				await this.notifyResearchWorkstreamActivityEnd(runId);
-			});
-			this.activeResearchWorkstreams.set(runId, workstream);
-			await workstream;
-			return runId;
-		}
-		const report = runResearchWorkstream({
-			rootQuestion: state.rootQuestion,
-			path,
-			allPaths: state.researchPaths,
-			now,
-		});
-		nextState = this.appendIncrementalReports(nextState, runId, report, now);
-		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
-		const finalReportId = nextState.researchReports.at(-1)?.id;
-		nextState = updateResearchWorkstreamRun(nextState, {
-			runId,
-			status: "completed",
-			currentStage: "synthesizer",
-			completedAt: report.completedAt,
-			...(finalReportId ? { finalReportId } : {}),
-			now,
-			actor: "synthesizer",
-		});
-		await saveProjectState(this.statePath, nextState);
-		const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		if (completedRun) {
-			await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
-		}
-		await this.notifyResearchWorkstreamActivityEnd(runId);
-		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
-		return runId;
-	}
-
-	private async completeResearchBatch(state: CoMathProjectState, batch: ResearchBatchRecord): Promise<void> {
-		if (batch.status === "completed") {
-			return;
-		}
-		const now = new Date().toISOString();
-		const completedState = updateResearchBatch(state, {
-			batchId: batch.id,
-			status: "completed",
-			completedAt: now,
-			now,
-			actor: "system",
-		});
-		await saveProjectState(this.statePath, completedState);
-		const completedBatch = completedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? batch;
-		await this.notify(formatResearchBatchCompleted({ state: completedState, batch: completedBatch }));
-	}
-
-	private async failResearchBatch(
-		state: CoMathProjectState,
-		batch: ResearchBatchRecord,
-		reason: string,
-	): Promise<void> {
-		const now = new Date().toISOString();
-		const failedState = updateResearchBatch(state, {
-			batchId: batch.id,
-			status: "failed",
-			failureReason: reason,
-			now,
-			actor: "system",
-		});
-		await saveProjectState(this.statePath, failedState);
-		const failedBatch = failedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? batch;
-		await this.notify(formatResearchBatchFailed({ state: failedState, batch: failedBatch }), "error");
-	}
-
-	private async runResearchWorkstreamForPath(state: CoMathProjectState, path: ResearchPath): Promise<void> {
-		const now = new Date().toISOString();
-		if (this.researchModelExecutor) {
-			const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
-			const nextState = addResearchWorkstreamRun(state, {
-				id: runId,
-				pathId: path.id,
-				pathTitle: path.title,
-				currentStage: "coordinator",
-				now,
-				actor: "system",
-			});
-			await saveProjectState(this.statePath, nextState);
-			const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-			if (run) {
-				await this.notifyResearchWorkstreamActivityStart(nextState, run);
-				await this.notify(formatResearchWorkstreamRunStarted({ state: nextState, run }));
-			}
-			const workstream = this.executeResearchWorkstreamInBackground(runId)
-				.catch(async (error: unknown) => {
-					await this.markResearchWorkstreamRunFailed(runId, safeErrorMessage(error));
-				})
-				.finally(async () => {
-					this.activeResearchWorkstreams.delete(runId);
-					await this.notifyResearchWorkstreamActivityEnd(runId);
-				});
-			this.activeResearchWorkstreams.set(runId, workstream);
-			void workstream;
-			return;
-		}
-
-		const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
-		let nextState = addResearchWorkstreamRun(state, {
-			id: runId,
-			pathId: path.id,
-			pathTitle: path.title,
-			currentStage: "coordinator",
-			now,
-			actor: "system",
-		});
-		const report = runResearchWorkstream({
-			rootQuestion: state.rootQuestion,
-			path,
-			allPaths: state.researchPaths,
-			now,
-		});
-		nextState = this.appendIncrementalReports(nextState, runId, report, now);
-		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
-		const finalReportId = nextState.researchReports.at(-1)?.id;
-		nextState = updateResearchWorkstreamRun(nextState, {
-			runId,
-			status: "completed",
-			currentStage: "synthesizer",
-			completedAt: report.completedAt,
-			...(finalReportId ? { finalReportId } : {}),
-			now,
-			actor: "synthesizer",
-		});
-		await saveProjectState(this.statePath, nextState);
-		const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		if (completedRun) {
-			await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
-		}
-		await this.notify(formatResearchWorkstreamStarted({ state: nextState, report }));
-		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
-	}
-
-	private async executeResearchWorkstreamInBackground(runId: string): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		const run = state?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		const path = run ? state?.researchPaths.find((candidate) => candidate.id === run.pathId) : undefined;
-		if (!state || !run || !path) {
-			return;
-		}
-		const now = new Date().toISOString();
-		try {
-			if (isLiteratureResearchPath(path)) {
-				const literatureResult = await runLiteratureResearchWorkstreamStaged(
-					{
-						rootQuestion: state.rootQuestion,
-						path,
-						allPaths: state.researchPaths,
-						now,
-						executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
-						sourceLookup: createWorkspaceLiteratureSourceLookup({
-							sources: state.literatureSources,
-							fallback: this.literatureSourceLookup,
-						}),
-					},
-					{
-						onStageStarted: async (stage, summary) => {
-							await this.saveResearchWorkstreamStageStarted(state, run, stage, summary);
-						},
-						onStageCompleted: async (result) => {
-							await this.saveResearchWorkstreamStage(runId, {
-								stage: result.stage,
-								status: "completed",
-								title: result.title,
-								summary: result.summary,
-								details: result.details,
-							});
-						},
-					},
-				);
-				await this.completeLiteratureResearchWorkstreamRun(runId, literatureResult);
-				return;
-			}
-			if (isComputationalResearchPath(path)) {
-				const artifactPaths = this.getComputationArtifactPaths(runId);
-				const computationResult = await runComputationResearchWorkstreamStaged(
-					{
-						rootQuestion: state.rootQuestion,
-						path,
-						allPaths: state.researchPaths,
-						now,
-						executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
-						computationalExecutor: this.computationalExecutor,
-						artifactDirectory: artifactPaths.relative,
-						workingDirectory: artifactPaths.absolute,
-					},
-					{
-						onStageStarted: async (stage, summary) => {
-							await this.saveResearchWorkstreamStageStarted(state, run, stage, summary);
-						},
-						onStageCompleted: async (result) => {
-							await this.saveResearchWorkstreamStage(runId, {
-								stage: result.stage,
-								status: "completed",
-								title: result.title,
-								summary: result.summary,
-								details: result.details,
-							});
-						},
-					},
-				);
-				await this.completeComputationResearchWorkstreamRun(runId, computationResult);
-				return;
-			}
-			const report = await runModelBackedResearchWorkstreamStaged(
-				{
-					rootQuestion: state.rootQuestion,
-					path,
-					allPaths: state.researchPaths,
-					now,
-					executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
-				},
-				{
-					onStageStarted: async (stage, summary) => {
-						await this.saveResearchWorkstreamStageStarted(state, run, stage, summary);
-					},
-					onStageCompleted: async (result) => {
-						await this.saveResearchWorkstreamStage(runId, {
-							stage: result.stage,
-							status: "completed",
-							title: result.title,
-							summary: result.summary,
-							details: result.details,
-						});
-					},
-				},
-			);
-			await this.completeResearchWorkstreamRun(runId, report);
-		} catch (error: unknown) {
-			await this.completeResearchWorkstreamWithFallback(runId, error);
-		}
-	}
-
-	private async saveResearchWorkstreamStageStarted(
-		state: CoMathProjectState,
-		run: ResearchWorkstreamRunRecord,
-		stage: ResearchWorkstreamRunStage,
-		summary: string,
-	): Promise<void> {
-		await this.saveResearchWorkstreamStage(run.id, {
-			stage,
-			status: "running",
-			title: formatStageTitle(stage),
-			summary,
-			details: [],
-		});
-		await this.notifyResearchWorkstreamActivityUpdate(state, run, stage, summary);
-		if (stage === "coordinator") {
-			return;
-		}
-		await this.notify(formatResearchWorkstreamStageStarted({ state, run, stage, summary }));
-	}
-
-	private async saveResearchWorkstreamStage(
-		runId: string,
-		input: Pick<ResearchWorkstreamStageResult, "stage" | "title" | "summary" | "details"> & {
-			status: "running" | "completed" | "blocked" | "failed";
-		},
-	): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		if (!state?.researchWorkstreamRuns.some((run) => run.id === runId)) {
-			return;
-		}
-		const now = new Date().toISOString();
-		let nextState = updateResearchWorkstreamRun(state, {
-			runId,
-			...(input.status === "running" ? { status: "running" } : {}),
-			currentStage: input.stage,
-			now,
-			actor: "system",
-		});
-		if (input.stage === "coordinator" && input.status === "running") {
-			await saveProjectState(this.statePath, nextState);
-			return;
-		}
-		nextState = addResearchWorkstreamIncrementalReport(nextState, {
-			runId,
-			stage: input.stage,
-			status: input.status,
-			title: input.title,
-			summary: input.summary,
-			details: input.details,
-			now,
-			actor: "system",
-		});
-		await saveProjectState(this.statePath, nextState);
-		const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		if (run && input.status === "completed") {
-			await this.notify(
-				formatResearchWorkstreamStageCompleted({
-					state: nextState,
-					run,
-					stage: input.stage,
-					summary: input.summary,
-					details: input.details,
-				}),
-			);
-		}
-	}
-
-	private async completeResearchWorkstreamRun(runId: string, report: ResearchWorkstreamReport): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		const path = state?.researchPaths.find((candidate) => candidate.id === report.pathId);
-		if (!state || !path) {
-			return;
-		}
-		const now = new Date().toISOString();
-		let nextState = this.persistResearchWorkstreamReport(state, path, report, now);
-		const finalReportId = nextState.researchReports.at(-1)?.id;
-		nextState = updateResearchWorkstreamRun(nextState, {
-			runId,
-			status: "completed",
-			currentStage: "synthesizer",
-			completedAt: report.completedAt,
-			...(finalReportId ? { finalReportId } : {}),
-			now,
-			actor: "synthesizer",
-		});
-		await saveProjectState(this.statePath, nextState);
-		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
-	}
-
-	private async completeLiteratureResearchWorkstreamRun(
-		runId: string,
-		result: LiteratureResearchWorkstreamResult,
-	): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		const path = state?.researchPaths.find((candidate) => candidate.id === result.report.pathId);
-		if (!state || !path) {
-			return;
-		}
-		const now = new Date().toISOString();
-		let nextState = state;
-		const sourceIdMap = new Map<string, string>();
-		for (const [index, source] of result.sources.entries()) {
-			const before = nextState.literatureSources;
-			nextState = addLiteratureSourceArtifact(nextState, {
-				kind: source.kind,
-				title: source.title,
-				...(source.url ? { url: source.url } : {}),
-				...(source.path ? { path: source.path } : {}),
-				authors: source.authors ?? [],
-				...(source.year ? { year: source.year } : {}),
-				summary: source.summary,
-				...(source.extractedText ? { extractedText: source.extractedText } : {}),
-				now,
-				actor: "system",
-			});
-			const persisted = findPersistedLiteratureSource(nextState.literatureSources, before, source);
-			if (persisted) {
-				sourceIdMap.set(`source-${index + 1}`, persisted.id);
-			}
-		}
-		const sourceIds = uniqueStrings([...sourceIdMap.values()]);
-		const claimSupportIds: string[] = [];
-		for (const support of result.claimSupports) {
-			nextState = addLiteratureClaimSupport(nextState, {
-				pathId: path.id,
-				claim: support.claim,
-				sourceIds: support.sourceIds.map((sourceId) => sourceIdMap.get(sourceId) ?? sourceId),
-				status: support.status,
-				...(support.note ? { note: support.note } : {}),
-				now,
-				actor: "reviewer",
-			});
-			const claimSupportId = nextState.literatureClaimSupports.at(-1)?.id;
-			if (claimSupportId) {
-				claimSupportIds.push(claimSupportId);
-			}
-		}
-		const report: ResearchWorkstreamReport = {
-			...result.report,
-			sourceIds,
-			claimSupportIds,
-			promisingStrategy: result.report.promisingStrategy.map((item) => remapSourceLabels(item, sourceIdMap)),
-			findings: result.report.findings.map((item) => remapSourceLabels(item, sourceIdMap)),
-			criticisms: result.report.criticisms.map((item) => remapSourceLabels(item, sourceIdMap)),
-			gaps: result.report.gaps.map((item) => remapSourceLabels(item, sourceIdMap)),
-			steps: result.report.steps.map((step) => ({
-				...step,
-				details: step.details.map((detail) => remapSourceLabels(detail, sourceIdMap)),
-			})),
-			workingPaperSummary: remapSourceLabels(result.report.workingPaperSummary, sourceIdMap),
-		};
-		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
-		const finalReportId = nextState.researchReports.at(-1)?.id;
-		nextState = updateResearchWorkstreamRun(nextState, {
-			runId,
-			status: report.status === "blocked" ? "blocked" : "completed",
-			currentStage: "synthesizer",
-			completedAt: report.completedAt,
-			...(finalReportId ? { finalReportId } : {}),
-			now,
-			actor: "synthesizer",
-		});
-		await saveProjectState(this.statePath, nextState);
-		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
-	}
-
-	private async completeComputationResearchWorkstreamRun(
-		runId: string,
-		result: ComputationResearchWorkstreamResult,
-	): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		const path = state?.researchPaths.find((candidate) => candidate.id === result.report.pathId);
-		if (!state || !path) {
-			return;
-		}
-		const now = new Date().toISOString();
-		let nextState = state;
-		const computationalArtifactIds: string[] = [];
-		for (const artifact of result.artifacts) {
-			nextState = addComputationalArtifact(nextState, {
-				pathId: path.id,
-				runId,
-				kind: artifact.kind,
-				status: artifact.status,
-				title: artifact.title,
-				...(artifact.filePath ? { filePath: artifact.filePath } : {}),
-				...(artifact.command ? { command: artifact.command } : {}),
-				...(artifact.exitCode !== undefined ? { exitCode: artifact.exitCode } : {}),
-				summary: artifact.summary,
-				now,
-				actor: "system",
-			});
-			const persisted = nextState.computationalArtifacts.at(-1);
-			if (persisted) {
-				computationalArtifactIds.push(persisted.id);
-			}
-		}
-		const report: ResearchWorkstreamReport = {
-			...result.report,
-			computationalArtifactIds,
-		};
-		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
-		const finalReportId = nextState.researchReports.at(-1)?.id;
-		if (finalReportId) {
-			for (const artifactId of computationalArtifactIds) {
-				nextState = updateComputationalArtifact(nextState, {
-					artifactId,
-					reportId: finalReportId,
-					now,
-					actor: "system",
-				});
-			}
-		}
-		nextState = updateResearchWorkstreamRun(nextState, {
-			runId,
-			status: report.status === "blocked" ? "blocked" : "completed",
-			currentStage: "synthesizer",
-			completedAt: report.completedAt,
-			...(finalReportId ? { finalReportId } : {}),
-			now,
-			actor: "synthesizer",
-		});
-		await saveProjectState(this.statePath, nextState);
-		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
-	}
-
-	private async completeResearchWorkstreamWithFallback(runId: string, error: unknown): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		const run = state?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		const path = run ? state?.researchPaths.find((candidate) => candidate.id === run.pathId) : undefined;
-		if (!state || !run || !path) {
-			return;
-		}
-		const now = new Date().toISOString();
-		try {
-			const report = runResearchWorkstream({
-				rootQuestion: state.rootQuestion,
-				path,
-				allPaths: state.researchPaths,
-				now,
-			});
-			let nextState = updateResearchWorkstreamRun(state, {
-				runId,
-				status: "running",
-				currentStage: "coordinator",
-				usedFallback: true,
-				now,
-				actor: "system",
-			});
-			nextState = this.appendIncrementalReports(nextState, runId, report, now);
-			nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
-			const finalReportId = nextState.researchReports.at(-1)?.id;
-			nextState = updateResearchWorkstreamRun(nextState, {
-				runId,
-				status: "completed",
-				currentStage: "synthesizer",
-				completedAt: report.completedAt,
-				usedFallback: true,
-				...(finalReportId ? { finalReportId } : {}),
-				now,
-				actor: "synthesizer",
-			});
-			await saveProjectState(this.statePath, nextState);
-			const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-			if (completedRun) {
-				await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
-			}
-			await this.notify(formatResearchModelFallbackNote());
-			await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
-		} catch (fallbackError: unknown) {
-			const failureMessage = safeErrorMessage(fallbackError) || safeErrorMessage(error);
-			const latest = (await loadProjectState(this.statePath)) ?? state;
-			const failedState = updateResearchWorkstreamRun(latest, {
-				runId,
-				status: "failed",
-				failureReason: failureMessage,
-				now: new Date().toISOString(),
-				actor: "system",
-			});
-			await saveProjectState(this.statePath, failedState);
-			const failedRun = failedState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-			if (failedRun) {
-				await this.notify(formatResearchWorkstreamRunFailed({ state: failedState, run: failedRun }), "error");
-			}
-		}
-	}
-
-	private async markResearchWorkstreamRunFailed(runId: string, reason: string): Promise<void> {
-		const state = await loadProjectState(this.statePath);
-		if (!state?.researchWorkstreamRuns.some((run) => run.id === runId)) {
-			return;
-		}
-		const failedState = updateResearchWorkstreamRun(state, {
-			runId,
-			status: "failed",
-			failureReason: reason,
-			now: new Date().toISOString(),
-			actor: "system",
-		});
-		await saveProjectState(this.statePath, failedState);
-		const run = failedState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
-		if (run) {
-			await this.notify(formatResearchWorkstreamRunFailed({ state: failedState, run }), "error");
-		}
-	}
-
-	private appendIncrementalReports(
-		state: CoMathProjectState,
-		runId: string,
-		report: ResearchWorkstreamReport,
-		now: string,
-	): CoMathProjectState {
-		let nextState = state;
-		for (const step of report.steps) {
-			nextState = addResearchWorkstreamIncrementalReport(nextState, {
-				runId,
-				stage: step.role,
-				status: "completed",
-				title: step.title,
-				summary: step.summary,
-				details: step.details,
-				now,
-				actor: "system",
-			});
-		}
-		return nextState;
-	}
-
-	private async notifyResearchWorkstreamCompletedStages(
-		state: CoMathProjectState,
-		run: ResearchWorkstreamRunRecord,
-		report: ResearchWorkstreamReport,
-	): Promise<void> {
-		for (const step of report.steps) {
-			await this.notify(
-				formatResearchWorkstreamStageCompleted({
-					state,
-					run,
-					stage: step.role,
-					summary: step.summary,
-					details: step.details,
-				}),
-			);
-		}
-	}
-
-	/**
-	 * Shared persistence for a completed research workstream (model-backed or deterministic): update
-	 * the path findings/blockers, upsert the working-paper section, record critic gaps/criticisms as
-	 * margin notes, and append the durable structured report. Returns the next state to save.
-	 */
-	private persistResearchWorkstreamReport(
-		state: CoMathProjectState,
-		path: ResearchPath,
-		report: ResearchWorkstreamReport,
-		now: string,
-	): CoMathProjectState {
-		let nextState = updateResearchPath(state, {
-			pathId: path.id,
-			latestFindings: [...path.latestFindings, ...report.findings],
-			blockers: uniqueStrings([...path.blockers, ...report.gaps]),
-			suggestedNextMove: report.suggestedNextMove,
-			now,
-			actor: "system",
-		});
-		nextState = upsertWorkingPaperSectionByTitle(nextState, {
-			title: report.workingPaperSectionTitle,
-			body: report.workingPaperSummary,
-			now,
-			actor: "synthesizer",
-		});
-		const section = nextState.workingPaperSections.find(
-			(candidate) => candidate.title === report.workingPaperSectionTitle,
-		);
-		const noteCandidates = [
-			...report.gaps.map((message) => ({ kind: "gap" as const, message })),
-			...report.criticisms.map((message) => ({ kind: "warning" as const, message })),
-		].slice(0, 3);
-		for (const candidate of noteCandidates) {
-			nextState = addMarginNote(nextState, {
-				id: `margin-note-${nextState.marginNotes.length + 1}`,
-				kind: candidate.kind,
-				subjectId: path.id,
-				...(section ? { sectionId: section.id } : {}),
-				message: candidate.message,
-				now,
-				actor: "reviewer",
-			});
-		}
-		// One explicit "human scrutiny" attention marker per report (preferring the clearest human-facing
-		// item). Skip when the same message already exists as an open note on this section to avoid noise.
-		const scrutinyMessage = report.humanHelpUseful[0] ?? report.gaps[0] ?? report.criticisms[0];
-		if (scrutinyMessage && !hasOpenMarginNote(nextState, section?.id, "scrutiny", scrutinyMessage)) {
-			nextState = addMarginNote(nextState, {
-				id: `margin-note-${nextState.marginNotes.length + 1}`,
-				kind: "scrutiny",
-				subjectId: path.id,
-				...(section ? { sectionId: section.id } : {}),
-				message: scrutinyMessage,
-				now,
-				actor: "reviewer",
-			});
-		}
-		return addResearchWorkstreamReport(nextState, {
-			pathId: report.pathId,
-			pathTitle: report.pathTitle,
-			status: report.status,
-			startedAt: report.startedAt,
-			completedAt: report.completedAt,
-			coordinatorBrief: report.coordinatorBrief,
-			steps: report.steps,
-			promisingStrategy: report.promisingStrategy,
-			findings: report.findings,
-			criticisms: report.criticisms,
-			gaps: report.gaps,
-			humanHelpUseful: report.humanHelpUseful,
-			suggestedNextMove: report.suggestedNextMove,
-			workingPaperSectionTitle: report.workingPaperSectionTitle,
-			...(section ? { workingPaperSectionId: section.id } : {}),
-			sourceIds: report.sourceIds ?? [],
-			claimSupportIds: report.claimSupportIds ?? [],
-			computationalArtifactIds: report.computationalArtifactIds ?? [],
-			now,
-			actor: "synthesizer",
-		});
-	}
-
 	/**
 	 * Default handling for an unrecognized message: record it, then — if it looks like pasted
 	 * context/candidate rather than a short steering note — automatically start the prepared audit
@@ -1770,15 +886,6 @@ export class CoMathHarness {
 		await this.notify(formatContextRecorded());
 	}
 
-	private getComputationArtifactPaths(runId: string): { relative: string; absolute: string } {
-		const relative = `.pi/co-math/artifacts/${runId}`;
-		const projectRoot = nodePath.dirname(nodePath.dirname(nodePath.dirname(this.statePath)));
-		return {
-			relative,
-			absolute: nodePath.join(projectRoot, relative),
-		};
-	}
-
 	private async hasExistingState(): Promise<boolean> {
 		try {
 			const stateStat = await stat(this.statePath);
@@ -1814,60 +921,10 @@ export class CoMathHarness {
 			return undefined;
 		}
 	}
-
-	// Research runs execute as background promises after the agent turn ends, so the normal streaming
-	// loader does not cover them. These callbacks let a host (interactive mode) surface a footer status
-	// for the active run; they are best-effort and decoupled from execution. The interactive wiring is
-	// a stopgap pending a first-class background-activity API — see
-	// docs/comath-background-activity-api-notes.md.
-	private async notifyResearchWorkstreamActivityStart(
-		state: Pick<CoMathProjectState, "researchPaths">,
-		run: ResearchWorkstreamRunRecord,
-	): Promise<void> {
-		try {
-			await this.onResearchWorkstreamActivityStart?.({ state, run });
-		} catch {
-			// UI status updates are best-effort and must not affect research execution.
-		}
-	}
-
-	private async notifyResearchWorkstreamActivityUpdate(
-		state: Pick<CoMathProjectState, "researchPaths">,
-		run: ResearchWorkstreamRunRecord,
-		stage: ResearchWorkstreamRunStage,
-		summary: string,
-	): Promise<void> {
-		try {
-			await this.onResearchWorkstreamActivityUpdate?.({ state, run, stage, summary });
-		} catch {
-			// UI status updates are best-effort and must not affect research execution.
-		}
-	}
-
-	private async notifyResearchWorkstreamActivityEnd(runId: string): Promise<void> {
-		try {
-			await this.onResearchWorkstreamActivityEnd?.({ runId });
-		} catch {
-			// UI status updates are best-effort and must not affect research execution.
-		}
-	}
 }
 
 function trimTerminalPunctuation(value: string): string {
 	return value.replace(/[.?!]+$/, "");
-}
-
-/** True when an open margin note with the same section, kind, and exact message already exists. */
-function hasOpenMarginNote(
-	state: Pick<CoMathProjectState, "marginNotes">,
-	sectionId: string | undefined,
-	kind: MarginNoteKind,
-	message: string,
-): boolean {
-	return state.marginNotes.some(
-		(note) =>
-			note.status === "open" && note.kind === kind && note.sectionId === sectionId && note.message === message,
-	);
 }
 
 function deriveUserProvidedLiteratureSourceTitle(source: ParsedUserProvidedLiteratureSource): string {
@@ -2060,49 +1117,6 @@ const RESEARCH_PATH_ORDINALS: Record<string, number> = {
 	fifth: 5,
 };
 
-function chooseNextResearchBatchPath(state: CoMathProjectState, batch: ResearchBatchRecord): ResearchPath | undefined {
-	const explicitPath = batch.initialPathId
-		? state.researchPaths.find((path) => path.id === batch.initialPathId && path.status !== "abandoned")
-		: undefined;
-	if (explicitPath) {
-		return explicitPath;
-	}
-	const retryPath =
-		batch.nextPathId && batch.interruptedRunId
-			? state.researchPaths.find((path) => path.id === batch.nextPathId && path.status !== "abandoned")
-			: undefined;
-	if (retryPath) {
-		return retryPath;
-	}
-	const focused = state.researchFocus?.pathIds
-		.map((pathId) => state.researchPaths.find((path) => path.id === pathId))
-		.find((path): path is ResearchPath => path !== undefined && path.status !== "abandoned");
-	if (focused) {
-		return focused;
-	}
-	const coordinatorSuggested = [...state.researchCoordinatorReports]
-		.reverse()
-		.map((report) =>
-			report.suggestedPathId
-				? state.researchPaths.find((path) => path.id === report.suggestedPathId && path.status !== "abandoned")
-				: undefined,
-		)
-		.find((path): path is ResearchPath => path !== undefined);
-	if (coordinatorSuggested) {
-		return coordinatorSuggested;
-	}
-	const candidates = [...state.researchPaths]
-		.filter((path) => path.status === "active" || path.status === "promising")
-		.sort((a, b) => a.priority - b.priority);
-	if (candidates.length === 0) {
-		return undefined;
-	}
-	const lastIndex = batch.lastCompletedPathId
-		? candidates.findIndex((path) => path.id === batch.lastCompletedPathId)
-		: -1;
-	return candidates[(lastIndex + 1 + candidates.length) % candidates.length];
-}
-
 /**
  * Match natural beginner phrasings that should start (or continue) a numbered research path, e.g.
  * "continue path 1", "please continue with path 1", "run path 2", "start the first path", or a bare
@@ -2184,25 +1198,6 @@ function normalizePathQuery(value: string): string {
 		.trim();
 }
 
-function formatStageTitle(stage: ResearchWorkstreamRunStage): string {
-	if (stage === "coordinator") {
-		return "Coordinator brief";
-	}
-	if (stage === "literature-search") {
-		return "Literature search";
-	}
-	if (stage === "computation") {
-		return "Computation";
-	}
-	if (stage === "specialist") {
-		return "Specialist attempt";
-	}
-	if (stage === "critic") {
-		return "Critic review";
-	}
-	return "Synthesis";
-}
-
 function findPersistedLiteratureSource(
 	current: readonly LiteratureSourceArtifact[],
 	previous: readonly LiteratureSourceArtifact[],
@@ -2217,14 +1212,6 @@ function findPersistedLiteratureSource(
 			return candidate.title.toLowerCase() === source.title.trim().toLowerCase();
 		})
 	);
-}
-
-function remapSourceLabels(value: string, sourceIdMap: ReadonlyMap<string, string>): string {
-	let remapped = value;
-	for (const [temporaryId, persistedId] of sourceIdMap) {
-		remapped = remapped.replaceAll(`[${temporaryId}]`, `[${persistedId}]`);
-	}
-	return remapped;
 }
 
 function buildResearchCoordinatorWorkingPaperBody(
@@ -2269,18 +1256,4 @@ function getCoordinatorSuggestedPrompt(
 		return `continue path ${index + 1}`;
 	}
 	return report.recommendedNextMoves[0]?.prompt;
-}
-
-function safeErrorMessage(error: unknown): string {
-	if (error instanceof Error && error.message.trim().length > 0) {
-		return error.message;
-	}
-	if (typeof error === "string" && error.trim().length > 0) {
-		return error.trim();
-	}
-	return "The research attempt stopped unexpectedly.";
-}
-
-function uniqueStrings(values: readonly string[]): string[] {
-	return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 }
