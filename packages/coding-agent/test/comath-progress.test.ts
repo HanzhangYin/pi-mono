@@ -237,9 +237,7 @@ describe("co-math product messages", () => {
 	it("formats research workspace and state summaries without internal terms", () => {
 		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
 		const workspace = formatResearchWorkspacePrepared(plan);
-		expect(workspace).toContain("I’ll start working on this.");
-		expect(workspace).toContain("Small examples and counterexamples");
-		expect(workspace).toContain("alternative routes");
+		expect(workspace).toBe("I’ll start with small examples and counterexamples.");
 		expect(workspace).not.toContain("continue path 1");
 		expectProductCopy(workspace);
 
@@ -357,13 +355,12 @@ describe("co-math product messages", () => {
 		expectProductCopy(started);
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
-		expect(completed).toContain("Research run completed");
-		expect(completed).toContain("Promising strategy");
-		expect(completed).toContain("Review");
-		expect(completed).toContain("Gap");
+		expect(completed).toContain("Finished this step.");
+		expect(completed).toContain("Main takeaway");
+		expect(completed).toContain("Limit");
 		expect(completed).toContain("Next");
 		expect(completed).toContain("continue path");
-		expect(completed).toContain("Working paper updated");
+		expect(completed).toContain('Saved under "Direct proof attempts".');
 		expect(completed).toContain("show latest report");
 		expectProductCopy(completed);
 
@@ -400,7 +397,7 @@ describe("co-math product messages", () => {
 		});
 		const path3Completed = formatResearchWorkstreamCompleted({ state, report: path3Report });
 		expect(path3Completed).toContain("Path 3: Reformulation");
-		expect(path3Completed).toContain("Polynomial prime values");
+		expect(path3Completed).toContain("Original question");
 		expect(path3Completed).toContain("Turn this into smaller targets:");
 		expect(path3Completed).toContain("continue path 4");
 		expectProductCopy(path3Completed);
@@ -483,10 +480,10 @@ describe("co-math product messages", () => {
 		const state = { researchPaths: [path] };
 
 		const started = formatResearchWorkstreamRunStarted({ state, run });
-		expect(started).toContain("I’m working on it.");
-		expect(started).toContain("Pi is running a bounded finite check");
-		expect(started).toContain("Current stage\nChoosing the plan");
-		expect(started).toContain('Say "show progress" for the latest status.');
+		expect(started).toContain("Working on Path 1: Small examples and counterexamples.");
+		expect(started).toContain("Now: Choosing the plan.");
+		expect(started).toContain("Keeping the finite check bounded.");
+		expect(started).not.toContain("show progress");
 		expectProductCopy(started);
 
 		const stageUpdate = formatResearchWorkstreamStageStarted({
@@ -495,11 +492,9 @@ describe("co-math product messages", () => {
 			stage: "computation",
 			summary: "Running the bounded finite computation.",
 		});
-		expect(stageUpdate).toContain("Research update");
-		expect(stageUpdate).toContain("Pi is still working in the background.");
-		expect(stageUpdate).toContain("Current stage\nRunning finite computation");
+		expect(stageUpdate).toContain("Now: Running finite computation.");
 		expect(stageUpdate).toContain("Running the bounded finite computation.");
-		expect(stageUpdate).toContain("show progress");
+		expect(stageUpdate).not.toContain("show progress");
 		expectProductCopy(stageUpdate);
 
 		expect(formatCoMathResearchActivityStatus({ state, run })).toBe("co-math: Path 1 running · coordinator");
@@ -639,12 +634,12 @@ describe("co-math product messages", () => {
 		};
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
-		expect(completed).toContain("References");
-		expect(completed).toContain("Twin prime conjecture status note");
+		expect(completed).toContain("Finished this step.");
+		expect(completed).toContain("The twin-prime conjecture remains open.");
 		expect(completed).not.toContain("source-1:");
 		expect(completed).not.toContain("(source-1)");
 		expect(completed).not.toContain("[source-1]");
-		expect(completed).toContain("unsupported: A source proves twin-prime infinitude.");
+		expect(completed).toContain("No source proves twin-prime infinitude.");
 		expect(completed).not.toContain("research-run-1");
 		expectProductCopy(completed);
 
@@ -698,13 +693,8 @@ describe("co-math product messages", () => {
 		};
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
-		expect(completed).toContain("Source-backed status");
 		expect(completed).toContain("No source was available");
-		expect(completed).toContain("search targets only");
-		expect(completed).toContain("What this means");
-		expect(completed).toContain("Conjectural implications must be separated");
-		expect(completed).toContain("Source-backed distinctions");
-		expect(completed).toContain("unsupported:");
+		expect(completed).toContain("A source-backed literature check is needed");
 		expect(completed).toContain("what should we try next?");
 		expectProductCopy(completed);
 	});
@@ -767,12 +757,8 @@ describe("co-math product messages", () => {
 		};
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
-		expect(completed).toContain("Source-backed status");
-		expect(completed).toContain("No source in this run established an unconditional proof");
-		expect(completed).toContain("References");
-		expect(completed).toContain("Test note on prime values of polynomials");
-		expect(completed).toContain("partially-supported:");
-		expect(completed).toContain("unsupported:");
+		expect(completed).toContain("Source-backed context was reviewed");
+		expect(completed).toContain("No source here proves infinitely many primes");
 		expect(completed).toContain("what should we try next?");
 		expectProductCopy(completed);
 	});
@@ -848,7 +834,7 @@ describe("co-math product messages", () => {
 		const state = { researchPaths: [path], computationalArtifacts };
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
-		expect(completed).toContain("Computation");
+		expect(completed).toContain("Evidence");
 		// The beginner completion stays product-clean: no raw artifact IDs as primary content.
 		expect(completed).not.toContain("computation-artifact-1");
 		expect(completed).not.toContain("computation-artifact-2");

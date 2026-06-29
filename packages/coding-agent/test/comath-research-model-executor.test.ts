@@ -116,7 +116,6 @@ describe("default co-math research model executor", () => {
 		};
 		const executor = createDefaultResearchModelExecutor({
 			getModel: createModel,
-			getSystemPrompt: () => "Co-math system prompt",
 			streamFn,
 			streamAssistantMessage: async (stream) => {
 				for await (const event of stream) {
@@ -131,7 +130,8 @@ describe("default co-math research model executor", () => {
 		const result = await executor.run(createRequest("Try examples."));
 
 		expect(result.text).toBe(finalText);
-		expect(observedSystemPrompt).toBe("Co-math system prompt");
+		expect(observedSystemPrompt).toContain("focused mathematical research role");
+		expect(observedSystemPrompt).toContain("Do not call or describe tools such as comath_state.");
 		expect(observedPrompt).toContain("Try examples.");
 		expect(observedSessionId).toBe("session-123");
 		expect(observedTimeoutMs).toBe(3210);

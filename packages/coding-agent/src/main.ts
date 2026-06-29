@@ -866,7 +866,6 @@ export async function main(args: string[], options?: MainOptions) {
 				// falls back to deterministic execution if these fail or no model is configured.
 				researchModelExecutor: createDefaultResearchModelExecutor({
 					getModel: () => session.model,
-					getSystemPrompt: () => session.systemPrompt,
 					streamFn: session.agent.streamFn,
 					streamAssistantMessage: (stream) => session.streamAssistantMessage(stream),
 					streamOptions: () => ({

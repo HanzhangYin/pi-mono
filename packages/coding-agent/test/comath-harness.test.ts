@@ -709,9 +709,7 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("I’ll start working on this.");
-			expect(visible).toContain("Small examples and counterexamples");
-			expect(visible).toContain("alternative routes");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expect(visible).not.toContain("continue path 1");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
@@ -758,9 +756,9 @@ describe("co-math harness", () => {
 			});
 			expect(state.researchReports).toHaveLength(1);
 			const visible = notices.join("\n");
-			expect(visible).toContain("I’ll start working on this.");
-			expect(visible).toContain("Research step update");
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
+			expect(visible).toContain("Finished: Trying the research path.");
+			expect(visible).toContain("Finished this step.");
 			expect(visible).not.toContain("continue path 1");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
@@ -779,7 +777,7 @@ describe("co-math harness", () => {
 			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
 			const visible = notices.join("\n");
 			expect(visible).toContain("I’ll start working on this as a math research problem.");
-			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expect(visible).not.toContain("continue path 1");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
@@ -796,7 +794,7 @@ describe("co-math harness", () => {
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
 			const visible = notices.join("\n");
-			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init there are infinitely many twin primes?"]);
 		} finally {
@@ -960,9 +958,7 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("I’ll start working on this.");
-			expect(visible).toContain("Small examples and counterexamples");
-			expect(visible).toContain("alternative routes");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 			expect(commands.some((command) => command.startsWith("workstream "))).toBe(false);
@@ -982,7 +978,7 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Pi math validation help");
-			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 		} finally {
@@ -1072,7 +1068,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Path updated");
 			expect(visible).toContain("Direct proof attempt");
 			expect(visible).toContain("Weaker special cases");
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("Finished this step.");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -1128,7 +1124,7 @@ describe("co-math harness", () => {
 			expect(state.researchPaths[1]?.latestFindings.join("\n")).toContain("Euclid-style argument is not immediate");
 			expect(state.researchPaths[1]?.latestFindings.join("\n")).not.toContain("n = 1 gives 2, prime");
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("Finished this step.");
 			expect(visible).toContain("Direct proof attempt");
 			expectProductCopy(visible);
 		} finally {
@@ -1196,7 +1192,7 @@ describe("co-math harness", () => {
 				expect(state.researchPaths[0]?.latestFindings.join("\n"), phrasing).toContain("n = 1 gives 2, prime");
 				expect(state.researchPaths[1]?.latestFindings, phrasing).toEqual([]);
 				const visible = notices.join("\n");
-				expect(visible, phrasing).toContain("Research run completed");
+				expect(visible, phrasing).toContain("Finished this step.");
 				expectProductCopy(visible);
 			} finally {
 				await rm(dir, { recursive: true, force: true });
@@ -1266,12 +1262,11 @@ describe("co-math harness", () => {
 			expect(examplesSection?.marginNoteIds).toContain(scrutiny?.id);
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("Finished this step.");
 			expect(visible).toContain("Path 1: Small examples and counterexamples");
-			expect(visible).toContain("Promising strategy");
-			expect(visible).toContain("Review");
-			expect(visible).toContain("Gap");
-			expect(visible).toContain("Working paper updated");
+			expect(visible).toContain("Main takeaway");
+			expect(visible).toContain("Limit");
+			expect(visible).toContain('Saved under "Examples and evidence".');
 			expect(visible).toContain("Latest findings");
 			expect(visible).toContain("n = 10 gives 101, prime");
 			expectProductCopy(visible);
@@ -1299,11 +1294,10 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Research started");
-			expect(visible).toContain("Research run completed");
-			expect(visible).toContain("Promising strategy");
-			expect(visible).toContain("Review");
-			expect(visible).toContain("Gap");
-			expect(visible).toContain("Working paper updated");
+			expect(visible).toContain("Finished this step.");
+			expect(visible).toContain("Main takeaway");
+			expect(visible).toContain("Limit");
+			expect(visible).toContain('Saved under "Direct proof attempts".');
 			expect(visible).toContain("show latest report");
 			expect(visible).not.toMatch(/role-run-|workstream-|artifact-|schema|queue/i);
 			expectProductCopy(visible);
@@ -1625,12 +1619,10 @@ describe("co-math harness", () => {
 			expect(state.researchReports).toEqual([]);
 			expect(state.researchWorkstreamRuns).toHaveLength(1);
 			expect(state.researchWorkstreamRuns[0]?.pathTitle).toBe("Direct proof attempt");
-			expect(notices.join("\n")).toContain("I’m working on it.");
+			expect(notices.join("\n")).toContain("Working on Path 2: Direct proof attempt.");
 
 			await waitForCondition("specialist request", () => deferred.requests.length >= 1);
-			expect(notices.join("\n")).toContain("Research update");
-			expect(notices.join("\n")).toContain("Pi is still working in the background.");
-			expect(notices.join("\n")).toContain("Trying the research path");
+			expect(notices.join("\n")).toContain("Now: Trying the research path.");
 			const beforeProgress = notices.length;
 			await harness.handlePrompt("show progress");
 			await harness.handlePrompt("show latest report");
@@ -1676,7 +1668,7 @@ describe("co-math harness", () => {
 				"synthesizer",
 			]);
 			expect(state.researchReports).toHaveLength(1);
-			expect(notices.join("\n")).toContain("Research run completed");
+			expect(notices.join("\n")).toContain("Finished this step.");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -1843,12 +1835,11 @@ describe("co-math harness", () => {
 			expect(state.researchReports[0]?.claimSupportIds.length).toBeGreaterThan(0);
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Literature specialist is looking for relevant known theorems and references.");
-			expect(visible).toContain("References");
-			expect(visible).toContain("Twin prime conjecture status note");
+			expect(visible).toContain("Checking source-backed context.");
+			expect(visible).toContain("The twin-prime conjecture remains open.");
 			expect(visible).not.toContain("source-1: Twin prime conjecture status note");
 			expect(visible).not.toContain("[source-1]");
-			expect(visible).toContain("Bounded prime gaps are known but do not imply gaps exactly 2");
+			expect(visible).toContain("No provided source proves infinitely many prime pairs at distance 2.");
 			expectProductCopy(visible);
 
 			const before = notices.length;
@@ -1891,9 +1882,9 @@ describe("co-math harness", () => {
 			});
 			const visible = notices.join("\n");
 			expect(visible).toContain("No source lookup backend returned references for this path.");
-			expect(visible).toContain("No source-backed theorem claim is established for this path yet.");
+			expect(visible).toContain("A source-backed literature check is needed before citing named theorems.");
 			expect(visible).toContain("what should we try next?");
-			expect(visible).toContain("unsupported:");
+			expect(visible).toContain('Details: say "show latest report".');
 			expect(visible).not.toContain("Chen");
 			expect(visible).not.toContain("Maynard");
 			expectProductCopy(visible);
@@ -1965,9 +1956,7 @@ describe("co-math harness", () => {
 			});
 			const visible = notices.join("\n");
 			expect(visible).toContain("No source was available");
-			expect(visible).toContain("Bunyakovsky-type conjectures");
-			expect(visible).toContain("search targets only");
-			expect(visible).toContain("No unconditional proof");
+			expect(visible).toContain("A source-backed literature check is needed");
 			expect(visible).toContain("what should we try next?");
 			expectProductCopy(visible);
 		} finally {
@@ -2016,8 +2005,8 @@ describe("co-math harness", () => {
 			const visible = notices.join("\n");
 			expect(visible).toContain("Registered source context for Path 5");
 			expect(visible).not.toContain("No source was available");
-			expect(visible).toContain("partially-supported:");
-			expect(visible).toContain("unsupported:");
+			expect(visible).toContain("Source-backed context was reviewed");
+			expect(visible).toContain("No source here proves infinitely many primes");
 			expect(visible).not.toContain("[source-1]");
 			expect(visible).not.toMatch(/^-\s+supported:.*infinitely many primes of the form n\^2 \+ 1/im);
 			expectProductCopy(visible);
@@ -2069,11 +2058,8 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Source-backed context was reviewed");
-			expect(visible).toContain("No source in this run established an unconditional proof");
-			expect(visible).toContain("Conjectural implications are not proofs");
-			expect(visible).toContain("partially-supported:");
-			expect(visible).toContain("unsupported:");
-			expect(visible).toContain("Test note on prime values of polynomials");
+			expect(visible).toContain("No source here proves infinitely many primes");
+			expect(visible).toContain('Saved under "Literature/theorem targets".');
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -2126,13 +2112,13 @@ describe("co-math harness", () => {
 			expect(state.literatureSources).toEqual([]);
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Coordinator is choosing a bounded finite experiment.");
+			expect(visible).toContain("Chose a bounded finite computation");
 			expect(visible).toContain("Computational specialist is preparing a small script.");
-			expect(visible).toContain("Computation");
+			expect(visible).toContain("Evidence");
 			// Beginner completion stays product-clean: no raw artifact IDs, points to the detailed report.
 			expect(visible).toContain("Ran a small bounded script and recorded its output.");
 			expect(visible).not.toContain("computation-artifact-1");
-			expect(visible).toContain("A finite computation does not prove an infinite claim.");
+			expect(visible).toContain("The finite check is evidence, not a proof of infinitude.");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -2301,7 +2287,7 @@ describe("co-math harness", () => {
 			// Paper checkpoint: stale runs surface explicit, executable recovery.
 			expect(visible).toContain("Recovery");
 			expect(visible).toContain("Research step interrupted");
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("Finished this step.");
 			expect(visible).not.toContain("already working on Path 1");
 			expectProductCopy(visible);
 		} finally {
@@ -2335,8 +2321,7 @@ describe("co-math harness", () => {
 			expect(state.researchWorkstreamRuns.map((run) => run.batchStepIndex)).toEqual([1, 2]);
 			const visible = notices.join("\n");
 			expect(visible).toContain("I’ll take 2 research steps.");
-			expect(visible).toContain("Research step update");
-			expect(visible).toContain("Completed stage");
+			expect(visible).toContain("Finished: Trying the research path.");
 			expect(visible).toContain("Trying the research path");
 			expect(visible).toContain("Writing the summary");
 			expect(visible).toContain("Research steps completed");
@@ -2378,7 +2363,7 @@ describe("co-math harness", () => {
 				"note project: Explore this problem: Are there infinitely many primes of the form n^2 + 1?",
 			);
 			const visible = notices.join("\n");
-			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expect(visible).toContain("Research steps completed");
 			expect(visible).not.toContain("validation context");
 			expectProductCopy(visible);
@@ -2408,7 +2393,7 @@ describe("co-math harness", () => {
 			});
 			expect(state.researchWorkstreamRuns.map((run) => run.status)).toEqual(["completed", "completed"]);
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research step update");
+			expect(visible).toContain("Finished: Trying the research path.");
 			expect(visible).toContain("Twin primes are prime pairs at distance 2");
 			expect(visible).toContain("The specialist did not prove infinitude of twin primes");
 			expect(visible).toContain("Research steps completed");
@@ -2525,7 +2510,7 @@ describe("co-math harness", () => {
 			expect(state.researchWorkstreamRuns[0]?.finalReportId).toBe("research-report-1");
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("Finished this step.");
 			expect(visible).toContain("twin primes");
 			expect(visible).toContain("distance 2");
 			expect(visible).toContain("bounded prime gaps");
@@ -2569,7 +2554,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain(
 				"I used the local fallback for this round because model-backed research was unavailable.",
 			);
-			expect(visible).toContain("Research run completed");
+			expect(visible).toContain("Finished this step.");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

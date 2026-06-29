@@ -195,13 +195,7 @@ export function formatProductProgress(run: CoMathProductRunSummary | undefined):
 
 export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): string {
 	const firstPath = plan.paths[0];
-	return [
-		"I’ll start working on this.",
-		"",
-		firstPath ? `First I’ll try: ${firstPath.title}.` : "First I’ll try a concrete research step.",
-		"",
-		"I’ll keep alternative routes in reserve and surface findings as they become durable.",
-	].join("\n");
+	return firstPath ? `I’ll start with ${firstPath.title.toLowerCase()}.` : "I’ll start with a concrete research step.";
 }
 
 export function formatUserProvidedLiteratureSourceRegistered(input: { title: string }): string {
@@ -392,59 +386,15 @@ export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamI
 }
 
 export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstreamRunInput): string {
+	const pathLabel = formatResearchRunPathLabel(input.state, input.run);
+	const stage = formatResearchStage(input.run.currentStage);
 	if (isLiteraturePathTitle(input.run.pathTitle)) {
-		return [
-			"I’m working on it.",
-			"",
-			formatResearchRunPathLabel(input.state, input.run),
-			"",
-			"Pi is checking source-backed context for this route.",
-			"",
-			"Current stage",
-			formatResearchStage(input.run.currentStage),
-			"",
-			"What is happening",
-			"- Coordinator is identifying what needs source support.",
-			"- Literature specialist is looking for relevant known theorems and references.",
-			"",
-			'You can keep typing while Pi works. Say "show progress" for the latest status.',
-		].join("\n");
+		return [`Working on ${pathLabel}.`, `Now: ${stage}.`, "Checking source-backed context."].join("\n");
 	}
 	if (isComputationalPathTitle(input.run.pathTitle)) {
-		return [
-			"I’m working on it.",
-			"",
-			formatResearchRunPathLabel(input.state, input.run),
-			"",
-			"Pi is running a bounded finite check and will keep the limits explicit.",
-			"",
-			"Current stage",
-			formatResearchStage(input.run.currentStage),
-			"",
-			"What is happening",
-			"- Coordinator is choosing a bounded finite experiment.",
-			"- Computational specialist is preparing a small script.",
-			"- Critic will check what the computation does and does not establish.",
-			"",
-			'You can keep typing while Pi works. Say "show progress" for the latest status.',
-		].join("\n");
+		return [`Working on ${pathLabel}.`, `Now: ${stage}.`, "Keeping the finite check bounded."].join("\n");
 	}
-	return [
-		"I’m working on it.",
-		"",
-		formatResearchRunPathLabel(input.state, input.run),
-		"",
-		"Pi is trying this route and will report the gaps as it finds them.",
-		"",
-		"Current stage",
-		formatResearchStage(input.run.currentStage),
-		"",
-		"What is happening",
-		"- Coordinator framed the path.",
-		"- Specialist research is running in the background.",
-		"",
-		'You can keep typing while Pi works. Say "show progress" for the latest status.',
-	].join("\n");
+	return [`Working on ${pathLabel}.`, `Now: ${stage}.`, "I’ll keep the gaps explicit."].join("\n");
 }
 
 /** Running progress shown by `show progress` while a research run is active. */
@@ -477,36 +427,15 @@ export function formatResearchWorkstreamRunProgress(input: FormatResearchWorkstr
 }
 
 export function formatResearchWorkstreamStageStarted(input: FormatResearchWorkstreamStageStartedInput): string {
-	return [
-		"Research update",
-		"",
-		formatResearchRunPathLabel(input.state, input.run),
-		"",
-		"Pi is still working in the background.",
-		"",
-		"Current stage",
-		formatResearchStage(input.stage),
-		"",
-		"What is happening",
-		`- ${input.summary}`,
-		"",
-		'Say "show progress" any time for the latest status.',
-	].join("\n");
+	return [`Now: ${formatResearchStage(input.stage)}.`, sanitizeForegroundStageText(input.summary)].join("\n");
 }
 
 export function formatResearchWorkstreamStageCompleted(input: FormatResearchWorkstreamStageCompletedInput): string {
 	const details = input.details.map(sanitizeForegroundStageText).filter((detail) => detail.length > 0);
 	return [
-		"Research step update",
-		"",
-		formatResearchRunPathLabel(input.state, input.run),
-		"",
-		"Completed stage",
-		formatResearchStage(input.stage),
-		"",
-		"Result",
-		`- ${sanitizeForegroundStageText(input.summary)}`,
-		...details.slice(0, 2).map((detail) => `- ${detail}`),
+		`Finished: ${formatResearchStage(input.stage)}.`,
+		sanitizeForegroundStageText(input.summary),
+		...details.slice(0, 1),
 	].join("\n");
 }
 
@@ -564,14 +493,10 @@ export function formatResearchWorkstreamRunFailed(input: FormatResearchWorkstrea
 export function formatResearchBatchStarted(input: FormatResearchBatchInput): string {
 	return [
 		`I’ll take ${input.batch.requestedStepCount} research ${input.batch.requestedStepCount === 1 ? "step" : "steps"}.`,
-		"",
 		formatResearchBatchStepCount(input.batch),
-		"",
 		input.batch.nextPathId
 			? `First path: ${formatResearchBatchPath(input.state, input.batch.nextPathId)}`
 			: "First path: Pi will choose the best available research path.",
-		"",
-		'Say "show progress" for the latest status.',
 	].join("\n");
 }
 
@@ -663,40 +588,25 @@ export function formatResearchWorkstreamAlreadyRunning(input: FormatResearchWork
  */
 export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstreamInput): string {
 	const { report } = input;
-	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? [], { includeSourceIds: false });
-	const references = formatReferences(input.state, report.sourceIds ?? [], { includeIds: false });
 	const computation = formatComputationSummary(input.state, report.computationalArtifactIds ?? []);
-	const bridgeResults = formatBridgeResultSection(report);
 	const nextLines = formatResearchCompletionNextLines(input.state, report);
+	const mainTakeaway = firstNonEmpty(report.findings, report.promisingStrategy, report.criticisms);
+	const limit = firstNonEmpty(report.gaps, report.criticisms);
 	return [
-		"Research run completed",
+		"Finished this step.",
 		"",
 		formatResearchReportPathLabel(input.state, report),
-		...(bridgeResults.length > 0 ? ["", ...bridgeResults] : []),
-		...(computation.length > 0 ? ["", "Computation", ...computation] : []),
 		"",
-		"Promising strategy",
-		...completionBulletsOrFallback(report.promisingStrategy, "No promising strategy identified yet."),
-		"",
-		"Review",
-		...completionBulletsOrFallback(report.criticisms, "No review notes recorded."),
-		"",
-		"Gap",
-		...completionBulletsOrFallback(report.gaps, "No open gaps recorded."),
-		...(report.humanHelpUseful.length > 0
-			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${stripInlineSourceLabels(item)}`)]
-			: []),
-		...(supports.length > 0 ? ["", "Source-backed distinctions", ...supports] : []),
-		...(references.length > 0 ? ["", "References", ...references] : []),
+		"Main takeaway",
+		`- ${mainTakeaway ? stripInlineSourceLabels(mainTakeaway) : "No durable takeaway was recorded yet."}`,
+		...(computation.length > 0 ? ["", "Evidence", ...computation.slice(0, 3)] : []),
+		...(limit ? ["", "Limit", `- ${stripInlineSourceLabels(limit)}`] : []),
 		"",
 		"Next",
 		...nextLines,
 		"",
-		"Working paper updated",
-		`- Added synthesized notes under "${report.workingPaperSectionTitle}."`,
-		"",
-		"Details",
-		'- Say "show latest report" to inspect the internal attempt and critique.',
+		`Saved under "${report.workingPaperSectionTitle}".`,
+		'Details: say "show latest report".',
 	].join("\n");
 }
 
@@ -787,34 +697,14 @@ function bulletsOrFallback(items: readonly string[], fallback: string): string[]
 	return items.length > 0 ? items.map((item) => `- ${item}`) : [`- ${fallback}`];
 }
 
-function completionBulletsOrFallback(items: readonly string[], fallback: string): string[] {
-	return bulletsOrFallback(items.map(stripInlineSourceLabels), fallback);
-}
-
-function formatBridgeResultSection(
-	report: Pick<ResearchWorkstreamReportView, "pathTitle" | "findings" | "criticisms" | "gaps">,
-): string[] {
-	const title = normalizeResearchPathTitle(report.pathTitle);
-	if (title === "reformulation") {
-		return ["Equivalent or related frames", ...bulletsOrFallback(report.findings, "No reformulation was recorded.")];
+function firstNonEmpty(...groups: readonly string[][]): string | undefined {
+	for (const group of groups) {
+		const item = group.find((candidate) => candidate.trim().length > 0);
+		if (item) {
+			return item;
+		}
 	}
-	if (title === "weaker special cases") {
-		return [
-			"Candidate lemmas and weaker targets",
-			...bulletsOrFallback(report.findings, "No weaker target was recorded."),
-		];
-	}
-	if (title === "known theorem or literature reduction") {
-		const meaning = [...report.criticisms, ...report.gaps].map(stripInlineSourceLabels).slice(0, 4);
-		return [
-			"Source-backed status",
-			...completionBulletsOrFallback(report.findings, "No source-backed theorem claim was recorded."),
-			"",
-			"What this means",
-			...bulletsOrFallback(meaning, "Continue treating the full problem as unresolved in this workspace."),
-		];
-	}
-	return [];
+	return undefined;
 }
 
 function stripInlineSourceLabels(value: string): string {

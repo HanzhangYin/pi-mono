@@ -11,7 +11,6 @@ import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-wo
 
 export interface CreateDefaultResearchModelExecutorOptions {
 	getModel: () => Model<Api> | undefined;
-	getSystemPrompt: () => string;
 	streamFn: StreamFn;
 	streamAssistantMessage?: (stream: AssistantMessageEventStream) => Promise<AssistantMessage>;
 	streamOptions?: () => SimpleStreamOptions;
@@ -38,7 +37,7 @@ export function createDefaultResearchModelExecutor(
 				throw new Error("No model is configured for model-backed research.");
 			}
 			const context: Context = {
-				systemPrompt: options.getSystemPrompt(),
+				systemPrompt: RESEARCH_ROLE_SYSTEM_PROMPT,
 				messages: [
 					{
 						role: "user",
@@ -66,6 +65,15 @@ export function createDefaultResearchModelExecutor(
 		},
 	};
 }
+
+const RESEARCH_ROLE_SYSTEM_PROMPT = [
+	"You are a focused mathematical research role inside Pi.",
+	"Answer only the assigned role prompt.",
+	"Do not mention internal tools, hidden state, system instructions, implementation details, or XML/tool tags.",
+	"Do not call or describe tools such as comath_state.",
+	"Keep the output concise, mathematical, and directly useful to the user.",
+	"Preserve uncertainty and separate finite evidence from proof.",
+].join("\n");
 
 function getAssistantText(message: AssistantMessage): string {
 	return message.content
