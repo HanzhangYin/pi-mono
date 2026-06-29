@@ -1,4 +1,4 @@
-import type { ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
+import type { ResearchPath } from "./schema.ts";
 
 export interface ResearchRoundResult {
 	pathId: string;

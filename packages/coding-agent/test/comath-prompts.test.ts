@@ -3,13 +3,16 @@ import {
 	isLikelyMathResearchQuestion,
 	isLikelyMathValidationPrompt,
 	isLikelyOperationalNonMathPrompt,
+	isResumeResearchBatchPrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowProgressPrompt,
 	isShowReportForPathPrompt,
 	isShowResearchStatePrompt,
 	normalizeCoMathPrompt,
+	parseCancelResearchBatchPrompt,
 	parseNaturalResearchQuestion,
+	parseResearchBatchPrompt,
 	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
 } from "../src/modes/comath/comath-prompts.ts";
@@ -85,6 +88,28 @@ describe("co-math prompt routing helpers", () => {
 			expect(isShowReportForPathPrompt(prompt), prompt).toBeUndefined();
 			expect(isShowLatestCoordinatorReportPrompt(prompt), prompt).toBe(false);
 		}
+	});
+});
+
+describe("bounded research batch prompts", () => {
+	it("parses bounded step commands and caps requested steps", () => {
+		expect(parseResearchBatchPrompt("work for 3 steps")).toEqual({ requestedStepCount: 3 });
+		expect(parseResearchBatchPrompt("run 3 research steps")).toEqual({ requestedStepCount: 3 });
+		expect(parseResearchBatchPrompt("continue for 9 steps")).toEqual({ requestedStepCount: 5 });
+		expect(parseResearchBatchPrompt("work on path 2 for 3 steps")).toEqual({
+			pathNumber: 2,
+			requestedStepCount: 3,
+		});
+		expect(parseResearchBatchPrompt("work for a few steps")).toEqual({ requestedStepCount: 3 });
+		expect(parseResearchBatchPrompt("run tests")).toBeUndefined();
+	});
+
+	it("parses resume and cancel commands", () => {
+		expect(isResumeResearchBatchPrompt("resume research")).toBe(true);
+		expect(isResumeResearchBatchPrompt("please resume batch")).toBe(true);
+		expect(isResumeResearchBatchPrompt("resume path 1")).toBe(false);
+		expect(parseCancelResearchBatchPrompt("cancel batch: enough for now")).toBe("enough for now");
+		expect(parseCancelResearchBatchPrompt("cancel batch")).toBeUndefined();
 	});
 });
 

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { ResearchPath } from "../examples/extensions/co-math/schema.ts";
 import { createCoMathResearchAutoPlan } from "../src/modes/comath/comath-research-autoplan.ts";
 import {
 	type ResearchWorkstreamModelExecutor,
@@ -7,6 +6,7 @@ import {
 	runModelBackedResearchWorkstream,
 	runModelBackedResearchWorkstreamStaged,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
+import type { ResearchPath } from "../src/modes/comath/schema.ts";
 
 const TWIN_PRIME_QUESTION = "Are there infinitely many twin primes?";
 

@@ -1,39 +1,5 @@
 import { stat } from "node:fs/promises";
 import * as nodePath from "node:path";
-import type {
-	CoMathProjectState,
-	LiteratureSourceArtifact,
-	MarginNoteKind,
-	ResearchCoordinatorReportRecord,
-	ResearchPath,
-	ResearchWorkstreamRunRecord,
-	ResearchWorkstreamRunStage,
-} from "../../../examples/extensions/co-math/schema.ts";
-import {
-	addComputationalArtifact,
-	addLiteratureClaimSupport,
-	addLiteratureSourceArtifact,
-	addMarginNote,
-	addResearchCoordinatorReport,
-	addResearchPath,
-	addResearchWorkstreamIncrementalReport,
-	addResearchWorkstreamReport,
-	addResearchWorkstreamRun,
-	failStaleResearchWorkstreamRuns,
-	getActiveResearchWorkstreamRun,
-	getLatestResearchCoordinatorReport,
-	getLatestResearchWorkstreamReport,
-	getLatestResearchWorkstreamReportForPath,
-	getLatestResearchWorkstreamRun,
-	loadProjectState,
-	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
-	saveProjectState,
-	setResearchFocus,
-	updateComputationalArtifact,
-	updateResearchPath,
-	updateResearchWorkstreamRun,
-	upsertWorkingPaperSectionByTitle,
-} from "../../../examples/extensions/co-math/storage.ts";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
 import { createCoMathAutoPlan } from "./comath-autoplan.ts";
 import {
@@ -70,6 +36,13 @@ import {
 	formatLatestResearchCoordinatorReportMissing,
 	formatProductProgress,
 	formatReadyForContext,
+	formatResearchBatchCancelled,
+	formatResearchBatchCompleted,
+	formatResearchBatchFailed,
+	formatResearchBatchPaused,
+	formatResearchBatchProgress,
+	formatResearchBatchStarted,
+	formatResearchBatchStepCompleted,
 	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
 	formatResearchModelFallbackNote,
@@ -83,6 +56,7 @@ import {
 	formatResearchWorkstreamRunProgress,
 	formatResearchWorkstreamRunStarted,
 	formatResearchWorkstreamRunStillRunningReport,
+	formatResearchWorkstreamStageCompleted,
 	formatResearchWorkstreamStageStarted,
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
@@ -93,13 +67,16 @@ import {
 import {
 	isLikelyMathValidationPrompt,
 	isResearchCoordinatorPrompt,
+	isResumeResearchBatchPrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowProgressPrompt,
 	isShowReportForPathPrompt,
 	isShowResearchStatePrompt,
 	type ParsedUserProvidedLiteratureSource,
+	parseCancelResearchBatchPrompt,
 	parseNaturalResearchQuestion,
+	parseResearchBatchPrompt,
 	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
 } from "./comath-prompts.ts";
@@ -111,6 +88,45 @@ import {
 } from "./comath-research-model-workstream.ts";
 import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
 import type { CoMathSource } from "./comath-source.ts";
+import type {
+	CoMathProjectState,
+	LiteratureSourceArtifact,
+	MarginNoteKind,
+	ResearchBatchRecord,
+	ResearchCoordinatorReportRecord,
+	ResearchPath,
+	ResearchWorkstreamRunRecord,
+	ResearchWorkstreamRunStage,
+} from "./schema.ts";
+import {
+	addComputationalArtifact,
+	addLiteratureClaimSupport,
+	addLiteratureSourceArtifact,
+	addMarginNote,
+	addResearchBatch,
+	addResearchCoordinatorReport,
+	addResearchPath,
+	addResearchWorkstreamIncrementalReport,
+	addResearchWorkstreamReport,
+	addResearchWorkstreamRun,
+	failStaleResearchWorkstreamRuns,
+	getActiveResearchBatch,
+	getActiveResearchWorkstreamRun,
+	getLatestResearchCoordinatorReport,
+	getLatestResearchWorkstreamReport,
+	getLatestResearchWorkstreamReportForPath,
+	getLatestResearchWorkstreamRun,
+	getPausedResearchBatch,
+	loadProjectState,
+	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+	saveProjectState,
+	setResearchFocus,
+	updateComputationalArtifact,
+	updateResearchBatch,
+	updateResearchPath,
+	updateResearchWorkstreamRun,
+	upsertWorkingPaperSectionByTitle,
+} from "./storage.ts";
 
 export type CoMathHarnessNoticeType = "info" | "warning" | "error";
 export type CoMathHarnessNotify = (message: string, type?: CoMathHarnessNoticeType) => void | Promise<void>;
@@ -175,6 +191,7 @@ export class CoMathHarness {
 	private readonly onResearchWorkstreamActivityUpdate: CoMathResearchWorkstreamActivityUpdate | undefined;
 	private readonly onResearchWorkstreamActivityEnd: CoMathResearchWorkstreamActivityEnd | undefined;
 	private readonly activeResearchWorkstreams = new Map<string, Promise<void>>();
+	private readonly activeResearchBatches = new Map<string, Promise<void>>();
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
 	constructor(options: CoMathHarnessOptions) {
@@ -265,7 +282,7 @@ export class CoMathHarness {
 		const hasUsableSource = !!(this.source?.exists && this.source.isFile);
 		const naturalResearchQuestion = hasUsableSource ? undefined : parseNaturalResearchQuestion(problem);
 		if (naturalResearchQuestion) {
-			await this.notify("This looks like a math research question. I’ll explore it as a co-math problem.");
+			await this.notify("I’ll start working on this as a math research problem.");
 			await this.handleInitialResearchProblem(naturalResearchQuestion);
 			return;
 		}
@@ -312,6 +329,9 @@ export class CoMathHarness {
 		}
 		await saveProjectState(this.statePath, nextState);
 		await this.notify(formatResearchWorkspacePrepared(plan));
+		if (this.startFirstRun && initialPath) {
+			await this.runResearchWorkstreamForPath(nextState, initialPath);
+		}
 		return true;
 	}
 
@@ -407,6 +427,16 @@ export class CoMathHarness {
 			await this.handleResearchSteeringPrompt(state, prompt);
 			return;
 		}
+		if (isIncompleteExplorationPrompt(prompt)) {
+			this.pendingInitialIntent = { kind: "explore-problem" };
+			await this.notify("Describe the problem you want to explore.", "warning");
+			return;
+		}
+		const explorationProblem = parseExplorationPrompt(prompt);
+		if (explorationProblem) {
+			await this.handleInitialResearchProblem(explorationProblem);
+			return;
+		}
 		if (/^continue$/i.test(prompt)) {
 			const latestRun = await this.tryCommand("run-status latest");
 			const latestStatus = latestRun?.ok ? extractStatus(latestRun.messages) : undefined;
@@ -488,6 +518,60 @@ export class CoMathHarness {
 		const reconciled = await this.reconcileStaleResearchWorkstreamRuns(state);
 		state = reconciled.state;
 		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
+		const cancelBatchReason = parseCancelResearchBatchPrompt(prompt);
+		if (cancelBatchReason) {
+			const activeBatch = getActiveResearchBatch(state);
+			const pausedBatch = getPausedResearchBatch(state);
+			const batch = activeBatch ?? pausedBatch;
+			if (!batch) {
+				await this.notify("No research step sequence is active or paused.", "warning");
+				return;
+			}
+			const now = new Date().toISOString();
+			const nextState = updateResearchBatch(state, {
+				batchId: batch.id,
+				status: "cancelled",
+				cancelReason: cancelBatchReason,
+				cancelledAt: now,
+				now,
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, nextState);
+			const nextBatch = nextState.researchBatches.find((candidate) => candidate.id === batch.id) ?? batch;
+			await this.notify(formatResearchBatchCancelled({ state: nextState, batch: nextBatch }));
+			return;
+		}
+		if (isResumeResearchBatchPrompt(prompt)) {
+			const activeRun = getActiveResearchWorkstreamRun(state);
+			const activeBatch = getActiveResearchBatch(state);
+			if (activeRun || activeBatch) {
+				await this.notify(
+					activeRun
+						? formatResearchWorkstreamAlreadyRunning({ state, run: activeRun })
+						: 'A research step sequence is already active. Say "show progress" to inspect it.',
+					"warning",
+				);
+				return;
+			}
+			const pausedBatch = getPausedResearchBatch(state);
+			if (!pausedBatch) {
+				await this.notify("No paused research step sequence is available to resume.", "warning");
+				return;
+			}
+			const now = new Date().toISOString();
+			const nextState = updateResearchBatch(state, {
+				batchId: pausedBatch.id,
+				status: "running",
+				now,
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, nextState);
+			const resumedBatch =
+				nextState.researchBatches.find((candidate) => candidate.id === pausedBatch.id) ?? pausedBatch;
+			await this.notify(formatResearchBatchProgress({ state: nextState, batch: resumedBatch }));
+			this.startResearchBatchExecution(resumedBatch.id);
+			return;
+		}
 		const providedSource = parseUserProvidedLiteratureSourcePrompt(prompt);
 		if (providedSource) {
 			await this.registerUserProvidedLiteratureSource(state, providedSource);
@@ -507,13 +591,36 @@ export class CoMathHarness {
 			return;
 		}
 		if (isShowProgressPrompt(prompt) || isShowResearchStatePrompt(prompt)) {
-			if (isShowProgressPrompt(prompt) && latestInterruptedRun) {
-				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
+			const activeBatch = getActiveResearchBatch(state);
+			const pausedBatch = getPausedResearchBatch(state);
+			if (isShowProgressPrompt(prompt) && (activeBatch || pausedBatch)) {
+				if (activeBatch) {
+					await this.notify(
+						formatResearchBatchProgress({
+							state,
+							batch: activeBatch,
+							run: getActiveResearchWorkstreamRun(state),
+						}),
+					);
+				} else if (pausedBatch) {
+					await this.notify(
+						formatResearchBatchPaused({
+							state,
+							batch: pausedBatch,
+							run: this.findResearchBatchRun(state, pausedBatch.interruptedRunId),
+						}),
+						"warning",
+					);
+				}
 				return;
 			}
 			const activeRun = getActiveResearchWorkstreamRun(state);
 			if (isShowProgressPrompt(prompt) && activeRun) {
 				await this.notify(formatResearchWorkstreamRunProgress({ state, run: activeRun }));
+				return;
+			}
+			if (isShowProgressPrompt(prompt) && latestInterruptedRun) {
+				await this.notify(formatResearchWorkstreamRunFailed({ state, run: latestInterruptedRun }), "warning");
 				return;
 			}
 			await this.notify(formatResearchStateSummary(state));
@@ -565,6 +672,51 @@ export class CoMathHarness {
 				return;
 			}
 			await this.notify(formatResearchWorkstreamReport({ state, report }));
+			return;
+		}
+		const batchPrompt = parseResearchBatchPrompt(prompt);
+		if (batchPrompt) {
+			const activeRun = getActiveResearchWorkstreamRun(state);
+			if (activeRun) {
+				await this.notify(formatResearchWorkstreamAlreadyRunning({ state, run: activeRun }), "warning");
+				return;
+			}
+			const activeBatch = getActiveResearchBatch(state);
+			if (activeBatch) {
+				await this.notify(
+					'A research step sequence is already active. Say "show progress" to inspect it.',
+					"warning",
+				);
+				return;
+			}
+			const pausedBatch = getPausedResearchBatch(state);
+			if (pausedBatch) {
+				await this.notify(formatResearchBatchPaused({ state, batch: pausedBatch }), "warning");
+				return;
+			}
+			const path = batchPrompt.pathNumber ? state.researchPaths[batchPrompt.pathNumber - 1] : undefined;
+			if (batchPrompt.pathNumber && !path) {
+				await this.notify(
+					"I could not find that research path. Ask for a summary to see the current paths.",
+					"warning",
+				);
+				return;
+			}
+			const now = new Date().toISOString();
+			const nextState = addResearchBatch(state, {
+				requestedStepCount: batchPrompt.requestedStepCount,
+				...(path ? { initialPathId: path.id } : {}),
+				now,
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, nextState);
+			const batch = nextState.researchBatches.at(-1);
+			if (!batch) {
+				await this.notify("Could not start the research steps.", "error");
+				return;
+			}
+			await this.notify(formatResearchBatchStarted({ state: nextState, batch }));
+			this.startResearchBatchExecution(batch.id);
 			return;
 		}
 		const focus = /^focus on (.+)$/i.exec(prompt);
@@ -639,6 +791,13 @@ export class CoMathHarness {
 			const activeRun = getActiveResearchWorkstreamRun(state);
 			if (activeRun) {
 				await this.notify(formatResearchWorkstreamAlreadyRunning({ state, run: activeRun }), "warning");
+				return;
+			}
+			if (getActiveResearchBatch(state)) {
+				await this.notify(
+					'A research step sequence is already active. Say "show progress" to inspect it.',
+					"warning",
+				);
 				return;
 			}
 			if (latestInterruptedRun) {
@@ -757,6 +916,226 @@ export class CoMathHarness {
 	 * deterministic execution if it is absent or fails. Persist the durable structured report, update
 	 * the path, working paper, and margin notes, then surface only curated progress to the user.
 	 */
+	private findResearchBatchRun(
+		state: CoMathProjectState,
+		runId: string | undefined,
+	): ResearchWorkstreamRunRecord | undefined {
+		return runId ? state.researchWorkstreamRuns.find((candidate) => candidate.id === runId) : undefined;
+	}
+
+	private startResearchBatchExecution(batchId: string): void {
+		if (this.activeResearchBatches.has(batchId)) {
+			return;
+		}
+		const batchRun = this.executeResearchBatch(batchId)
+			.catch(async (error: unknown) => {
+				const state = await loadProjectState(this.statePath);
+				const batch = state?.researchBatches.find((candidate) => candidate.id === batchId);
+				if (!state || !batch) {
+					return;
+				}
+				const now = new Date().toISOString();
+				const failedState = updateResearchBatch(state, {
+					batchId,
+					status: "failed",
+					failureReason: safeErrorMessage(error),
+					now,
+					actor: "system",
+				});
+				await saveProjectState(this.statePath, failedState);
+				const failedBatch = failedState.researchBatches.find((candidate) => candidate.id === batchId) ?? batch;
+				await this.notify(formatResearchBatchFailed({ state: failedState, batch: failedBatch }), "error");
+			})
+			.finally(() => {
+				this.activeResearchBatches.delete(batchId);
+			});
+		this.activeResearchBatches.set(batchId, batchRun);
+		void batchRun;
+	}
+
+	private async executeResearchBatch(batchId: string): Promise<void> {
+		for (;;) {
+			const state = await loadProjectState(this.statePath);
+			const batch = state?.researchBatches.find((candidate) => candidate.id === batchId);
+			if (!state || !batch || batch.status !== "running") {
+				return;
+			}
+			if (batch.completedStepCount >= batch.requestedStepCount) {
+				await this.completeResearchBatch(state, batch);
+				return;
+			}
+			const path = chooseNextResearchBatchPath(state, batch);
+			if (!path) {
+				await this.failResearchBatch(state, batch, "No active research path is available for the next step.");
+				return;
+			}
+			const stepIndex = batch.completedStepCount + 1;
+			const now = new Date().toISOString();
+			const runningState = updateResearchBatch(state, {
+				batchId,
+				status: "running",
+				currentPathId: path.id,
+				nextPathId: path.id,
+				now,
+				actor: "system",
+			});
+			await saveProjectState(this.statePath, runningState);
+			const runId = await this.runResearchWorkstreamStepForBatch(runningState, path, batchId, stepIndex);
+			const postRunState = await loadProjectState(this.statePath);
+			const postRunBatch = postRunState?.researchBatches.find((candidate) => candidate.id === batchId);
+			const run = postRunState?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+			if (!postRunState || !postRunBatch || !run) {
+				return;
+			}
+			if (postRunBatch.status === "cancelled") {
+				await this.notify(formatResearchBatchCancelled({ state: postRunState, batch: postRunBatch }));
+				return;
+			}
+			if (run.status === "interrupted") {
+				const pausedState = updateResearchBatch(postRunState, {
+					batchId,
+					status: "paused",
+					nextPathId: run.pathId,
+					interruptedRunId: run.id,
+					now: new Date().toISOString(),
+					actor: "system",
+				});
+				await saveProjectState(this.statePath, pausedState);
+				const pausedBatch =
+					pausedState.researchBatches.find((candidate) => candidate.id === batchId) ?? postRunBatch;
+				await this.notify(formatResearchBatchPaused({ state: pausedState, batch: pausedBatch, run }), "warning");
+				return;
+			}
+			if (run.status === "failed") {
+				await this.failResearchBatch(postRunState, postRunBatch, run.failureReason ?? "The research step failed.");
+				return;
+			}
+			const completedState = updateResearchBatch(postRunState, {
+				batchId,
+				completedStepCount: stepIndex,
+				addRunId: run.id,
+				lastCompletedPathId: run.pathId,
+				clearInterruptedRunId: true,
+				now: new Date().toISOString(),
+				actor: "system",
+			});
+			const completedBatch =
+				completedState.researchBatches.find((candidate) => candidate.id === batchId) ?? postRunBatch;
+			const nextPath = chooseNextResearchBatchPath(completedState, completedBatch);
+			const nextState =
+				nextPath && stepIndex < completedBatch.requestedStepCount
+					? updateResearchBatch(completedState, {
+							batchId,
+							nextPathId: nextPath.id,
+							now: new Date().toISOString(),
+							actor: "system",
+						})
+					: completedState;
+			await saveProjectState(this.statePath, nextState);
+			const latestBatch = nextState.researchBatches.find((candidate) => candidate.id === batchId) ?? completedBatch;
+			await this.notify(formatResearchBatchStepCompleted({ state: nextState, batch: latestBatch }));
+			if (latestBatch.completedStepCount >= latestBatch.requestedStepCount) {
+				await this.completeResearchBatch(nextState, latestBatch);
+				return;
+			}
+		}
+	}
+
+	private async runResearchWorkstreamStepForBatch(
+		state: CoMathProjectState,
+		path: ResearchPath,
+		batchId: string,
+		stepIndex: number,
+	): Promise<string> {
+		const now = new Date().toISOString();
+		const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
+		let nextState = addResearchWorkstreamRun(state, {
+			id: runId,
+			pathId: path.id,
+			pathTitle: path.title,
+			currentStage: "coordinator",
+			batchId,
+			batchStepIndex: stepIndex,
+			now,
+			actor: "system",
+		});
+		await saveProjectState(this.statePath, nextState);
+		const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		if (run) {
+			await this.notifyResearchWorkstreamActivityStart(nextState, run);
+		}
+		if (this.researchModelExecutor) {
+			const workstream = this.executeResearchWorkstreamInBackground(runId).finally(async () => {
+				this.activeResearchWorkstreams.delete(runId);
+				await this.notifyResearchWorkstreamActivityEnd(runId);
+			});
+			this.activeResearchWorkstreams.set(runId, workstream);
+			await workstream;
+			return runId;
+		}
+		const report = runResearchWorkstream({
+			rootQuestion: state.rootQuestion,
+			path,
+			allPaths: state.researchPaths,
+			now,
+		});
+		nextState = this.appendIncrementalReports(nextState, runId, report, now);
+		nextState = this.persistResearchWorkstreamReport(nextState, path, report, now);
+		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = updateResearchWorkstreamRun(nextState, {
+			runId,
+			status: "completed",
+			currentStage: "synthesizer",
+			completedAt: report.completedAt,
+			...(finalReportId ? { finalReportId } : {}),
+			now,
+			actor: "synthesizer",
+		});
+		await saveProjectState(this.statePath, nextState);
+		const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		if (completedRun) {
+			await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
+		}
+		await this.notifyResearchWorkstreamActivityEnd(runId);
+		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+		return runId;
+	}
+
+	private async completeResearchBatch(state: CoMathProjectState, batch: ResearchBatchRecord): Promise<void> {
+		if (batch.status === "completed") {
+			return;
+		}
+		const now = new Date().toISOString();
+		const completedState = updateResearchBatch(state, {
+			batchId: batch.id,
+			status: "completed",
+			completedAt: now,
+			now,
+			actor: "system",
+		});
+		await saveProjectState(this.statePath, completedState);
+		const completedBatch = completedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? batch;
+		await this.notify(formatResearchBatchCompleted({ state: completedState, batch: completedBatch }));
+	}
+
+	private async failResearchBatch(
+		state: CoMathProjectState,
+		batch: ResearchBatchRecord,
+		reason: string,
+	): Promise<void> {
+		const now = new Date().toISOString();
+		const failedState = updateResearchBatch(state, {
+			batchId: batch.id,
+			status: "failed",
+			failureReason: reason,
+			now,
+			actor: "system",
+		});
+		await saveProjectState(this.statePath, failedState);
+		const failedBatch = failedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? batch;
+		await this.notify(formatResearchBatchFailed({ state: failedState, batch: failedBatch }), "error");
+	}
+
 	private async runResearchWorkstreamForPath(state: CoMathProjectState, path: ResearchPath): Promise<void> {
 		const now = new Date().toISOString();
 		if (this.researchModelExecutor) {
@@ -816,6 +1195,10 @@ export class CoMathHarness {
 			actor: "synthesizer",
 		});
 		await saveProjectState(this.statePath, nextState);
+		const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		if (completedRun) {
+			await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
+		}
 		await this.notify(formatResearchWorkstreamStarted({ state: nextState, report }));
 		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
 	}
@@ -973,6 +1356,18 @@ export class CoMathHarness {
 			actor: "system",
 		});
 		await saveProjectState(this.statePath, nextState);
+		const run = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+		if (run && input.status === "completed") {
+			await this.notify(
+				formatResearchWorkstreamStageCompleted({
+					state: nextState,
+					run,
+					stage: input.stage,
+					summary: input.summary,
+					details: input.details,
+				}),
+			);
+		}
 	}
 
 	private async completeResearchWorkstreamRun(runId: string, report: ResearchWorkstreamReport): Promise<void> {
@@ -1171,6 +1566,10 @@ export class CoMathHarness {
 				actor: "synthesizer",
 			});
 			await saveProjectState(this.statePath, nextState);
+			const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
+			if (completedRun) {
+				await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
+			}
 			await this.notify(formatResearchModelFallbackNote());
 			await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
 		} catch (fallbackError: unknown) {
@@ -1230,6 +1629,24 @@ export class CoMathHarness {
 			});
 		}
 		return nextState;
+	}
+
+	private async notifyResearchWorkstreamCompletedStages(
+		state: CoMathProjectState,
+		run: ResearchWorkstreamRunRecord,
+		report: ResearchWorkstreamReport,
+	): Promise<void> {
+		for (const step of report.steps) {
+			await this.notify(
+				formatResearchWorkstreamStageCompleted({
+					state,
+					run,
+					stage: step.role,
+					summary: step.summary,
+					details: step.details,
+				}),
+			);
+		}
 	}
 
 	/**
@@ -1642,6 +2059,49 @@ const RESEARCH_PATH_ORDINALS: Record<string, number> = {
 	fourth: 4,
 	fifth: 5,
 };
+
+function chooseNextResearchBatchPath(state: CoMathProjectState, batch: ResearchBatchRecord): ResearchPath | undefined {
+	const explicitPath = batch.initialPathId
+		? state.researchPaths.find((path) => path.id === batch.initialPathId && path.status !== "abandoned")
+		: undefined;
+	if (explicitPath) {
+		return explicitPath;
+	}
+	const retryPath =
+		batch.nextPathId && batch.interruptedRunId
+			? state.researchPaths.find((path) => path.id === batch.nextPathId && path.status !== "abandoned")
+			: undefined;
+	if (retryPath) {
+		return retryPath;
+	}
+	const focused = state.researchFocus?.pathIds
+		.map((pathId) => state.researchPaths.find((path) => path.id === pathId))
+		.find((path): path is ResearchPath => path !== undefined && path.status !== "abandoned");
+	if (focused) {
+		return focused;
+	}
+	const coordinatorSuggested = [...state.researchCoordinatorReports]
+		.reverse()
+		.map((report) =>
+			report.suggestedPathId
+				? state.researchPaths.find((path) => path.id === report.suggestedPathId && path.status !== "abandoned")
+				: undefined,
+		)
+		.find((path): path is ResearchPath => path !== undefined);
+	if (coordinatorSuggested) {
+		return coordinatorSuggested;
+	}
+	const candidates = [...state.researchPaths]
+		.filter((path) => path.status === "active" || path.status === "promising")
+		.sort((a, b) => a.priority - b.priority);
+	if (candidates.length === 0) {
+		return undefined;
+	}
+	const lastIndex = batch.lastCompletedPathId
+		? candidates.findIndex((path) => path.id === batch.lastCompletedPathId)
+		: -1;
+	return candidates[(lastIndex + 1 + candidates.length) % candidates.length];
+}
 
 /**
  * Match natural beginner phrasings that should start (or continue) a numbered research path, e.g.

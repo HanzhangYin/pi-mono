@@ -1,9 +1,4 @@
 import type {
-	ComputationalArtifactKind,
-	ComputationalArtifactStatus,
-	ResearchPath,
-} from "../../../examples/extensions/co-math/schema.ts";
-import type {
 	ComputationalExecutionResult,
 	ComputationalExecutor,
 	ComputationalScriptDraft,
@@ -24,6 +19,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
+import type { ComputationalArtifactKind, ComputationalArtifactStatus, ResearchPath } from "./schema.ts";
 
 export interface ComputationalArtifactDraft {
 	kind: ComputationalArtifactKind;

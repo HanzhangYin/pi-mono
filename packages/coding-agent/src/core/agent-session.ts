@@ -23,7 +23,14 @@ import type {
 	AgentTool,
 	ThinkingLevel,
 } from "@earendil-works/pi-agent-core";
-import type { AssistantMessage, ImageContent, Message, Model, TextContent } from "@earendil-works/pi-ai";
+import type {
+	AssistantMessage,
+	AssistantMessageEventStream,
+	ImageContent,
+	Message,
+	Model,
+	TextContent,
+} from "@earendil-works/pi-ai";
 import {
 	clampThinkingLevel,
 	cleanupSessionResources,
@@ -1163,6 +1170,70 @@ export class AgentSession {
 
 		preflightResult?.(true);
 		await this._runAgentPrompt(messages);
+	}
+
+	/**
+	 * Render an already-created assistant event stream through the same session/TUI event path used
+	 * by the agent loop. Conversation harnesses use this when they own the prompt routing but still
+	 * want foreground token streaming, persistence, and extension message hooks.
+	 */
+	async streamAssistantMessage(stream: AssistantMessageEventStream): Promise<AssistantMessage> {
+		let partialMessage: AssistantMessage | undefined;
+		let addedPartial = false;
+
+		for await (const event of stream) {
+			switch (event.type) {
+				case "start":
+					partialMessage = event.partial;
+					this.agent.state.messages.push(partialMessage);
+					addedPartial = true;
+					await this._handleAgentEvent({ type: "message_start", message: { ...partialMessage } });
+					break;
+
+				case "text_start":
+				case "text_delta":
+				case "text_end":
+				case "thinking_start":
+				case "thinking_delta":
+				case "thinking_end":
+				case "toolcall_start":
+				case "toolcall_delta":
+				case "toolcall_end":
+					if (partialMessage) {
+						partialMessage = event.partial;
+						this.agent.state.messages[this.agent.state.messages.length - 1] = partialMessage;
+						await this._handleAgentEvent({
+							type: "message_update",
+							assistantMessageEvent: event,
+							message: { ...partialMessage },
+						});
+					}
+					break;
+
+				case "done":
+				case "error": {
+					const finalMessage = await stream.result();
+					if (addedPartial) {
+						this.agent.state.messages[this.agent.state.messages.length - 1] = finalMessage;
+					} else {
+						this.agent.state.messages.push(finalMessage);
+						await this._handleAgentEvent({ type: "message_start", message: { ...finalMessage } });
+					}
+					await this._handleAgentEvent({ type: "message_end", message: finalMessage });
+					return finalMessage;
+				}
+			}
+		}
+
+		const finalMessage = await stream.result();
+		if (addedPartial) {
+			this.agent.state.messages[this.agent.state.messages.length - 1] = finalMessage;
+		} else {
+			this.agent.state.messages.push(finalMessage);
+			await this._handleAgentEvent({ type: "message_start", message: { ...finalMessage } });
+		}
+		await this._handleAgentEvent({ type: "message_end", message: finalMessage });
+		return finalMessage;
 	}
 
 	/**

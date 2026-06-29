@@ -1,4 +1,4 @@
-import type { LiteratureSourceArtifact, LiteratureSourceKind } from "../../../examples/extensions/co-math/schema.ts";
+import type { LiteratureSourceArtifact, LiteratureSourceKind } from "./schema.ts";
 
 export interface LiteratureSourceQuery {
 	rootQuestion: string;

@@ -1,3 +1,9 @@
+import {
+	getCoMathMarkdownSectionItems,
+	type CoMathParsedMarkdown as ParsedMarkdown,
+	parseCoMathMarkdown as parseMarkdown,
+} from "./comath-markdown.ts";
+import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import type {
 	CoMathProjectState,
 	ComputationalArtifact,
@@ -9,13 +15,7 @@ import type {
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
 	WorkingPaperSection,
-} from "../../../examples/extensions/co-math/schema.ts";
-import {
-	getCoMathMarkdownSectionItems,
-	type CoMathParsedMarkdown as ParsedMarkdown,
-	parseCoMathMarkdown as parseMarkdown,
-} from "./comath-markdown.ts";
-import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
+} from "./schema.ts";
 
 export type ResearchCoordinatorReportDraft = Omit<
 	ResearchCoordinatorReportRecord,

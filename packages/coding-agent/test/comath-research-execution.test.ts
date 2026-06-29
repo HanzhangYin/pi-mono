@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ResearchPath } from "../examples/extensions/co-math/schema.ts";
 import { runResearchPathRound } from "../src/modes/comath/comath-research-execution.ts";
+import type { ResearchPath } from "../src/modes/comath/schema.ts";
 
 const FIXED_NOW = "2026-06-05T12:00:00.000Z";
 

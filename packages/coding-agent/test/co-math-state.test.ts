@@ -2,7 +2,7 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { ClaimStatus, CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
+import type { ClaimStatus, CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
 	addArtifact,
 	addClaim,
@@ -13,6 +13,7 @@ import {
 	addLiteratureSourceArtifact,
 	addMarginNote,
 	addReportReviewRound,
+	addResearchBatch,
 	addResearchCoordinatorReport,
 	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
@@ -29,6 +30,7 @@ import {
 	failRoleRun,
 	failStaleResearchWorkstreamRuns,
 	finishRoleRun,
+	getActiveResearchBatch,
 	getActiveResearchPaths,
 	getActiveResearchWorkstreamRun,
 	getComputationalArtifactsForReport,
@@ -56,10 +58,11 @@ import {
 	setResearchFocus,
 	startRoleRun,
 	updateComputationalArtifact,
+	updateResearchBatch,
 	updateResearchPath,
 	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
-} from "../examples/extensions/co-math/storage.ts";
+} from "../src/modes/comath/storage.ts";
 
 const FIXED_NOW = "2026-06-05T12:00:00.000Z";
 
@@ -109,6 +112,7 @@ describe("co-math project state", () => {
 			researchPaths: [],
 			researchReports: [],
 			researchWorkstreamRuns: [],
+			researchBatches: [],
 			literatureSources: [],
 			literatureClaimSupports: [],
 			computationalArtifacts: [],
@@ -681,13 +685,13 @@ describe("co-math project state", () => {
 
 		expect(nextState.researchWorkstreamRuns.map((run) => run.status)).toEqual([
 			"running",
-			"failed",
+			"interrupted",
 			"completed",
-			"failed",
+			"interrupted",
 		]);
 		expect(nextState.researchWorkstreamRuns[0]?.failureReason).toBeUndefined();
 		expect(nextState.researchWorkstreamRuns[1]).toMatchObject({
-			status: "failed",
+			status: "interrupted",
 			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 			updatedAt: "2026-06-05T12:10:00.000Z",
 		});
@@ -696,12 +700,67 @@ describe("co-math project state", () => {
 			finalReportId: "research-report-1",
 		});
 		expect(nextState.researchWorkstreamRuns[3]).toMatchObject({
-			status: "failed",
+			status: "interrupted",
 			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 		});
 		expect(state.researchWorkstreamRuns[1]?.status).toBe("queued");
 		expect(state.researchWorkstreamRuns[3]?.status).toBe("running");
 		expect(getActiveResearchWorkstreamRun(nextState)?.id).toBe("research-run-1");
+	});
+
+	it("records bounded research batches and pauses interrupted batch runs", () => {
+		let state = addResearchPath(createProject(), {
+			id: "path-main",
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Continue the direct proof.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addResearchBatch(state, {
+			id: "research-batch-main",
+			requestedStepCount: 9,
+			initialPathId: "path-main",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchWorkstreamRun(state, {
+			id: "research-run-main",
+			pathId: "path-main",
+			pathTitle: "Direct proof attempt",
+			batchId: "research-batch-main",
+			batchStepIndex: 1,
+			status: "running",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = updateResearchBatch(state, {
+			batchId: "research-batch-main",
+			addRunId: "research-run-main",
+			currentPathId: "path-main",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+
+		const nextState = failStaleResearchWorkstreamRuns(state, {
+			activeRunIds: [],
+			now: "2026-06-05T12:10:00.000Z",
+			actor: "system",
+		});
+
+		expect(state.researchBatches[0]?.requestedStepCount).toBe(5);
+		expect(nextState.researchWorkstreamRuns[0]).toMatchObject({
+			status: "interrupted",
+			batchId: "research-batch-main",
+			batchStepIndex: 1,
+		});
+		expect(nextState.researchBatches[0]).toMatchObject({
+			status: "paused",
+			nextPathId: "path-main",
+			interruptedRunId: "research-run-main",
+		});
+		expect(getActiveResearchBatch(nextState)).toBeUndefined();
 	});
 
 	it("adds a goal with deterministic id and timestamp injection", () => {
@@ -2092,6 +2151,7 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.researchPaths;
 			delete legacyWithoutNewFields.researchReports;
 			delete legacyWithoutNewFields.researchWorkstreamRuns;
+			delete legacyWithoutNewFields.researchBatches;
 			delete legacyWithoutNewFields.literatureSources;
 			delete legacyWithoutNewFields.literatureClaimSupports;
 			delete legacyWithoutNewFields.computationalArtifacts;
@@ -2111,6 +2171,7 @@ describe("co-math project state", () => {
 			expect(loaded?.marginNotes).toEqual([]);
 			expect(loaded?.researchPaths).toEqual([]);
 			expect(loaded?.researchWorkstreamRuns).toEqual([]);
+			expect(loaded?.researchBatches).toEqual([]);
 			expect(loaded?.literatureSources).toEqual([]);
 			expect(loaded?.literatureClaimSupports).toEqual([]);
 			expect(loaded?.computationalArtifacts).toEqual([]);

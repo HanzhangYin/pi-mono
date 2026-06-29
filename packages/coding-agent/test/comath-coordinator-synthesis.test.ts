@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
+import { runResearchCoordinatorSynthesis } from "../src/modes/comath/comath-coordinator-synthesis.ts";
+import type {
+	ResearchWorkstreamModelExecutor,
+	ResearchWorkstreamModelRequest,
+} from "../src/modes/comath/comath-research-model-workstream.ts";
+import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
 	addComputationalArtifact,
 	addLiteratureClaimSupport,
@@ -7,12 +12,7 @@ import {
 	addResearchPath,
 	addResearchWorkstreamReport,
 	createEmptyProjectState,
-} from "../examples/extensions/co-math/storage.ts";
-import { runResearchCoordinatorSynthesis } from "../src/modes/comath/comath-coordinator-synthesis.ts";
-import type {
-	ResearchWorkstreamModelExecutor,
-	ResearchWorkstreamModelRequest,
-} from "../src/modes/comath/comath-research-model-workstream.ts";
+} from "../src/modes/comath/storage.ts";
 
 const NOW = "2026-06-05T12:00:00.000Z";
 

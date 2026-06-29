@@ -11,7 +11,6 @@ import { type ImageContent, modelsAreEqual } from "@earendil-works/pi-ai";
 import { ProcessTerminal, setKeybindings, TUI } from "@earendil-works/pi-tui";
 import chalk from "chalk";
 import { runCoMathBackendCommand } from "../examples/extensions/co-math/commands.ts";
-import { getDefaultStatePath } from "../examples/extensions/co-math/storage.ts";
 import { type Args, type Mode, parseArgs, printHelp } from "./cli/args.ts";
 import { processFileArguments } from "./cli/file-processor.ts";
 import { buildInitialMessage } from "./cli/initial-message.ts";
@@ -54,6 +53,7 @@ import {
 import { formatCoMathResearchActivityStatus, formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
 import { createDefaultResearchModelExecutor } from "./modes/comath/comath-research-model-executor.ts";
 import { resolveCoMathSource } from "./modes/comath/comath-source.ts";
+import { getDefaultStatePath } from "./modes/comath/storage.ts";
 import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.ts";
 import { ExtensionSelectorComponent } from "./modes/interactive/components/extension-selector.ts";
 import { initTheme, stopThemeWatcher } from "./modes/interactive/theme/theme.ts";
@@ -864,7 +864,21 @@ export async function main(args: string[], options?: MainOptions) {
 					}),
 				// Real specialist/critic/synthesizer model calls for `continue path N`; the harness
 				// falls back to deterministic execution if these fail or no model is configured.
-				researchModelExecutor: createDefaultResearchModelExecutor({ cwd: runtimeCwd }),
+				researchModelExecutor: createDefaultResearchModelExecutor({
+					getModel: () => session.model,
+					getSystemPrompt: () => session.systemPrompt,
+					streamFn: session.agent.streamFn,
+					streamAssistantMessage: (stream) => session.streamAssistantMessage(stream),
+					streamOptions: () => ({
+						reasoning: session.thinkingLevel === "off" ? undefined : session.thinkingLevel,
+						sessionId: session.sessionId,
+						onPayload: session.agent.onPayload,
+						onResponse: session.agent.onResponse,
+						transport: session.agent.transport,
+						thinkingBudgets: session.agent.thinkingBudgets,
+						maxRetryDelayMs: session.agent.maxRetryDelayMs,
+					}),
+				}),
 				onResearchWorkstreamActivityStart: (input) => coMathActivityBridge?.start(input),
 				onResearchWorkstreamActivityUpdate: (input) => coMathActivityBridge?.update(input),
 				onResearchWorkstreamActivityEnd: (input) => coMathActivityBridge?.end(input),

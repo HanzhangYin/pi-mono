@@ -1,18 +1,19 @@
+import { sanitizeProductIds } from "./comath-backend-output.ts";
+import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
+import type { CoMathSource } from "./comath-source.ts";
 import type {
 	CoMathProjectState,
 	ComputationalArtifact,
 	LiteratureClaimSupport,
 	LiteratureSourceArtifact,
+	ResearchBatchRecord,
 	ResearchCoordinatorReportRecord,
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
 	ResearchWorkstreamRunStage,
-} from "../../../examples/extensions/co-math/schema.ts";
-import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../../../examples/extensions/co-math/storage.ts";
-import { sanitizeProductIds } from "./comath-backend-output.ts";
-import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
-import type { CoMathSource } from "./comath-source.ts";
+} from "./schema.ts";
+import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "./storage.ts";
 
 export interface CoMathProductRunSummary {
 	status?: string;
@@ -193,17 +194,13 @@ export function formatProductProgress(run: CoMathProductRunSummary | undefined):
 }
 
 export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): string {
+	const firstPath = plan.paths[0];
 	return [
-		"Research workspace prepared",
+		"I’ll start working on this.",
 		"",
-		"I’ll explore several possible paths:",
-		...plan.paths.map((path, index) => `- Path ${index + 1}: ${path.title}: ${path.objective}`),
+		firstPath ? `First I’ll try: ${firstPath.title}.` : "First I’ll try a concrete research step.",
 		"",
-		"Next",
-		plan.paths[0]
-			? `Start with Path 1: ${plan.paths[0].title}. It can quickly reveal what is plausible. To begin, type:`
-			: "Start with the most concrete path. To begin, type:",
-		"continue path 1",
+		"I’ll keep alternative routes in reserve and surface findings as they become durable.",
 	].join("\n");
 }
 
@@ -346,11 +343,25 @@ export interface FormatResearchWorkstreamRunInput {
 	run: ResearchWorkstreamRunRecord;
 }
 
+export interface FormatResearchBatchInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	batch: ResearchBatchRecord;
+	run?: ResearchWorkstreamRunRecord;
+}
+
 export interface FormatResearchWorkstreamStageStartedInput {
 	state: Pick<CoMathProjectState, "researchPaths">;
 	run: Pick<ResearchWorkstreamRunRecord, "pathId" | "pathTitle">;
 	stage: ResearchWorkstreamRunStage;
 	summary: string;
+}
+
+export interface FormatResearchWorkstreamStageCompletedInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	run: Pick<ResearchWorkstreamRunRecord, "pathId" | "pathTitle">;
+	stage: ResearchWorkstreamRunStage;
+	summary: string;
+	details: readonly string[];
 }
 
 export interface FormatCoMathResearchActivityStatusInput {
@@ -371,7 +382,7 @@ export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamI
 		.filter((step): step is ResearchWorkstreamReportView["steps"][number] => step !== undefined)
 		.map((step) => `- ${step.summary}`);
 	return [
-		"Research workstream started",
+		"Research started",
 		"",
 		formatResearchReportPathLabel(input.state, input.report),
 		"",
@@ -383,11 +394,11 @@ export function formatResearchWorkstreamStarted(input: FormatResearchWorkstreamI
 export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstreamRunInput): string {
 	if (isLiteraturePathTitle(input.run.pathTitle)) {
 		return [
-			"Research workstream running in the background",
+			"I’m working on it.",
 			"",
 			formatResearchRunPathLabel(input.state, input.run),
 			"",
-			"Pi is still working on this path.",
+			"Pi is checking source-backed context for this route.",
 			"",
 			"Current stage",
 			formatResearchStage(input.run.currentStage),
@@ -401,11 +412,11 @@ export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstre
 	}
 	if (isComputationalPathTitle(input.run.pathTitle)) {
 		return [
-			"Research workstream running in the background",
+			"I’m working on it.",
 			"",
 			formatResearchRunPathLabel(input.state, input.run),
 			"",
-			"Pi is still working on this path.",
+			"Pi is running a bounded finite check and will keep the limits explicit.",
 			"",
 			"Current stage",
 			formatResearchStage(input.run.currentStage),
@@ -419,11 +430,11 @@ export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstre
 		].join("\n");
 	}
 	return [
-		"Research workstream running in the background",
+		"I’m working on it.",
 		"",
 		formatResearchRunPathLabel(input.state, input.run),
 		"",
-		"Pi is still working on this path.",
+		"Pi is trying this route and will report the gaps as it finds them.",
 		"",
 		"Current stage",
 		formatResearchStage(input.run.currentStage),
@@ -440,7 +451,7 @@ export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstre
 export function formatResearchWorkstreamRunProgress(input: FormatResearchWorkstreamRunInput): string {
 	const latest = input.run.incrementalReports.at(-1);
 	return [
-		`Research workstream ${formatResearchRunStatus(input.run.status)}`,
+		`Research step ${formatResearchRunStatus(input.run.status)}`,
 		"",
 		formatResearchRunPathLabel(input.state, input.run),
 		"",
@@ -483,6 +494,22 @@ export function formatResearchWorkstreamStageStarted(input: FormatResearchWorkst
 	].join("\n");
 }
 
+export function formatResearchWorkstreamStageCompleted(input: FormatResearchWorkstreamStageCompletedInput): string {
+	const details = input.details.map(sanitizeForegroundStageText).filter((detail) => detail.length > 0);
+	return [
+		"Research step update",
+		"",
+		formatResearchRunPathLabel(input.state, input.run),
+		"",
+		"Completed stage",
+		formatResearchStage(input.stage),
+		"",
+		"Result",
+		`- ${sanitizeForegroundStageText(input.summary)}`,
+		...details.slice(0, 2).map((detail) => `- ${detail}`),
+	].join("\n");
+}
+
 export function formatResearchWorkstreamRunStillRunningReport(input: FormatResearchWorkstreamRunInput): string {
 	return [
 		"Latest research report is still running.",
@@ -504,8 +531,23 @@ export function formatResearchWorkstreamRunFailed(input: FormatResearchWorkstrea
 	const pathIndex = input.state.researchPaths.findIndex((candidate) => candidate.id === input.run.pathId);
 	const isStale = input.run.failureReason === STALE_RESEARCH_WORKSTREAM_RUN_REASON;
 	const retryCommand = pathIndex >= 0 ? `continue path ${pathIndex + 1}` : undefined;
+	if (input.run.status === "interrupted") {
+		return [
+			"Research step interrupted",
+			"",
+			formatResearchRunPathLabel(input.state, input.run),
+			"",
+			"Reason",
+			input.run.failureReason ?? STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+			"",
+			"Recovery",
+			...(isStale ? ["- The earlier Pi session ended before this path finished."] : []),
+			retryCommand ? `- Re-run this path: ${retryCommand}` : '- Try another path or say "show research state".',
+			'- Inspect progress with "show latest report".',
+		].join("\n");
+	}
 	return [
-		"Research workstream failed",
+		"Research step failed",
 		"",
 		formatResearchRunPathLabel(input.state, input.run),
 		"",
@@ -519,9 +561,97 @@ export function formatResearchWorkstreamRunFailed(input: FormatResearchWorkstrea
 	].join("\n");
 }
 
+export function formatResearchBatchStarted(input: FormatResearchBatchInput): string {
+	return [
+		`I’ll take ${input.batch.requestedStepCount} research ${input.batch.requestedStepCount === 1 ? "step" : "steps"}.`,
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		input.batch.nextPathId
+			? `First path: ${formatResearchBatchPath(input.state, input.batch.nextPathId)}`
+			: "First path: Pi will choose the best available research path.",
+		"",
+		'Say "show progress" for the latest status.',
+	].join("\n");
+}
+
+export function formatResearchBatchProgress(input: FormatResearchBatchInput): string {
+	const run = input.run;
+	return [
+		`Research steps ${input.batch.status}`,
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		run ? `Current path: ${formatResearchRunPathLabel(input.state, run)}` : formatResearchBatchNextPathLine(input),
+		...(run ? ["", "Current stage", formatResearchStage(run.currentStage)] : []),
+		"",
+		input.batch.status === "paused"
+			? 'This run is paused. Say "resume research" to retry from the last durable boundary.'
+			: 'Say "show progress" for the latest status.',
+	].join("\n");
+}
+
+export function formatResearchBatchStepCompleted(input: FormatResearchBatchInput): string {
+	return [
+		"Research step completed",
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		formatResearchBatchNextPathLine(input),
+	].join("\n");
+}
+
+export function formatResearchBatchPaused(input: FormatResearchBatchInput): string {
+	return [
+		"Research paused",
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		input.run
+			? `Interrupted path: ${formatResearchRunPathLabel(input.state, input.run)}`
+			: formatResearchBatchNextPathLine(input),
+		"",
+		"Reason",
+		input.run?.failureReason ?? STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+		"",
+		"Next command",
+		"resume research",
+	].join("\n");
+}
+
+export function formatResearchBatchCompleted(input: FormatResearchBatchInput): string {
+	return [
+		"Research steps completed",
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		'Say "show latest report" for the latest durable report.',
+	].join("\n");
+}
+
+export function formatResearchBatchCancelled(input: FormatResearchBatchInput): string {
+	return [
+		"Research steps cancelled",
+		"",
+		formatResearchBatchStepCount(input.batch),
+		...(input.batch.cancelReason ? ["", "Reason", input.batch.cancelReason] : []),
+	].join("\n");
+}
+
+export function formatResearchBatchFailed(input: FormatResearchBatchInput): string {
+	return [
+		"Research steps failed",
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		"Reason",
+		input.batch.failureReason ?? "Pi could not choose another research path.",
+	].join("\n");
+}
+
 export function formatResearchWorkstreamAlreadyRunning(input: FormatResearchWorkstreamRunInput): string {
 	return [
-		`A research workstream is already running on ${formatResearchRunPathLabel(input.state, input.run)}.`,
+		`I’m already working on ${formatResearchRunPathLabel(input.state, input.run)}.`,
 		'Say "show progress" to inspect it, or wait for it to finish.',
 	].join("\n");
 }
@@ -691,6 +821,12 @@ function stripInlineSourceLabels(value: string): string {
 	return value
 		.replace(/\s*\[source-\d+\]/g, "")
 		.replace(/\s+/g, " ")
+		.trim();
+}
+
+function sanitizeForegroundStageText(value: string): string {
+	return stripInlineSourceLabels(value)
+		.replace(/\bsource-\d+:\s*/gi, "")
 		.trim();
 }
 
@@ -883,6 +1019,26 @@ function formatResearchRunPathLabel(
 	return pathIndex >= 0 ? `Path ${pathIndex + 1}: ${run.pathTitle}` : run.pathTitle;
 }
 
+function formatResearchBatchStepCount(batch: ResearchBatchRecord): string {
+	return `Progress: ${batch.completedStepCount}/${batch.requestedStepCount} steps`;
+}
+
+function formatResearchBatchNextPathLine(input: FormatResearchBatchInput): string {
+	if (input.batch.nextPathId) {
+		return `Next path: ${formatResearchBatchPath(input.state, input.batch.nextPathId)}`;
+	}
+	return "Next path: Pi will choose the best available research path.";
+}
+
+function formatResearchBatchPath(state: Pick<CoMathProjectState, "researchPaths">, pathId: string): string {
+	const path = state.researchPaths.find((candidate) => candidate.id === pathId);
+	if (!path) {
+		return "selected path";
+	}
+	const index = state.researchPaths.findIndex((candidate) => candidate.id === path.id);
+	return index >= 0 ? `Path ${index + 1}: ${path.title}` : path.title;
+}
+
 function formatResearchRunStatus(status: ResearchWorkstreamRunRecord["status"]): string {
 	if (status === "queued") {
 		return "queued";
@@ -895,6 +1051,9 @@ function formatResearchRunStatus(status: ResearchWorkstreamRunRecord["status"]):
 	}
 	if (status === "blocked") {
 		return "blocked";
+	}
+	if (status === "interrupted") {
+		return "interrupted";
 	}
 	return "failed";
 }

@@ -2,19 +2,6 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { CoMathProjectState } from "../examples/extensions/co-math/schema.ts";
-import {
-	addComputationalArtifact,
-	addLiteratureClaimSupport,
-	addResearchPath,
-	addResearchWorkstreamIncrementalReport,
-	addResearchWorkstreamReport,
-	addResearchWorkstreamRun,
-	createEmptyProjectState,
-	loadProjectState,
-	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
-	saveProjectState,
-} from "../examples/extensions/co-math/storage.ts";
 import type {
 	ComputationalExecutionResult,
 	ComputationalExecutor,
@@ -30,6 +17,20 @@ import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
+import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
+import {
+	addComputationalArtifact,
+	addLiteratureClaimSupport,
+	addResearchBatch,
+	addResearchPath,
+	addResearchWorkstreamIncrementalReport,
+	addResearchWorkstreamReport,
+	addResearchWorkstreamRun,
+	createEmptyProjectState,
+	loadProjectState,
+	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+	saveProjectState,
+} from "../src/modes/comath/storage.ts";
 
 const OK: CoMathBackendCommandResult = { ok: true, messages: [] };
 
@@ -71,6 +72,7 @@ async function createResearchHarnessFixture(): Promise<{
 	const notices: string[] = [];
 	const harness = new CoMathHarness({
 		statePath,
+		startFirstRun: false,
 		notify: (message) => {
 			notices.push(message);
 		},
@@ -484,6 +486,7 @@ async function createModelHarnessFixture(
 	const notices: string[] = [];
 	const harness = new CoMathHarness({
 		statePath,
+		startFirstRun: false,
 		notify: (message) => {
 			notices.push(message);
 		},
@@ -534,6 +537,32 @@ async function loadRequiredProjectState(statePath: string) {
 	if (!state) {
 		throw new Error("Expected co-math project state to exist.");
 	}
+	return state;
+}
+
+function createTwinPrimeResearchState(): CoMathProjectState {
+	let state = createEmptyProjectState({
+		projectId: "proj-test",
+		title: "Are there infinitely many twin primes?",
+		rootQuestion: "Are there infinitely many twin primes?",
+		now: "2026-06-05T12:00:00.000Z",
+	});
+	state = addResearchPath(state, {
+		title: "Small examples and counterexamples",
+		objective: "List initial examples.",
+		suggestedNextMove: "Compute more examples.",
+		priority: 1,
+		now: "2026-06-05T12:00:00.000Z",
+		actor: "human",
+	});
+	state = addResearchPath(state, {
+		title: "Direct proof attempt",
+		objective: "Try a direct proof.",
+		suggestedNextMove: "Check whether simple arguments apply or fail.",
+		priority: 2,
+		now: "2026-06-05T12:00:00.000Z",
+		actor: "human",
+	});
 	return state;
 }
 
@@ -680,11 +709,59 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research workspace prepared");
-			expect(visible).toContain("Path 1: Small examples and counterexamples");
+			expect(visible).toContain("I’ll start working on this.");
 			expect(visible).toContain("Small examples and counterexamples");
-			expect(visible).toContain("Direct proof attempt");
-			expect(visible).toContain("Next");
+			expect(visible).toContain("alternative routes");
+			expect(visible).not.toContain("continue path 1");
+			expectProductCopy(visible);
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("starts the first research step by default for a fresh math prompt", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-default-research-harness-"));
+		const statePath = join(dir, ".pi", "co-math", "state.json");
+		const commands: string[] = [];
+		const notices: string[] = [];
+		const harness = new CoMathHarness({
+			statePath,
+			notify: (message) => {
+				notices.push(message);
+			},
+			runBackendCommand: async (command) => {
+				commands.push(command);
+				if (command.startsWith("init ")) {
+					await saveProjectState(
+						statePath,
+						createEmptyProjectState({
+							projectId: "proj-test",
+							title: command.slice("init ".length),
+							rootQuestion: command.slice("init ".length),
+							now: "2026-06-05T12:00:00.000Z",
+						}),
+					);
+				}
+				return OK;
+			},
+		});
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
+			expect(state.researchWorkstreamRuns).toHaveLength(1);
+			expect(state.researchWorkstreamRuns[0]).toMatchObject({
+				pathTitle: "Small examples and counterexamples",
+				status: "completed",
+			});
+			expect(state.researchReports).toHaveLength(1);
+			const visible = notices.join("\n");
+			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).toContain("Research step update");
+			expect(visible).toContain("Research run completed");
+			expect(visible).not.toContain("continue path 1");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 		} finally {
@@ -701,9 +778,9 @@ describe("co-math harness", () => {
 			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
 			expect(state.researchPaths[0]?.title).toBe("Small examples and counterexamples");
 			const visible = notices.join("\n");
-			expect(visible).toContain("This looks like a math research question");
-			expect(visible).toContain("Research workspace prepared");
-			expect(visible).toContain("continue path 1");
+			expect(visible).toContain("I’ll start working on this as a math research problem.");
+			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).not.toContain("continue path 1");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 		} finally {
@@ -719,7 +796,7 @@ describe("co-math harness", () => {
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("I’ll start working on this.");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init there are infinitely many twin primes?"]);
 		} finally {
@@ -883,9 +960,9 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("I’ll start working on this.");
 			expect(visible).toContain("Small examples and counterexamples");
-			expect(visible).toContain("Direct proof attempt");
+			expect(visible).toContain("alternative routes");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 			expect(commands.some((command) => command.startsWith("workstream "))).toBe(false);
@@ -905,7 +982,7 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Pi math validation help");
-			expect(visible).toContain("Research workspace prepared");
+			expect(visible).toContain("I’ll start working on this.");
 			expectProductCopy(visible);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 		} finally {
@@ -1221,7 +1298,7 @@ describe("co-math harness", () => {
 			expect(report?.workingPaperSectionId).toBeTruthy();
 
 			const visible = notices.join("\n");
-			expect(visible).toContain("Research workstream started");
+			expect(visible).toContain("Research started");
 			expect(visible).toContain("Research run completed");
 			expect(visible).toContain("Promising strategy");
 			expect(visible).toContain("Review");
@@ -1548,7 +1625,7 @@ describe("co-math harness", () => {
 			expect(state.researchReports).toEqual([]);
 			expect(state.researchWorkstreamRuns).toHaveLength(1);
 			expect(state.researchWorkstreamRuns[0]?.pathTitle).toBe("Direct proof attempt");
-			expect(notices.join("\n")).toContain("Research workstream running in the background");
+			expect(notices.join("\n")).toContain("I’m working on it.");
 
 			await waitForCondition("specialist request", () => deferred.requests.length >= 1);
 			expect(notices.join("\n")).toContain("Research update");
@@ -1558,7 +1635,7 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("show progress");
 			await harness.handlePrompt("show latest report");
 			const activeVisible = notices.slice(beforeProgress).join("\n");
-			expect(activeVisible).toContain("Research workstream running");
+			expect(activeVisible).toContain("Research step running");
 			expect(activeVisible).toContain("Trying the research path");
 			expect(activeVisible).toContain("Report: not ready yet");
 			expect(activeVisible).toContain("Latest research report is still running");
@@ -1567,7 +1644,7 @@ describe("co-math harness", () => {
 
 			const beforeSecondContinue = notices.length;
 			await harness.handlePrompt("continue path 1");
-			expect(notices.slice(beforeSecondContinue).join("\n")).toContain("already running on Path 2");
+			expect(notices.slice(beforeSecondContinue).join("\n")).toContain("already working on Path 2");
 			expect(deferred.requests).toHaveLength(1);
 
 			deferred.resolveNext(TWIN_PRIME_MODEL_RESPONSES.specialist);
@@ -1723,7 +1800,7 @@ describe("co-math harness", () => {
 			const before = notices.length;
 			await harness.handlePrompt("show progress");
 			const visible = notices.slice(before).join("\n");
-			expect(visible).toContain("Research workstream running");
+			expect(visible).toContain("Research step running");
 			expect(visible).toContain("Path 5: Known theorem or literature reduction");
 			expect(visible).toContain("Searching references");
 			expect(visible).toContain("Literature specialist is looking for relevant sources.");
@@ -2079,7 +2156,7 @@ describe("co-math harness", () => {
 			const before = notices.length;
 			await harness.handlePrompt("show progress");
 			const visible = notices.slice(before).join("\n");
-			expect(visible).toContain("Research workstream running");
+			expect(visible).toContain("Research step running");
 			expect(visible).toContain("Path 1: Small examples and counterexamples");
 			expect(visible).toContain("Current stage");
 			expect(visible).toContain("Running finite computation");
@@ -2140,7 +2217,7 @@ describe("co-math harness", () => {
 		}
 	});
 
-	it("fails stale interrupted research runs before starting a new continue path", async () => {
+	it("marks stale interrupted research runs before starting a new continue path", async () => {
 		const { executor, roles } = createTwinPrimeExecutor();
 		const activityEvents: string[] = [];
 		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, undefined, undefined, {
@@ -2202,7 +2279,7 @@ describe("co-math harness", () => {
 			const nextState = await loadRequiredProjectState(statePath);
 			expect(nextState.researchWorkstreamRuns).toHaveLength(2);
 			expect(nextState.researchWorkstreamRuns[0]).toMatchObject({
-				status: "failed",
+				status: "interrupted",
 				failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 			});
 			expect(nextState.researchWorkstreamRuns[1]).toMatchObject({
@@ -2223,10 +2300,210 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Previous Pi session ended before completion.");
 			// Paper checkpoint: stale runs surface explicit, executable recovery.
 			expect(visible).toContain("Recovery");
-			expect(visible).toContain("This earlier run is stale");
+			expect(visible).toContain("Research step interrupted");
 			expect(visible).toContain("Research run completed");
-			expect(visible).not.toContain("already running on Path 1");
+			expect(visible).not.toContain("already working on Path 1");
 			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("runs a deterministic bounded research batch and records run linkage", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await saveProjectState(statePath, createTwinPrimeResearchState());
+
+			await harness.handlePrompt("work on path 2 for 2 steps");
+			await waitForProjectState(statePath, "completed deterministic bounded research run", (state) =>
+				Boolean(state?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 2,
+				completedStepCount: 2,
+				runIds: ["research-run-1", "research-run-2"],
+				initialPathId: "path-2",
+			});
+			expect(state.researchWorkstreamRuns).toHaveLength(2);
+			expect(state.researchWorkstreamRuns.map((run) => run.batchId)).toEqual([
+				"research-batch-1",
+				"research-batch-1",
+			]);
+			expect(state.researchWorkstreamRuns.map((run) => run.batchStepIndex)).toEqual([1, 2]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("I’ll take 2 research steps.");
+			expect(visible).toContain("Research step update");
+			expect(visible).toContain("Completed stage");
+			expect(visible).toContain("Trying the research path");
+			expect(visible).toContain("Writing the summary");
+			expect(visible).toContain("Research steps completed");
+			expect(visible).not.toContain("research-batch-1");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("starts research from an explicit explore prompt even when validation state already exists", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await saveProjectState(
+				statePath,
+				createEmptyProjectState({
+					projectId: "proj-test",
+					title: "Old validation workspace",
+					rootQuestion: "Validate a previous claim.",
+					now: "2026-06-05T12:00:00.000Z",
+				}),
+			);
+
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("work for 1 step");
+			await waitForProjectState(statePath, "completed explicit research batch after old validation state", (state) =>
+				Boolean(state?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.rootQuestion).toBe("Are there infinitely many primes of the form n^2 + 1?");
+			expect(state.researchPaths.length).toBeGreaterThan(0);
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 1,
+				completedStepCount: 1,
+			});
+			expect(commands).not.toContain(
+				"note project: Explore this problem: Are there infinitely many primes of the form n^2 + 1?",
+			);
+			const visible = notices.join("\n");
+			expect(visible).toContain("I’ll start working on this.");
+			expect(visible).toContain("Research steps completed");
+			expect(visible).not.toContain("validation context");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("runs model-backed bounded research steps sequentially", async () => {
+		const { executor, roles } = createTwinPrimeExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await saveProjectState(statePath, createTwinPrimeResearchState());
+
+			await harness.handlePrompt("run 2 research steps");
+			await waitForProjectState(statePath, "completed model bounded research run", (state) =>
+				Boolean(state?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(roles).toEqual(["specialist", "critic", "synthesizer", "specialist", "critic", "synthesizer"]);
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 2,
+				completedStepCount: 2,
+				runIds: ["research-run-1", "research-run-2"],
+			});
+			expect(state.researchWorkstreamRuns.map((run) => run.status)).toEqual(["completed", "completed"]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research step update");
+			expect(visible).toContain("Twin primes are prime pairs at distance 2");
+			expect(visible).toContain("The specialist did not prove infinitude of twin primes");
+			expect(visible).toContain("Research steps completed");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("pauses an interrupted bounded research batch and resumes from a new run", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			let state = createTwinPrimeResearchState();
+			state = addResearchBatch(state, {
+				id: "research-batch-main",
+				requestedStepCount: 2,
+				initialPathId: "path-2",
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = addResearchWorkstreamRun(state, {
+				id: "research-run-interrupted",
+				pathId: "path-2",
+				pathTitle: "Direct proof attempt",
+				status: "running",
+				currentStage: "specialist",
+				batchId: "research-batch-main",
+				batchStepIndex: 1,
+				now: "2026-06-05T12:01:00.000Z",
+				actor: "system",
+			});
+			await saveProjectState(statePath, state);
+
+			await harness.handlePrompt("show progress");
+			let nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchWorkstreamRuns[0]).toMatchObject({
+				status: "interrupted",
+				batchId: "research-batch-main",
+			});
+			expect(nextState.researchBatches[0]).toMatchObject({
+				status: "paused",
+				nextPathId: "path-2",
+				interruptedRunId: "research-run-interrupted",
+			});
+			expect(notices.join("\n")).toContain("resume research");
+
+			await harness.handlePrompt("resume research");
+			await waitForProjectState(statePath, "completed resumed bounded research run", (candidate) =>
+				Boolean(candidate?.researchBatches[0]?.status === "completed"),
+			);
+
+			nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchWorkstreamRuns).toHaveLength(3);
+			expect(nextState.researchWorkstreamRuns[1]).toMatchObject({
+				status: "completed",
+				pathId: "path-2",
+				batchId: "research-batch-main",
+				batchStepIndex: 1,
+			});
+			expect(nextState.researchBatches[0]).toMatchObject({
+				status: "completed",
+				completedStepCount: 2,
+				runIds: ["research-run-2", "research-run-3"],
+			});
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("blocks duplicate bounded research starts while a batch step is active", async () => {
+		const { executor, requests, resolveNext } = createDeferredExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		try {
+			await saveProjectState(statePath, createTwinPrimeResearchState());
+
+			await harness.handlePrompt("work for 1 step");
+			await waitForCondition("first bounded model request", () => requests.length === 1);
+
+			await harness.handlePrompt("work for 1 step");
+			expect(notices.join("\n")).toContain("already working");
+
+			resolveNext(TWIN_PRIME_MODEL_RESPONSES.specialist);
+			await waitForCondition("bounded critic request", () => requests.length === 2);
+			resolveNext(TWIN_PRIME_MODEL_RESPONSES.critic);
+			await waitForCondition("bounded synthesizer request", () => requests.length === 3);
+			resolveNext(TWIN_PRIME_MODEL_RESPONSES.synthesizer);
+			await waitForProjectState(statePath, "completed duplicate-blocked bounded research run", (state) =>
+				Boolean(state?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchBatches).toHaveLength(1);
+			expect(state.researchWorkstreamRuns).toHaveLength(1);
+			expectProductCopy(notices.join("\n"));
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

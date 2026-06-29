@@ -3,25 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runCoMathBackendCommand } from "../examples/extensions/co-math/commands.ts";
-import type {
-	CoMathProjectState,
-	LiteratureClaimSupport,
-	ResearchPath,
-	ResearchWorkstreamRunRecord,
-} from "../examples/extensions/co-math/schema.ts";
-import {
-	addClaim,
-	addMarginNote,
-	createEmptyProjectState,
-	getDefaultStatePath,
-	isClaimSynthesisEligible,
-	loadProjectState,
-	resolveMarginNote,
-	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
-	saveProjectState,
-	startRoleRun,
-	upsertWorkingPaperSectionByTitle,
-} from "../examples/extensions/co-math/storage.ts";
 import {
 	extractRunSummary,
 	formatProductReport,
@@ -37,6 +18,25 @@ import {
 	isResearchCoordinatorPrompt,
 	parseNaturalResearchQuestion,
 } from "../src/modes/comath/comath-prompts.ts";
+import type {
+	CoMathProjectState,
+	LiteratureClaimSupport,
+	ResearchPath,
+	ResearchWorkstreamRunRecord,
+} from "../src/modes/comath/schema.ts";
+import {
+	addClaim,
+	addMarginNote,
+	createEmptyProjectState,
+	getDefaultStatePath,
+	isClaimSynthesisEligible,
+	loadProjectState,
+	resolveMarginNote,
+	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+	saveProjectState,
+	startRoleRun,
+	upsertWorkingPaperSectionByTitle,
+} from "../src/modes/comath/storage.ts";
 
 const NOW = "2026-06-16T00:00:00.000Z";
 
@@ -180,11 +180,11 @@ describe("co-math paper alignment checkpoint", () => {
 		const path = createCheckpointResearchPath();
 		const staleRun: ResearchWorkstreamRunRecord = {
 			...createRunningRun(path),
-			status: "failed",
+			status: "interrupted",
 			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 		};
 		const failed = formatResearchWorkstreamRunFailed({ state: { researchPaths: [path] }, run: staleRun });
-		expect(failed).toContain("stale");
+		expect(failed).toContain("interrupted");
 		expect(failed).toContain("Recovery");
 		expect(failed).toContain("continue path 1");
 

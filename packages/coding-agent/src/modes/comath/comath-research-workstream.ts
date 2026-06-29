@@ -1,9 +1,5 @@
-import type {
-	ResearchPath,
-	ResearchWorkstreamReportStatus,
-	ResearchWorkstreamStepRecord,
-} from "../../../examples/extensions/co-math/schema.ts";
 import { type ResearchRoundResult, runResearchPathRound } from "./comath-research-execution.ts";
+import type { ResearchPath, ResearchWorkstreamReportStatus, ResearchWorkstreamStepRecord } from "./schema.ts";
 
 export type ResearchWorkstreamStep = ResearchWorkstreamStepRecord;
 

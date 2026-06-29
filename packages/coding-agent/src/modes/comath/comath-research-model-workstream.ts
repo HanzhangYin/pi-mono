@@ -1,4 +1,3 @@
-import type { ResearchPath, ResearchWorkstreamRunStage } from "../../../examples/extensions/co-math/schema.ts";
 import {
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
@@ -9,6 +8,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
+import type { ResearchPath, ResearchWorkstreamRunStage } from "./schema.ts";
 
 export type ResearchWorkstreamModelRole = "specialist" | "critic" | "synthesizer";
 

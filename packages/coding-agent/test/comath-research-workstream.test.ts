@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { ResearchPath } from "../examples/extensions/co-math/schema.ts";
 import { createCoMathResearchAutoPlan } from "../src/modes/comath/comath-research-autoplan.ts";
 import { runResearchWorkstream } from "../src/modes/comath/comath-research-workstream.ts";
+import type { ResearchPath } from "../src/modes/comath/schema.ts";
 
 const ROOT_QUESTION = "Are there infinitely many primes of the form n^2 + 1?";
 

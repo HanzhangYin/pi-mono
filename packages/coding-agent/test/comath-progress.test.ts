@@ -1,11 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type {
-	ComputationalArtifact,
-	ResearchPath,
-	ResearchWorkstreamReportRecord,
-	ResearchWorkstreamRunRecord,
-} from "../examples/extensions/co-math/schema.ts";
-import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../examples/extensions/co-math/storage.ts";
 import {
 	formatBackgroundRunStarted,
 	formatCoMathProductHelp,
@@ -19,6 +12,10 @@ import {
 	formatProductActivity,
 	formatProductProgress,
 	formatReadyForContext,
+	formatResearchBatchCompleted,
+	formatResearchBatchPaused,
+	formatResearchBatchStarted,
+	formatResearchBatchStepCompleted,
 	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
 	formatResearchPathDropped,
@@ -41,6 +38,14 @@ import {
 } from "../src/modes/comath/comath-progress.ts";
 import { createCoMathResearchAutoPlan } from "../src/modes/comath/comath-research-autoplan.ts";
 import { runResearchWorkstream } from "../src/modes/comath/comath-research-workstream.ts";
+import type {
+	ComputationalArtifact,
+	ResearchBatchRecord,
+	ResearchPath,
+	ResearchWorkstreamReportRecord,
+	ResearchWorkstreamRunRecord,
+} from "../src/modes/comath/schema.ts";
+import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "../src/modes/comath/storage.ts";
 
 const FORBIDDEN_PRODUCT_TERMS = [
 	"Co-math research mode",
@@ -232,10 +237,10 @@ describe("co-math product messages", () => {
 	it("formats research workspace and state summaries without internal terms", () => {
 		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
 		const workspace = formatResearchWorkspacePrepared(plan);
-		expect(workspace).toContain("Research workspace prepared");
-		expect(workspace).toContain("Path 1: Small examples and counterexamples");
-		expect(workspace).toContain("Next");
-		expect(workspace).toContain("continue path 1");
+		expect(workspace).toContain("I’ll start working on this.");
+		expect(workspace).toContain("Small examples and counterexamples");
+		expect(workspace).toContain("alternative routes");
+		expect(workspace).not.toContain("continue path 1");
 		expectProductCopy(workspace);
 
 		const registered = formatUserProvidedLiteratureSourceRegistered({
@@ -346,7 +351,7 @@ describe("co-math product messages", () => {
 		const state = { researchPaths: paths };
 
 		const started = formatResearchWorkstreamStarted({ state, report });
-		expect(started).toContain("Research workstream started");
+		expect(started).toContain("Research started");
 		expect(started).toContain("Path 2: Direct proof attempt");
 		expect(started).toContain("Progress");
 		expectProductCopy(started);
@@ -478,8 +483,8 @@ describe("co-math product messages", () => {
 		const state = { researchPaths: [path] };
 
 		const started = formatResearchWorkstreamRunStarted({ state, run });
-		expect(started).toContain("Research workstream running in the background");
-		expect(started).toContain("Pi is still working on this path.");
+		expect(started).toContain("I’m working on it.");
+		expect(started).toContain("Pi is running a bounded finite check");
 		expect(started).toContain("Current stage\nChoosing the plan");
 		expect(started).toContain('Say "show progress" for the latest status.');
 		expectProductCopy(started);
@@ -508,7 +513,7 @@ describe("co-math product messages", () => {
 		const run = createRunningResearchWorkstreamRun(path);
 		const progress = formatResearchWorkstreamRunProgress({ state: { researchPaths: [path] }, run });
 
-		expect(progress).toContain("Research workstream running");
+		expect(progress).toContain("Research step running");
 		expect(progress).toContain("Path 1: Direct proof attempt");
 		expect(progress).toContain("Pi is still working in the background. You can keep typing.");
 		expect(progress).toContain("Current stage");
@@ -978,7 +983,7 @@ describe("co-math product messages", () => {
 		};
 		const warning = formatResearchWorkstreamRunFailed({ state: { researchPaths: [path] }, run });
 
-		expect(warning).toContain("Research workstream failed");
+		expect(warning).toContain("Research step failed");
 		expect(warning).toContain("Path 1: Direct proof attempt");
 		expect(warning).toContain("The research attempt stopped before producing a final report.");
 		expect(warning).not.toContain("research-run-1");
@@ -989,16 +994,62 @@ describe("co-math product messages", () => {
 		const path = createResearchPath();
 		const run: ResearchWorkstreamRunRecord = {
 			...createRunningResearchWorkstreamRun(path),
-			status: "failed",
+			status: "interrupted",
 			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 		};
 		const warning = formatResearchWorkstreamRunFailed({ state: { researchPaths: [path] }, run });
 
-		expect(warning).toContain("Research workstream failed");
+		expect(warning).toContain("Research step interrupted");
 		expect(warning).toContain("Path 1: Direct proof attempt");
 		expect(warning).toContain("Previous Pi session ended before completion.");
 		expect(warning).not.toContain("research-run-1");
 		expectProductCopy(warning);
+	});
+
+	it("formats bounded research run progress without internal ids", () => {
+		const path = createResearchPath();
+		const batch: ResearchBatchRecord = {
+			id: "research-batch-1",
+			status: "running",
+			requestedStepCount: 3,
+			completedStepCount: 1,
+			runIds: ["research-run-1"],
+			nextPathId: path.id,
+			createdAt: "2026-06-05T12:00:00.000Z",
+			startedAt: "2026-06-05T12:00:00.000Z",
+			updatedAt: "2026-06-05T12:05:00.000Z",
+		};
+
+		const started = formatResearchBatchStarted({ state: { researchPaths: [path] }, batch });
+		const step = formatResearchBatchStepCompleted({ state: { researchPaths: [path] }, batch });
+		const completed = formatResearchBatchCompleted({
+			state: { researchPaths: [path] },
+			batch: { ...batch, status: "completed", completedStepCount: 3 },
+		});
+		const paused = formatResearchBatchPaused({
+			state: { researchPaths: [path] },
+			batch: {
+				...batch,
+				status: "paused",
+				interruptedRunId: "research-run-2",
+			},
+			run: {
+				...createRunningResearchWorkstreamRun(path),
+				id: "research-run-2",
+				status: "interrupted",
+				failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
+			},
+		});
+
+		for (const text of [started, step, completed, paused]) {
+			expect(text).not.toContain("research-batch-1");
+			expect(text).not.toContain("research-run-");
+			expectProductCopy(text);
+		}
+		expect(started).toContain("I’ll take 3 research steps.");
+		expect(completed).toContain("Research steps completed");
+		expect(paused).toContain("Research paused");
+		expect(paused).toContain("resume research");
 	});
 });
 

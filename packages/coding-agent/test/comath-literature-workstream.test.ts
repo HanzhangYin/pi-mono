@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { ResearchPath } from "../examples/extensions/co-math/schema.ts";
 import type {
 	LiteratureSourceLookup,
 	LiteratureSourceQuery,
@@ -10,6 +9,7 @@ import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
+import type { ResearchPath } from "../src/modes/comath/schema.ts";
 
 const TWIN_PRIME_QUESTION = "Are there infinitely many twin primes?";
 const N_SQUARED_PLUS_ONE_QUESTION = "Are there infinitely many primes of the form n^2 + 1?";

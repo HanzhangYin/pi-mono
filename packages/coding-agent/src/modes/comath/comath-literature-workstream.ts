@@ -1,4 +1,3 @@
-import type { LiteratureClaimSupportStatus, ResearchPath } from "../../../examples/extensions/co-math/schema.ts";
 import {
 	formatLiteratureSourceForPrompt,
 	type LiteratureSourceLookup,
@@ -19,6 +18,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
+import type { LiteratureClaimSupportStatus, ResearchPath } from "./schema.ts";
 
 export interface LiteratureClaimSupportDraft {
 	claim: string;

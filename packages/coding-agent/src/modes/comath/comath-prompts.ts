@@ -34,6 +34,53 @@ export interface ParsedUserProvidedLiteratureSource {
 	text: string;
 }
 
+export interface ParsedResearchBatchPrompt {
+	requestedStepCount: number;
+	pathNumber?: number;
+}
+
+const MAX_RESEARCH_BATCH_STEPS = 5;
+const DEFAULT_FEW_RESEARCH_BATCH_STEPS = 3;
+
+export function parseResearchBatchPrompt(prompt: string): ParsedResearchBatchPrompt | undefined {
+	const normalized = normalizeCoMathPrompt(prompt).toLowerCase();
+	const explicitPathMatch = /^work on path (\d+) for (?:a few|(\d+)) steps?$/i.exec(normalized);
+	if (explicitPathMatch?.[1]) {
+		const pathNumber = Number.parseInt(explicitPathMatch[1], 10);
+		const requestedStepCount = parseResearchBatchStepCount(explicitPathMatch[2]);
+		return pathNumber > 0 ? { pathNumber, requestedStepCount } : undefined;
+	}
+	const forStepsMatch = /^(?:work|continue) for (?:a few|(\d+)) steps?$/i.exec(normalized);
+	if (forStepsMatch) {
+		return { requestedStepCount: parseResearchBatchStepCount(forStepsMatch[1]) };
+	}
+	const runStepsMatch = /^run (?:a few|(\d+)) research steps?$/i.exec(normalized);
+	if (runStepsMatch) {
+		return { requestedStepCount: parseResearchBatchStepCount(runStepsMatch[1]) };
+	}
+	return undefined;
+}
+
+export function isResumeResearchBatchPrompt(prompt: string): boolean {
+	return /^(?:resume research|resume batch)$/i.test(normalizeCoMathPrompt(prompt));
+}
+
+export function parseCancelResearchBatchPrompt(prompt: string): string | undefined {
+	const match = /^cancel batch:\s*(.+)$/i.exec(normalizeCoMathPrompt(prompt));
+	return match?.[1]?.trim() || undefined;
+}
+
+function parseResearchBatchStepCount(value: string | undefined): number {
+	if (!value) {
+		return DEFAULT_FEW_RESEARCH_BATCH_STEPS;
+	}
+	const parsed = Number.parseInt(value, 10);
+	if (!Number.isFinite(parsed)) {
+		return DEFAULT_FEW_RESEARCH_BATCH_STEPS;
+	}
+	return Math.min(MAX_RESEARCH_BATCH_STEPS, Math.max(1, parsed));
+}
+
 /** `show progress`, `status`, `what are you doing`, `show latest run`, and polite variants. */
 export function isShowProgressPrompt(prompt: string): boolean {
 	return /^(?:show (?:the )?(?:current )?progress|status|what are you doing\??|show (?:the )?latest run)$/i.test(
@@ -94,7 +141,7 @@ export function parseUserProvidedLiteratureSourcePrompt(
 		isShowLatestReportPrompt(stripped) ||
 		isShowReportForPathPrompt(stripped) !== undefined ||
 		isShowLatestCoordinatorReportPrompt(stripped) ||
-		/^(?:continue|run|start|try)\b/i.test(normalized)
+		/^(?:continue|run|start|try|work|resume|cancel)\b/i.test(normalized)
 	) {
 		return undefined;
 	}
