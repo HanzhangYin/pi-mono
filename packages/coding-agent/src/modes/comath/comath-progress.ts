@@ -431,12 +431,7 @@ export function formatResearchWorkstreamStageStarted(input: FormatResearchWorkst
 }
 
 export function formatResearchWorkstreamStageCompleted(input: FormatResearchWorkstreamStageCompletedInput): string {
-	const details = input.details.map(sanitizeForegroundStageText).filter((detail) => detail.length > 0);
-	return [
-		`Finished: ${formatResearchStage(input.stage)}.`,
-		sanitizeForegroundStageText(input.summary),
-		...details.slice(0, 1),
-	].join("\n");
+	return [`Finished: ${formatResearchStage(input.stage)}.`, sanitizeForegroundStageText(input.summary)].join("\n");
 }
 
 export function formatResearchWorkstreamRunStillRunningReport(input: FormatResearchWorkstreamRunInput): string {

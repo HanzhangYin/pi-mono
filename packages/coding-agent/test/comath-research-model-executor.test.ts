@@ -131,6 +131,9 @@ describe("default co-math research model executor", () => {
 
 		expect(result.text).toBe(finalText);
 		expect(observedSystemPrompt).toContain("focused mathematical research role");
+		expect(observedSystemPrompt).toContain("visible user-facing mathematical notes");
+		expect(observedSystemPrompt).toContain("Do not narrate your drafting process");
+		expect(observedSystemPrompt).toContain("Do not use self-talk");
 		expect(observedSystemPrompt).toContain("Do not call or describe tools such as comath_state.");
 		expect(observedPrompt).toContain("Try examples.");
 		expect(observedSessionId).toBe("session-123");

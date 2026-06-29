@@ -117,6 +117,8 @@ describe("model-backed research workstream", () => {
 			expect(request.path.title).toBe("Direct proof attempt");
 			expect(request.priorFindings).toContain("(3,5) and (5,7) are twin primes.");
 			expect(request.prompt).toContain(TWIN_PRIME_QUESTION);
+			expect(request.prompt).toContain("Write user-facing notes only");
+			expect(request.prompt).toContain("Do not include scratchpad planning");
 		}
 		// specialist sees no prior role output; critic sees specialist; synthesizer sees both.
 		expect(requests[0]?.inputText).toBe("");
