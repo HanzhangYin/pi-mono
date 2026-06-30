@@ -246,8 +246,7 @@ describe("co-math product messages", () => {
 		});
 		expect(registered).toContain("Registered source context for Path 5");
 		expect(registered).toContain("Schinzel's hypothesis H");
-		expect(registered).toContain("Next command");
-		expect(registered).toContain("continue path 5");
+		expect(registered).toContain("I can use this in the source-backed literature path next.");
 		expectProductCopy(registered);
 
 		const paths = plan.paths.map(
@@ -275,8 +274,8 @@ describe("co-math product messages", () => {
 		expect(summary).toContain("Latest findings");
 		expect(summary).toContain("n = 1 gives 2, prime.");
 		expect(summary).toContain("Abandoned for now");
-		expect(summary).toContain("Suggested command");
-		expect(summary).toContain("continue path 1");
+		expect(summary).toContain("Suggested next step");
+		expect(summary).toContain("I can work on Path 1: Small examples and counterexamples next.");
 		expectProductCopy(summary);
 	});
 
@@ -359,9 +358,10 @@ describe("co-math product messages", () => {
 		expect(completed).toContain("Main takeaway");
 		expect(completed).toContain("Limit");
 		expect(completed).toContain("Next");
-		expect(completed).toContain("continue path");
+		expect(completed).toContain("I can try this path next:");
+		expect(completed).toContain("Path 3: Reformulation");
 		expect(completed).toContain('Saved under "Direct proof attempts".');
-		expect(completed).toContain("show latest report");
+		expect(completed).toContain("The detailed report is saved.");
 		expectProductCopy(completed);
 
 		const full = formatResearchWorkstreamReport({ state, report });
@@ -379,7 +379,7 @@ describe("co-math product messages", () => {
 		expectProductCopy(full);
 	});
 
-	it("formats Path 3 and Path 4 completion with executable bridge commands", () => {
+	it("formats Path 3 and Path 4 completion with natural bridge suggestions", () => {
 		const plan = createCoMathResearchAutoPlan("Are there infinitely many primes of the form n^2 + 1?");
 		const paths = createResearchPathsFromPlan(plan);
 		const reformulation = paths[2];
@@ -398,8 +398,8 @@ describe("co-math product messages", () => {
 		const path3Completed = formatResearchWorkstreamCompleted({ state, report: path3Report });
 		expect(path3Completed).toContain("Path 3: Reformulation");
 		expect(path3Completed).toContain("Original question");
-		expect(path3Completed).toContain("Turn this into smaller targets:");
-		expect(path3Completed).toContain("continue path 4");
+		expect(path3Completed).toContain("I can turn this into smaller targets next:");
+		expect(path3Completed).toContain("Path 4: Weaker special cases");
 		expectProductCopy(path3Completed);
 
 		const path4Report = runResearchWorkstream({
@@ -411,8 +411,8 @@ describe("co-math product messages", () => {
 		const path4Completed = formatResearchWorkstreamCompleted({ state, report: path4Report });
 		expect(path4Completed).toContain("Path 4: Weaker special cases");
 		expect(path4Completed).toContain("Parity obstruction");
-		expect(path4Completed).toContain("Use these lemmas in a proof attempt:");
-		expect(path4Completed).toContain("continue path 2");
+		expect(path4Completed).toContain("I can use these lemmas in a proof attempt next:");
+		expect(path4Completed).toContain("Path 2: Direct proof attempt");
 		expectProductCopy(path4Completed);
 	});
 
@@ -441,8 +441,8 @@ describe("co-math product messages", () => {
 		});
 		expect(afterPath3).toContain("Recent progress");
 		expect(afterPath3).toContain("Path 3: Reformulation reframed the problem");
-		expect(afterPath3).toContain("Suggested command");
-		expect(afterPath3).toContain("continue path 4");
+		expect(afterPath3).toContain("Suggested next step");
+		expect(afterPath3).toContain("I can work on Path 4: Weaker special cases next.");
 		expectProductCopy(afterPath3);
 
 		const path4Report = toResearchReportRecord(
@@ -460,8 +460,8 @@ describe("co-math product messages", () => {
 			researchReports: [path3Report, path4Report],
 		});
 		expect(afterPath4).toContain("Path 4: Weaker special cases isolated weaker targets");
-		expect(afterPath4).toContain("Suggested command");
-		expect(afterPath4).toContain("continue path 2");
+		expect(afterPath4).toContain("Suggested next step");
+		expect(afterPath4).toContain("I can work on Path 2: Direct proof attempt next.");
 		expectProductCopy(afterPath4);
 	});
 
@@ -840,7 +840,7 @@ describe("co-math product messages", () => {
 		expect(completed).not.toContain("computation-artifact-2");
 		expect(completed).toContain("Checked range: 1 <= n <= 20");
 		expect(completed).toContain("Exit code: 0");
-		expect(completed).toContain("show latest report");
+		expect(completed).toContain("The detailed report is ready to review.");
 		expectProductCopy(completed);
 
 		const details = formatResearchWorkstreamReport({ state, report });

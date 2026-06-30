@@ -1075,6 +1075,43 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("turns ordinary math steering into a durable visible research step", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("Try a direct proof using congruences modulo small primes.");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchWorkstreamRuns).toHaveLength(1);
+			expect(state.researchWorkstreamRuns[0]).toMatchObject({
+				pathTitle: "Direct proof attempt",
+				status: "completed",
+			});
+			expect(state.researchFocus?.pathIds).toEqual([state.researchPaths[1]?.id]);
+			expect(state.workingPaperSections.find((section) => section.title === "User steering")?.body).toContain(
+				"Try a direct proof using congruences modulo small primes.",
+			);
+			expect(
+				state.marginNotes.find(
+					(note) => note.message === "User steering: Try a direct proof using congruences modulo small primes.",
+				),
+			).toMatchObject({
+				kind: "comment",
+				subjectId: state.researchPaths[1]?.id,
+				message: "User steering: Try a direct proof using congruences modulo small primes.",
+			});
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("I’ll use that in the next attempt.");
+			expect(visible).toContain("Direct proof attempt");
+			expect(visible).toContain("Finished this step.");
+			expect(visible).not.toContain("Current research state");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("focuses numbered research paths", async () => {
 		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
 		try {
@@ -1229,7 +1266,7 @@ describe("co-math harness", () => {
 			expect(state.researchPaths.every((path) => path.latestFindings.length === 0)).toBe(true);
 			expect(state.researchReports).toEqual([]);
 			const visible = notices.join("\n");
-			expect(visible).toContain("Current research state");
+			expect(visible).toContain("This Pi session is focused on math research.");
 			expect(visible).not.toContain("Research run completed");
 			expectProductCopy(visible);
 		} finally {
@@ -1298,7 +1335,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Main takeaway");
 			expect(visible).toContain("Limit");
 			expect(visible).toContain('Saved under "Direct proof attempts".');
-			expect(visible).toContain("show latest report");
+			expect(visible).toContain("The detailed report is saved.");
 			expect(visible).not.toMatch(/role-run-|workstream-|artifact-|schema|queue/i);
 			expectProductCopy(visible);
 		} finally {
@@ -1413,7 +1450,7 @@ describe("co-math harness", () => {
 			await harness.handlePrompt("summarize current state");
 
 			const visible = notices.slice(before).join("\n");
-			expect(visible).toContain('Report: available; say "show details for path 2".');
+			expect(visible).toContain("Report: detailed report available for this path.");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -1886,7 +1923,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain("No source lookup backend returned references for this path.");
 			expect(visible).toContain("A source-backed literature check is needed before citing named theorems.");
 			expect(visible).toContain("what should we try next?");
-			expect(visible).toContain('Details: say "show latest report".');
+			expect(visible).toContain("The detailed report is saved.");
 			expect(visible).not.toContain("Chen");
 			expect(visible).not.toContain("Maynard");
 			expectProductCopy(visible);
@@ -1922,8 +1959,7 @@ describe("co-math harness", () => {
 			});
 			const visible = notices.slice(before).join("\n");
 			expect(visible).toContain("Registered source context for Path 5");
-			expect(visible).toContain("Next command");
-			expect(visible).toContain("continue path 5");
+			expect(visible).toContain("I can use this in the source-backed literature path next.");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

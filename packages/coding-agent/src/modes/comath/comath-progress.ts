@@ -95,6 +95,14 @@ export function formatCoMathNonMathEntryGuidance(): string {
 	].join("\n");
 }
 
+export function formatCoMathResearchModeOperationalPromptIgnored(): string {
+	return [
+		"This Pi session is focused on math research.",
+		"",
+		"I did not run that as a shell or git command. Describe the mathematical direction you want me to try next.",
+	].join("\n");
+}
+
 export function formatExistingProjectHelp(): string {
 	return [
 		"A validation run already exists in this workspace.",
@@ -215,9 +223,12 @@ export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): s
 }
 
 export function formatUserProvidedLiteratureSourceRegistered(input: { title: string }): string {
-	return ["Registered source context for Path 5", `- ${input.title}`, "", "Next command", "continue path 5"].join(
-		"\n",
-	);
+	return [
+		"Registered source context for Path 5",
+		`- ${input.title}`,
+		"",
+		"I can use this in the source-backed literature path next.",
+	].join("\n");
 }
 
 export type ResearchStateSummaryInput = Pick<CoMathProjectState, "researchPaths" | "researchFocus"> & {
@@ -250,8 +261,14 @@ export function formatResearchStateSummary(state: ResearchStateSummaryInput): st
 			: []),
 		"",
 		...(best && bestIndex >= 0
-			? ["Why", best.suggestedNextMove, "", "Suggested command", `continue path ${bestIndex + 1}`]
-			: ["Suggested command", "Choose a path to continue."]),
+			? [
+					"Why",
+					best.suggestedNextMove,
+					"",
+					"Suggested next step",
+					`I can work on ${formatResearchPathLabel(state, best)} next.`,
+				]
+			: ["Suggested next step", "Choose a path to explore next."]),
 	].join("\n");
 }
 
@@ -271,6 +288,32 @@ export function formatResearchFocusUpdated(path: ResearchPath, reason: string): 
 
 export function formatResearchPathDropped(path: ResearchPath, reason: string): string {
 	return ["Path updated", "", "Abandoned for now:", `- ${path.title}`, "", "Reason", reason].join("\n");
+}
+
+export interface FormatResearchNaturalSteeringInput {
+	state: Pick<CoMathProjectState, "researchPaths">;
+	path?: ResearchPath;
+	prompt: string;
+}
+
+export function formatResearchNaturalSteeringStarted(input: FormatResearchNaturalSteeringInput): string {
+	return [
+		"I’ll use that in the next attempt.",
+		"",
+		"Steering",
+		`- ${summarizeSteeringText(input.prompt)}`,
+		...(input.path ? ["", "Working on", formatResearchPathLabel(input.state, input.path)] : []),
+	].join("\n");
+}
+
+export function formatResearchNaturalSteeringQueued(input: FormatResearchNaturalSteeringInput): string {
+	return [
+		"I’ve saved that as steering for the math work already in progress.",
+		"",
+		"Steering",
+		`- ${summarizeSteeringText(input.prompt)}`,
+		...(input.path ? ["", "Focus", formatResearchPathLabel(input.state, input.path)] : []),
+	].join("\n");
 }
 
 export function formatResearchRoundUpdated(path: ResearchPath, finding: string): string {
@@ -478,7 +521,7 @@ export function formatResearchWorkstreamCompleted(input: FormatResearchWorkstrea
 		...nextLines,
 		"",
 		`Saved under "${report.workingPaperSectionTitle}".`,
-		'Details: say "show latest report".',
+		"The detailed report is saved.",
 	].join("\n");
 }
 
@@ -700,7 +743,7 @@ function formatComputationSummary(
 		...(script ? ["- Ran a small bounded script and recorded its output."] : []),
 		...(checkedRange ? [`- Checked range: ${checkedRange.replace(/^checked_range:\s*/i, "")}`] : []),
 		...(exitCode !== undefined ? [`- Exit code: ${exitCode}`] : []),
-		...(script || result ? ['- Full script and output: say "show latest report".'] : []),
+		...(script || result ? ["- Full script and output are saved in the detailed report."] : []),
 	];
 }
 
@@ -757,6 +800,14 @@ function summarizeArtifactText(summary: string): string {
 		return trimmed;
 	}
 	return `${trimmed.slice(0, 237)}...`;
+}
+
+function summarizeSteeringText(text: string): string {
+	const trimmed = text.trim().replace(/\s+/g, " ");
+	if (trimmed.length <= 180) {
+		return trimmed;
+	}
+	return `${trimmed.slice(0, 177)}...`;
 }
 
 function formatResearchReportPathLabel(
@@ -836,8 +887,8 @@ function formatResearchPathLine(
 		`- ${formatResearchPathLabel(state, path)}: ${path.status}`,
 		...(findings.length > 0 ? ["  Latest findings", ...findings.map((finding) => `  - ${finding}`)] : []),
 		`  Why: ${path.suggestedNextMove}`,
-		...(pathIndex >= 0 ? [`  Next: continue path ${pathIndex + 1}`] : []),
-		...(hasReport && pathIndex >= 0 ? [`  Report: available; say "show details for path ${pathIndex + 1}".`] : []),
+		...(pathIndex >= 0 ? ["  Next: Pi can work on this path."] : []),
+		...(hasReport && pathIndex >= 0 ? ["  Report: detailed report available for this path."] : []),
 	].join("\n");
 }
 
@@ -877,29 +928,29 @@ function formatResearchCompletionNextLines(
 	const nextPath = chooseNextResearchPathAfter(state, report);
 	const nextPathIndex = nextPath ? state.researchPaths.findIndex((path) => path.id === nextPath.id) : -1;
 	if (nextPath && nextPathIndex >= 0) {
-		return [describeNextPathHint(nextPath), `continue path ${nextPathIndex + 1}`];
+		return [describeNextPathHint(nextPath), formatResearchPathLabel(state, nextPath)];
 	}
-	return ['Say "show latest report" to review the full write-up.'];
+	return ["The detailed report is ready to review."];
 }
 
 function describeNextPathHint(path: ResearchPath): string {
 	const title = normalizeResearchPathTitle(path.title);
 	if (title === "weaker special cases") {
-		return "Turn this into smaller targets:";
+		return "I can turn this into smaller targets next:";
 	}
 	if (title === "direct proof attempt") {
-		return "Use these lemmas in a proof attempt:";
+		return "I can use these lemmas in a proof attempt next:";
 	}
 	if (/proof/i.test(path.title)) {
-		return "Try a proof-oriented path:";
+		return "I can try a proof-oriented path next:";
 	}
 	if (isLiteraturePathTitle(path.title)) {
-		return "Try a source-backed path:";
+		return "I can try a source-backed path next:";
 	}
 	if (isComputationalPathTitle(path.title)) {
-		return "Try the examples path:";
+		return "I can try the examples path next:";
 	}
-	return "Try the next path:";
+	return "I can try this path next:";
 }
 
 function chooseResearchPathFromLatestReport(

@@ -22,6 +22,7 @@ import {
 	formatBackgroundRunStarted,
 	formatCoMathNonMathEntryGuidance,
 	formatCoMathProductHelp,
+	formatCoMathResearchModeOperationalPromptIgnored,
 	formatContextRecorded,
 	formatFocusNoted,
 	formatInitialValidationPlan,
@@ -34,6 +35,8 @@ import {
 	formatResearchBatchStarted,
 	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
+	formatResearchNaturalSteeringQueued,
+	formatResearchNaturalSteeringStarted,
 	formatResearchPathDropped,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
@@ -45,6 +48,7 @@ import {
 } from "./comath-progress.ts";
 import {
 	isLikelyMathValidationPrompt,
+	isLikelyOperationalNonMathPrompt,
 	isResearchCoordinatorPrompt,
 	isResumeResearchBatchPrompt,
 	isShowLatestCoordinatorReportPrompt,
@@ -77,6 +81,7 @@ import type {
 	LiteratureSourceArtifact,
 	ResearchCoordinatorReportRecord,
 	ResearchPath,
+	ResearchWorkstreamRunRecord,
 } from "./schema.ts";
 import {
 	addLiteratureSourceArtifact,
@@ -770,7 +775,54 @@ export class CoMathHarness {
 			await this.researchRunner.runResearchWorkstreamForPath(state, path);
 			return;
 		}
-		await this.notify(formatResearchStateSummary(state));
+		if (isLikelyOperationalNonMathPrompt(prompt)) {
+			await this.notify(formatCoMathResearchModeOperationalPromptIgnored(), "warning");
+			return;
+		}
+		await this.handleNaturalResearchSteeringPrompt(state, prompt, latestInterruptedRun);
+		return;
+	}
+
+	private async handleNaturalResearchSteeringPrompt(
+		state: CoMathProjectState,
+		prompt: string,
+		latestInterruptedRun: ResearchWorkstreamRunRecord | undefined,
+	): Promise<void> {
+		const path = chooseNaturalSteeringResearchPath(state, prompt);
+		const now = new Date().toISOString();
+		const nextState = saveNaturalResearchSteering(state, prompt, path, now);
+		await saveProjectState(this.statePath, nextState);
+
+		const activeRun = getActiveResearchWorkstreamRun(state);
+		if (activeRun) {
+			const activePath = nextState.researchPaths.find((candidate) => candidate.id === activeRun.pathId) ?? path;
+			await this.notify(
+				formatResearchNaturalSteeringQueued({
+					state: nextState,
+					...(activePath ? { path: activePath } : {}),
+					prompt,
+				}),
+			);
+			return;
+		}
+		if (getActiveResearchBatch(state)) {
+			await this.notify(
+				formatResearchNaturalSteeringQueued({ state: nextState, ...(path ? { path } : {}), prompt }),
+			);
+			return;
+		}
+		if (latestInterruptedRun) {
+			await this.notify(
+				formatResearchWorkstreamRunFailed({ state: nextState, run: latestInterruptedRun }),
+				"warning",
+			);
+		}
+		if (!path) {
+			await this.notify(formatResearchStateSummary(nextState));
+			return;
+		}
+		await this.notify(formatResearchNaturalSteeringStarted({ state: nextState, path, prompt }));
+		await this.researchRunner.runResearchWorkstreamForPath(nextState, path);
 	}
 
 	private async registerUserProvidedLiteratureSource(
@@ -1091,13 +1143,78 @@ function findResearchPath(state: Pick<CoMathProjectState, "researchPaths">, quer
 		return state.researchPaths[numbered - 1];
 	}
 	const normalizedQuery = normalizePathQuery(query);
-	return state.researchPaths.find((path) => {
-		const haystack = normalizePathQuery(`${path.title} ${path.objective}`);
-		return normalizedQuery
-			.split(/\s+/)
-			.filter((term) => term.length > 2)
-			.some((term) => haystack.includes(term));
+	const terms = normalizedQuery.split(/\s+/).filter((term) => term.length > 2);
+	let best: { path: ResearchPath; score: number } | undefined;
+	for (const path of state.researchPaths) {
+		const title = normalizePathQuery(path.title);
+		const objective = normalizePathQuery(path.objective);
+		const score = terms.reduce((total, term) => {
+			if (title.includes(term)) {
+				return total + 3;
+			}
+			if (objective.includes(term)) {
+				return total + 1;
+			}
+			return total;
+		}, 0);
+		if (score > 0 && (!best || score > best.score)) {
+			best = { path, score };
+		}
+	}
+	return best?.path;
+}
+
+function chooseNaturalSteeringResearchPath(state: CoMathProjectState, prompt: string): ResearchPath | undefined {
+	const namedPath = findResearchPath(state, prompt);
+	if (namedPath && namedPath.status !== "abandoned") {
+		return namedPath;
+	}
+	return resolveDefaultContinueResearchPath(state).path;
+}
+
+function saveNaturalResearchSteering(
+	state: CoMathProjectState,
+	prompt: string,
+	path: ResearchPath | undefined,
+	now: string,
+): CoMathProjectState {
+	const noteText = summarizeNaturalSteeringPrompt(prompt);
+	let nextState = upsertWorkingPaperSectionByTitle(state, {
+		title: "User steering",
+		body: `- ${noteText}`,
+		status: "draft",
+		now,
+		actor: "human",
 	});
+	if (path) {
+		nextState = setResearchFocus(nextState, {
+			pathIds: [path.id],
+			reason: `User steering: ${noteText}`,
+			now,
+			actor: "human",
+		});
+	}
+	const section = nextState.workingPaperSections.find(
+		(candidate) => candidate.title.trim().toLowerCase() === "user steering",
+	);
+	nextState = addMarginNote(nextState, {
+		id: `margin-note-${nextState.marginNotes.length + 1}`,
+		kind: "comment",
+		subjectId: path?.id ?? section?.id ?? nextState.projectId,
+		...(section ? { sectionId: section.id } : {}),
+		message: `User steering: ${noteText}`,
+		now,
+		actor: "human",
+	});
+	return nextState;
+}
+
+function summarizeNaturalSteeringPrompt(prompt: string): string {
+	const normalized = prompt.trim().replace(/\s+/g, " ");
+	if (normalized.length <= 220) {
+		return normalized;
+	}
+	return `${normalized.slice(0, 217).trimEnd()}...`;
 }
 
 function parseResearchPathNumber(query: string): number | undefined {
