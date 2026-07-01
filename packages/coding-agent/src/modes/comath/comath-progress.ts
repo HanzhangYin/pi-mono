@@ -8,6 +8,7 @@ import type {
 	LiteratureSourceArtifact,
 	ResearchBatchRecord,
 	ResearchCoordinatorReportRecord,
+	ResearchEvidenceBoardEntry,
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
@@ -217,9 +218,10 @@ export function formatProductProgress(run: CoMathProductRunSummary | undefined):
 	].join("\n");
 }
 
-export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan): string {
-	const firstPath = plan.paths[0];
-	return firstPath ? `I’ll start with ${firstPath.title.toLowerCase()}.` : "I’ll start with a concrete research step.";
+export function formatResearchWorkspacePrepared(plan: CoMathResearchAutoPlan, initialPathTitle?: string): string {
+	const title =
+		initialPathTitle ?? plan.paths.find((path) => path.slug === plan.initialFocusSlug)?.title ?? plan.paths[0]?.title;
+	return title ? `I’ll start with ${title.toLowerCase()}.` : "I’ll start with a concrete research step.";
 }
 
 export function formatUserProvidedLiteratureSourceRegistered(input: { title: string }): string {
@@ -386,6 +388,7 @@ export interface FormatResearchWorkstreamInput {
 	state: Pick<CoMathProjectState, "researchPaths"> & {
 		literatureSources?: readonly LiteratureSourceArtifact[];
 		literatureClaimSupports?: readonly LiteratureClaimSupport[];
+		researchEvidenceBoard?: readonly ResearchEvidenceBoardEntry[];
 		computationalArtifacts?: readonly ComputationalArtifact[];
 	};
 	report: ResearchWorkstreamReportView;
@@ -535,6 +538,7 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 	const specialist = report.steps.find((step) => step.role === "specialist");
 	const critic = report.steps.find((step) => step.role === "critic");
 	const supports = formatClaimSupports(input.state, report.claimSupportIds ?? []);
+	const evidenceBoard = formatEvidenceBoard(input.state, report);
 	const references = formatReferences(input.state, report.sourceIds ?? []);
 	const computation = formatComputationDetails(input.state, report.computationalArtifactIds ?? []);
 	const attachments = formatComputationAttachments(input.state, report.computationalArtifactIds ?? []);
@@ -556,6 +560,7 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 		"Synthesis",
 		...bulletsOrFallback(report.promisingStrategy, "No synthesized strategy was recorded."),
 		...(attachments.length > 0 ? ["", "Attachments", ...attachments] : []),
+		...(evidenceBoard.length > 0 ? ["", "Evidence board", ...evidenceBoard] : []),
 		...(supports.length > 0 ? ["", "Claim support", ...supports] : []),
 		...(references.length > 0 ? ["", "References / attachments", ...references] : []),
 		...(report.gaps.length > 0 ? ["", "Needs human attention", ...report.gaps.map((item) => `- ${item}`)] : []),
@@ -682,9 +687,60 @@ function formatReferences(
 			}
 			const locator = source.url ?? source.path ?? source.kind;
 			const label = includeIds ? `${source.id}: ${source.title}` : source.title;
-			return `- ${label}${locator ? ` — ${locator}` : ""}`;
+			const trust = formatSourceTrustSignals(source);
+			return `- ${label}${locator ? ` — ${locator}` : ""}${trust ? ` — ${trust}` : ""}`;
 		})
 		.filter((line): line is string => line !== undefined);
+}
+
+function formatEvidenceBoard(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		researchEvidenceBoard?: readonly ResearchEvidenceBoardEntry[];
+	},
+	report: Pick<ResearchWorkstreamReportView, "pathId"> & { claimSupportIds?: readonly string[] },
+): string[] {
+	const claimSupportIds = new Set(report.claimSupportIds ?? []);
+	return (state.researchEvidenceBoard ?? [])
+		.filter(
+			(entry) =>
+				entry.reportId !== undefined ||
+				entry.pathId === report.pathId ||
+				(entry.claimSupportId !== undefined && claimSupportIds.has(entry.claimSupportId)),
+		)
+		.filter(
+			(entry) =>
+				entry.pathId === report.pathId ||
+				(entry.claimSupportId !== undefined && claimSupportIds.has(entry.claimSupportId)),
+		)
+		.slice(-8)
+		.map((entry) => {
+			const sources = entry.sourceIds.length > 0 ? ` sources: ${entry.sourceIds.join(", ")}` : "";
+			const computations =
+				entry.computationalArtifactIds.length > 0
+					? ` computations: ${entry.computationalArtifactIds.join(", ")}`
+					: "";
+			return `- ${formatEvidenceClassification(entry.classification)}: ${entry.claim}${sources}${computations} — ${entry.rationale}`;
+		});
+}
+
+function formatEvidenceClassification(classification: ResearchEvidenceBoardEntry["classification"]): string {
+	if (classification === "survey-context") {
+		return "survey/context";
+	}
+	return classification;
+}
+
+function formatSourceTrustSignals(source: LiteratureSourceArtifact): string {
+	const signals = [
+		source.sourceType ? `type: ${source.sourceType}` : undefined,
+		source.venue ? `venue: ${source.venue}` : undefined,
+		source.doi ? `DOI: ${source.doi}` : undefined,
+		source.externalId ? `external: ${source.externalId}` : undefined,
+		source.publishedAt ? `published: ${source.publishedAt}` : source.year ? `year: ${source.year}` : undefined,
+		source.citationCount !== undefined ? `citations: ${source.citationCount}` : undefined,
+		source.provider ? `provider: ${source.provider}` : undefined,
+	];
+	return signals.filter((signal): signal is string => signal !== undefined).join("; ");
 }
 
 function formatClaimSupports(

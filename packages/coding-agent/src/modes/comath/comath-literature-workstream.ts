@@ -1,7 +1,10 @@
 import {
+	buildLiteratureSearchQueries,
 	formatLiteratureSourceForPrompt,
 	type LiteratureSourceLookup,
 	type LiteratureSourceResult,
+	type LiteratureSourceSearchResponse,
+	normalizeLiteratureSourceLookupResult,
 } from "./comath-literature-source.ts";
 import {
 	type CoMathParsedMarkdown as ParsedMarkdown,
@@ -39,6 +42,7 @@ export interface RunLiteratureResearchWorkstreamInput {
 export interface LiteratureResearchWorkstreamResult {
 	report: ResearchWorkstreamReport;
 	sources: LiteratureSourceResult[];
+	search: LiteratureSourceSearchResponse;
 	claimSupports: LiteratureClaimSupportDraft[];
 }
 
@@ -57,28 +61,42 @@ export async function runLiteratureResearchWorkstreamStaged(
 		details: [coordinatorBrief],
 	});
 
-	await callbacks.onStageStarted?.("literature-search", "Literature specialist is looking for relevant sources.");
-	const sources = await sourceLookup.search({
+	const searchQuery = {
 		rootQuestion,
 		pathTitle: path.title,
 		pathObjective: path.objective,
-		maxSources: 5,
-	});
+		maxSources: 8,
+	};
+	const plannedQueries = buildLiteratureSearchQueries(searchQuery);
+	await callbacks.onStageStarted?.(
+		"literature-search",
+		`Searching arXiv, Semantic Scholar, Crossref${process.env.OPENALEX_API_KEY || process.env.PI_OPENALEX_API_KEY ? ", OpenAlex" : ""}.`,
+	);
+	const search = normalizeLiteratureSourceLookupResult(await sourceLookup.search(searchQuery), searchQuery);
+	const sources = search.sources;
 	await callbacks.onStageCompleted?.({
 		stage: "literature-search",
 		title: "Literature search",
 		summary:
 			sources.length > 0
-				? `Found ${sources.length} candidate source${sources.length === 1 ? "" : "s"} to review.`
+				? `Found ${search.candidateCount} candidate${search.candidateCount === 1 ? "" : "s"}; reviewing ${sources.length} source summar${sources.length === 1 ? "y" : "ies"}.`
 				: "No source lookup backend returned references for this path.",
 		details:
 			sources.length > 0
-				? sources.map((source, index) => `${sourceLabel(index)}: ${source.title}`)
-				: ["Ask for references or a source file before treating literature claims as established."],
+				? [
+						`Query: ${search.queries[0] ?? plannedQueries[0] ?? rootQuestion}`,
+						...search.providers.map(formatProviderSearchStatus),
+						...sources.map((source, index) => `${sourceLabel(index)}: ${source.title}`),
+					]
+				: [
+						`Query: ${search.queries[0] ?? plannedQueries[0] ?? rootQuestion}`,
+						...search.providers.map(formatProviderSearchStatus),
+						"Ask for references or a source file before treating literature claims as established.",
+					],
 	});
 
 	if (sources.length === 0) {
-		return buildNoSourceResult(input, coordinatorBrief);
+		return buildNoSourceResult(input, coordinatorBrief, search);
 	}
 
 	const sourceContext = sources.map(formatLiteratureSourceForPrompt).join("\n\n");
@@ -213,6 +231,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 	];
 	return {
 		sources,
+		search,
 		claimSupports: uniqueClaimSupports([...path5ClaimSupports, ...claimSupports]),
 		report: {
 			pathId: path.id,
@@ -250,6 +269,7 @@ export function isLiteratureResearchPath(path: ResearchPath): boolean {
 function buildNoSourceResult(
 	input: RunLiteratureResearchWorkstreamInput,
 	coordinatorBrief: string,
+	search: LiteratureSourceSearchResponse,
 ): LiteratureResearchWorkstreamResult {
 	const sourceStatus = buildNoSourceFindings(input);
 	const gaps = buildNoSourceGaps(input);
@@ -284,6 +304,7 @@ function buildNoSourceResult(
 	];
 	return {
 		sources: [],
+		search,
 		claimSupports: buildPath5ClaimSupports({
 			rootQuestion: input.rootQuestion,
 			path: input.path,
@@ -315,6 +336,27 @@ function buildNoSourceResult(
 			claimSupportIds: [],
 		},
 	};
+}
+
+function formatProviderSearchStatus(provider: LiteratureSourceSearchResponse["providers"][number]): string {
+	const providerName = formatProviderName(provider.provider);
+	if (provider.status === "completed") {
+		return `${providerName}: ${provider.candidateCount} candidate${provider.candidateCount === 1 ? "" : "s"}`;
+	}
+	if (provider.status === "skipped") {
+		return `${providerName}: skipped`;
+	}
+	return `${providerName}: unavailable${provider.error ? ` (${provider.error})` : ""}`;
+}
+
+function formatProviderName(provider: LiteratureSourceSearchResponse["providers"][number]["provider"]): string {
+	if (provider === "arxiv") return "arXiv";
+	if (provider === "semantic-scholar") return "Semantic Scholar";
+	if (provider === "crossref") return "Crossref";
+	if (provider === "openalex") return "OpenAlex";
+	if (provider === "workspace") return "workspace";
+	if (provider === "user-provided") return "user-provided";
+	return "unknown";
 }
 
 function buildLiteratureSpecialistPrompt(rootQuestion: string, path: ResearchPath, sourceContext: string): string {

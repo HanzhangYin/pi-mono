@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
 	LiteratureSourceLookup,
 	LiteratureSourceQuery,
 	LiteratureSourceResult,
+} from "../src/modes/comath/comath-literature-source.ts";
+import {
+	createDefaultLiteratureSourceLookup,
+	normalizeLiteratureSourceLookupResult,
 } from "../src/modes/comath/comath-literature-source.ts";
 import { runLiteratureResearchWorkstreamStaged } from "../src/modes/comath/comath-literature-workstream.ts";
 import type {
@@ -200,6 +204,110 @@ function createExecutorWithResponses(responses: Record<ResearchWorkstreamModelRe
 }
 
 describe("literature research workstream", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("default lookup queries scholarly providers and deduplicates overlapping DOI records", async () => {
+		const previousOpenAlexKey = process.env.OPENALEX_API_KEY;
+		const previousPiOpenAlexKey = process.env.PI_OPENALEX_API_KEY;
+		delete process.env.OPENALEX_API_KEY;
+		delete process.env.PI_OPENALEX_API_KEY;
+		const fetchMock = vi.fn(async (input: string | URL | Request) => {
+			const url = String(input);
+			if (url.startsWith("https://export.arxiv.org/api/query")) {
+				return new Response(
+					[
+						'<?xml version="1.0" encoding="UTF-8"?>',
+						"<feed>",
+						"<entry>",
+						"<id>https://arxiv.org/abs/2401.00001</id>",
+						"<title>Prime values of quadratic polynomials</title>",
+						"<summary>Survey context for prime values of quadratic polynomials.</summary>",
+						"<published>2024-01-02T00:00:00Z</published>",
+						"<author><name>A. Author</name></author>",
+						"</entry>",
+						"</feed>",
+					].join(""),
+					{ status: 200 },
+				);
+			}
+			if (url.startsWith("https://api.semanticscholar.org/graph/v1/paper/search")) {
+				return Response.json({
+					data: [
+						{
+							title: "Landau fourth problem survey",
+							abstract: "Discusses the open status of primes of the form n squared plus one.",
+							url: "https://example.test/semantic-landau",
+							venue: "Number Theory Surveys",
+							year: 2022,
+							externalIds: { DOI: "10.1000/landau" },
+							citationCount: 7,
+							authors: [{ name: "B. Scholar" }],
+							publicationTypes: ["JournalArticle"],
+						},
+					],
+				});
+			}
+			if (url.startsWith("https://api.crossref.org/works")) {
+				return Response.json({
+					message: {
+						items: [
+							{
+								DOI: "10.1000/landau",
+								title: ["Landau fourth problem survey"],
+								abstract: "<jats:p>Crossref duplicate metadata.</jats:p>",
+								URL: "https://doi.org/10.1000/landau",
+								type: "journal-article",
+								"container-title": ["Number Theory Surveys"],
+								"is-referenced-by-count": 9,
+								author: [{ given: "B.", family: "Scholar" }],
+								"published-online": { "date-parts": [[2022, 3, 4]] },
+							},
+						],
+					},
+				});
+			}
+			return new Response("not found", { status: 404 });
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		try {
+			const lookup = createDefaultLiteratureSourceLookup();
+			const result = normalizeLiteratureSourceLookupResult(
+				await lookup.search({
+					rootQuestion: N_SQUARED_PLUS_ONE_QUESTION,
+					pathTitle: "Known theorem or literature reduction",
+					pathObjective: "Find source-backed context.",
+					maxSources: 8,
+				}),
+			);
+
+			expect(fetchMock).toHaveBeenCalledTimes(3);
+			expect(result.candidateCount).toBe(3);
+			expect(result.sources).toHaveLength(2);
+			expect(result.providers).toMatchObject([
+				{ provider: "arxiv", status: "completed", candidateCount: 1 },
+				{ provider: "semantic-scholar", status: "completed", candidateCount: 1 },
+				{ provider: "crossref", status: "completed", candidateCount: 1 },
+			]);
+			expect(result.sources.map((source) => source.title)).toEqual([
+				"Prime values of quadratic polynomials",
+				"Landau fourth problem survey",
+			]);
+		} finally {
+			if (previousOpenAlexKey === undefined) {
+				delete process.env.OPENALEX_API_KEY;
+			} else {
+				process.env.OPENALEX_API_KEY = previousOpenAlexKey;
+			}
+			if (previousPiOpenAlexKey === undefined) {
+				delete process.env.PI_OPENALEX_API_KEY;
+			} else {
+				process.env.PI_OPENALEX_API_KEY = previousPiOpenAlexKey;
+			}
+		}
+	});
+
 	it("passes fake sources into source-aware role prompts and returns source-linked supports", async () => {
 		const { lookup, queries } = createLookup(TWIN_PRIME_SOURCES);
 		const { executor, requests } = createExecutor();
@@ -230,7 +338,7 @@ describe("literature research workstream", () => {
 				rootQuestion: TWIN_PRIME_QUESTION,
 				pathTitle: "Known theorem or literature reduction",
 				pathObjective: path.objective,
-				maxSources: 5,
+				maxSources: 8,
 			},
 		]);
 		expect(events).toContain("start:literature-search");

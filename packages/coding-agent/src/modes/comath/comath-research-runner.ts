@@ -5,6 +5,7 @@ import {
 	isComputationalResearchPath,
 	runComputationResearchWorkstreamStaged,
 } from "./comath-computation-workstream.ts";
+import { runResearchCoordinatorSynthesis } from "./comath-coordinator-synthesis.ts";
 import {
 	formatResearchWorkstreamRunFailed,
 	formatResearchWorkstreamRunStarted,
@@ -31,8 +32,10 @@ import {
 import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
 import type {
 	CoMathProjectState,
+	LiteratureClaimSupport,
 	LiteratureSourceArtifact,
 	MarginNoteKind,
+	ResearchEvidenceClassification,
 	ResearchPath,
 	ResearchWorkstreamRunRecord,
 	ResearchWorkstreamRunStage,
@@ -40,8 +43,12 @@ import type {
 import {
 	addComputationalArtifact,
 	addLiteratureClaimSupport,
+	addLiteratureSearchRecord,
 	addLiteratureSourceArtifact,
 	addMarginNote,
+	addResearchCoordinatorReport,
+	addResearchEvidenceBoardEntry,
+	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
 	addResearchWorkstreamRun,
@@ -209,6 +216,7 @@ export class CoMathResearchRunner {
 			actor: "synthesizer",
 		});
 		await saveProjectState(this.statePath, nextState);
+		await this.maybeRefreshCoordinatorAfterReport(nextState);
 		const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
 		if (completedRun) {
 			await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
@@ -268,6 +276,7 @@ export class CoMathResearchRunner {
 			actor: "synthesizer",
 		});
 		await saveProjectState(this.statePath, nextState);
+		await this.maybeRefreshCoordinatorAfterReport(nextState);
 		const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
 		if (completedRun) {
 			await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
@@ -463,6 +472,7 @@ export class CoMathResearchRunner {
 			actor: "synthesizer",
 		});
 		await saveProjectState(this.statePath, nextState);
+		await this.maybeRefreshCoordinatorAfterReport(nextState);
 		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
 	}
 
@@ -478,6 +488,7 @@ export class CoMathResearchRunner {
 		const now = new Date().toISOString();
 		let nextState = state;
 		const sourceIdMap = new Map<string, string>();
+		const expectedReportId = `research-report-${nextState.researchReports.length + 1}`;
 		for (const [index, source] of result.sources.entries()) {
 			const before = nextState.literatureSources;
 			nextState = addLiteratureSourceArtifact(nextState, {
@@ -485,6 +496,13 @@ export class CoMathResearchRunner {
 				title: source.title,
 				...(source.url ? { url: source.url } : {}),
 				...(source.path ? { path: source.path } : {}),
+				...(source.provider ? { provider: source.provider } : {}),
+				...(source.externalId ? { externalId: source.externalId } : {}),
+				...(source.doi ? { doi: source.doi } : {}),
+				...(source.venue ? { venue: source.venue } : {}),
+				...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
+				...(source.citationCount !== undefined ? { citationCount: source.citationCount } : {}),
+				...(source.sourceType ? { sourceType: source.sourceType } : {}),
 				authors: source.authors ?? [],
 				...(source.year ? { year: source.year } : {}),
 				summary: source.summary,
@@ -498,10 +516,23 @@ export class CoMathResearchRunner {
 			}
 		}
 		const sourceIds = uniqueStrings([...sourceIdMap.values()]);
+		nextState = addLiteratureSearchRecord(nextState, {
+			pathId: path.id,
+			runId,
+			queries: result.search.queries,
+			providers: result.search.providers,
+			candidateCount: result.search.candidateCount,
+			selectedSourceIds: sourceIds,
+			startedAt: result.report.startedAt,
+			completedAt: now,
+			now,
+			actor: "system",
+		});
 		const claimSupportIds: string[] = [];
 		for (const support of result.claimSupports) {
 			nextState = addLiteratureClaimSupport(nextState, {
 				pathId: path.id,
+				reportId: expectedReportId,
 				claim: support.claim,
 				sourceIds: support.sourceIds.map((sourceId) => sourceIdMap.get(sourceId) ?? sourceId),
 				status: support.status,
@@ -540,6 +571,7 @@ export class CoMathResearchRunner {
 			actor: "synthesizer",
 		});
 		await saveProjectState(this.statePath, nextState);
+		await this.maybeRefreshCoordinatorAfterReport(nextState);
 		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
 	}
 
@@ -600,6 +632,7 @@ export class CoMathResearchRunner {
 			actor: "synthesizer",
 		});
 		await saveProjectState(this.statePath, nextState);
+		await this.maybeRefreshCoordinatorAfterReport(nextState);
 		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
 	}
 
@@ -640,6 +673,7 @@ export class CoMathResearchRunner {
 				actor: "synthesizer",
 			});
 			await saveProjectState(this.statePath, nextState);
+			await this.maybeRefreshCoordinatorAfterReport(nextState);
 			const completedRun = nextState.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
 			if (completedRun) {
 				await this.notifyResearchWorkstreamCompletedStages(nextState, completedRun, report);
@@ -741,6 +775,42 @@ export class CoMathResearchRunner {
 			// UI status updates are best-effort and must not affect research execution.
 		}
 	}
+
+	private async maybeRefreshCoordinatorAfterReport(state: CoMathProjectState): Promise<void> {
+		if (state.researchReports.length === 0 || state.researchReports.length % 2 !== 0) {
+			return;
+		}
+		const latestCoordinator = state.researchCoordinatorReports.at(-1);
+		if (latestCoordinator?.inputReportIds.length === state.researchReports.length) {
+			return;
+		}
+		const now = new Date().toISOString();
+		const result = await runResearchCoordinatorSynthesis({
+			state,
+			executor: this.researchModelExecutor,
+			now,
+		});
+		let nextState = upsertWorkingPaperSectionByTitle(state, {
+			title: "Project coordinator synthesis",
+			body: buildCoordinatorWorkingPaperBody(result.report),
+			now,
+			actor: "coordinator",
+		});
+		const section = nextState.workingPaperSections.find(
+			(candidate) => candidate.title === "Project coordinator synthesis",
+		);
+		nextState = addResearchCoordinatorReport(nextState, {
+			...result.report,
+			...(section ? { workingPaperSectionId: section.id } : {}),
+			now,
+			actor: "coordinator",
+		});
+		const report = nextState.researchCoordinatorReports.at(-1);
+		if (report) {
+			nextState = applyCoordinatorPathDecisions(nextState, report, now);
+		}
+		await saveProjectState(this.statePath, nextState);
+	}
 }
 
 function appendIncrementalReports(
@@ -815,7 +885,7 @@ function persistResearchWorkstreamReport(
 			actor: "reviewer",
 		});
 	}
-	return addResearchWorkstreamReport(nextState, {
+	nextState = addResearchWorkstreamReport(nextState, {
 		pathId: report.pathId,
 		pathTitle: report.pathTitle,
 		status: report.status,
@@ -837,6 +907,223 @@ function persistResearchWorkstreamReport(
 		now,
 		actor: "synthesizer",
 	});
+	const persistedReport = nextState.researchReports.at(-1);
+	return persistedReport ? addEvidenceBoardEntriesForReport(nextState, persistedReport, now) : nextState;
+}
+
+function addEvidenceBoardEntriesForReport(
+	state: CoMathProjectState,
+	report: NonNullable<CoMathProjectState["researchReports"][number]>,
+	now: string,
+): CoMathProjectState {
+	let nextState = state;
+	const supportById = new Map(state.literatureClaimSupports.map((support) => [support.id, support]));
+	const artifactById = new Map(state.computationalArtifacts.map((artifact) => [artifact.id, artifact]));
+	for (const supportId of report.claimSupportIds) {
+		const support = supportById.get(supportId);
+		if (!support) {
+			continue;
+		}
+		nextState = addResearchEvidenceBoardEntry(nextState, {
+			pathId: report.pathId,
+			reportId: report.id,
+			claimSupportId: support.id,
+			sourceIds: support.sourceIds,
+			claim: support.claim,
+			classification: classifyLiteratureSupport(support),
+			rationale: evidenceRationaleForLiteratureSupport(state, support),
+			now,
+			actor: "synthesizer",
+		});
+	}
+	for (const artifactId of report.computationalArtifactIds) {
+		const artifact = artifactById.get(artifactId);
+		if (!artifact || artifact.kind === "script" || artifact.kind === "stderr") {
+			continue;
+		}
+		nextState = addResearchEvidenceBoardEntry(nextState, {
+			pathId: report.pathId,
+			reportId: report.id,
+			computationalArtifactIds: [artifact.id],
+			claim: artifact.title,
+			classification: "computation",
+			rationale: summarizeEvidenceText(artifact.summary),
+			now,
+			actor: "synthesizer",
+		});
+	}
+	for (const gap of report.gaps.slice(0, 3)) {
+		nextState = addResearchEvidenceBoardEntry(nextState, {
+			pathId: report.pathId,
+			reportId: report.id,
+			claim: gap,
+			classification: classifyUnsupportedOrConflictingText(gap),
+			rationale: "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			now,
+			actor: "reviewer",
+		});
+	}
+	for (const note of state.marginNotes.filter((candidate) => candidate.subjectId === report.pathId).slice(-3)) {
+		nextState = addResearchEvidenceBoardEntry(nextState, {
+			pathId: report.pathId,
+			reportId: report.id,
+			marginNoteId: note.id,
+			claim: note.message,
+			classification: classifyMarginNote(note.kind, note.message),
+			rationale: `Recorded as an open ${note.kind} margin note for this research path.`,
+			now,
+			actor: "reviewer",
+		});
+	}
+	return nextState;
+}
+
+function classifyLiteratureSupport(support: LiteratureClaimSupport): ResearchEvidenceClassification {
+	if (support.status === "conflicting") {
+		return "conflicting";
+	}
+	if (support.status === "unsupported" || support.sourceIds.length === 0) {
+		return "unsupported";
+	}
+	const text = `${support.claim} ${support.note ?? ""}`.toLowerCase();
+	if (/\b(?:conjecture|conjectural|hypothesis|open|unresolved)\b/.test(text)) {
+		return "conjecture";
+	}
+	if (/\b(?:heuristic|predict|expected|probabilistic)\b/.test(text)) {
+		return "heuristic";
+	}
+	if (/\b(?:survey|context|background|review)\b/.test(text) || support.status === "partially-supported") {
+		return "survey-context";
+	}
+	return "theorem";
+}
+
+function classifyUnsupportedOrConflictingText(text: string): ResearchEvidenceClassification {
+	return /\b(?:conflict|contradict|inconsistent)\b/i.test(text) ? "conflicting" : "unsupported";
+}
+
+function classifyMarginNote(kind: MarginNoteKind, message: string): ResearchEvidenceClassification {
+	if (kind === "warning" || kind === "gap" || kind === "scrutiny") {
+		return classifyUnsupportedOrConflictingText(message);
+	}
+	return "survey-context";
+}
+
+function evidenceRationaleForLiteratureSupport(
+	state: Pick<CoMathProjectState, "literatureSources">,
+	support: LiteratureClaimSupport,
+): string {
+	const sources = support.sourceIds
+		.map((sourceId) => state.literatureSources.find((source) => source.id === sourceId))
+		.filter((source): source is LiteratureSourceArtifact => source !== undefined);
+	const sourceSignals = sources.map(formatSourceTrustSignal);
+	return [
+		support.note ?? `Recorded as ${support.status} by the literature workstream.`,
+		...(sourceSignals.length > 0 ? [`Sources: ${sourceSignals.join("; ")}`] : []),
+	].join(" ");
+}
+
+function formatSourceTrustSignal(source: LiteratureSourceArtifact): string {
+	const pieces = [
+		source.title,
+		source.sourceType ? `type ${source.sourceType}` : undefined,
+		source.venue ? `venue ${source.venue}` : undefined,
+		source.doi ? "DOI present" : undefined,
+		source.externalId ? `external id ${source.externalId}` : undefined,
+		source.publishedAt ?? source.year,
+		source.provider ? `via ${source.provider}` : undefined,
+	];
+	return pieces.filter((piece): piece is string => piece !== undefined && piece.length > 0).join(", ");
+}
+
+function summarizeEvidenceText(value: string): string {
+	const normalized = value.trim().replace(/\s+/g, " ");
+	return normalized.length <= 280 ? normalized : `${normalized.slice(0, 277)}...`;
+}
+
+function buildCoordinatorWorkingPaperBody(
+	report: Pick<
+		CoMathProjectState["researchCoordinatorReports"][number],
+		"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "humanHelpUseful" | "suggestedPrompt"
+	>,
+): string {
+	return [
+		"Project coordinator synthesis",
+		"",
+		"What we know:",
+		...report.whatWeKnow.map((item) => `- ${item}`),
+		"",
+		"Current roadblocks:",
+		...report.roadblocks.map((item) => `- ${item}`),
+		"",
+		"Recommended next moves:",
+		...report.recommendedNextMoves.map((move, index) => {
+			const prompt = move.prompt ? ` (${move.prompt})` : "";
+			return `${index + 1}. ${move.title}${prompt}: ${move.rationale}`;
+		}),
+		...(report.humanHelpUseful.length > 0
+			? ["", "Human help useful:", ...report.humanHelpUseful.map((item) => `- ${item}`)]
+			: []),
+		...(report.suggestedPrompt ? ["", `Suggested next step: ${report.suggestedPrompt}`] : []),
+	].join("\n");
+}
+
+function applyCoordinatorPathDecisions(
+	state: CoMathProjectState,
+	report: CoMathProjectState["researchCoordinatorReports"][number],
+	now: string,
+): CoMathProjectState {
+	let nextState = state;
+	const suggestedPath = report.suggestedPathId
+		? nextState.researchPaths.find((path) => path.id === report.suggestedPathId)
+		: undefined;
+	if (suggestedPath && suggestedPath.status === "active") {
+		nextState = updateResearchPath(nextState, {
+			pathId: suggestedPath.id,
+			status: "promising",
+			now,
+			actor: "coordinator",
+		});
+	}
+	for (const path of [...nextState.researchPaths]) {
+		if (path.status === "abandoned" || path.status === "resolved") {
+			continue;
+		}
+		const latestReport = [...nextState.researchReports].reverse().find((candidate) => candidate.pathId === path.id);
+		if (latestReport?.status === "blocked") {
+			const blockedReportCount = nextState.researchReports.filter(
+				(candidate) => candidate.pathId === path.id && candidate.status === "blocked",
+			).length;
+			nextState = updateResearchPath(nextState, {
+				pathId: path.id,
+				status: blockedReportCount >= 3 && path.id !== suggestedPath?.id ? "abandoned" : "blocked",
+				now,
+				actor: "coordinator",
+			});
+		}
+	}
+	for (const move of report.recommendedNextMoves) {
+		if (move.pathId || !/\b(?:split|subpath|new path)\b/i.test(`${move.title} ${move.rationale}`)) {
+			continue;
+		}
+		const title = move.title.replace(/^split\s+/i, "").trim() || "Coordinator subpath";
+		if (nextState.researchPaths.some((path) => normalizePathTitle(path.title) === normalizePathTitle(title))) {
+			continue;
+		}
+		nextState = addResearchPath(nextState, {
+			title,
+			objective: move.rationale,
+			suggestedNextMove: move.prompt ?? move.rationale,
+			priority: nextState.researchPaths.length + 1,
+			now,
+			actor: "coordinator",
+		});
+	}
+	return nextState;
+}
+
+function normalizePathTitle(value: string): string {
+	return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function hasOpenMarginNote(
@@ -879,6 +1166,14 @@ function findPersistedLiteratureSource(
 	return (
 		current.find((candidate) => !previousIds.has(candidate.id)) ??
 		current.find((candidate) => {
+			if (source.doi && candidate.doi === source.doi) return true;
+			if (
+				source.externalId &&
+				candidate.externalId === source.externalId &&
+				candidate.provider === source.provider
+			) {
+				return true;
+			}
 			if (source.url && candidate.url === source.url) return true;
 			if (source.path && candidate.path === source.path) return true;
 			return candidate.title.toLowerCase() === source.title.trim().toLowerCase();

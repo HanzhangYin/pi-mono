@@ -11,6 +11,7 @@ import type {
 	LiteratureSourceArtifact,
 	ResearchCoordinatorNextMove,
 	ResearchCoordinatorReportRecord,
+	ResearchEvidenceBoardEntry,
 	ResearchPath,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
@@ -104,6 +105,9 @@ function buildCoordinatorContext(state: CoMathProjectState): string {
 		"Source support:",
 		...formatClaimSupportsForContext(state.literatureClaimSupports),
 		"",
+		"Evidence board:",
+		...formatEvidenceBoardForContext(state.researchEvidenceBoard),
+		"",
 		"Literature sources:",
 		...formatSourcesForContext(state.literatureSources),
 		"",
@@ -130,6 +134,10 @@ function buildFallbackCoordinatorReport(state: CoMathProjectState): ResearchCoor
 			.filter((support) => support.status === "supported" || support.status === "partially-supported")
 			.slice(-3)
 			.map((support) => `${support.status}: ${support.claim}`),
+		...state.researchEvidenceBoard
+			.filter((entry) => entry.classification !== "unsupported" && entry.classification !== "conflicting")
+			.slice(-3)
+			.map((entry) => `${entry.classification}: ${entry.claim}`),
 		...state.researchWorkstreamRuns
 			.filter((run) => run.status === "queued" || run.status === "running")
 			.map(
@@ -145,6 +153,10 @@ function buildFallbackCoordinatorReport(state: CoMathProjectState): ResearchCoor
 		...state.literatureClaimSupports
 			.filter((support) => support.status === "unsupported" || support.sourceIds.length === 0)
 			.map((support) => `Source support is still missing for: ${support.claim}`),
+		...state.researchEvidenceBoard
+			.filter((entry) => entry.classification === "unsupported" || entry.classification === "conflicting")
+			.slice(-4)
+			.map((entry) => `${entry.classification}: ${entry.claim}`),
 		...state.researchWorkstreamRuns
 			.filter((run) => run.status === "blocked" || run.status === "failed")
 			.map(
@@ -251,9 +263,7 @@ function buildFallbackNextMoves(state: CoMathProjectState): ResearchCoordinatorN
 	for (const report of state.researchReports) {
 		latestReportByPath.set(report.pathId, report);
 	}
-	const activePaths = state.researchPaths
-		.filter((path) => path.status === "active" || path.status === "promising")
-		.sort((a, b) => a.priority - b.priority);
+	const activePaths = rankCoordinatorPaths(state);
 	const moves: ResearchCoordinatorNextMove[] = [];
 	const hasBlockedLiterature = hasBlockedLiteratureState(state);
 	const initialUnreportedLimit = state.computationalArtifacts.length > 0 && hasBlockedLiterature ? 2 : 3;
@@ -261,7 +271,11 @@ function buildFallbackNextMoves(state: CoMathProjectState): ResearchCoordinatorN
 		moves.push({
 			title: `Continue ${formatPathLabel(state, path)}`,
 			pathId: path.id,
-			rationale: "No completed report has been recorded for this active path yet.",
+			rationale: buildPathRankingRationale(
+				state,
+				path,
+				"No completed report has been recorded for this active path yet.",
+			),
 			prompt: `continue path ${pathNumber(state, path)}`,
 			priority: moves.length === 0 ? "high" : "medium",
 		});
@@ -294,7 +308,11 @@ function buildFallbackNextMoves(state: CoMathProjectState): ResearchCoordinatorN
 		moves.push({
 			title: `Continue ${formatPathLabel(state, path)}`,
 			pathId: path.id,
-			rationale: report.suggestedNextMove || "The latest report suggests another pass on this path.",
+			rationale: buildPathRankingRationale(
+				state,
+				path,
+				report.suggestedNextMove || "The latest report suggests another pass on this path.",
+			),
 			prompt: `continue path ${pathNumber(state, path)}`,
 			priority: moves.length === 0 ? "high" : "medium",
 		});
@@ -325,6 +343,68 @@ function fallbackNextMoves(
 	state: CoMathProjectState,
 ): ResearchCoordinatorNextMove[] {
 	return moves.length > 0 ? moves.slice(0, 3) : buildFallbackNextMoves(state);
+}
+
+function rankCoordinatorPaths(state: CoMathProjectState): ResearchPath[] {
+	return state.researchPaths
+		.filter((path) => path.status === "active" || path.status === "promising")
+		.map((path) => ({
+			path,
+			score: scoreCoordinatorPath(state, path),
+		}))
+		.sort((left, right) => right.score - left.score || left.path.priority - right.path.priority)
+		.map((entry) => entry.path);
+}
+
+function scoreCoordinatorPath(state: CoMathProjectState, path: ResearchPath): number {
+	const reports = state.researchReports.filter((report) => report.pathId === path.id);
+	const boardEntries = state.researchEvidenceBoard.filter((entry) => entry.pathId === path.id);
+	const sourceSupport = boardEntries.filter(
+		(entry) =>
+			entry.sourceIds.length > 0 && entry.classification !== "unsupported" && entry.classification !== "conflicting",
+	).length;
+	const computationSupport = boardEntries.filter((entry) => entry.classification === "computation").length;
+	const blockers = boardEntries.filter(
+		(entry) => entry.classification === "unsupported" || entry.classification === "conflicting",
+	).length;
+	const latestReport = reports.at(-1);
+	const novelty = Math.max(0, 3 - reports.length);
+	return (
+		(path.status === "promising" ? 8 : 0) +
+		sourceSupport * 4 +
+		computationSupport * 3 +
+		novelty * 2 +
+		(latestReport && latestReport.findings.length > 0 ? 2 : 0) -
+		blockers * 3 -
+		(latestReport?.status === "blocked" ? 5 : 0)
+	);
+}
+
+function buildPathRankingRationale(state: CoMathProjectState, path: ResearchPath, fallback: string): string {
+	const boardEntries = state.researchEvidenceBoard.filter((entry) => entry.pathId === path.id);
+	const sourceSupport = boardEntries.filter(
+		(entry) =>
+			entry.sourceIds.length > 0 && entry.classification !== "unsupported" && entry.classification !== "conflicting",
+	).length;
+	const computationSupport = boardEntries.filter((entry) => entry.classification === "computation").length;
+	const blockers = boardEntries.filter(
+		(entry) => entry.classification === "unsupported" || entry.classification === "conflicting",
+	).length;
+	const signals = [
+		sourceSupport > 0 ? `${sourceSupport} source-backed signal${sourceSupport === 1 ? "" : "s"}` : undefined,
+		computationSupport > 0
+			? `${computationSupport} computation signal${computationSupport === 1 ? "" : "s"}`
+			: undefined,
+		blockers > 0 ? `${blockers} unresolved blocker${blockers === 1 ? "" : "s"}` : undefined,
+		/\b(?:literature|source|reference|theorem)\b/i.test(`${path.title} ${path.objective}`) && blockers > 0
+			? "more literature retrieval may help"
+			: undefined,
+		/\b(?:computation|examples?|finite|counterexamples?)\b/i.test(`${path.title} ${path.objective}`)
+			? "more bounded computation may help"
+			: undefined,
+		path.status === "promising" ? "already marked promising" : undefined,
+	].filter((signal): signal is string => signal !== undefined);
+	return signals.length > 0 ? `${fallback} Signals: ${signals.join("; ")}.` : fallback;
 }
 
 function parseNextMove(
@@ -601,6 +681,27 @@ function formatClaimSupportsForContext(supports: readonly LiteratureClaimSupport
 		);
 }
 
+function formatEvidenceBoardForContext(entries: readonly ResearchEvidenceBoardEntry[]): string[] {
+	if (entries.length === 0) {
+		return ["- (none)"];
+	}
+	return entries
+		.slice(-MAX_CONTEXT_ITEMS)
+		.map((entry) =>
+			[
+				`- ${entry.id}: ${entry.classification}`,
+				`  Claim: ${entry.claim}`,
+				...(entry.pathId ? [`  Path: ${entry.pathId}`] : []),
+				...(entry.reportId ? [`  Report: ${entry.reportId}`] : []),
+				...(entry.sourceIds.length > 0 ? [`  Sources: ${entry.sourceIds.join(", ")}`] : []),
+				...(entry.computationalArtifactIds.length > 0
+					? [`  Computations: ${entry.computationalArtifactIds.join(", ")}`]
+					: []),
+				`  Rationale: ${summarizeText(entry.rationale)}`,
+			].join("\n"),
+		);
+}
+
 function formatSourcesForContext(sources: readonly LiteratureSourceArtifact[]): string[] {
 	if (sources.length === 0) {
 		return ["- (none)"];
@@ -611,6 +712,13 @@ function formatSourcesForContext(sources: readonly LiteratureSourceArtifact[]): 
 			[
 				`- ${source.id}: ${source.title}`,
 				`  Kind: ${source.kind}`,
+				...(source.sourceType ? [`  Source type: ${source.sourceType}`] : []),
+				...(source.venue ? [`  Venue: ${source.venue}`] : []),
+				...(source.doi ? [`  DOI: ${source.doi}`] : []),
+				...(source.externalId ? [`  External id: ${source.externalId}`] : []),
+				...(source.publishedAt ? [`  Published: ${source.publishedAt}`] : []),
+				...(source.citationCount !== undefined ? [`  Citations: ${source.citationCount}`] : []),
+				...(source.provider ? [`  Provider: ${source.provider}`] : []),
 				...((source.url ?? source.path) ? [`  Locator: ${source.url ?? source.path ?? ""}`] : []),
 				`  Summary: ${summarizeText(source.summary)}`,
 			].join("\n"),

@@ -287,7 +287,10 @@ export class CoMathHarness {
 				actor: "human",
 			});
 		}
-		const initialPath = nextState.researchPaths.find((path) => path.priority === 1);
+		const initialPath = chooseInitialResearchPath(nextState, {
+			initialFocusSlug: plan.initialFocusSlug,
+			preferLiterature: this.researchModelExecutor !== undefined,
+		});
 		if (initialPath) {
 			nextState = setResearchFocus(nextState, {
 				pathIds: [initialPath.id],
@@ -297,7 +300,7 @@ export class CoMathHarness {
 			});
 		}
 		await saveProjectState(this.statePath, nextState);
-		await this.notify(formatResearchWorkspacePrepared(plan));
+		await this.notify(formatResearchWorkspacePrepared(plan, initialPath?.title));
 		if (this.startFirstRun && initialPath) {
 			await this.researchRunner.runResearchWorkstreamForPath(nextState, initialPath);
 		}
@@ -1170,6 +1173,23 @@ function chooseNaturalSteeringResearchPath(state: CoMathProjectState, prompt: st
 		return namedPath;
 	}
 	return resolveDefaultContinueResearchPath(state).path;
+}
+
+function chooseInitialResearchPath(
+	state: CoMathProjectState,
+	input: { initialFocusSlug: string; preferLiterature: boolean },
+): ResearchPath | undefined {
+	if (input.preferLiterature) {
+		const literaturePath = state.researchPaths.find((path) =>
+			/\b(?:known theorem|literature|reference|source)\b/i.test(`${path.title} ${path.objective}`),
+		);
+		if (literaturePath) {
+			return literaturePath;
+		}
+	}
+	const slugTitle = input.initialFocusSlug.replace(/-/g, " ");
+	const initialBySlug = findResearchPath(state, slugTitle);
+	return initialBySlug ?? state.researchPaths.find((path) => path.priority === 1);
 }
 
 function saveNaturalResearchSteering(

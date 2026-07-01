@@ -19,8 +19,13 @@ import type {
 	GoalStatus,
 	LiteratureClaimSupport,
 	LiteratureClaimSupportStatus,
+	LiteratureSearchProviderRecord,
+	LiteratureSearchProviderStatus,
+	LiteratureSearchRecord,
 	LiteratureSourceArtifact,
 	LiteratureSourceKind,
+	LiteratureSourceProvider,
+	LiteratureSourceType,
 	MarginNote,
 	MarginNoteKind,
 	Report,
@@ -31,6 +36,8 @@ import type {
 	ResearchCoordinatorNextMove,
 	ResearchCoordinatorNextMovePriority,
 	ResearchCoordinatorReportRecord,
+	ResearchEvidenceBoardEntry,
+	ResearchEvidenceClassification,
 	ResearchFocus,
 	ResearchPath,
 	ResearchPathStatus,
@@ -77,7 +84,9 @@ type LegacyProjectState = Omit<
 	| "researchWorkstreamRuns"
 	| "researchBatches"
 	| "literatureSources"
+	| "literatureSearches"
 	| "literatureClaimSupports"
+	| "researchEvidenceBoard"
 	| "computationalArtifacts"
 	| "researchCoordinatorReports"
 	| "researchFocus"
@@ -104,7 +113,9 @@ type LegacyProjectState = Omit<
 				| "researchWorkstreamRuns"
 				| "researchBatches"
 				| "literatureSources"
+				| "literatureSearches"
 				| "literatureClaimSupports"
+				| "researchEvidenceBoard"
 				| "computationalArtifacts"
 				| "researchCoordinatorReports"
 				| "researchFocus"
@@ -304,10 +315,31 @@ export interface AddLiteratureSourceArtifactInput {
 	title: string;
 	url?: string;
 	path?: string;
+	provider?: LiteratureSourceProvider;
+	externalId?: string;
+	doi?: string;
+	venue?: string;
+	publishedAt?: string;
+	citationCount?: number;
+	sourceType?: LiteratureSourceType;
 	authors?: string[];
 	year?: string;
 	summary: string;
 	extractedText?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddLiteratureSearchRecordInput {
+	id?: string;
+	pathId?: string;
+	runId?: string;
+	queries: readonly string[];
+	providers: readonly LiteratureSearchProviderRecord[];
+	candidateCount: number;
+	selectedSourceIds?: readonly string[];
+	startedAt: string;
+	completedAt: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -320,6 +352,21 @@ export interface AddLiteratureClaimSupportInput {
 	sourceIds: string[];
 	status: LiteratureClaimSupportStatus;
 	note?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchEvidenceBoardEntryInput {
+	id?: string;
+	pathId?: string;
+	reportId?: string;
+	claimSupportId?: string;
+	marginNoteId?: string;
+	sourceIds?: readonly string[];
+	computationalArtifactIds?: readonly string[];
+	claim: string;
+	classification: ResearchEvidenceClassification;
+	rationale: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -629,7 +676,9 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		researchWorkstreamRuns: [],
 		researchBatches: [],
 		literatureSources: [],
+		literatureSearches: [],
 		literatureClaimSupports: [],
+		researchEvidenceBoard: [],
 		computationalArtifacts: [],
 		researchCoordinatorReports: [],
 		events: [
@@ -1277,7 +1326,11 @@ export function addLiteratureSourceArtifact(
 	}
 	const url = input.url?.trim();
 	const sourcePath = input.path?.trim();
+	const doi = input.doi?.trim();
+	const externalId = input.externalId?.trim();
 	const duplicate = state.literatureSources.find((source) => {
+		if (doi && source.doi === doi) return true;
+		if (externalId && source.externalId === externalId && source.provider === input.provider) return true;
 		if (url && source.url === url) return true;
 		if (sourcePath && source.path === sourcePath) return true;
 		return !url && !sourcePath && source.title.toLowerCase() === title.toLowerCase();
@@ -1295,6 +1348,15 @@ export function addLiteratureSourceArtifact(
 		title,
 		...(url ? { url } : {}),
 		...(sourcePath ? { path: sourcePath } : {}),
+		...(input.provider ? { provider: input.provider } : {}),
+		...(externalId ? { externalId } : {}),
+		...(doi ? { doi } : {}),
+		...(input.venue?.trim() ? { venue: input.venue.trim() } : {}),
+		...(input.publishedAt?.trim() ? { publishedAt: input.publishedAt.trim() } : {}),
+		...(typeof input.citationCount === "number" && Number.isFinite(input.citationCount)
+			? { citationCount: Math.max(0, Math.floor(input.citationCount)) }
+			: {}),
+		...(input.sourceType ? { sourceType: input.sourceType } : {}),
 		authors: [...(input.authors ?? [])],
 		...(input.year?.trim() ? { year: input.year.trim() } : {}),
 		summary,
@@ -1313,6 +1375,50 @@ export function addLiteratureSourceArtifact(
 			actor: input.actor,
 			summary: `Recorded literature source ${id}: ${title}`,
 			subjectId: id,
+			now: input.now,
+		},
+	);
+}
+
+export function addLiteratureSearchRecord(
+	state: CoMathProjectState,
+	input: AddLiteratureSearchRecordInput,
+): CoMathProjectState {
+	const queries = sanitizeStringArray(input.queries);
+	if (queries.length === 0) {
+		throw new Error("Literature search record requires at least one query.");
+	}
+	const id = input.id?.trim() || `literature-search-${state.literatureSearches.length + 1}`;
+	if (state.literatureSearches.some((search) => search.id === id)) {
+		throw new Error(`Duplicate literature search id: ${id}`);
+	}
+	const providers = input.providers.map(normalizeLiteratureSearchProviderInput);
+	const selectedSourceIds = sanitizeStringArray(input.selectedSourceIds ?? []);
+	const record: LiteratureSearchRecord = {
+		id,
+		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
+		...(input.runId?.trim() ? { runId: input.runId.trim() } : {}),
+		queries,
+		providers,
+		candidateCount: Math.max(0, Math.floor(input.candidateCount)),
+		selectedSourceIds,
+		startedAt: input.startedAt,
+		completedAt: input.completedAt,
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			literatureSearches: [...state.literatureSearches, record],
+			updatedAt: input.now,
+		},
+		{
+			kind: "literature_search_recorded",
+			actor: input.actor,
+			summary: `Recorded literature search ${id}`,
+			subjectId: id,
+			relatedIds: uniqueStrings([...(record.pathId ? [record.pathId] : []), ...selectedSourceIds]),
 			now: input.now,
 		},
 	);
@@ -1354,6 +1460,72 @@ export function addLiteratureClaimSupport(
 			summary: `Recorded literature support ${id}: ${claim}`,
 			subjectId: id,
 			relatedIds: sourceIds,
+			now: input.now,
+		},
+	);
+}
+
+export function addResearchEvidenceBoardEntry(
+	state: CoMathProjectState,
+	input: AddResearchEvidenceBoardEntryInput,
+): CoMathProjectState {
+	const claim = input.claim.trim();
+	const rationale = input.rationale.trim();
+	if (!claim) {
+		throw new Error("Research evidence board entry requires a claim.");
+	}
+	if (!rationale) {
+		throw new Error("Research evidence board entry requires a rationale.");
+	}
+	const sourceIds = uniqueStrings(input.sourceIds ?? []);
+	const computationalArtifactIds = uniqueStrings(input.computationalArtifactIds ?? []);
+	const duplicate = state.researchEvidenceBoard.find(
+		(entry) =>
+			entry.reportId === input.reportId &&
+			entry.claimSupportId === input.claimSupportId &&
+			entry.marginNoteId === input.marginNoteId &&
+			entry.claim.trim().toLowerCase() === claim.toLowerCase(),
+	);
+	if (duplicate) {
+		return state;
+	}
+	const id = input.id?.trim() || `evidence-board-${state.researchEvidenceBoard.length + 1}`;
+	if (state.researchEvidenceBoard.some((entry) => entry.id === id)) {
+		throw new Error(`Duplicate research evidence board entry id: ${id}`);
+	}
+	const entry: ResearchEvidenceBoardEntry = {
+		id,
+		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		...(input.claimSupportId?.trim() ? { claimSupportId: input.claimSupportId.trim() } : {}),
+		...(input.marginNoteId?.trim() ? { marginNoteId: input.marginNoteId.trim() } : {}),
+		sourceIds,
+		computationalArtifactIds,
+		claim,
+		classification: input.classification,
+		rationale,
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchEvidenceBoard: [...state.researchEvidenceBoard, entry],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_evidence_board_entry_recorded",
+			actor: input.actor,
+			summary: `Recorded evidence board entry ${id}: ${classificationLabel(input.classification)}`,
+			subjectId: id,
+			relatedIds: uniqueStrings([
+				...(entry.pathId ? [entry.pathId] : []),
+				...(entry.reportId ? [entry.reportId] : []),
+				...(entry.claimSupportId ? [entry.claimSupportId] : []),
+				...(entry.marginNoteId ? [entry.marginNoteId] : []),
+				...sourceIds,
+				...computationalArtifactIds,
+			]),
 			now: input.now,
 		},
 	);
@@ -2559,8 +2731,14 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		literatureSources: getArrayField(value, "literatureSources").map((record, index) =>
 			normalizeLiteratureSourceArtifact(record, updatedAt, index),
 		),
+		literatureSearches: getArrayField(value, "literatureSearches").map((record, index) =>
+			normalizeLiteratureSearchRecord(record, updatedAt, index),
+		),
 		literatureClaimSupports: getArrayField(value, "literatureClaimSupports").map((record, index) =>
 			normalizeLiteratureClaimSupport(record, updatedAt, index),
+		),
+		researchEvidenceBoard: getArrayField(value, "researchEvidenceBoard").map((record, index) =>
+			normalizeResearchEvidenceBoardEntry(record, updatedAt, index),
 		),
 		computationalArtifacts: getArrayField(value, "computationalArtifacts").map((record, index) =>
 			normalizeComputationalArtifact(record, updatedAt, index),
@@ -2907,12 +3085,50 @@ function normalizeLiteratureSourceArtifact(
 		title: getStringField(value, "title", "Untitled source"),
 		...(getOptionalStringField(value, "url") ? { url: getOptionalStringField(value, "url") } : {}),
 		...(getOptionalStringField(value, "path") ? { path: getOptionalStringField(value, "path") } : {}),
+		...(normalizeLiteratureSourceProvider(value.provider)
+			? { provider: normalizeLiteratureSourceProvider(value.provider) }
+			: {}),
+		...(getOptionalStringField(value, "externalId")
+			? { externalId: getOptionalStringField(value, "externalId") }
+			: {}),
+		...(getOptionalStringField(value, "doi") ? { doi: getOptionalStringField(value, "doi") } : {}),
+		...(getOptionalStringField(value, "venue") ? { venue: getOptionalStringField(value, "venue") } : {}),
+		...(getOptionalStringField(value, "publishedAt")
+			? { publishedAt: getOptionalStringField(value, "publishedAt") }
+			: {}),
+		...(typeof value.citationCount === "number" && Number.isFinite(value.citationCount)
+			? { citationCount: Math.max(0, Math.floor(value.citationCount)) }
+			: {}),
+		...(normalizeLiteratureSourceType(value.sourceType)
+			? { sourceType: normalizeLiteratureSourceType(value.sourceType) }
+			: {}),
 		authors: getStringArrayField(value, "authors"),
 		...(getOptionalStringField(value, "year") ? { year: getOptionalStringField(value, "year") } : {}),
 		summary: getStringField(value, "summary", ""),
 		...(getOptionalStringField(value, "extractedText")
 			? { extractedText: getOptionalStringField(value, "extractedText") }
 			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeLiteratureSearchRecord(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): LiteratureSearchRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "completedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `literature-search-${index + 1}`),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		...(getOptionalStringField(value, "runId") ? { runId: getOptionalStringField(value, "runId") } : {}),
+		queries: getStringArrayField(value, "queries"),
+		providers: getArrayField(value, "providers").map(normalizeLiteratureSearchProviderRecord),
+		candidateCount: Math.max(0, Math.floor(getNumberField(value, "candidateCount", 0))),
+		selectedSourceIds: getStringArrayField(value, "selectedSourceIds"),
+		startedAt: getStringField(value, "startedAt", createdAt),
+		completedAt: getStringField(value, "completedAt", createdAt),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
@@ -2932,6 +3148,32 @@ function normalizeLiteratureClaimSupport(
 		sourceIds: getStringArrayField(value, "sourceIds"),
 		status: normalizeLiteratureClaimSupportStatus(value.status),
 		...(getOptionalStringField(value, "note") ? { note: getOptionalStringField(value, "note") } : {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeResearchEvidenceBoardEntry(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchEvidenceBoardEntry {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `evidence-board-${index + 1}`),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		...(getOptionalStringField(value, "claimSupportId")
+			? { claimSupportId: getOptionalStringField(value, "claimSupportId") }
+			: {}),
+		...(getOptionalStringField(value, "marginNoteId")
+			? { marginNoteId: getOptionalStringField(value, "marginNoteId") }
+			: {}),
+		sourceIds: getStringArrayField(value, "sourceIds"),
+		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
+		claim: getStringField(value, "claim", ""),
+		classification: normalizeResearchEvidenceClassification(value.classification),
+		rationale: getStringField(value, "rationale", ""),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
@@ -3174,8 +3416,79 @@ function normalizeLiteratureSourceKind(value: unknown): LiteratureSourceKind {
 	return "unknown";
 }
 
+function normalizeLiteratureSourceProvider(value: unknown): LiteratureSourceProvider | undefined {
+	if (
+		value === "workspace" ||
+		value === "arxiv" ||
+		value === "semantic-scholar" ||
+		value === "crossref" ||
+		value === "openalex" ||
+		value === "user-provided" ||
+		value === "unknown"
+	) {
+		return value;
+	}
+	return undefined;
+}
+
+function normalizeLiteratureSourceType(value: unknown): LiteratureSourceType | undefined {
+	if (
+		value === "preprint" ||
+		value === "journal" ||
+		value === "conference" ||
+		value === "book" ||
+		value === "web" ||
+		value === "unknown"
+	) {
+		return value;
+	}
+	return undefined;
+}
+
+function normalizeLiteratureSearchProviderStatus(value: unknown): LiteratureSearchProviderStatus {
+	if (value === "completed" || value === "failed" || value === "skipped") {
+		return value;
+	}
+	return "failed";
+}
+
+function normalizeLiteratureSearchProviderRecord(value: Record<string, unknown>): LiteratureSearchProviderRecord {
+	return {
+		provider: normalizeLiteratureSourceProvider(value.provider) ?? "unknown",
+		query: getStringField(value, "query", ""),
+		status: normalizeLiteratureSearchProviderStatus(value.status),
+		candidateCount: Math.max(0, Math.floor(getNumberField(value, "candidateCount", 0))),
+		...(getOptionalStringField(value, "error") ? { error: getOptionalStringField(value, "error") } : {}),
+	};
+}
+
+function normalizeLiteratureSearchProviderInput(value: LiteratureSearchProviderRecord): LiteratureSearchProviderRecord {
+	return {
+		provider: normalizeLiteratureSourceProvider(value.provider) ?? "unknown",
+		query: value.query.trim(),
+		status: normalizeLiteratureSearchProviderStatus(value.status),
+		candidateCount: Math.max(0, Math.floor(value.candidateCount)),
+		...(value.error?.trim() ? { error: value.error.trim() } : {}),
+	};
+}
+
 function normalizeLiteratureClaimSupportStatus(value: unknown): LiteratureClaimSupportStatus {
 	if (value === "supported" || value === "partially-supported" || value === "unsupported" || value === "conflicting") {
+		return value;
+	}
+	return "unsupported";
+}
+
+function normalizeResearchEvidenceClassification(value: unknown): ResearchEvidenceClassification {
+	if (
+		value === "theorem" ||
+		value === "conjecture" ||
+		value === "heuristic" ||
+		value === "computation" ||
+		value === "survey-context" ||
+		value === "unsupported" ||
+		value === "conflicting"
+	) {
 		return value;
 	}
 	return "unsupported";
@@ -3428,7 +3741,9 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "research_workstream_run_recorded" ||
 		value === "research_batch_recorded" ||
 		value === "literature_source_recorded" ||
+		value === "literature_search_recorded" ||
 		value === "literature_claim_support_recorded" ||
+		value === "research_evidence_board_entry_recorded" ||
 		value === "computational_artifact_recorded" ||
 		value === "research_coordinator_report_recorded"
 	);
@@ -3588,7 +3903,14 @@ function relatedRunTargetIds(run: RoleRunRecord): string[] {
 	return [run.targetWorkstreamId, run.targetClaimId].filter((id) => id !== undefined);
 }
 
-function uniqueStrings(values: string[]): string[] {
+function classificationLabel(classification: ResearchEvidenceClassification): string {
+	if (classification === "survey-context") {
+		return "survey/context";
+	}
+	return classification;
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
 	return Array.from(new Set(values));
 }
 

@@ -78,7 +78,18 @@ export function formatResearchWorkstreamStageStarted(input: FormatResearchWorkst
 }
 
 export function formatResearchWorkstreamStageCompleted(input: FormatResearchWorkstreamStageCompletedInput): string {
-	return [`Finished: ${formatResearchStage(input.stage)}.`, sanitizeForegroundStageText(input.summary)].join("\n");
+	const details =
+		input.stage === "literature-search"
+			? input.details
+					.slice(0, 5)
+					.map(sanitizeForegroundStageText)
+					.filter((detail) => detail.length > 0)
+			: [];
+	return [
+		`Finished: ${formatResearchStage(input.stage)}.`,
+		sanitizeForegroundStageText(input.summary),
+		...details,
+	].join("\n");
 }
 
 export function formatResearchWorkstreamRunStillRunningReport(input: FormatResearchWorkstreamRunInput): string {

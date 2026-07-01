@@ -10,11 +10,13 @@ import {
 	addEvidence,
 	addGoal,
 	addLiteratureClaimSupport,
+	addLiteratureSearchRecord,
 	addLiteratureSourceArtifact,
 	addMarginNote,
 	addReportReviewRound,
 	addResearchBatch,
 	addResearchCoordinatorReport,
+	addResearchEvidenceBoardEntry,
 	addResearchPath,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
@@ -114,7 +116,9 @@ describe("co-math project state", () => {
 			researchWorkstreamRuns: [],
 			researchBatches: [],
 			literatureSources: [],
+			literatureSearches: [],
 			literatureClaimSupports: [],
+			researchEvidenceBoard: [],
 			computationalArtifacts: [],
 			researchCoordinatorReports: [],
 			updatedAt: FIXED_NOW,
@@ -284,6 +288,13 @@ describe("co-math project state", () => {
 			kind: "paper",
 			title: "Bounded gaps between primes",
 			url: "https://example.test/bounded-gaps",
+			provider: "semantic-scholar",
+			externalId: "10.1000/bounded-gaps",
+			doi: "10.1000/bounded-gaps",
+			venue: "Annals of Test Mathematics",
+			publishedAt: "2014-05-01",
+			citationCount: 42,
+			sourceType: "journal",
 			authors: ["A. Mathematician"],
 			year: "2014",
 			summary: "A source about bounded prime gaps.",
@@ -299,6 +310,32 @@ describe("co-math project state", () => {
 			actor: "system",
 		});
 		expect(withDuplicate.literatureSources).toEqual(state.literatureSources);
+		state = addLiteratureSearchRecord(state, {
+			pathId: "path-1",
+			runId: "research-run-1",
+			queries: ["bounded gaps twin primes"],
+			providers: [
+				{
+					provider: "semantic-scholar",
+					query: "bounded gaps twin primes",
+					status: "completed",
+					candidateCount: 1,
+				},
+				{
+					provider: "crossref",
+					query: "bounded gaps twin primes",
+					status: "failed",
+					candidateCount: 0,
+					error: "HTTP 503",
+				},
+			],
+			candidateCount: 1,
+			selectedSourceIds: ["source-1"],
+			startedAt: FIXED_NOW,
+			completedAt: FIXED_NOW,
+			now: FIXED_NOW,
+			actor: "system",
+		});
 		state = addLiteratureClaimSupport(state, {
 			pathId: "path-1",
 			claim: "Bounded prime gaps do not imply twin-prime infinitude.",
@@ -307,6 +344,17 @@ describe("co-math project state", () => {
 			note: "The source is related but weaker than the exact target.",
 			now: FIXED_NOW,
 			actor: "reviewer",
+		});
+		state = addResearchEvidenceBoardEntry(state, {
+			pathId: "path-1",
+			reportId: "research-report-1",
+			claimSupportId: "claim-support-1",
+			sourceIds: ["source-1"],
+			claim: "Bounded prime gaps do not imply twin-prime infinitude.",
+			classification: "theorem",
+			rationale: "Source-backed theorem context with a DOI-bearing journal source.",
+			now: FIXED_NOW,
+			actor: "synthesizer",
 		});
 		state = addResearchWorkstreamReport(state, {
 			pathId: "path-1",
@@ -334,7 +382,34 @@ describe("co-math project state", () => {
 				id: "source-1",
 				title: "Bounded gaps between primes",
 				url: "https://example.test/bounded-gaps",
+				provider: "semantic-scholar",
+				doi: "10.1000/bounded-gaps",
+				venue: "Annals of Test Mathematics",
+				citationCount: 42,
+				sourceType: "journal",
 				authors: ["A. Mathematician"],
+			},
+		]);
+		expect(state.literatureSearches).toMatchObject([
+			{
+				id: "literature-search-1",
+				pathId: "path-1",
+				runId: "research-run-1",
+				queries: ["bounded gaps twin primes"],
+				candidateCount: 1,
+				selectedSourceIds: ["source-1"],
+				providers: [
+					{
+						provider: "semantic-scholar",
+						status: "completed",
+						candidateCount: 1,
+					},
+					{
+						provider: "crossref",
+						status: "failed",
+						error: "HTTP 503",
+					},
+				],
 			},
 		]);
 		expect(state.literatureClaimSupports).toMatchObject([
@@ -343,6 +418,16 @@ describe("co-math project state", () => {
 				pathId: "path-1",
 				sourceIds: ["source-1"],
 				status: "supported",
+			},
+		]);
+		expect(state.researchEvidenceBoard).toMatchObject([
+			{
+				id: "evidence-board-1",
+				pathId: "path-1",
+				reportId: "research-report-1",
+				claimSupportId: "claim-support-1",
+				classification: "theorem",
+				sourceIds: ["source-1"],
 			},
 		]);
 		expect(state.researchReports[0]).toMatchObject({
@@ -2153,7 +2238,9 @@ describe("co-math project state", () => {
 			delete legacyWithoutNewFields.researchWorkstreamRuns;
 			delete legacyWithoutNewFields.researchBatches;
 			delete legacyWithoutNewFields.literatureSources;
+			delete legacyWithoutNewFields.literatureSearches;
 			delete legacyWithoutNewFields.literatureClaimSupports;
+			delete legacyWithoutNewFields.researchEvidenceBoard;
 			delete legacyWithoutNewFields.computationalArtifacts;
 			delete legacyWithoutNewFields.researchCoordinatorReports;
 			delete legacyWithoutNewFields.researchFocus;
@@ -2173,7 +2260,9 @@ describe("co-math project state", () => {
 			expect(loaded?.researchWorkstreamRuns).toEqual([]);
 			expect(loaded?.researchBatches).toEqual([]);
 			expect(loaded?.literatureSources).toEqual([]);
+			expect(loaded?.literatureSearches).toEqual([]);
 			expect(loaded?.literatureClaimSupports).toEqual([]);
+			expect(loaded?.researchEvidenceBoard).toEqual([]);
 			expect(loaded?.computationalArtifacts).toEqual([]);
 			expect(loaded?.researchCoordinatorReports).toEqual([]);
 			expect(loaded?.researchFocus).toBeUndefined();

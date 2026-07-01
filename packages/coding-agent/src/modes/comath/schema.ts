@@ -22,7 +22,25 @@ export type ResearchWorkstreamRunStage = ResearchWorkstreamRole | "literature-se
 export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" | "blocked" | "failed";
 export type ResearchBatchStatus = "running" | "paused" | "completed" | "failed" | "cancelled";
 export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "user-provided" | "unknown";
+export type LiteratureSourceProvider =
+	| "workspace"
+	| "arxiv"
+	| "semantic-scholar"
+	| "crossref"
+	| "openalex"
+	| "user-provided"
+	| "unknown";
+export type LiteratureSourceType = "preprint" | "journal" | "conference" | "book" | "web" | "unknown";
+export type LiteratureSearchProviderStatus = "completed" | "failed" | "skipped";
 export type LiteratureClaimSupportStatus = "supported" | "partially-supported" | "unsupported" | "conflicting";
+export type ResearchEvidenceClassification =
+	| "theorem"
+	| "conjecture"
+	| "heuristic"
+	| "computation"
+	| "survey-context"
+	| "unsupported"
+	| "conflicting";
 export type ComputationalArtifactKind = "script" | "stdout" | "stderr" | "table" | "summary";
 export type ComputationalArtifactStatus = "created" | "completed" | "failed" | "blocked";
 export type ResearchCoordinatorNextMovePriority = "high" | "medium" | "low";
@@ -62,7 +80,9 @@ export type CoMathEventKind =
 	| "research_workstream_run_recorded"
 	| "research_batch_recorded"
 	| "literature_source_recorded"
+	| "literature_search_recorded"
 	| "literature_claim_support_recorded"
+	| "research_evidence_board_entry_recorded"
 	| "computational_artifact_recorded"
 	| "research_coordinator_report_recorded";
 export type ArtifactKind =
@@ -288,10 +308,39 @@ export interface LiteratureSourceArtifact {
 	title: string;
 	url?: string;
 	path?: string;
+	provider?: LiteratureSourceProvider;
+	externalId?: string;
+	doi?: string;
+	venue?: string;
+	publishedAt?: string;
+	citationCount?: number;
+	sourceType?: LiteratureSourceType;
 	authors: string[];
 	year?: string;
 	summary: string;
 	extractedText?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface LiteratureSearchProviderRecord {
+	provider: LiteratureSourceProvider;
+	query: string;
+	status: LiteratureSearchProviderStatus;
+	candidateCount: number;
+	error?: string;
+}
+
+export interface LiteratureSearchRecord {
+	id: string;
+	pathId?: string;
+	runId?: string;
+	queries: string[];
+	providers: LiteratureSearchProviderRecord[];
+	candidateCount: number;
+	selectedSourceIds: string[];
+	startedAt: string;
+	completedAt: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -304,6 +353,21 @@ export interface LiteratureClaimSupport {
 	sourceIds: string[];
 	status: LiteratureClaimSupportStatus;
 	note?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ResearchEvidenceBoardEntry {
+	id: string;
+	pathId?: string;
+	reportId?: string;
+	claimSupportId?: string;
+	marginNoteId?: string;
+	sourceIds: string[];
+	computationalArtifactIds: string[];
+	claim: string;
+	classification: ResearchEvidenceClassification;
+	rationale: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -453,7 +517,9 @@ export interface CoMathProjectState {
 	researchWorkstreamRuns: ResearchWorkstreamRunRecord[];
 	researchBatches: ResearchBatchRecord[];
 	literatureSources: LiteratureSourceArtifact[];
+	literatureSearches: LiteratureSearchRecord[];
 	literatureClaimSupports: LiteratureClaimSupport[];
+	researchEvidenceBoard: ResearchEvidenceBoardEntry[];
 	computationalArtifacts: ComputationalArtifact[];
 	researchCoordinatorReports: ResearchCoordinatorReportRecord[];
 	researchFocus?: ResearchFocus;

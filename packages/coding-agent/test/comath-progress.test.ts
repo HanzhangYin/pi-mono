@@ -606,6 +606,12 @@ describe("co-math product messages", () => {
 					kind: "paper" as const,
 					title: "Twin prime conjecture status note",
 					url: "https://example.test/twin-prime-status",
+					provider: "semantic-scholar" as const,
+					doi: "10.1000/twin",
+					venue: "Number Theory Surveys",
+					publishedAt: "2024-01-02",
+					citationCount: 12,
+					sourceType: "journal" as const,
 					authors: [],
 					summary: "The twin-prime conjecture remains open.",
 					createdAt: "2026-06-05T12:00:00.000Z",
@@ -631,6 +637,33 @@ describe("co-math product messages", () => {
 					updatedAt: "2026-06-05T12:00:00.000Z",
 				},
 			],
+			researchEvidenceBoard: [
+				{
+					id: "evidence-board-1",
+					pathId: path.id,
+					reportId: "research-report-1",
+					claimSupportId: "claim-support-1",
+					sourceIds: ["source-1"],
+					computationalArtifactIds: [],
+					claim: "The twin-prime conjecture remains open.",
+					classification: "theorem" as const,
+					rationale: "Source-backed status from a DOI-bearing journal source.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+				{
+					id: "evidence-board-2",
+					pathId: path.id,
+					reportId: "research-report-1",
+					sourceIds: [],
+					computationalArtifactIds: [],
+					claim: "A source proves twin-prime infinitude.",
+					classification: "unsupported" as const,
+					rationale: "No source id was attached to this claim.",
+					createdAt: "2026-06-05T12:00:00.000Z",
+					updatedAt: "2026-06-05T12:00:00.000Z",
+				},
+			],
 		};
 
 		const completed = formatResearchWorkstreamCompleted({ state, report });
@@ -646,8 +679,13 @@ describe("co-math product messages", () => {
 		const details = formatResearchWorkstreamReport({ state, report });
 		expect(details).toContain("Literature findings");
 		expect(details).toContain("Source-support review");
+		expect(details).toContain("Evidence board");
+		expect(details).toContain("theorem: The twin-prime conjecture remains open.");
+		expect(details).toContain("unsupported: A source proves twin-prime infinitude.");
 		expect(details).toContain("References / attachments");
 		expect(details).toContain("source-1: Twin prime conjecture status note");
+		expect(details).toContain("DOI: 10.1000/twin");
+		expect(details).toContain("provider: semantic-scholar");
 		expect(details).toContain("Claim support");
 		expectProductCopy(details);
 	});

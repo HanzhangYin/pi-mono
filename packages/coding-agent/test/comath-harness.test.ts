@@ -767,6 +767,63 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("initializes source search on the first model-backed research prompt", async () => {
+		const { executor, requests } = createNSquaredLiteratureExecutor();
+		const { lookup, queries } = createLiteratureLookup(N_SQUARED_LITERATURE_SOURCES);
+		const dir = await mkdtemp(join(tmpdir(), "comath-default-model-research-harness-"));
+		const statePath = join(dir, ".pi", "co-math", "state.json");
+		const commands: string[] = [];
+		const notices: string[] = [];
+		const harness = new CoMathHarness({
+			statePath,
+			notify: (message) => {
+				notices.push(message);
+			},
+			runBackendCommand: async (command) => {
+				commands.push(command);
+				if (command.startsWith("init ")) {
+					await saveProjectState(
+						statePath,
+						createEmptyProjectState({
+							projectId: "proj-test",
+							title: command.slice("init ".length),
+							rootQuestion: command.slice("init ".length),
+							now: "2026-06-05T12:00:00.000Z",
+						}),
+					);
+				}
+				return OK;
+			},
+			researchModelExecutor: executor,
+			literatureSourceLookup: lookup,
+		});
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await waitForProjectState(statePath, "completed initial source-backed research run", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchWorkstreamRuns).toHaveLength(1);
+			expect(state.researchWorkstreamRuns[0]).toMatchObject({
+				pathTitle: "Known theorem or literature reduction",
+				status: "completed",
+			});
+			expect(state.literatureSearches).toHaveLength(1);
+			expect(state.literatureSources).toHaveLength(1);
+			expect(queries[0]).toContain("Known theorem or literature reduction");
+			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
+			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
+			const visible = notices.join("\n");
+			expect(visible).toContain("I’ll start with known theorem or literature reduction.");
+			expect(visible).toContain("Searching arXiv, Semantic Scholar, Crossref.");
+			expect(visible).toContain("Checking source-backed context.");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("starts research exploration from a bare math question", async () => {
 		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
 		try {
@@ -1343,6 +1400,33 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("automatically refreshes the coordinator after every two durable research steps", async () => {
+		const { dir, harness, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("continue path 1");
+			let state = await loadRequiredProjectState(statePath);
+			expect(state.researchReports).toHaveLength(1);
+			expect(state.researchCoordinatorReports).toHaveLength(0);
+
+			await harness.handlePrompt("continue path 2");
+			state = await loadRequiredProjectState(statePath);
+
+			expect(state.researchReports).toHaveLength(2);
+			expect(state.researchCoordinatorReports).toHaveLength(1);
+			expect(state.researchCoordinatorReports[0]?.inputReportIds).toEqual([
+				"research-report-1",
+				"research-report-2",
+			]);
+			expect(state.researchEvidenceBoard.length).toBeGreaterThan(0);
+			expect(state.researchEvidenceBoard.some((entry) => entry.classification === "unsupported")).toBe(true);
+			expect(state.researchEvidenceBoard.some((entry) => entry.marginNoteId)).toBe(true);
+			expect(state.researchPaths.some((path) => path.status === "promising")).toBe(true);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("shows coordinator, specialist, critic, and synthesis sections for show latest report", async () => {
 		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
 		try {
@@ -1832,7 +1916,7 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Research step running");
 			expect(visible).toContain("Path 5: Known theorem or literature reduction");
 			expect(visible).toContain("Searching references");
-			expect(visible).toContain("Literature specialist is looking for relevant sources.");
+			expect(visible).toContain("Searching arXiv, Semantic Scholar, Crossref.");
 			expect(deferredExecutor.requests).toEqual([]);
 			expectProductCopy(visible);
 
@@ -2422,13 +2506,22 @@ describe("co-math harness", () => {
 			);
 
 			const state = await loadRequiredProjectState(statePath);
-			expect(roles).toEqual(["specialist", "critic", "synthesizer", "specialist", "critic", "synthesizer"]);
+			expect(roles).toEqual([
+				"specialist",
+				"critic",
+				"synthesizer",
+				"specialist",
+				"critic",
+				"synthesizer",
+				"synthesizer",
+			]);
 			expect(state.researchBatches[0]).toMatchObject({
 				status: "completed",
 				requestedStepCount: 2,
 				completedStepCount: 2,
 				runIds: ["research-run-1", "research-run-2"],
 			});
+			expect(state.researchCoordinatorReports).toHaveLength(1);
 			expect(state.researchWorkstreamRuns.map((run) => run.status)).toEqual(["completed", "completed"]);
 			expect(
 				state.researchReports.flatMap((report) => report.steps.flatMap((step) => step.details)).join("\n"),
