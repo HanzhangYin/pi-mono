@@ -41,6 +41,11 @@ import type {
 	ResearchFocus,
 	ResearchPath,
 	ResearchPathStatus,
+	ResearchPlanRecord,
+	ResearchPlanStatus,
+	ResearchPlanTaskKind,
+	ResearchPlanTaskRecord,
+	ResearchPlanTaskStatus,
 	ResearchWorkstreamIncrementalReportRecord,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamReportStatus,
@@ -83,6 +88,8 @@ type LegacyProjectState = Omit<
 	| "researchReports"
 	| "researchWorkstreamRuns"
 	| "researchBatches"
+	| "researchPlans"
+	| "researchPlanTasks"
 	| "literatureSources"
 	| "literatureSearches"
 	| "literatureClaimSupports"
@@ -112,6 +119,8 @@ type LegacyProjectState = Omit<
 				| "researchReports"
 				| "researchWorkstreamRuns"
 				| "researchBatches"
+				| "researchPlans"
+				| "researchPlanTasks"
 				| "literatureSources"
 				| "literatureSearches"
 				| "literatureClaimSupports"
@@ -471,6 +480,60 @@ export interface UpdateResearchBatchInput {
 	actor?: CoMathActor;
 }
 
+export interface AddResearchPlanInput {
+	id?: string;
+	title: string;
+	objective: string;
+	status?: ResearchPlanStatus;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchPlanTaskInput {
+	id?: string;
+	planId: string;
+	kind: ResearchPlanTaskKind;
+	title: string;
+	description: string;
+	goal?: string;
+	acceptanceCriteria?: readonly string[];
+	pathId?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface UpdateResearchPlanInput {
+	planId: string;
+	status?: ResearchPlanStatus;
+	currentTaskId?: string;
+	clearCurrentTaskId?: boolean;
+	pauseReason?: string;
+	failureReason?: string;
+	cancelReason?: string;
+	startedAt?: string;
+	completedAt?: string;
+	cancelledAt?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface UpdateResearchPlanTaskInput {
+	taskId: string;
+	status?: ResearchPlanTaskStatus;
+	runId?: string;
+	reportId?: string;
+	addSourceIds?: readonly string[];
+	addClaimSupportIds?: readonly string[];
+	addComputationalArtifactIds?: readonly string[];
+	addEvidenceEntryIds?: readonly string[];
+	blockedReason?: string;
+	failureReason?: string;
+	startedAt?: string;
+	completedAt?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
 export interface AddSynthesisEventInput {
 	now: string;
 	actor?: CoMathActor;
@@ -675,6 +738,8 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		researchReports: [],
 		researchWorkstreamRuns: [],
 		researchBatches: [],
+		researchPlans: [],
+		researchPlanTasks: [],
 		literatureSources: [],
 		literatureSearches: [],
 		literatureClaimSupports: [],
@@ -1830,6 +1895,230 @@ export function updateResearchBatch(state: CoMathProjectState, input: UpdateRese
 	);
 }
 
+export function addResearchPlan(state: CoMathProjectState, input: AddResearchPlanInput): CoMathProjectState {
+	const title = input.title.trim();
+	const objective = input.objective.trim();
+	if (!title) {
+		throw new Error("Research plan requires a title.");
+	}
+	if (!objective) {
+		throw new Error("Research plan requires an objective.");
+	}
+	const id = input.id?.trim() || `research-plan-${state.researchPlans.length + 1}`;
+	if (state.researchPlans.some((plan) => plan.id === id)) {
+		throw new Error(`Duplicate research plan id: ${id}`);
+	}
+	const plan: ResearchPlanRecord = {
+		id,
+		title,
+		objective,
+		status: input.status ?? "active",
+		taskIds: [],
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchPlans: [...state.researchPlans, plan],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_plan_recorded",
+			actor: input.actor,
+			summary: `Created research plan ${id}: ${title}`,
+			subjectId: id,
+			now: input.now,
+		},
+	);
+}
+
+export function addResearchPlanTask(state: CoMathProjectState, input: AddResearchPlanTaskInput): CoMathProjectState {
+	const plan = state.researchPlans.find((candidate) => candidate.id === input.planId);
+	if (!plan) {
+		throw new Error(`Unknown research plan: ${input.planId}`);
+	}
+	const title = input.title.trim();
+	const description = input.description.trim();
+	if (!title) {
+		throw new Error("Research plan task requires a title.");
+	}
+	if (!description) {
+		throw new Error("Research plan task requires a description.");
+	}
+	const id = input.id?.trim() || `research-plan-task-${state.researchPlanTasks.length + 1}`;
+	if (state.researchPlanTasks.some((task) => task.id === id)) {
+		throw new Error(`Duplicate research plan task id: ${id}`);
+	}
+	const sequence = state.researchPlanTasks.filter((task) => task.planId === plan.id).length + 1;
+	const task: ResearchPlanTaskRecord = {
+		id,
+		planId: plan.id,
+		kind: input.kind,
+		status: "pending",
+		sequence,
+		title,
+		description,
+		...(input.goal?.trim() ? { goal: input.goal.trim() } : {}),
+		acceptanceCriteria: sanitizeStringArray(input.acceptanceCriteria ?? []),
+		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
+		sourceIds: [],
+		claimSupportIds: [],
+		computationalArtifactIds: [],
+		evidenceEntryIds: [],
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchPlans: state.researchPlans.map((candidate) =>
+				candidate.id === plan.id
+					? { ...candidate, taskIds: [...candidate.taskIds, id], updatedAt: input.now }
+					: candidate,
+			),
+			researchPlanTasks: [...state.researchPlanTasks, task],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_plan_task_recorded",
+			actor: input.actor,
+			summary: `Added research plan task ${id}: ${title}`,
+			subjectId: id,
+			relatedIds: [plan.id, ...(task.pathId ? [task.pathId] : [])],
+			now: input.now,
+		},
+	);
+}
+
+export function updateResearchPlan(state: CoMathProjectState, input: UpdateResearchPlanInput): CoMathProjectState {
+	if (!state.researchPlans.some((plan) => plan.id === input.planId)) {
+		return state;
+	}
+	return appendEvent(
+		{
+			...state,
+			researchPlans: state.researchPlans.map((plan) => {
+				if (plan.id !== input.planId) {
+					return plan;
+				}
+				const updated: ResearchPlanRecord = {
+					...plan,
+					...(input.status ? { status: input.status } : {}),
+					...(input.currentTaskId?.trim() ? { currentTaskId: input.currentTaskId.trim() } : {}),
+					...(input.pauseReason?.trim() ? { pauseReason: input.pauseReason.trim() } : {}),
+					...(input.failureReason?.trim() ? { failureReason: input.failureReason.trim() } : {}),
+					...(input.cancelReason?.trim() ? { cancelReason: input.cancelReason.trim() } : {}),
+					...(input.startedAt ? { startedAt: input.startedAt } : {}),
+					...(input.completedAt ? { completedAt: input.completedAt } : {}),
+					...(input.cancelledAt ? { cancelledAt: input.cancelledAt } : {}),
+					updatedAt: input.now,
+				};
+				if (input.clearCurrentTaskId) {
+					delete updated.currentTaskId;
+				}
+				if (input.status === "active") {
+					delete updated.pauseReason;
+				}
+				return updated;
+			}),
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_plan_recorded",
+			actor: input.actor,
+			summary: `Updated research plan ${input.planId}`,
+			subjectId: input.planId,
+			now: input.now,
+		},
+	);
+}
+
+export function updateResearchPlanTask(
+	state: CoMathProjectState,
+	input: UpdateResearchPlanTaskInput,
+): CoMathProjectState {
+	const task = state.researchPlanTasks.find((candidate) => candidate.id === input.taskId);
+	if (!task) {
+		return state;
+	}
+	return appendEvent(
+		{
+			...state,
+			researchPlanTasks: state.researchPlanTasks.map((candidate) =>
+				candidate.id === input.taskId
+					? {
+							...candidate,
+							...(input.status ? { status: input.status } : {}),
+							...(input.runId?.trim() ? { runId: input.runId.trim() } : {}),
+							...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+							sourceIds: uniqueStrings([...candidate.sourceIds, ...(input.addSourceIds ?? [])]),
+							claimSupportIds: uniqueStrings([
+								...candidate.claimSupportIds,
+								...(input.addClaimSupportIds ?? []),
+							]),
+							computationalArtifactIds: uniqueStrings([
+								...candidate.computationalArtifactIds,
+								...(input.addComputationalArtifactIds ?? []),
+							]),
+							evidenceEntryIds: uniqueStrings([
+								...candidate.evidenceEntryIds,
+								...(input.addEvidenceEntryIds ?? []),
+							]),
+							...(input.blockedReason?.trim() ? { blockedReason: input.blockedReason.trim() } : {}),
+							...(input.failureReason?.trim() ? { failureReason: input.failureReason.trim() } : {}),
+							...(input.startedAt ? { startedAt: input.startedAt } : {}),
+							...(input.completedAt ? { completedAt: input.completedAt } : {}),
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_plan_task_recorded",
+			actor: input.actor,
+			summary: `Updated research plan task ${input.taskId}${input.status ? ` to ${input.status}` : ""}`,
+			subjectId: input.taskId,
+			relatedIds: uniqueStrings(
+				[task.planId, input.runId, input.reportId].filter((id): id is string => !!id?.trim()),
+			),
+			now: input.now,
+		},
+	);
+}
+
+export function getActiveResearchPlan(state: CoMathProjectState): ResearchPlanRecord | undefined {
+	return state.researchPlans.find((plan) => plan.status === "active");
+}
+
+export function getPausedResearchPlan(state: CoMathProjectState): ResearchPlanRecord | undefined {
+	return [...state.researchPlans].reverse().find((plan) => plan.status === "paused");
+}
+
+export function getLatestResearchPlan(state: CoMathProjectState): ResearchPlanRecord | undefined {
+	return state.researchPlans.at(-1);
+}
+
+export function getResearchPlanTasks(state: CoMathProjectState, planId: string): ResearchPlanTaskRecord[] {
+	return state.researchPlanTasks.filter((task) => task.planId === planId).sort((a, b) => a.sequence - b.sequence);
+}
+
+/**
+ * The next task the plan runner may execute: the lowest-sequence pending task. Returns `undefined`
+ * while a task is still running (only one task may run at a time) or when nothing is pending.
+ */
+export function getNextRunnableResearchPlanTask(
+	state: CoMathProjectState,
+	planId: string,
+): ResearchPlanTaskRecord | undefined {
+	const tasks = getResearchPlanTasks(state, planId);
+	if (tasks.some((task) => task.status === "running")) {
+		return undefined;
+	}
+	return tasks.find((task) => task.status === "pending");
+}
+
 export function addResearchWorkstreamIncrementalReport(
 	state: CoMathProjectState,
 	input: AddResearchWorkstreamIncrementalReportInput,
@@ -2728,6 +3017,12 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		researchBatches: getArrayField(value, "researchBatches").map((record, index) =>
 			normalizeResearchBatch(record, updatedAt, index),
 		),
+		researchPlans: getArrayField(value, "researchPlans").map((record, index) =>
+			normalizeResearchPlan(record, updatedAt, index),
+		),
+		researchPlanTasks: getArrayField(value, "researchPlanTasks").map((record, index) =>
+			normalizeResearchPlanTask(record, updatedAt, index),
+		),
 		literatureSources: getArrayField(value, "literatureSources").map((record, index) =>
 			normalizeLiteratureSourceArtifact(record, updatedAt, index),
 		),
@@ -3332,6 +3627,122 @@ function normalizeResearchBatch(
 	};
 }
 
+function normalizeResearchPlan(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchPlanRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `research-plan-${index + 1}`),
+		title: getStringField(value, "title", "Research plan"),
+		objective: getStringField(value, "objective", "Make durable progress on the root question."),
+		status: normalizeResearchPlanStatus(value.status),
+		taskIds: getStringArrayField(value, "taskIds"),
+		...(getOptionalStringField(value, "currentTaskId")
+			? { currentTaskId: getOptionalStringField(value, "currentTaskId") }
+			: {}),
+		...(getOptionalStringField(value, "pauseReason")
+			? { pauseReason: getOptionalStringField(value, "pauseReason") }
+			: {}),
+		...(getOptionalStringField(value, "failureReason")
+			? { failureReason: getOptionalStringField(value, "failureReason") }
+			: {}),
+		...(getOptionalStringField(value, "cancelReason")
+			? { cancelReason: getOptionalStringField(value, "cancelReason") }
+			: {}),
+		createdAt,
+		...(getOptionalStringField(value, "startedAt") ? { startedAt: getOptionalStringField(value, "startedAt") } : {}),
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+		...(getOptionalStringField(value, "completedAt")
+			? { completedAt: getOptionalStringField(value, "completedAt") }
+			: {}),
+		...(getOptionalStringField(value, "cancelledAt")
+			? { cancelledAt: getOptionalStringField(value, "cancelledAt") }
+			: {}),
+	};
+}
+
+function normalizeResearchPlanTask(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchPlanTaskRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `research-plan-task-${index + 1}`),
+		planId: getStringField(value, "planId", "research-plan-1"),
+		kind: normalizeResearchPlanTaskKind(value.kind),
+		status: normalizeResearchPlanTaskStatus(value.status),
+		sequence: Math.max(1, Math.floor(getNumberField(value, "sequence", index + 1))),
+		title: getStringField(value, "title", "Research task"),
+		description: getStringField(value, "description", "Carry out the next bounded research move."),
+		...(getOptionalStringField(value, "goal") ? { goal: getOptionalStringField(value, "goal") } : {}),
+		acceptanceCriteria: getStringArrayField(value, "acceptanceCriteria"),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		...(getOptionalStringField(value, "runId") ? { runId: getOptionalStringField(value, "runId") } : {}),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		sourceIds: getStringArrayField(value, "sourceIds"),
+		claimSupportIds: getStringArrayField(value, "claimSupportIds"),
+		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
+		evidenceEntryIds: getStringArrayField(value, "evidenceEntryIds"),
+		...(getOptionalStringField(value, "blockedReason")
+			? { blockedReason: getOptionalStringField(value, "blockedReason") }
+			: {}),
+		...(getOptionalStringField(value, "failureReason")
+			? { failureReason: getOptionalStringField(value, "failureReason") }
+			: {}),
+		createdAt,
+		...(getOptionalStringField(value, "startedAt") ? { startedAt: getOptionalStringField(value, "startedAt") } : {}),
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+		...(getOptionalStringField(value, "completedAt")
+			? { completedAt: getOptionalStringField(value, "completedAt") }
+			: {}),
+	};
+}
+
+function normalizeResearchPlanStatus(value: unknown): ResearchPlanStatus {
+	if (
+		value === "active" ||
+		value === "paused" ||
+		value === "completed" ||
+		value === "failed" ||
+		value === "cancelled"
+	) {
+		return value;
+	}
+	return "paused";
+}
+
+function normalizeResearchPlanTaskStatus(value: unknown): ResearchPlanTaskStatus {
+	if (
+		value === "pending" ||
+		value === "running" ||
+		value === "completed" ||
+		value === "blocked" ||
+		value === "failed" ||
+		value === "cancelled"
+	) {
+		return value;
+	}
+	return "pending";
+}
+
+function normalizeResearchPlanTaskKind(value: unknown): ResearchPlanTaskKind {
+	if (
+		value === "literature-search" ||
+		value === "proof-attempt" ||
+		value === "computation" ||
+		value === "critic" ||
+		value === "synthesis" ||
+		value === "source-refresh" ||
+		value === "export"
+	) {
+		return value;
+	}
+	return "synthesis";
+}
+
 function normalizeResearchWorkstreamIncrementalReport(
 	value: Record<string, unknown>,
 	fallbackTime: string,
@@ -3740,6 +4151,8 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "research_workstream_recorded" ||
 		value === "research_workstream_run_recorded" ||
 		value === "research_batch_recorded" ||
+		value === "research_plan_recorded" ||
+		value === "research_plan_task_recorded" ||
 		value === "literature_source_recorded" ||
 		value === "literature_search_recorded" ||
 		value === "literature_claim_support_recorded" ||

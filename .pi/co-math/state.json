@@ -1,0 +1,4074 @@
+{
+	"version": 1,
+	"projectId": "co-math-1783035730156",
+	"title": "Are there infinitely many primes of the form n^2 + 1?",
+	"rootQuestion": "Are there infinitely many primes of the form n^2 + 1?",
+	"approvedGoals": [],
+	"workstreams": [],
+	"claims": [],
+	"evidence": [],
+	"warnings": [],
+	"reports": [],
+	"reviewQueue": [],
+	"artifacts": [],
+	"roleRuns": [],
+	"reviewRounds": [],
+	"reportReviewRounds": [],
+	"claimRevisions": [],
+	"workingPaperSections": [
+		{
+			"id": "paper-section-1",
+			"title": "Literature/theorem targets",
+			"body": "Research workstream: Known theorem or literature reduction\n\nLiterature findings:\n- Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1] [source-2] [source-3] [source-4] [source-5] [source-6] [source-7] [source-8]\n- No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.\n- Conjectural implications are not proofs of the original claim.\n- No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]\n- The exact root question is therefore **unresolved within this source set**.\n- Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].\n- These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].\n- Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2].\n\nSource-backed distinctions:\n- Exact target: \\[ \\text{infinitely many primes } n^2+1. \\] Not proved by the supplied sources.\n- Related but weaker/different theorem: \\[ \\text{infinitely many primes } X^2+(Y^2+1)^2. \\] Supported by Merikoski [source-2].\n- Related but different theorem: \\[ \\text{infinitely many primes } X^2+Y^4. \\] Cited in Merikoski as the Friedlander–Iwaniec result [source-2].\n- Invalid reduction: setting \\(X=1\\) in a multivariable theorem does not follow from the theorem unless the theorem gives uniform infinitude on that fixed slice.\n\nUnsupported or unclear:\n- Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”\n- Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”\n- Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).\n- Unsupported from the supplied source set: “The problem is definitively solved.”\n- The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5].\n\nReferences: source-1, source-2, source-3, source-4, source-5, source-6, source-7, source-8\n\nNext: Use [source-2] only as evidence for nearby multivariable prime-producing polynomial results.",
+			"status": "draft",
+			"sourceClaimIds": [],
+			"sourceEvidenceIds": [],
+			"sourceWarningIds": [],
+			"sourceArtifactIds": [],
+			"sourceReviewRoundIds": [],
+			"sourceRoleRunIds": [],
+			"marginNoteIds": [
+				"margin-note-1",
+				"margin-note-2",
+				"margin-note-3",
+				"margin-note-4"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "paper-section-2",
+			"title": "User steering",
+			"body": "- Are there infinitely many primes of the form n^2 + 1?",
+			"status": "draft",
+			"sourceClaimIds": [],
+			"sourceEvidenceIds": [],
+			"sourceWarningIds": [],
+			"sourceArtifactIds": [],
+			"sourceReviewRoundIds": [],
+			"sourceRoleRunIds": [],
+			"marginNoteIds": [
+				"margin-note-5",
+				"margin-note-10"
+			],
+			"createdAt": "2026-07-03T00:31:09.656Z",
+			"updatedAt": "2026-07-03T00:48:43.723Z"
+		},
+		{
+			"id": "paper-section-3",
+			"title": "Reformulations",
+			"body": "Research workstream: Reformulation\n\nThe original infinitude problem for primes \\(n^2+1\\) is equivalently reduced, up to a finite exception, to primes \\(4m^2+1\\). This formulation gives the cleanest operational sieve: only primes \\(q\\equiv1\\pmod4\\) can divide \\(4m^2+1\\), and each such \\(q\\) forbids exactly two residue classes of \\(m\\). A finite CRT wheel therefore gives an explicit obstruction model with \\(\\prod(q-2)\\) surviving classes modulo \\(\\prod q\\). This supports computation and comparison with Bateman–Horn, but proves only avoidance of selected small factors, not infinitude of primes.\n\nResearch workstream: Reformulation\n\nLandau’s fourth problem remains open: infinitude of primes \\(n^2+1\\) is not known.\nThe best reformulation for proof attempts is \\(4m^2+1\\), which removes parity and exposes the sieve structure.\nBateman–Horn gives a precise conjectural asymptotic but no proof.\nThe next workstream should be a verified sieve note: local densities, sifted estimates, almost-prime theorems, and the parity barrier.",
+			"status": "draft",
+			"sourceClaimIds": [],
+			"sourceEvidenceIds": [],
+			"sourceWarningIds": [],
+			"sourceArtifactIds": [],
+			"sourceReviewRoundIds": [],
+			"sourceRoleRunIds": [],
+			"marginNoteIds": [
+				"margin-note-6",
+				"margin-note-7",
+				"margin-note-8",
+				"margin-note-9",
+				"margin-note-11",
+				"margin-note-12",
+				"margin-note-13",
+				"margin-note-14"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "paper-section-4",
+			"title": "Project coordinator synthesis",
+			"body": "Project coordinator synthesis\n\nWhat we know:\n- Root question: whether infinitely many primes have the form \\(n^2+1\\).\n- No saved report gives a complete proof of the root question, so the workspace must treat it as unsolved.\n- Source-backed nearby result: Merikoski proves infinitude of primes represented by \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].\n- Source-backed limitation: those multivariable results do not imply infinitely many primes of the one-variable form \\(n^2+1\\) [source-2].\n- Reformulation recorded: aside from parity, the problem can be studied via \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]\n- Bateman–Horn and Schinzel’s Hypothesis H predict/ imply infinitude conjecturally, but they are not proofs here.\n\nCurrent roadblocks:\n- A finite list of prime values \\(n^2+1\\) is only evidence, not proof of infinitude.\n- A finite sieve can remove known small divisors but cannot prove primality or infinitude.\n- Euclid-style arguments are not yet recorded as successful; Path 2 remains open.\n- Literature claims that the problem is solved are unsupported in the saved state.\n- The claimed/proposed preprint [source-5] has not been verified as accepted, corrected, or refuted.\n\nRecommended next moves:\n1. with the finite-sieve model. (continue path 4): with the finite-sieve model.\n2. Choose a finite set \\[ S\\subset\\{q (continue path 1): q\\equiv1\\pmod4\\}. \\]\n3. For each \\(q\\in S\\), find residues \\(r_q\\) satisfying \\[ r_q^2\\equiv -1\\pmod q. \\] (continue path 3): For each \\(q\\in S\\), find residues \\(r_q\\) satisfying \\[ r_q^2\\equiv -1\\pmod q. \\]\n\nHuman help useful:\n- Verify the Bateman–Horn constant normalization for \\(4m^2+1\\).\n- Supply precise references for known almost-prime results concerning \\(n^2+1\\).\n- Check the status of Carella’s preprint [source-5]: peer review, citations, corrections, or refutations.\n\nSuggested next step: continue path 4",
+			"status": "draft",
+			"sourceClaimIds": [],
+			"sourceEvidenceIds": [],
+			"sourceWarningIds": [],
+			"sourceArtifactIds": [],
+			"sourceReviewRoundIds": [],
+			"sourceRoleRunIds": [],
+			"marginNoteIds": [],
+			"createdAt": "2026-07-03T00:33:21.361Z",
+			"updatedAt": "2026-07-03T00:33:21.361Z"
+		}
+	],
+	"marginNotes": [
+		{
+			"id": "margin-note-1",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-5",
+			"sectionId": "paper-section-1",
+			"message": "Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "margin-note-2",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-5",
+			"sectionId": "paper-section-1",
+			"message": "Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "margin-note-3",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-5",
+			"sectionId": "paper-section-1",
+			"message": "Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "margin-note-4",
+			"kind": "scrutiny",
+			"status": "open",
+			"subjectId": "path-5",
+			"sectionId": "paper-section-1",
+			"message": "Add authoritative references documenting the standard status of the \\(n^2+1\\) prime infinitude problem.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "margin-note-5",
+			"kind": "comment",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-2",
+			"message": "User steering: Are there infinitely many primes of the form n^2 + 1?",
+			"createdAt": "2026-07-03T00:31:09.656Z",
+			"updatedAt": "2026-07-03T00:31:09.656Z"
+		},
+		{
+			"id": "margin-note-6",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "No proof is known that infinitely many \\(n^2+1\\) are prime.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "margin-note-7",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "The reformulations are equivalent viewpoints, not solutions.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "margin-note-8",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "The Gaussian-prime line formulation gives no known proof mechanism.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "margin-note-9",
+			"kind": "scrutiny",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "Verify numerical values/normalization of the Bateman–Horn constant for \\(4m^2+1\\).",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "margin-note-10",
+			"kind": "comment",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-2",
+			"message": "User steering: Are there infinitely many primes of the form n^2 + 1?",
+			"createdAt": "2026-07-03T00:48:43.723Z",
+			"updatedAt": "2026-07-03T00:48:43.723Z"
+		},
+		{
+			"id": "margin-note-11",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "margin-note-12",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "No known method upgrades current sieve/almost-prime information to primality.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "margin-note-13",
+			"kind": "gap",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "margin-note-14",
+			"kind": "scrutiny",
+			"status": "open",
+			"subjectId": "path-3",
+			"sectionId": "paper-section-3",
+			"message": "Verify exact statements and citations for almost-prime theorems concerning \\(n^2+1\\), especially results of the form “\\(n^2+1\\) has at most \\(r\\) prime factors infinitely often.”",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		}
+	],
+	"researchPaths": [
+		{
+			"id": "path-1",
+			"title": "Small examples and counterexamples",
+			"objective": "List initial examples for Are there infinitely many primes of the form n^2 + 1 and note which support or obstruct the conjecture.",
+			"status": "active",
+			"latestFindings": [],
+			"blockers": [],
+			"suggestedNextMove": "Compute or manually inspect small cases and look for modular obstructions.",
+			"priority": 1,
+			"createdAt": "2026-07-02T23:42:10.162Z",
+			"updatedAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "path-2",
+			"title": "Direct proof attempt",
+			"objective": "Look for a direct proof strategy or obstruction for Are there infinitely many primes of the form n^2 + 1.",
+			"status": "active",
+			"latestFindings": [],
+			"blockers": [],
+			"suggestedNextMove": "Check whether simple Euclid-style, congruence, or density arguments apply or fail.",
+			"priority": 2,
+			"createdAt": "2026-07-02T23:42:10.162Z",
+			"updatedAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "path-3",
+			"title": "Reformulation",
+			"objective": "Reformulate Are there infinitely many primes of the form n^2 + 1 in terms of better-known structures, conjectures, or equivalent statements.",
+			"status": "active",
+			"latestFindings": [
+				"**Original question:** Are there infinitely many primes of the form \\[ n^2+1? \\]",
+				"This is Landau’s fourth problem and remains open.",
+				"**Equivalent/directly reduced frames:**",
+				"Since \\(n^2+1\\) is even for odd \\(n\\), except \\(n=1\\), infinitude is equivalent to: \\[ \\text{infinitely many primes }4m^2+1. \\]",
+				"Prime-frame, up to the finite exception \\(p=2\\): \\[ p=n^2+1 \\iff p-1\\text{ is a square}. \\]",
+				"Gaussian integer frame: \\[ n^2+1=N(n+i), \\] so the question is equivalent to asking whether there are infinitely many Gaussian primes on the line \\(\\operatorname{Im}z=1\\).",
+				"**Conjectural/literature-search targets:**",
+				"Bunyakovsky for \\(f(n)=n^2+1\\) implies infinitude.",
+				"Schinzel’s Hypothesis H implies infinitude.",
+				"Bateman–Horn predicts an asymptotic, but not a proof.",
+				"Almost-prime results for \\(n^2+1\\) should be recorded only with precise verified statements.",
+				"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+				"Direct/equivalent frames:",
+				"Odd \\(n>1\\) gives even composite \\(n^2+1\\); hence only \\(n=2m\\) matters, giving \\(4m^2+1\\).",
+				"Prime-centered form: \\[ p=n^2+1\\iff p-1 \\text{ is a square}. \\] For odd \\(p\\), this is \\(p-1=4m^2\\).",
+				"Gaussian integer form: \\[ n^2+1=N(n+i), \\] so the problem asks for infinitely many Gaussian primes on the fixed line \\(\\operatorname{Im}z=1\\).",
+				"Conjectural/literature-search targets:",
+				"Bunyakovsky, Schinzel H, and Bateman–Horn predict infinitude.",
+				"Bateman–Horn for \\(n^2+1\\) predicts \\[ \\#\\{n\\le x:n^2+1\\text{ prime}\\} \\sim C_{BH}\\int_1^x\\frac{dt}{\\log(t^2+1)}. \\]",
+				"Local root counts: \\[ \\nu_2=1,\\qquad \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+				"The Euler product should be interpreted with a specified natural truncation, e.g. over primes \\(p\\le y\\), since the split subproducts are not independently convergent."
+			],
+			"blockers": [
+				"No proof is known that infinitely many \\(n^2+1\\) are prime.",
+				"The reformulations are equivalent viewpoints, not solutions.",
+				"The Gaussian-prime line formulation gives no known proof mechanism.",
+				"Finite wheel sieves only remove small prime divisors; they do not prove primality or infinitude.",
+				"Bateman–Horn, Schinzel H, and Bunyakovsky are conjectural here.",
+				"Computational agreement with the heuristic is finite evidence only.",
+				"No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+				"No known method upgrades current sieve/almost-prime information to primality.",
+				"The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here."
+			],
+			"suggestedNextMove": "Continue path 4: write a precise sieve/parity-barrier note for \\[ A_X=\\{4m^2+1:1\\le m\\le X\\}. \\] Compute local obstructions: \\[ 4m^2+1\\equiv0\\pmod p \\] has two roots for \\(p\\equiv1\\pmod4\\), no roots for \\(p\\equiv3\\pmod4\\), and no root mod \\(2\\). Record the expected sifted count: \\[ \\#\\{m\\le X:(4m^2+1,P(z))=1\\} \\approx X\\prod_{\\substack{p\\le z\\\\p\\equiv1(4)}}\\left(1-\\frac2p\\right). \\] Next command: continue path 4.",
+			"priority": 3,
+			"createdAt": "2026-07-02T23:42:10.162Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "path-4",
+			"title": "Weaker special cases",
+			"objective": "Identify tractable weaker statements, special cases, or finite checks related to Are there infinitely many primes of the form n^2 + 1.",
+			"status": "promising",
+			"latestFindings": [],
+			"blockers": [],
+			"suggestedNextMove": "Choose a weaker theorem that could be tested or proved without resolving the full problem.",
+			"priority": 4,
+			"createdAt": "2026-07-02T23:42:10.162Z",
+			"updatedAt": "2026-07-03T00:33:21.361Z"
+		},
+		{
+			"id": "path-5",
+			"title": "Known theorem or literature reduction",
+			"objective": "Identify whether known theorems settle, imply, or obstruct Are there infinitely many primes of the form n^2 + 1.",
+			"status": "active",
+			"latestFindings": [
+				"Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1] [source-2] [source-3] [source-4] [source-5] [source-6] [source-7] [source-8]",
+				"No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+				"Conjectural implications are not proofs of the original claim.",
+				"No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+				"The exact root question is therefore **unresolved within this source set**.",
+				"Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+				"These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+				"Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2]."
+			],
+			"blockers": [
+				"Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+				"Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+				"Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+				"Unsupported from the supplied source set: “The problem is definitively solved.”",
+				"The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5]."
+			],
+			"suggestedNextMove": "Use [source-2] only as evidence for nearby multivariable prime-producing polynomial results.",
+			"priority": 5,
+			"createdAt": "2026-07-02T23:42:10.162Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		}
+	],
+	"researchReports": [
+		{
+			"id": "research-report-1",
+			"kind": "research_workstream",
+			"pathId": "path-5",
+			"pathTitle": "Known theorem or literature reduction",
+			"status": "completed",
+			"startedAt": "2026-07-02T23:42:10.166Z",
+			"completedAt": "2026-07-02T23:42:10.166Z",
+			"coordinatorBrief": "The literature path should locate source-backed context and avoid citing theorems the project has not verified.",
+			"steps": [
+				{
+					"role": "coordinator",
+					"title": "Coordinator brief",
+					"summary": "Identifying source-sensitive claims.",
+					"details": [
+						"The literature path should locate source-backed context and avoid citing theorems the project has not verified."
+					]
+				},
+				{
+					"role": "specialist",
+					"title": "Literature findings",
+					"summary": "Reviewing source-backed known results.",
+					"details": [
+						"No supplied source gives an established, accepted theorem settling infinitely many primes of the exact form \\(n^2+1\\).",
+						"Merikoski proves infinitely many primes of the related multivariable form \\[ X^2+(Y^2+1)^2 \\] and also of \\[ X^2+(Y^3+Z^3)^2, \\] using Harman’s sieve and Type II estimates [source-2]. This is not the same as fixing \\(X=1\\), so it does **not** imply infinitely many primes \\(n^2+1\\) [source-2].",
+						"Merikoski also cites the Friedlander–Iwaniec theorem giving an asymptotic formula for primes of the form \\[ X^2+Y^4 \\] [source-2]. This is related but again does **not** imply the special one-variable case \\(1+Y^4\\), nor \\(n^2+1\\) [source-2].",
+						"Carella’s preprint concerns “quadratic twin primes” \\(n^2+1\\) and \\(n^2+3\\), and its summary says a heuristic spectral argument supports related prime-counting problems, while a rigorous version and proof are “proposed” [source-5].",
+						"Thus, within the supplied source context, [source-5] treats the \\(n^2+1\\) question as claimed/proposed to be proved, but the provided metadata does not establish it as an accepted theorem [source-5].",
+						"The standard statement that infinitely many primes of the form \\(n^2+1\\) is open is not directly supported by the supplied source summaries; it should be marked unsupported from this source set.",
+						"Sources [source-1], [source-3], [source-4], [source-6], [source-7], and [source-8] do not provide relevant results on primes of the exact form \\(n^2+1\\).",
+						"Treat [source-2] as a genuine related-theorem source: it gives nearby multivariable prime-producing polynomials but no reduction to \\(n^2+1\\).",
+						"Treat [source-5] cautiously as an unverified/proposed proof claim, not as settled literature."
+					]
+				},
+				{
+					"role": "critic",
+					"title": "Source-support review",
+					"summary": "Checking overclaims, missing support, and fabricated citations.",
+					"details": [
+						"The source-backed conclusion should be: **no supplied source establishes infinitely many primes of the exact form \\(n^2+1\\)**.",
+						"[source-2] supports only nearby multivariable results, e.g. \\[ X^2+(Y^2+1)^2 \\] and \\[ X^2+(Y^3+Z^3)^2, \\] not the one-variable sequence \\(n^2+1\\).",
+						"Any reduction from [source-2] to \\(n^2+1\\) by “setting a variable constant,” e.g. \\(X=1\\), is invalid unless separately justified; the theorem counts primes over varying variables and does not imply infinitude on such a thin subfamily.",
+						"[source-5] should be treated as a **claimed/proposed proof source**, not as an accepted theorem. The supplied summary says a rigorous proof is “proposed,” which is insufficient for settling this famous open problem.",
+						"**Unsupported from the supplied source set:** “It is known/proved that infinitely many primes are of the form \\(n^2+1\\).”",
+						"**Unsupported from the supplied source set:** “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+						"**Unsupported from the supplied source set:** “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+						"**Unresolved in this workstream:** The exact root question remains unsettled by the listed sources.",
+						"Need an accepted, peer-reviewed, or standard-reference theorem explicitly proving the exact sequence \\(n^2+1\\), if such a claim is to be made. None is present.",
+						"Need independent verification of [source-5] before using it; the metadata alone is not enough to override the standard status of the problem.",
+						"Sources [source-1], [source-3], [source-4], [source-6], [source-7], and [source-8] are irrelevant or too general for the exact polynomial \\(n^2+1\\).",
+						"Check whether [source-5] has been peer-reviewed, cited, corrected, or refuted.",
+						"Add standard references on Bunyakovsky/Schinzel-type conjectures or Landau’s problems to document the accepted open status of primes \\(n^2+1\\).",
+						"Add authoritative sources for related theorems such as Friedlander–Iwaniec and Iwaniec’s almost-prime results, while keeping them clearly separated from the exact prime infinitude question."
+					]
+				},
+				{
+					"role": "synthesizer",
+					"title": "Synthesis",
+					"summary": "Producing a source-aware literature note.",
+					"details": [
+						"No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+						"The exact root question is therefore **unresolved within this source set**.",
+						"Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+						"These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+						"Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2].",
+						"Carella’s preprint concerns “quadratic twin primes” \\(n^2+1\\) and \\(n^2+3\\), and the supplied summary says a rigorous spectral-method proof is “proposed” [source-5].",
+						"In this workstream, [source-5] should be treated as a **claim/proposed proof**, not as an established theorem.",
+						"No supplied source gives accepted literature support that Carella’s proposed proof settles the problem.",
+						"Exact target: \\[ \\text{infinitely many primes } n^2+1. \\] Not proved by the supplied sources.",
+						"Related but weaker/different theorem: \\[ \\text{infinitely many primes } X^2+(Y^2+1)^2. \\] Supported by Merikoski [source-2].",
+						"Related but different theorem: \\[ \\text{infinitely many primes } X^2+Y^4. \\] Cited in Merikoski as the Friedlander–Iwaniec result [source-2].",
+						"Invalid reduction: setting \\(X=1\\) in a multivariable theorem does not follow from the theorem unless the theorem gives uniform infinitude on that fixed slice.",
+						"Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+						"Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+						"Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+						"Unsupported from the supplied source set: “The problem is definitively solved.”",
+						"The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5].",
+						"Add authoritative references documenting the standard status of the \\(n^2+1\\) prime infinitude problem.",
+						"Check whether Carella’s preprint [source-5] was peer-reviewed, cited, corrected, or refuted.",
+						"Add standard references for Bunyakovsky-type conjectures, Schinzel’s hypothesis H, Landau’s problems, and related almost-prime results, while clearly separating conjectural implications from unconditional theorems.",
+						"Use [source-2] only as evidence for nearby multivariable prime-producing polynomial results.",
+						"Treat [source-5] cautiously as an unverified proposed proof claim.",
+						"Do not cite the supplied sources as proving the exact \\(n^2+1\\) infinitude statement.",
+						"The supplied literature does not give an accepted unconditional proof that infinitely many primes have the form \\(n^2+1\\). Merikoski proves infinitude for related multivariable forms, but these do not reduce to the one-variable sequence. Carella’s preprint claims/proposes a proof, but the supplied metadata is insufficient to treat it as settled. Within this source-backed workstream, the exact question remains unresolved."
+					]
+				}
+			],
+			"promisingStrategy": [
+				"Carella’s preprint concerns “quadratic twin primes” \\(n^2+1\\) and \\(n^2+3\\), and the supplied summary says a rigorous spectral-method proof is “proposed” [source-5].",
+				"In this workstream, [source-5] should be treated as a **claim/proposed proof**, not as an established theorem.",
+				"No supplied source gives accepted literature support that Carella’s proposed proof settles the problem."
+			],
+			"findings": [
+				"Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1] [source-2] [source-3] [source-4] [source-5] [source-6] [source-7] [source-8]",
+				"No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+				"Conjectural implications are not proofs of the original claim.",
+				"No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+				"The exact root question is therefore **unresolved within this source set**.",
+				"Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+				"These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+				"Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2]."
+			],
+			"criticisms": [
+				"Exact target: \\[ \\text{infinitely many primes } n^2+1. \\] Not proved by the supplied sources.",
+				"Related but weaker/different theorem: \\[ \\text{infinitely many primes } X^2+(Y^2+1)^2. \\] Supported by Merikoski [source-2].",
+				"Related but different theorem: \\[ \\text{infinitely many primes } X^2+Y^4. \\] Cited in Merikoski as the Friedlander–Iwaniec result [source-2].",
+				"Invalid reduction: setting \\(X=1\\) in a multivariable theorem does not follow from the theorem unless the theorem gives uniform infinitude on that fixed slice."
+			],
+			"gaps": [
+				"Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+				"Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+				"Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+				"Unsupported from the supplied source set: “The problem is definitively solved.”",
+				"The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5]."
+			],
+			"humanHelpUseful": [
+				"Add authoritative references documenting the standard status of the \\(n^2+1\\) prime infinitude problem.",
+				"Check whether Carella’s preprint [source-5] was peer-reviewed, cited, corrected, or refuted.",
+				"Add standard references for Bunyakovsky-type conjectures, Schinzel’s hypothesis H, Landau’s problems, and related almost-prime results, while clearly separating conjectural implications from unconditional theorems."
+			],
+			"suggestedNextMove": "Use [source-2] only as evidence for nearby multivariable prime-producing polynomial results.",
+			"workingPaperSectionTitle": "Literature/theorem targets",
+			"workingPaperSectionId": "paper-section-1",
+			"sourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"claimSupportIds": [
+				"claim-support-1",
+				"claim-support-2",
+				"claim-support-3",
+				"claim-support-4",
+				"claim-support-5",
+				"claim-support-6",
+				"claim-support-7",
+				"claim-support-8",
+				"claim-support-9",
+				"claim-support-10",
+				"claim-support-11",
+				"claim-support-12",
+				"claim-support-13",
+				"claim-support-14",
+				"claim-support-15"
+			],
+			"computationalArtifactIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "research-report-2",
+			"kind": "research_workstream",
+			"pathId": "path-3",
+			"pathTitle": "Reformulation",
+			"status": "completed",
+			"startedAt": "2026-07-03T00:31:09.664Z",
+			"completedAt": "2026-07-03T00:31:09.664Z",
+			"coordinatorBrief": "The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test.",
+			"steps": [
+				{
+					"role": "coordinator",
+					"title": "Coordinator brief",
+					"summary": "Framing the proof objective.",
+					"details": [
+						"The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test."
+					]
+				},
+				{
+					"role": "specialist",
+					"title": "Specialist attempt",
+					"summary": "Asking a specialist to try this path.",
+					"details": [
+						"**Original question:** Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"This is the classical **Landau fourth problem**, still open.",
+						"**Equivalent / direct reformulations:**",
+						"Since \\(n^2+1\\) is even for odd \\(n\\), except \\(n=1\\), the question is equivalent to: \\[ \\text{Are there infinitely many primes }4m^2+1? \\]",
+						"Equivalent prime-frame: \\[ \\text{Are there infinitely many primes }p\\text{ such that }p-1\\text{ is a square?} \\]",
+						"Gaussian integer frame: \\[ n^2+1=N(n+i). \\] Thus the question is equivalent to asking whether there are infinitely many Gaussian primes on the horizontal line \\[ \\operatorname{Im} z=1. \\]",
+						"Sieve frame:",
+						"For primes \\(q\\equiv 3 \\pmod 4\\), \\(q\\nmid n^2+1\\).",
+						"For primes \\(q\\equiv 1 \\pmod 4\\), exactly two residue classes mod \\(q\\) are forbidden.",
+						"For \\(q=2\\), only even \\(n\\) survive, apart from \\(n=1\\).",
+						"**Conjectural / literature-search targets:**",
+						"**Bunyakovsky conjecture** for \\(f(n)=n^2+1\\) implies infinitude.",
+						"**Schinzel’s Hypothesis H** implies infinitude.",
+						"**Bateman–Horn** predicts an asymptotic: \\[ \\#\\{n\\le X:n^2+1\\text{ prime}\\} \\sim C\\int_2^X \\frac{dt}{\\log(t^2+1)}, \\] with local factor \\[ C=\\prod_p \\frac{1-\\nu_p/p}{1-1/p}, \\] where \\(\\nu_p=\\#\\{x\\bmod p:x^2+1\\equiv0\\bmod p\\}\\).",
+						"Sieve literature target: known “almost-prime” results for \\(n^2+1\\), e.g. infinitely many values with few prime factors, but not primality.",
+						"Use the reformulation \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]",
+						"Operational advantages:",
+						"Search only \\(m\\ge1\\).",
+						"Trial division only needs primes \\(q=2\\) and \\(q\\equiv1\\pmod4\\); primes \\(3\\pmod4\\) never divide.",
+						"For each \\(q\\equiv1\\pmod4\\), compute roots of \\[ 4m^2+1\\equiv0\\pmod q \\] and exclude two residue classes.",
+						"This gives a clean CRT/wheel sieve model matching Bateman–Horn local factors. This does not prove infinitude, but it gives a precise finite obstruction model and a benchmark for computational data.",
+						"No known proof that infinitely many \\(n^2+1\\) are prime.",
+						"Bunyakovsky, Schinzel H, and Bateman–Horn are conjectural here.",
+						"The Gaussian-prime line formulation is equivalent, not easier by itself.",
+						"Sieve methods face the parity barrier: avoiding small prime divisors does not distinguish primes from semiprimes strongly enough.",
+						"Continue path 4 by building the explicit local-sieve/Bateman–Horn comparison for \\(4m^2+1\\):",
+						"Compute forbidden classes mod primes \\(q\\equiv1\\pmod4\\).",
+						"Build a finite wheel modulus \\(M=\\prod q\\).",
+						"Count survivors \\(m\\bmod M\\).",
+						"Compare observed primes \\(4m^2+1\\) up to \\(X\\) with the Bateman–Horn prediction.",
+						"Separately record known almost-prime theorems as partial substitutes, not proofs."
+					]
+				},
+				{
+					"role": "critic",
+					"title": "Critic review",
+					"summary": "Reviewing the attempt for gaps before updating the working paper.",
+					"details": [
+						"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"Correctly identified as Landau’s fourth problem; still open.",
+						"Direct reductions are mostly valid:",
+						"Apart from \\(n=1\\), prime values require \\(n\\) even, so the infinitude question is equivalent to infinitude of primes \\(4m^2+1\\).",
+						"Equivalent finite-exception frame: infinitely many primes \\(p\\) with \\(p-1\\) a square.",
+						"Gaussian integer frame: \\(n+i\\) is a Gaussian prime iff \\(n^2+1\\) is a rational prime.",
+						"Sieve reformulation is useful:",
+						"For \\(4m^2+1\\), no factor \\(2\\).",
+						"Prime divisors must be \\(q\\equiv1\\pmod4\\).",
+						"For each such \\(q\\), exactly two residue classes of \\(m\\bmod q\\) are excluded by \\(4m^2+1\\equiv0\\pmod q\\).",
+						"The Bateman–Horn constant should be specified separately for \\(n^2+1\\) versus \\(4m^2+1\\). For \\(4m^2+1\\), the \\(p=2\\) local factor differs.",
+						"The “prime-frame” equivalence has a finite exception: \\(p=2\\), since \\(2-1=1\\).",
+						"The Gaussian-prime line formulation is equivalent but does not add a known mechanism for proving infinitude.",
+						"The finite wheel sieve only proves absence of small forbidden factors, not primality or infinitude.",
+						"Path 4 can be made executable:",
+						"Choose a finite set \\(S\\) of primes \\(q\\equiv1\\pmod4\\).",
+						"For each \\(q\\in S\\), find \\(r_q^2\\equiv-1\\pmod q\\).",
+						"Exclude \\[ m\\equiv \\pm (2^{-1}r_q)\\pmod q. \\]",
+						"Let \\(M=\\prod_{q\\in S}q\\). Number of surviving residue classes should be \\[ \\prod_{q\\in S}(q-2). \\]",
+						"Compare actual prime counts for \\(4m^2+1\\), \\(m\\le X\\), with the corresponding Bateman–Horn heuristic, not as evidence of proof.",
+						"“Known almost-prime results” needs a precise theorem before use. Do not rely on it without citation and exact statement.",
+						"“Trial division only needs primes \\(q=2\\) and \\(q\\equiv1\\pmod4\\)” should be sharpened: for \\(4m^2+1\\), \\(2\\) never divides, so only \\(q\\equiv1\\pmod4\\) need be tested.",
+						"Bateman–Horn, Schinzel H, and Bunyakovsky are conjectural; they cannot be used as proof.",
+						"Computational agreement with the wheel/Bateman–Horn model is finite evidence only.",
+						"Verify the exact Bateman–Horn constant for \\(4m^2+1\\).",
+						"Supply precise references for almost-prime theorems concerning \\(n^2+1\\).",
+						"Implement the finite CRT wheel and compare survivor/primality counts for increasing \\(X\\)."
+					]
+				},
+				{
+					"role": "synthesizer",
+					"title": "Synthesis",
+					"summary": "Synthesizing a cautious research note.",
+					"details": [
+						"Work with the finite-exception equivalent form: \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]",
+						"This gives a clean local-sieve model:",
+						"\\(4m^2+1\\) is always odd.",
+						"Any prime divisor \\(q\\) must satisfy \\(q\\equiv1\\pmod4\\).",
+						"For each \\(q\\equiv1\\pmod4\\), exactly two residue classes of \\(m\\bmod q\\) are forbidden.",
+						"**Original question:** Are there infinitely many primes of the form \\[ n^2+1? \\]",
+						"This is Landau’s fourth problem and remains open.",
+						"**Equivalent/directly reduced frames:**",
+						"Since \\(n^2+1\\) is even for odd \\(n\\), except \\(n=1\\), infinitude is equivalent to: \\[ \\text{infinitely many primes }4m^2+1. \\]",
+						"Prime-frame, up to the finite exception \\(p=2\\): \\[ p=n^2+1 \\iff p-1\\text{ is a square}. \\]",
+						"Gaussian integer frame: \\[ n^2+1=N(n+i), \\] so the question is equivalent to asking whether there are infinitely many Gaussian primes on the line \\(\\operatorname{Im}z=1\\).",
+						"**Conjectural/literature-search targets:**",
+						"Bunyakovsky for \\(f(n)=n^2+1\\) implies infinitude.",
+						"Schinzel’s Hypothesis H implies infinitude.",
+						"Bateman–Horn predicts an asymptotic, but not a proof.",
+						"Almost-prime results for \\(n^2+1\\) should be recorded only with precise verified statements.",
+						"For \\(f(m)=4m^2+1\\), the local root count is: \\[ \\nu_p=\\#\\{m\\bmod p:4m^2+1\\equiv0\\bmod p\\}. \\] Hence: \\[ \\nu_2=0, \\] and for odd \\(p\\), \\[ \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+						"Bateman–Horn for \\(4m^2+1\\) predicts \\[ \\#\\{m\\le X:4m^2+1\\text{ prime}\\} \\sim C_{4m^2+1}\\int_2^X\\frac{dt}{\\log(4t^2+1)}, \\] with \\[ C_{4m^2+1} = 2 \\prod_{\\substack{p\\equiv1\\!\\!\\!\\pmod4}} \\frac{p-2}{p-1} \\prod_{\\substack{p\\equiv3\\!\\!\\!\\pmod4}} \\frac{p}{p-1}. \\]",
+						"The extra factor \\(2\\) comes from \\(p=2\\), since \\(4m^2+1\\not\\equiv0\\pmod2\\).",
+						"No proof is known that infinitely many \\(n^2+1\\) are prime.",
+						"The reformulations are equivalent viewpoints, not solutions.",
+						"The Gaussian-prime line formulation gives no known proof mechanism.",
+						"Finite wheel sieves only remove small prime divisors; they do not prove primality or infinitude.",
+						"Bateman–Horn, Schinzel H, and Bunyakovsky are conjectural here.",
+						"Computational agreement with the heuristic is finite evidence only.",
+						"Verify numerical values/normalization of the Bateman–Horn constant for \\(4m^2+1\\).",
+						"Supply exact references and statements for known almost-prime theorems on \\(n^2+1\\).",
+						"Implement the finite CRT wheel and compare survivor counts and prime counts for increasing \\(X\\).",
+						"Continue path 4 with an executable finite-sieve model.",
+						"Choose a finite set \\[ S\\subset\\{q:q\\equiv1\\pmod4\\}. \\]",
+						"For each \\(q\\in S\\), find \\(r_q\\) with \\[ r_q^2\\equiv-1\\pmod q. \\]",
+						"Since \\[ 4m^2+1\\equiv0\\pmod q \\iff m\\equiv \\pm 2^{-1}r_q\\pmod q, \\] exclude these two residue classes.",
+						"Let \\[ M=\\prod_{q\\in S}q. \\]",
+						"Count surviving classes modulo \\(M\\): \\[ \\#\\{\\text{survivors mod }M\\}=\\prod_{q\\in S}(q-2). \\]",
+						"For \\(m\\le X\\), compare:",
+						"number of wheel survivors;",
+						"number of actual primes \\(4m^2+1\\);",
+						"Bateman–Horn predicted count.",
+						"The original infinitude problem for primes \\(n^2+1\\) is equivalently reduced, up to a finite exception, to primes \\(4m^2+1\\). This formulation gives the cleanest operational sieve: only primes \\(q\\equiv1\\pmod4\\) can divide \\(4m^2+1\\), and each such \\(q\\) forbids exactly two residue classes of \\(m\\). A finite CRT wheel therefore gives an explicit obstruction model with \\(\\prod(q-2)\\) surviving classes modulo \\(\\prod q\\). This supports computation and comparison with Bateman–Horn, but proves only avoidance of selected small factors, not infinitude of primes."
+					]
+				}
+			],
+			"promisingStrategy": [
+				"Work with the finite-exception equivalent form: \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]",
+				"This gives a clean local-sieve model:",
+				"\\(4m^2+1\\) is always odd.",
+				"Any prime divisor \\(q\\) must satisfy \\(q\\equiv1\\pmod4\\).",
+				"For each \\(q\\equiv1\\pmod4\\), exactly two residue classes of \\(m\\bmod q\\) are forbidden."
+			],
+			"findings": [
+				"**Original question:** Are there infinitely many primes of the form \\[ n^2+1? \\]",
+				"This is Landau’s fourth problem and remains open.",
+				"**Equivalent/directly reduced frames:**",
+				"Since \\(n^2+1\\) is even for odd \\(n\\), except \\(n=1\\), infinitude is equivalent to: \\[ \\text{infinitely many primes }4m^2+1. \\]",
+				"Prime-frame, up to the finite exception \\(p=2\\): \\[ p=n^2+1 \\iff p-1\\text{ is a square}. \\]",
+				"Gaussian integer frame: \\[ n^2+1=N(n+i), \\] so the question is equivalent to asking whether there are infinitely many Gaussian primes on the line \\(\\operatorname{Im}z=1\\).",
+				"**Conjectural/literature-search targets:**",
+				"Bunyakovsky for \\(f(n)=n^2+1\\) implies infinitude.",
+				"Schinzel’s Hypothesis H implies infinitude.",
+				"Bateman–Horn predicts an asymptotic, but not a proof.",
+				"Almost-prime results for \\(n^2+1\\) should be recorded only with precise verified statements."
+			],
+			"criticisms": [
+				"For \\(f(m)=4m^2+1\\), the local root count is: \\[ \\nu_p=\\#\\{m\\bmod p:4m^2+1\\equiv0\\bmod p\\}. \\] Hence: \\[ \\nu_2=0, \\] and for odd \\(p\\), \\[ \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+				"Bateman–Horn for \\(4m^2+1\\) predicts \\[ \\#\\{m\\le X:4m^2+1\\text{ prime}\\} \\sim C_{4m^2+1}\\int_2^X\\frac{dt}{\\log(4t^2+1)}, \\] with \\[ C_{4m^2+1} = 2 \\prod_{\\substack{p\\equiv1\\!\\!\\!\\pmod4}} \\frac{p-2}{p-1} \\prod_{\\substack{p\\equiv3\\!\\!\\!\\pmod4}} \\frac{p}{p-1}. \\]",
+				"The extra factor \\(2\\) comes from \\(p=2\\), since \\(4m^2+1\\not\\equiv0\\pmod2\\)."
+			],
+			"gaps": [
+				"No proof is known that infinitely many \\(n^2+1\\) are prime.",
+				"The reformulations are equivalent viewpoints, not solutions.",
+				"The Gaussian-prime line formulation gives no known proof mechanism.",
+				"Finite wheel sieves only remove small prime divisors; they do not prove primality or infinitude.",
+				"Bateman–Horn, Schinzel H, and Bunyakovsky are conjectural here.",
+				"Computational agreement with the heuristic is finite evidence only."
+			],
+			"humanHelpUseful": [
+				"Verify numerical values/normalization of the Bateman–Horn constant for \\(4m^2+1\\).",
+				"Supply exact references and statements for known almost-prime theorems on \\(n^2+1\\).",
+				"Implement the finite CRT wheel and compare survivor counts and prime counts for increasing \\(X\\)."
+			],
+			"suggestedNextMove": "Continue path 4 with an executable finite-sieve model. Choose a finite set \\[ S\\subset\\{q:q\\equiv1\\pmod4\\}. \\] For each \\(q\\in S\\), find \\(r_q\\) with \\[ r_q^2\\equiv-1\\pmod q. \\] Next command: continue path 4.",
+			"workingPaperSectionTitle": "Reformulations",
+			"workingPaperSectionId": "paper-section-3",
+			"sourceIds": [],
+			"claimSupportIds": [],
+			"computationalArtifactIds": [],
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "research-report-3",
+			"kind": "research_workstream",
+			"pathId": "path-3",
+			"pathTitle": "Reformulation",
+			"status": "completed",
+			"startedAt": "2026-07-03T00:48:43.730Z",
+			"completedAt": "2026-07-03T00:48:43.730Z",
+			"coordinatorBrief": "The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test.",
+			"steps": [
+				{
+					"role": "coordinator",
+					"title": "Coordinator brief",
+					"summary": "Framing the proof objective.",
+					"details": [
+						"The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test."
+					]
+				},
+				{
+					"role": "specialist",
+					"title": "Specialist attempt",
+					"summary": "Asking a specialist to try this path.",
+					"details": [
+						"The problem is exactly Landau’s fourth problem; no proof of infinitude is known.",
+						"Equivalent reductions:",
+						"Since \\(n^2+1\\) is even for odd \\(n\\), apart from \\(n=1\\), the problem is equivalent to infinitely many primes \\[ 4m^2+1. \\]",
+						"Prime-centered form: \\[ p=n^2+1 \\iff p-1 \\text{ is a square}. \\]",
+						"Gaussian integer form: \\[ n^2+1=N(n+i), \\] so this asks for infinitely many Gaussian primes on the horizontal line \\(\\operatorname{Im} z=1\\).",
+						"Bateman–Horn for \\(f(n)=n^2+1\\) predicts \\[ \\#\\{n\\le x:n^2+1\\text{ prime}\\} \\sim C_{BH}\\int_1^x \\frac{dt}{\\log(t^2+1)}, \\] with local factors from roots of \\(x^2\\equiv -1\\pmod p\\): \\[ \\nu_2=1,\\qquad \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+						"Finite computation for \\(n\\le 200000\\): found \\(12391\\) prime values; crude truncated Bateman–Horn estimate was \\(12377.1\\). This is only numerical evidence.",
+						"Treat the problem as a special case of general prime-values-of-polynomials conjectures:",
+						"Bunyakovsky for \\(n^2+1\\) implies infinitude.",
+						"Schinzel’s Hypothesis H implies infinitude.",
+						"Bateman–Horn gives the expected asymptotic.",
+						"The Gaussian-prime-on-a-line reformulation may connect to distribution of Gaussian primes in thin sets, though current general prime distribution theorems do not reach a fixed line.",
+						"None of the reformulations produces an unconditional proof.",
+						"The prime-frame condition \\(p-1=\\square\\) is very thin and not accessible by standard primes-in-progressions methods.",
+						"Numerical agreement with Bateman–Horn is finite evidence only.",
+						"Record precise known almost-prime theorems for \\(n^2+1\\), with verified statements only.",
+						"Search for results on Gaussian primes in sectors/curves and identify why fixed-line results remain out of reach.",
+						"Compare the \\(4m^2+1\\) formulation with sieve-theoretic parity barriers."
+					]
+				},
+				{
+					"role": "critic",
+					"title": "Critic review",
+					"summary": "Reviewing the attempt for gaps before updating the working paper.",
+					"details": [
+						"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"Direct/equivalent frames:",
+						"Since odd \\(n>1\\) gives even composite \\(n^2+1\\), infinitude is equivalent to infinitely many primes \\(4m^2+1\\).",
+						"Prime-centered tautology: \\(p=n^2+1\\iff p-1\\) is a square; for odd \\(p\\), this means \\(p-1=4m^2\\).",
+						"Gaussian integer frame: \\(n^2+1=N(n+i)\\); equivalently infinitely many Gaussian primes on the fixed line \\(\\operatorname{Im}z=1\\).",
+						"Conjectural/literature-search targets:",
+						"Bunyakovsky, Schinzel H, Bateman–Horn all predict infinitude, but none is proved here.",
+						"Gaussian-prime distribution in sectors/regions is relevant background, but fixed horizontal lines are much thinner.",
+						"The \\(4m^2+1\\) frame changes examples operationally: search only even \\(n\\), count \\(m\\le x/2\\), remove the trivial parity obstruction.",
+						"The prime-centered frame does not make PNT/AP tools directly usable; the condition \\(p-1=\\square\\) is a thin nonlinear constraint.",
+						"The Gaussian line frame is exact, but known Gaussian-prime equidistribution results in sectors do not imply primes on one fixed line.",
+						"Bateman–Horn gives only a conjectural asymptotic. It proves neither infinitude nor any lower bound.",
+						"The split product \\[ \\prod_{p\\equiv1(4)}\\frac{1-2/p}{1-1/p}\\cdot \\prod_{p\\equiv3(4)}\\frac1{1-1/p} \\] should not be treated as two independently convergent products; the combined Euler product needs a specified natural truncation/order.",
+						"Numerical value “truncated to \\(200000\\)” should specify truncation over primes \\(p\\le 200000\\). It is finite evidence only.",
+						"Constants need normalization stated carefully: \\(C_{BH}\\int_1^x dt/\\log(t^2+1)\\) differs by a factor \\(\\sim 2\\) from formulations using \\(x/\\log x\\).",
+						"“Landau’s fourth problem” is standard, but if used in formal notes, cite or label as historical identification rather than proof input.",
+						"Do not present Bunyakovsky/Schinzel/Bateman–Horn as established theorems for this case.",
+						"Continue path 4 by writing a precise sieve/parity-barrier note for \\(4m^2+1\\):",
+						"state what elementary sieving can count: \\(m\\le X\\) with no small prime divisor of \\(4m^2+1\\);",
+						"compare the expected sifted count with the Bateman–Horn scale;",
+						"identify exactly where parity prevents upgrading “almost prime” to “prime”;",
+						"record only verified almost-prime theorems, with exact statements and citations before using them."
+					]
+				},
+				{
+					"role": "synthesizer",
+					"title": "Synthesis",
+					"summary": "Synthesizing a cautious research note.",
+					"details": [
+						"Use the parity-clean reformulation: \\[ n^2+1\\text{ prime infinitely often}\\iff 4m^2+1\\text{ prime infinitely often}. \\]",
+						"Treat Bateman–Horn only as a benchmark for expected density, not as evidence of proof.",
+						"Continue with a sieve-focused note for \\(4m^2+1\\): local root counts, sifted-set size, parity barrier, and verified almost-prime results.",
+						"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"Direct/equivalent frames:",
+						"Odd \\(n>1\\) gives even composite \\(n^2+1\\); hence only \\(n=2m\\) matters, giving \\(4m^2+1\\).",
+						"Prime-centered form: \\[ p=n^2+1\\iff p-1 \\text{ is a square}. \\] For odd \\(p\\), this is \\(p-1=4m^2\\).",
+						"Gaussian integer form: \\[ n^2+1=N(n+i), \\] so the problem asks for infinitely many Gaussian primes on the fixed line \\(\\operatorname{Im}z=1\\).",
+						"Conjectural/literature-search targets:",
+						"Bunyakovsky, Schinzel H, and Bateman–Horn predict infinitude.",
+						"Bateman–Horn for \\(n^2+1\\) predicts \\[ \\#\\{n\\le x:n^2+1\\text{ prime}\\} \\sim C_{BH}\\int_1^x\\frac{dt}{\\log(t^2+1)}. \\]",
+						"Local root counts: \\[ \\nu_2=1,\\qquad \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+						"The Euler product should be interpreted with a specified natural truncation, e.g. over primes \\(p\\le y\\), since the split subproducts are not independently convergent.",
+						"The reformulations are exact but do not by themselves improve the proof status.",
+						"Operationally, \\(4m^2+1\\) removes the trivial parity obstruction and is the right object for sieving.",
+						"The condition \\(p-1=\\square\\) is a thin nonlinear constraint; primes-in-progressions methods do not directly apply.",
+						"Gaussian-prime sector/equidistribution results do not imply primes on one fixed horizontal line.",
+						"Numerical agreement with Bateman–Horn is finite evidence only.",
+						"No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+						"No known method upgrades current sieve/almost-prime information to primality.",
+						"The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here.",
+						"Verify exact statements and citations for almost-prime theorems concerning \\(n^2+1\\), especially results of the form “\\(n^2+1\\) has at most \\(r\\) prime factors infinitely often.”",
+						"Check any quoted Bateman–Horn constants with explicit truncation convention: primes \\(p\\le y\\), range of \\(n\\), and whether counting \\(n^2+1\\) or \\(4m^2+1\\).",
+						"Continue path 4: write a precise sieve/parity-barrier note for \\[ A_X=\\{4m^2+1:1\\le m\\le X\\}. \\]",
+						"Compute local obstructions: \\[ 4m^2+1\\equiv0\\pmod p \\] has two roots for \\(p\\equiv1\\pmod4\\), no roots for \\(p\\equiv3\\pmod4\\), and no root mod \\(2\\).",
+						"Record the expected sifted count: \\[ \\#\\{m\\le X:(4m^2+1,P(z))=1\\} \\approx X\\prod_{\\substack{p\\le z\\\\p\\equiv1(4)}}\\left(1-\\frac2p\\right). \\]",
+						"Compare this with the Bateman–Horn scale \\(\\asymp X/\\log X\\).",
+						"Identify exactly why sieving up to \\(\\sqrt{4X^2+1}\\) would be needed to force primality, and why current sieve methods cannot deliver the required lower bound.",
+						"Landau’s fourth problem remains open: infinitude of primes \\(n^2+1\\) is not known.",
+						"The best reformulation for proof attempts is \\(4m^2+1\\), which removes parity and exposes the sieve structure.",
+						"Bateman–Horn gives a precise conjectural asymptotic but no proof.",
+						"The next workstream should be a verified sieve note: local densities, sifted estimates, almost-prime theorems, and the parity barrier."
+					]
+				}
+			],
+			"promisingStrategy": [
+				"Use the parity-clean reformulation: \\[ n^2+1\\text{ prime infinitely often}\\iff 4m^2+1\\text{ prime infinitely often}. \\]",
+				"Treat Bateman–Horn only as a benchmark for expected density, not as evidence of proof.",
+				"Continue with a sieve-focused note for \\(4m^2+1\\): local root counts, sifted-set size, parity barrier, and verified almost-prime results."
+			],
+			"findings": [
+				"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+				"Direct/equivalent frames:",
+				"Odd \\(n>1\\) gives even composite \\(n^2+1\\); hence only \\(n=2m\\) matters, giving \\(4m^2+1\\).",
+				"Prime-centered form: \\[ p=n^2+1\\iff p-1 \\text{ is a square}. \\] For odd \\(p\\), this is \\(p-1=4m^2\\).",
+				"Gaussian integer form: \\[ n^2+1=N(n+i), \\] so the problem asks for infinitely many Gaussian primes on the fixed line \\(\\operatorname{Im}z=1\\).",
+				"Conjectural/literature-search targets:",
+				"Bunyakovsky, Schinzel H, and Bateman–Horn predict infinitude.",
+				"Bateman–Horn for \\(n^2+1\\) predicts \\[ \\#\\{n\\le x:n^2+1\\text{ prime}\\} \\sim C_{BH}\\int_1^x\\frac{dt}{\\log(t^2+1)}. \\]",
+				"Local root counts: \\[ \\nu_2=1,\\qquad \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+				"The Euler product should be interpreted with a specified natural truncation, e.g. over primes \\(p\\le y\\), since the split subproducts are not independently convergent."
+			],
+			"criticisms": [
+				"The reformulations are exact but do not by themselves improve the proof status.",
+				"Operationally, \\(4m^2+1\\) removes the trivial parity obstruction and is the right object for sieving.",
+				"The condition \\(p-1=\\square\\) is a thin nonlinear constraint; primes-in-progressions methods do not directly apply.",
+				"Gaussian-prime sector/equidistribution results do not imply primes on one fixed horizontal line.",
+				"Numerical agreement with Bateman–Horn is finite evidence only."
+			],
+			"gaps": [
+				"No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+				"No known method upgrades current sieve/almost-prime information to primality.",
+				"The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here."
+			],
+			"humanHelpUseful": [
+				"Verify exact statements and citations for almost-prime theorems concerning \\(n^2+1\\), especially results of the form “\\(n^2+1\\) has at most \\(r\\) prime factors infinitely often.”",
+				"Check any quoted Bateman–Horn constants with explicit truncation convention: primes \\(p\\le y\\), range of \\(n\\), and whether counting \\(n^2+1\\) or \\(4m^2+1\\)."
+			],
+			"suggestedNextMove": "Continue path 4: write a precise sieve/parity-barrier note for \\[ A_X=\\{4m^2+1:1\\le m\\le X\\}. \\] Compute local obstructions: \\[ 4m^2+1\\equiv0\\pmod p \\] has two roots for \\(p\\equiv1\\pmod4\\), no roots for \\(p\\equiv3\\pmod4\\), and no root mod \\(2\\). Record the expected sifted count: \\[ \\#\\{m\\le X:(4m^2+1,P(z))=1\\} \\approx X\\prod_{\\substack{p\\le z\\\\p\\equiv1(4)}}\\left(1-\\frac2p\\right). \\] Next command: continue path 4.",
+			"workingPaperSectionTitle": "Reformulations",
+			"workingPaperSectionId": "paper-section-3",
+			"sourceIds": [],
+			"claimSupportIds": [],
+			"computationalArtifactIds": [
+				"computation-artifact-1",
+				"computation-artifact-2",
+				"computation-artifact-3",
+				"computation-artifact-4"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		}
+	],
+	"researchWorkstreamRuns": [
+		{
+			"id": "research-run-1",
+			"pathId": "path-5",
+			"pathTitle": "Known theorem or literature reduction",
+			"status": "completed",
+			"currentStage": "synthesizer",
+			"startedAt": "2026-07-02T23:42:10.163Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z",
+			"completedAt": "2026-07-02T23:42:10.166Z",
+			"incrementalReports": [
+				{
+					"id": "research-run-1-incremental-1",
+					"stage": "coordinator",
+					"status": "completed",
+					"title": "Coordinator brief",
+					"summary": "Identified source-sensitive literature questions.",
+					"details": [
+						"The literature path should locate source-backed context and avoid citing theorems the project has not verified."
+					],
+					"createdAt": "2026-07-02T23:42:10.168Z"
+				},
+				{
+					"id": "research-run-1-incremental-2",
+					"stage": "literature-search",
+					"status": "running",
+					"title": "Literature search",
+					"summary": "Searching arXiv, Semantic Scholar, Crossref.",
+					"details": [],
+					"createdAt": "2026-07-02T23:42:10.170Z"
+				},
+				{
+					"id": "research-run-1-incremental-3",
+					"stage": "literature-search",
+					"status": "completed",
+					"title": "Literature search",
+					"summary": "Found 10 candidates; reviewing 8 source summaries.",
+					"details": [
+						"Query: Are there infinitely many primes of the form n^2 + 1",
+						"workspace: skipped",
+						"arXiv: 5 candidates",
+						"Semantic Scholar: unavailable (HTTP 429)",
+						"Crossref: 5 candidates",
+						"source-1: Infinitely many prime knots with the same Alexander invariants",
+						"source-2: The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes",
+						"source-3: An elemetary proof of an estimate for a number of primes less than the product of the first $n$ primes",
+						"source-4: Two-dimensional magnetic interactions in LaFeAsO",
+						"source-5: Twin Primes In Quadratic Arithmetic Progressions",
+						"source-6: Infinitely Many Primes (Using Topology)",
+						"source-7: Infinitely Many Primes (Using Topology)",
+						"source-8: There are Infinitely Many Primes (Erdős)"
+					],
+					"createdAt": "2026-07-02T23:42:12.115Z"
+				},
+				{
+					"id": "research-run-1-incremental-4",
+					"stage": "specialist",
+					"status": "running",
+					"title": "Specialist attempt",
+					"summary": "Literature specialist is reviewing source-backed claims.",
+					"details": [],
+					"createdAt": "2026-07-02T23:42:12.117Z"
+				},
+				{
+					"id": "research-run-1-incremental-5",
+					"stage": "specialist",
+					"status": "completed",
+					"title": "Literature findings",
+					"summary": "Reviewed candidate sources for relevant known results.",
+					"details": [
+						"No supplied source gives an established, accepted theorem settling infinitely many primes of the exact form \\(n^2+1\\).",
+						"Merikoski proves infinitely many primes of the related multivariable form \\[ X^2+(Y^2+1)^2 \\] and also of \\[ X^2+(Y^3+Z^3)^2, \\] using Harman’s sieve and Type II estimates [source-2]. This is not the same as fixing \\(X=1\\), so it does **not** imply infinitely many primes \\(n^2+1\\) [source-2].",
+						"Merikoski also cites the Friedlander–Iwaniec theorem giving an asymptotic formula for primes of the form \\[ X^2+Y^4 \\] [source-2]. This is related but again does **not** imply the special one-variable case \\(1+Y^4\\), nor \\(n^2+1\\) [source-2].",
+						"Carella’s preprint concerns “quadratic twin primes” \\(n^2+1\\) and \\(n^2+3\\), and its summary says a heuristic spectral argument supports related prime-counting problems, while a rigorous version and proof are “proposed” [source-5].",
+						"Thus, within the supplied source context, [source-5] treats the \\(n^2+1\\) question as claimed/proposed to be proved, but the provided metadata does not establish it as an accepted theorem [source-5].",
+						"The standard statement that infinitely many primes of the form \\(n^2+1\\) is open is not directly supported by the supplied source summaries; it should be marked unsupported from this source set.",
+						"Sources [source-1], [source-3], [source-4], [source-6], [source-7], and [source-8] do not provide relevant results on primes of the exact form \\(n^2+1\\).",
+						"Treat [source-2] as a genuine related-theorem source: it gives nearby multivariable prime-producing polynomials but no reduction to \\(n^2+1\\).",
+						"Treat [source-5] cautiously as an unverified/proposed proof claim, not as settled literature."
+					],
+					"createdAt": "2026-07-02T23:42:31.937Z"
+				},
+				{
+					"id": "research-run-1-incremental-6",
+					"stage": "critic",
+					"status": "running",
+					"title": "Critic review",
+					"summary": "Critic is checking source support and overclaims.",
+					"details": [],
+					"createdAt": "2026-07-02T23:42:31.940Z"
+				},
+				{
+					"id": "research-run-1-incremental-7",
+					"stage": "critic",
+					"status": "completed",
+					"title": "Source-support review",
+					"summary": "Checked the literature findings for unsupported claims and overreach.",
+					"details": [
+						"The source-backed conclusion should be: **no supplied source establishes infinitely many primes of the exact form \\(n^2+1\\)**.",
+						"[source-2] supports only nearby multivariable results, e.g. \\[ X^2+(Y^2+1)^2 \\] and \\[ X^2+(Y^3+Z^3)^2, \\] not the one-variable sequence \\(n^2+1\\).",
+						"Any reduction from [source-2] to \\(n^2+1\\) by “setting a variable constant,” e.g. \\(X=1\\), is invalid unless separately justified; the theorem counts primes over varying variables and does not imply infinitude on such a thin subfamily.",
+						"[source-5] should be treated as a **claimed/proposed proof source**, not as an accepted theorem. The supplied summary says a rigorous proof is “proposed,” which is insufficient for settling this famous open problem.",
+						"**Unsupported from the supplied source set:** “It is known/proved that infinitely many primes are of the form \\(n^2+1\\).”",
+						"**Unsupported from the supplied source set:** “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+						"**Unsupported from the supplied source set:** “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+						"**Unresolved in this workstream:** The exact root question remains unsettled by the listed sources.",
+						"Need an accepted, peer-reviewed, or standard-reference theorem explicitly proving the exact sequence \\(n^2+1\\), if such a claim is to be made. None is present.",
+						"Need independent verification of [source-5] before using it; the metadata alone is not enough to override the standard status of the problem.",
+						"Sources [source-1], [source-3], [source-4], [source-6], [source-7], and [source-8] are irrelevant or too general for the exact polynomial \\(n^2+1\\).",
+						"Check whether [source-5] has been peer-reviewed, cited, corrected, or refuted.",
+						"Add standard references on Bunyakovsky/Schinzel-type conjectures or Landau’s problems to document the accepted open status of primes \\(n^2+1\\).",
+						"Add authoritative sources for related theorems such as Friedlander–Iwaniec and Iwaniec’s almost-prime results, while keeping them clearly separated from the exact prime infinitude question."
+					],
+					"createdAt": "2026-07-02T23:42:48.937Z"
+				},
+				{
+					"id": "research-run-1-incremental-8",
+					"stage": "synthesizer",
+					"status": "running",
+					"title": "Synthesis",
+					"summary": "Synthesizing source-aware literature report.",
+					"details": [],
+					"createdAt": "2026-07-02T23:42:48.939Z"
+				},
+				{
+					"id": "research-run-1-incremental-9",
+					"stage": "synthesizer",
+					"status": "completed",
+					"title": "Synthesis",
+					"summary": "Synthesized source-aware research notes.",
+					"details": [
+						"No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+						"The exact root question is therefore **unresolved within this source set**.",
+						"Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+						"These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+						"Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2].",
+						"Carella’s preprint concerns “quadratic twin primes” \\(n^2+1\\) and \\(n^2+3\\), and the supplied summary says a rigorous spectral-method proof is “proposed” [source-5].",
+						"In this workstream, [source-5] should be treated as a **claim/proposed proof**, not as an established theorem.",
+						"No supplied source gives accepted literature support that Carella’s proposed proof settles the problem.",
+						"Exact target: \\[ \\text{infinitely many primes } n^2+1. \\] Not proved by the supplied sources.",
+						"Related but weaker/different theorem: \\[ \\text{infinitely many primes } X^2+(Y^2+1)^2. \\] Supported by Merikoski [source-2].",
+						"Related but different theorem: \\[ \\text{infinitely many primes } X^2+Y^4. \\] Cited in Merikoski as the Friedlander–Iwaniec result [source-2].",
+						"Invalid reduction: setting \\(X=1\\) in a multivariable theorem does not follow from the theorem unless the theorem gives uniform infinitude on that fixed slice.",
+						"Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+						"Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+						"Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+						"Unsupported from the supplied source set: “The problem is definitively solved.”",
+						"The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5].",
+						"Add authoritative references documenting the standard status of the \\(n^2+1\\) prime infinitude problem.",
+						"Check whether Carella’s preprint [source-5] was peer-reviewed, cited, corrected, or refuted.",
+						"Add standard references for Bunyakovsky-type conjectures, Schinzel’s hypothesis H, Landau’s problems, and related almost-prime results, while clearly separating conjectural implications from unconditional theorems.",
+						"Use [source-2] only as evidence for nearby multivariable prime-producing polynomial results.",
+						"Treat [source-5] cautiously as an unverified proposed proof claim.",
+						"Do not cite the supplied sources as proving the exact \\(n^2+1\\) infinitude statement.",
+						"The supplied literature does not give an accepted unconditional proof that infinitely many primes have the form \\(n^2+1\\). Merikoski proves infinitude for related multivariable forms, but these do not reduce to the one-variable sequence. Carella’s preprint claims/proposes a proof, but the supplied metadata is insufficient to treat it as settled. Within this source-backed workstream, the exact question remains unresolved."
+					],
+					"createdAt": "2026-07-02T23:43:10.947Z"
+				}
+			],
+			"finalReportId": "research-report-1"
+		},
+		{
+			"id": "research-run-2",
+			"pathId": "path-3",
+			"pathTitle": "Reformulation",
+			"status": "completed",
+			"currentStage": "synthesizer",
+			"startedAt": "2026-07-03T00:31:09.659Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z",
+			"completedAt": "2026-07-03T00:31:09.664Z",
+			"incrementalReports": [
+				{
+					"id": "research-run-2-incremental-1",
+					"stage": "coordinator",
+					"status": "completed",
+					"title": "Coordinator brief",
+					"summary": "Framed the objective and what would count as progress.",
+					"details": [
+						"The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test."
+					],
+					"createdAt": "2026-07-03T00:31:09.667Z"
+				},
+				{
+					"id": "research-run-2-incremental-2",
+					"stage": "specialist",
+					"status": "running",
+					"title": "Specialist attempt",
+					"summary": "Specialist research is running.",
+					"details": [],
+					"createdAt": "2026-07-03T00:31:09.670Z"
+				},
+				{
+					"id": "research-run-2-incremental-3",
+					"stage": "specialist",
+					"status": "completed",
+					"title": "Specialist attempt",
+					"summary": "Specialist attempt completed.",
+					"details": [
+						"**Original question:** Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"This is the classical **Landau fourth problem**, still open.",
+						"**Equivalent / direct reformulations:**",
+						"Since \\(n^2+1\\) is even for odd \\(n\\), except \\(n=1\\), the question is equivalent to: \\[ \\text{Are there infinitely many primes }4m^2+1? \\]",
+						"Equivalent prime-frame: \\[ \\text{Are there infinitely many primes }p\\text{ such that }p-1\\text{ is a square?} \\]",
+						"Gaussian integer frame: \\[ n^2+1=N(n+i). \\] Thus the question is equivalent to asking whether there are infinitely many Gaussian primes on the horizontal line \\[ \\operatorname{Im} z=1. \\]",
+						"Sieve frame:",
+						"For primes \\(q\\equiv 3 \\pmod 4\\), \\(q\\nmid n^2+1\\).",
+						"For primes \\(q\\equiv 1 \\pmod 4\\), exactly two residue classes mod \\(q\\) are forbidden.",
+						"For \\(q=2\\), only even \\(n\\) survive, apart from \\(n=1\\).",
+						"**Conjectural / literature-search targets:**",
+						"**Bunyakovsky conjecture** for \\(f(n)=n^2+1\\) implies infinitude.",
+						"**Schinzel’s Hypothesis H** implies infinitude.",
+						"**Bateman–Horn** predicts an asymptotic: \\[ \\#\\{n\\le X:n^2+1\\text{ prime}\\} \\sim C\\int_2^X \\frac{dt}{\\log(t^2+1)}, \\] with local factor \\[ C=\\prod_p \\frac{1-\\nu_p/p}{1-1/p}, \\] where \\(\\nu_p=\\#\\{x\\bmod p:x^2+1\\equiv0\\bmod p\\}\\).",
+						"Sieve literature target: known “almost-prime” results for \\(n^2+1\\), e.g. infinitely many values with few prime factors, but not primality.",
+						"Use the reformulation \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]",
+						"Operational advantages:",
+						"Search only \\(m\\ge1\\).",
+						"Trial division only needs primes \\(q=2\\) and \\(q\\equiv1\\pmod4\\); primes \\(3\\pmod4\\) never divide.",
+						"For each \\(q\\equiv1\\pmod4\\), compute roots of \\[ 4m^2+1\\equiv0\\pmod q \\] and exclude two residue classes.",
+						"This gives a clean CRT/wheel sieve model matching Bateman–Horn local factors. This does not prove infinitude, but it gives a precise finite obstruction model and a benchmark for computational data.",
+						"No known proof that infinitely many \\(n^2+1\\) are prime.",
+						"Bunyakovsky, Schinzel H, and Bateman–Horn are conjectural here.",
+						"The Gaussian-prime line formulation is equivalent, not easier by itself.",
+						"Sieve methods face the parity barrier: avoiding small prime divisors does not distinguish primes from semiprimes strongly enough.",
+						"Continue path 4 by building the explicit local-sieve/Bateman–Horn comparison for \\(4m^2+1\\):",
+						"Compute forbidden classes mod primes \\(q\\equiv1\\pmod4\\).",
+						"Build a finite wheel modulus \\(M=\\prod q\\).",
+						"Count survivors \\(m\\bmod M\\).",
+						"Compare observed primes \\(4m^2+1\\) up to \\(X\\) with the Bateman–Horn prediction.",
+						"Separately record known almost-prime theorems as partial substitutes, not proofs."
+					],
+					"createdAt": "2026-07-03T00:32:04.873Z"
+				},
+				{
+					"id": "research-run-2-incremental-4",
+					"stage": "critic",
+					"status": "running",
+					"title": "Critic review",
+					"summary": "Critic review is running.",
+					"details": [],
+					"createdAt": "2026-07-03T00:32:04.874Z"
+				},
+				{
+					"id": "research-run-2-incremental-5",
+					"stage": "critic",
+					"status": "completed",
+					"title": "Critic review",
+					"summary": "Critic review completed.",
+					"details": [
+						"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"Correctly identified as Landau’s fourth problem; still open.",
+						"Direct reductions are mostly valid:",
+						"Apart from \\(n=1\\), prime values require \\(n\\) even, so the infinitude question is equivalent to infinitude of primes \\(4m^2+1\\).",
+						"Equivalent finite-exception frame: infinitely many primes \\(p\\) with \\(p-1\\) a square.",
+						"Gaussian integer frame: \\(n+i\\) is a Gaussian prime iff \\(n^2+1\\) is a rational prime.",
+						"Sieve reformulation is useful:",
+						"For \\(4m^2+1\\), no factor \\(2\\).",
+						"Prime divisors must be \\(q\\equiv1\\pmod4\\).",
+						"For each such \\(q\\), exactly two residue classes of \\(m\\bmod q\\) are excluded by \\(4m^2+1\\equiv0\\pmod q\\).",
+						"The Bateman–Horn constant should be specified separately for \\(n^2+1\\) versus \\(4m^2+1\\). For \\(4m^2+1\\), the \\(p=2\\) local factor differs.",
+						"The “prime-frame” equivalence has a finite exception: \\(p=2\\), since \\(2-1=1\\).",
+						"The Gaussian-prime line formulation is equivalent but does not add a known mechanism for proving infinitude.",
+						"The finite wheel sieve only proves absence of small forbidden factors, not primality or infinitude.",
+						"Path 4 can be made executable:",
+						"Choose a finite set \\(S\\) of primes \\(q\\equiv1\\pmod4\\).",
+						"For each \\(q\\in S\\), find \\(r_q^2\\equiv-1\\pmod q\\).",
+						"Exclude \\[ m\\equiv \\pm (2^{-1}r_q)\\pmod q. \\]",
+						"Let \\(M=\\prod_{q\\in S}q\\). Number of surviving residue classes should be \\[ \\prod_{q\\in S}(q-2). \\]",
+						"Compare actual prime counts for \\(4m^2+1\\), \\(m\\le X\\), with the corresponding Bateman–Horn heuristic, not as evidence of proof.",
+						"“Known almost-prime results” needs a precise theorem before use. Do not rely on it without citation and exact statement.",
+						"“Trial division only needs primes \\(q=2\\) and \\(q\\equiv1\\pmod4\\)” should be sharpened: for \\(4m^2+1\\), \\(2\\) never divides, so only \\(q\\equiv1\\pmod4\\) need be tested.",
+						"Bateman–Horn, Schinzel H, and Bunyakovsky are conjectural; they cannot be used as proof.",
+						"Computational agreement with the wheel/Bateman–Horn model is finite evidence only.",
+						"Verify the exact Bateman–Horn constant for \\(4m^2+1\\).",
+						"Supply precise references for almost-prime theorems concerning \\(n^2+1\\).",
+						"Implement the finite CRT wheel and compare survivor/primality counts for increasing \\(X\\)."
+					],
+					"createdAt": "2026-07-03T00:32:37.751Z"
+				},
+				{
+					"id": "research-run-2-incremental-6",
+					"stage": "synthesizer",
+					"status": "running",
+					"title": "Synthesis",
+					"summary": "Synthesis is running.",
+					"details": [],
+					"createdAt": "2026-07-03T00:32:37.753Z"
+				},
+				{
+					"id": "research-run-2-incremental-7",
+					"stage": "synthesizer",
+					"status": "completed",
+					"title": "Synthesis",
+					"summary": "Synthesis completed.",
+					"details": [
+						"Work with the finite-exception equivalent form: \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]",
+						"This gives a clean local-sieve model:",
+						"\\(4m^2+1\\) is always odd.",
+						"Any prime divisor \\(q\\) must satisfy \\(q\\equiv1\\pmod4\\).",
+						"For each \\(q\\equiv1\\pmod4\\), exactly two residue classes of \\(m\\bmod q\\) are forbidden.",
+						"**Original question:** Are there infinitely many primes of the form \\[ n^2+1? \\]",
+						"This is Landau’s fourth problem and remains open.",
+						"**Equivalent/directly reduced frames:**",
+						"Since \\(n^2+1\\) is even for odd \\(n\\), except \\(n=1\\), infinitude is equivalent to: \\[ \\text{infinitely many primes }4m^2+1. \\]",
+						"Prime-frame, up to the finite exception \\(p=2\\): \\[ p=n^2+1 \\iff p-1\\text{ is a square}. \\]",
+						"Gaussian integer frame: \\[ n^2+1=N(n+i), \\] so the question is equivalent to asking whether there are infinitely many Gaussian primes on the line \\(\\operatorname{Im}z=1\\).",
+						"**Conjectural/literature-search targets:**",
+						"Bunyakovsky for \\(f(n)=n^2+1\\) implies infinitude.",
+						"Schinzel’s Hypothesis H implies infinitude.",
+						"Bateman–Horn predicts an asymptotic, but not a proof.",
+						"Almost-prime results for \\(n^2+1\\) should be recorded only with precise verified statements.",
+						"For \\(f(m)=4m^2+1\\), the local root count is: \\[ \\nu_p=\\#\\{m\\bmod p:4m^2+1\\equiv0\\bmod p\\}. \\] Hence: \\[ \\nu_2=0, \\] and for odd \\(p\\), \\[ \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+						"Bateman–Horn for \\(4m^2+1\\) predicts \\[ \\#\\{m\\le X:4m^2+1\\text{ prime}\\} \\sim C_{4m^2+1}\\int_2^X\\frac{dt}{\\log(4t^2+1)}, \\] with \\[ C_{4m^2+1} = 2 \\prod_{\\substack{p\\equiv1\\!\\!\\!\\pmod4}} \\frac{p-2}{p-1} \\prod_{\\substack{p\\equiv3\\!\\!\\!\\pmod4}} \\frac{p}{p-1}. \\]",
+						"The extra factor \\(2\\) comes from \\(p=2\\), since \\(4m^2+1\\not\\equiv0\\pmod2\\).",
+						"No proof is known that infinitely many \\(n^2+1\\) are prime.",
+						"The reformulations are equivalent viewpoints, not solutions.",
+						"The Gaussian-prime line formulation gives no known proof mechanism.",
+						"Finite wheel sieves only remove small prime divisors; they do not prove primality or infinitude.",
+						"Bateman–Horn, Schinzel H, and Bunyakovsky are conjectural here.",
+						"Computational agreement with the heuristic is finite evidence only.",
+						"Verify numerical values/normalization of the Bateman–Horn constant for \\(4m^2+1\\).",
+						"Supply exact references and statements for known almost-prime theorems on \\(n^2+1\\).",
+						"Implement the finite CRT wheel and compare survivor counts and prime counts for increasing \\(X\\).",
+						"Continue path 4 with an executable finite-sieve model.",
+						"Choose a finite set \\[ S\\subset\\{q:q\\equiv1\\pmod4\\}. \\]",
+						"For each \\(q\\in S\\), find \\(r_q\\) with \\[ r_q^2\\equiv-1\\pmod q. \\]",
+						"Since \\[ 4m^2+1\\equiv0\\pmod q \\iff m\\equiv \\pm 2^{-1}r_q\\pmod q, \\] exclude these two residue classes.",
+						"Let \\[ M=\\prod_{q\\in S}q. \\]",
+						"Count surviving classes modulo \\(M\\): \\[ \\#\\{\\text{survivors mod }M\\}=\\prod_{q\\in S}(q-2). \\]",
+						"For \\(m\\le X\\), compare:",
+						"number of wheel survivors;",
+						"number of actual primes \\(4m^2+1\\);",
+						"Bateman–Horn predicted count.",
+						"The original infinitude problem for primes \\(n^2+1\\) is equivalently reduced, up to a finite exception, to primes \\(4m^2+1\\). This formulation gives the cleanest operational sieve: only primes \\(q\\equiv1\\pmod4\\) can divide \\(4m^2+1\\), and each such \\(q\\) forbids exactly two residue classes of \\(m\\). A finite CRT wheel therefore gives an explicit obstruction model with \\(\\prod(q-2)\\) surviving classes modulo \\(\\prod q\\). This supports computation and comparison with Bateman–Horn, but proves only avoidance of selected small factors, not infinitude of primes."
+					],
+					"createdAt": "2026-07-03T00:33:21.355Z"
+				}
+			],
+			"finalReportId": "research-report-2"
+		},
+		{
+			"id": "research-run-3",
+			"pathId": "path-3",
+			"pathTitle": "Reformulation",
+			"status": "completed",
+			"currentStage": "synthesizer",
+			"startedAt": "2026-07-03T00:48:43.725Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z",
+			"incrementalReports": [
+				{
+					"id": "research-run-3-incremental-1",
+					"stage": "coordinator",
+					"status": "completed",
+					"title": "Coordinator brief",
+					"summary": "Framed the objective and what would count as progress.",
+					"details": [
+						"The reformulation path should map the original question into equivalent or related frames, separate proved reductions from conjectural search targets, and identify the next smaller claims to test."
+					],
+					"createdAt": "2026-07-03T00:48:43.733Z"
+				},
+				{
+					"id": "research-run-3-incremental-2",
+					"stage": "specialist",
+					"status": "running",
+					"title": "Specialist attempt",
+					"summary": "Specialist research is running.",
+					"details": [],
+					"createdAt": "2026-07-03T00:48:43.735Z"
+				},
+				{
+					"id": "research-run-3-incremental-3",
+					"stage": "specialist",
+					"status": "completed",
+					"title": "Specialist attempt",
+					"summary": "Specialist attempt completed.",
+					"details": [
+						"Ran a bounded computation (exit 124): Count primes of the form n^2+1 for n up to 200000 and compare with a crude Bateman-Horn main term constant estimate.",
+						"Ran a bounded computation (exit 0): Count primes n^2+1 for n<=200000 using trial division by primes<=200000; also estimate Bateman-Horn product for f(n)=...",
+						"The problem is exactly Landau’s fourth problem; no proof of infinitude is known.",
+						"Equivalent reductions:",
+						"Since \\(n^2+1\\) is even for odd \\(n\\), apart from \\(n=1\\), the problem is equivalent to infinitely many primes \\[ 4m^2+1. \\]",
+						"Prime-centered form: \\[ p=n^2+1 \\iff p-1 \\text{ is a square}. \\]",
+						"Gaussian integer form: \\[ n^2+1=N(n+i), \\] so this asks for infinitely many Gaussian primes on the horizontal line \\(\\operatorname{Im} z=1\\).",
+						"Bateman–Horn for \\(f(n)=n^2+1\\) predicts \\[ \\#\\{n\\le x:n^2+1\\text{ prime}\\} \\sim C_{BH}\\int_1^x \\frac{dt}{\\log(t^2+1)}, \\] with local factors from roots of \\(x^2\\equiv -1\\pmod p\\): \\[ \\nu_2=1,\\qquad \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+						"Finite computation for \\(n\\le 200000\\): found \\(12391\\) prime values; crude truncated Bateman–Horn estimate was \\(12377.1\\). This is only numerical evidence.",
+						"Treat the problem as a special case of general prime-values-of-polynomials conjectures:",
+						"Bunyakovsky for \\(n^2+1\\) implies infinitude.",
+						"Schinzel’s Hypothesis H implies infinitude.",
+						"Bateman–Horn gives the expected asymptotic.",
+						"The Gaussian-prime-on-a-line reformulation may connect to distribution of Gaussian primes in thin sets, though current general prime distribution theorems do not reach a fixed line.",
+						"None of the reformulations produces an unconditional proof.",
+						"The prime-frame condition \\(p-1=\\square\\) is very thin and not accessible by standard primes-in-progressions methods.",
+						"Numerical agreement with Bateman–Horn is finite evidence only.",
+						"Record precise known almost-prime theorems for \\(n^2+1\\), with verified statements only.",
+						"Search for results on Gaussian primes in sectors/curves and identify why fixed-line results remain out of reach.",
+						"Compare the \\(4m^2+1\\) formulation with sieve-theoretic parity barriers."
+					],
+					"createdAt": "2026-07-03T00:50:01.055Z"
+				},
+				{
+					"id": "research-run-3-incremental-4",
+					"stage": "critic",
+					"status": "running",
+					"title": "Critic review",
+					"summary": "Critic review is running.",
+					"details": [],
+					"createdAt": "2026-07-03T00:50:01.057Z"
+				},
+				{
+					"id": "research-run-3-incremental-5",
+					"stage": "critic",
+					"status": "completed",
+					"title": "Critic review",
+					"summary": "Critic review completed.",
+					"details": [
+						"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"Direct/equivalent frames:",
+						"Since odd \\(n>1\\) gives even composite \\(n^2+1\\), infinitude is equivalent to infinitely many primes \\(4m^2+1\\).",
+						"Prime-centered tautology: \\(p=n^2+1\\iff p-1\\) is a square; for odd \\(p\\), this means \\(p-1=4m^2\\).",
+						"Gaussian integer frame: \\(n^2+1=N(n+i)\\); equivalently infinitely many Gaussian primes on the fixed line \\(\\operatorname{Im}z=1\\).",
+						"Conjectural/literature-search targets:",
+						"Bunyakovsky, Schinzel H, Bateman–Horn all predict infinitude, but none is proved here.",
+						"Gaussian-prime distribution in sectors/regions is relevant background, but fixed horizontal lines are much thinner.",
+						"The \\(4m^2+1\\) frame changes examples operationally: search only even \\(n\\), count \\(m\\le x/2\\), remove the trivial parity obstruction.",
+						"The prime-centered frame does not make PNT/AP tools directly usable; the condition \\(p-1=\\square\\) is a thin nonlinear constraint.",
+						"The Gaussian line frame is exact, but known Gaussian-prime equidistribution results in sectors do not imply primes on one fixed line.",
+						"Bateman–Horn gives only a conjectural asymptotic. It proves neither infinitude nor any lower bound.",
+						"The split product \\[ \\prod_{p\\equiv1(4)}\\frac{1-2/p}{1-1/p}\\cdot \\prod_{p\\equiv3(4)}\\frac1{1-1/p} \\] should not be treated as two independently convergent products; the combined Euler product needs a specified natural truncation/order.",
+						"Numerical value “truncated to \\(200000\\)” should specify truncation over primes \\(p\\le 200000\\). It is finite evidence only.",
+						"Constants need normalization stated carefully: \\(C_{BH}\\int_1^x dt/\\log(t^2+1)\\) differs by a factor \\(\\sim 2\\) from formulations using \\(x/\\log x\\).",
+						"“Landau’s fourth problem” is standard, but if used in formal notes, cite or label as historical identification rather than proof input.",
+						"Do not present Bunyakovsky/Schinzel/Bateman–Horn as established theorems for this case.",
+						"Continue path 4 by writing a precise sieve/parity-barrier note for \\(4m^2+1\\):",
+						"state what elementary sieving can count: \\(m\\le X\\) with no small prime divisor of \\(4m^2+1\\);",
+						"compare the expected sifted count with the Bateman–Horn scale;",
+						"identify exactly where parity prevents upgrading “almost prime” to “prime”;",
+						"record only verified almost-prime theorems, with exact statements and citations before using them."
+					],
+					"createdAt": "2026-07-03T00:50:41.997Z"
+				},
+				{
+					"id": "research-run-3-incremental-6",
+					"stage": "synthesizer",
+					"status": "running",
+					"title": "Synthesis",
+					"summary": "Synthesis is running.",
+					"details": [],
+					"createdAt": "2026-07-03T00:50:41.999Z"
+				},
+				{
+					"id": "research-run-3-incremental-7",
+					"stage": "synthesizer",
+					"status": "completed",
+					"title": "Synthesis",
+					"summary": "Synthesis completed.",
+					"details": [
+						"Use the parity-clean reformulation: \\[ n^2+1\\text{ prime infinitely often}\\iff 4m^2+1\\text{ prime infinitely often}. \\]",
+						"Treat Bateman–Horn only as a benchmark for expected density, not as evidence of proof.",
+						"Continue with a sieve-focused note for \\(4m^2+1\\): local root counts, sifted-set size, parity barrier, and verified almost-prime results.",
+						"Original question: Are there infinitely many primes of the form \\(n^2+1\\)?",
+						"Direct/equivalent frames:",
+						"Odd \\(n>1\\) gives even composite \\(n^2+1\\); hence only \\(n=2m\\) matters, giving \\(4m^2+1\\).",
+						"Prime-centered form: \\[ p=n^2+1\\iff p-1 \\text{ is a square}. \\] For odd \\(p\\), this is \\(p-1=4m^2\\).",
+						"Gaussian integer form: \\[ n^2+1=N(n+i), \\] so the problem asks for infinitely many Gaussian primes on the fixed line \\(\\operatorname{Im}z=1\\).",
+						"Conjectural/literature-search targets:",
+						"Bunyakovsky, Schinzel H, and Bateman–Horn predict infinitude.",
+						"Bateman–Horn for \\(n^2+1\\) predicts \\[ \\#\\{n\\le x:n^2+1\\text{ prime}\\} \\sim C_{BH}\\int_1^x\\frac{dt}{\\log(t^2+1)}. \\]",
+						"Local root counts: \\[ \\nu_2=1,\\qquad \\nu_p= \\begin{cases} 2,&p\\equiv1\\pmod4,\\\\ 0,&p\\equiv3\\pmod4. \\end{cases} \\]",
+						"The Euler product should be interpreted with a specified natural truncation, e.g. over primes \\(p\\le y\\), since the split subproducts are not independently convergent.",
+						"The reformulations are exact but do not by themselves improve the proof status.",
+						"Operationally, \\(4m^2+1\\) removes the trivial parity obstruction and is the right object for sieving.",
+						"The condition \\(p-1=\\square\\) is a thin nonlinear constraint; primes-in-progressions methods do not directly apply.",
+						"Gaussian-prime sector/equidistribution results do not imply primes on one fixed horizontal line.",
+						"Numerical agreement with Bateman–Horn is finite evidence only.",
+						"No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+						"No known method upgrades current sieve/almost-prime information to primality.",
+						"The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here.",
+						"Verify exact statements and citations for almost-prime theorems concerning \\(n^2+1\\), especially results of the form “\\(n^2+1\\) has at most \\(r\\) prime factors infinitely often.”",
+						"Check any quoted Bateman–Horn constants with explicit truncation convention: primes \\(p\\le y\\), range of \\(n\\), and whether counting \\(n^2+1\\) or \\(4m^2+1\\).",
+						"Continue path 4: write a precise sieve/parity-barrier note for \\[ A_X=\\{4m^2+1:1\\le m\\le X\\}. \\]",
+						"Compute local obstructions: \\[ 4m^2+1\\equiv0\\pmod p \\] has two roots for \\(p\\equiv1\\pmod4\\), no roots for \\(p\\equiv3\\pmod4\\), and no root mod \\(2\\).",
+						"Record the expected sifted count: \\[ \\#\\{m\\le X:(4m^2+1,P(z))=1\\} \\approx X\\prod_{\\substack{p\\le z\\\\p\\equiv1(4)}}\\left(1-\\frac2p\\right). \\]",
+						"Compare this with the Bateman–Horn scale \\(\\asymp X/\\log X\\).",
+						"Identify exactly why sieving up to \\(\\sqrt{4X^2+1}\\) would be needed to force primality, and why current sieve methods cannot deliver the required lower bound.",
+						"Landau’s fourth problem remains open: infinitude of primes \\(n^2+1\\) is not known.",
+						"The best reformulation for proof attempts is \\(4m^2+1\\), which removes parity and exposes the sieve structure.",
+						"Bateman–Horn gives a precise conjectural asymptotic but no proof.",
+						"The next workstream should be a verified sieve note: local densities, sifted estimates, almost-prime theorems, and the parity barrier."
+					],
+					"createdAt": "2026-07-03T00:51:36.733Z"
+				}
+			],
+			"completedAt": "2026-07-03T00:48:43.730Z",
+			"finalReportId": "research-report-3"
+		}
+	],
+	"researchBatches": [],
+	"researchPlans": [],
+	"researchPlanTasks": [],
+	"literatureSources": [
+		{
+			"id": "source-1",
+			"kind": "paper",
+			"title": "Infinitely many prime knots with the same Alexander invariants",
+			"url": "http://arxiv.org/abs/1604.02510v2",
+			"provider": "arxiv",
+			"externalId": "1604.02510v2",
+			"publishedAt": "2016-04-09T02:10:05Z",
+			"sourceType": "preprint",
+			"authors": [
+				"Louis H. Kauffman",
+				"Pedro Lopes"
+			],
+			"year": "2016",
+			"summary": "We revisit the issue of the existence of infinitely many distinct prime knots with the same Alexander invariant. We present infinitely many distinct families, each family made up of infinitely many distinct knots. Within each family, the Alexander invariant is the same. Unlike other examples in the literature, ours are elementary and based on a sub-collection of pretzel knots with three tassels.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-2",
+			"kind": "paper",
+			"title": "The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes",
+			"url": "http://arxiv.org/abs/2112.03617v3",
+			"provider": "arxiv",
+			"externalId": "2112.03617v3",
+			"publishedAt": "2021-12-07T10:20:19Z",
+			"sourceType": "preprint",
+			"authors": [
+				"Jori Merikoski"
+			],
+			"year": "2021",
+			"summary": "We show that there are infinitely many primes of the form $X^2+(Y^2+1)^2$ and $X^2+(Y^3+Z^3)^2$. This extends the work of Friedlander and Iwaniec showing that there are infinitely many primes of the form $X^2+Y^4$. More precisely, Friedlander and Iwaniec obtained an asymptotic formula for the number of primes of this form. For the sequences $X^2+(Y^2+1)^2$ and $X^2+(Y^3+Z^3)^2$ we establish Type II information that is too narrow for an aysmptotic formula, but we can use Harman's sieve method to produce a lower bound of the correct order of magnitude for primes of form $X^2+(Y^2+1)^2$ and $X^2+(Y^3+Z^3)^2$. Estimating the Type II sums is reduced to a counting problem which is solved by using the Weil bound, where the arithmetic input is quite different from the work of Friedlander and Iwaniec for $X^2+Y^4$. We also show that there are infinitely many primes $p=X^2+Y^2$ where $Y$ is represented by an incomplete norm form of degree $k$ with $k-1$ variables. For this we require a Deligne-type bound for correlations of hyper-Kloosterman sums.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-3",
+			"kind": "paper",
+			"title": "An elemetary proof of an estimate for a number of primes less than the product of the first $n$ primes",
+			"url": "http://arxiv.org/abs/1211.4571v1",
+			"provider": "arxiv",
+			"externalId": "1211.4571v1",
+			"publishedAt": "2012-11-17T18:31:10Z",
+			"sourceType": "preprint",
+			"authors": [
+				"Romeo Meštrović"
+			],
+			"year": "2012",
+			"summary": "Let $α$ be a real number such that $1< α<2$ and let $x_0=x_0(α)$ be a {\\rm(}unique{\\rm)} positive solution of the equation $$ x^{α-1} -\\fracπ{e^2\\sqrt{3}}x +1=0. $$ Then we prove that for each positive integer $n>x_0$ there exist at least $[n^α]$ primes between the $(n+1)$th prime and the product of the first $n+1$ primes. In particular, we establish a recent Cooke's result which asserts that for each positive integer $n$ there are at least $n$ primes between the $(n+1)$th prime and the product of the first $n+1$ primes. Our proof is based on an elementary counting method (enumerative arguments) and the application of Stirling's formula to give upper bound for some binomial coefficients.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-4",
+			"kind": "paper",
+			"title": "Two-dimensional magnetic interactions in LaFeAsO",
+			"url": "http://arxiv.org/abs/1303.4033v1",
+			"provider": "arxiv",
+			"externalId": "1303.4033v1",
+			"publishedAt": "2013-03-17T05:50:14Z",
+			"sourceType": "preprint",
+			"authors": [
+				"M. Ramazanoglu",
+				"1",
+				"2 J. Lamsal",
+				"1",
+				"2 G. S. Tucker",
+				"1",
+				"2 J. -Q. Yan",
+				"3 S. Calder",
+				"3 T. Guidi",
+				"4 T. Perring",
+				"4 R. W. McCallum",
+				"1",
+				"2 T. A. Lograsso",
+				"1",
+				"2 A. Kreyssig",
+				"1",
+				"2 A. I. Goldman",
+				"1",
+				"2",
+				"R. J. McQueeney1",
+				"2 1",
+				"2",
+				"3",
+				"4"
+			],
+			"year": "2013",
+			"summary": "Inelastic neutron scattering measurements demonstrate that the magnetic interactions in antiferromagnetic LaFeAsO are two-dimensional. Spin wave velocities within the Fe layer and the magnitude of the spin gap are similar to the \\textit{A}Fe$_2$As$_2$ based materials. However, the ratio of interlayer and intralayer exchange is found to be less than $\\sim 10^{-4}$ in LaFeAsO, very similar to the cuprates, and $\\sim$ 100 times smaller than that found in \\textit{A}Fe$_2$As$_2$ compounds. The results suggest that the effective dimensionality of the magnetic system is highly variable in the parent compounds of the iron arsenides and weak 3-D interactions may limit the maximum attainable superconducting $T_{c}$.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-5",
+			"kind": "paper",
+			"title": "Twin Primes In Quadratic Arithmetic Progressions",
+			"url": "http://arxiv.org/abs/1710.07827v1",
+			"provider": "arxiv",
+			"externalId": "1710.07827v1",
+			"publishedAt": "2017-10-21T16:56:22Z",
+			"sourceType": "preprint",
+			"authors": [
+				"N. A. Carella"
+			],
+			"year": "2017",
+			"summary": "A recent heuristic argument based on basic concepts in spectral analysis showed that the twin prime conjecture and a few other related primes counting problems are valid. A rigorous version of the spectral method, and a proof for the existence of infinitely many quadratic twin primes $n^{2}+1$ and $n^{2}+3$, $n \\geq 1$, are proposed in this note.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-6",
+			"kind": "paper",
+			"title": "Infinitely Many Primes (Using Topology)",
+			"url": "https://doi.org/10.59350/y5exx-hae02",
+			"provider": "crossref",
+			"externalId": "10.59350/y5exx-hae02",
+			"doi": "10.59350/y5exx-hae02",
+			"citationCount": 0,
+			"sourceType": "unknown",
+			"authors": [
+				"Jeremy Kun"
+			],
+			"summary": "Problem: Prove there are infinitely many prime numbers. Solution: First recall that an arithmetic progression with difference $ d$ is a sequence of integers $ a_n \\subset \\mathbb{Z}$ so that for every pair $ a_k, a_{k+1}$ the difference $ a_{k+1} – a_k = d$. We proceed be defining a topology on the set of integers by defining a basis $ B$ of unbounded (in both directions) arithmetic progressions.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-7",
+			"kind": "paper",
+			"title": "Infinitely Many Primes (Using Topology)",
+			"url": "https://doi.org/10.59350/nhhyc-rn105",
+			"provider": "crossref",
+			"externalId": "10.59350/nhhyc-rn105",
+			"doi": "10.59350/nhhyc-rn105",
+			"citationCount": 0,
+			"sourceType": "unknown",
+			"authors": [
+				"Jeremy Kun"
+			],
+			"summary": "Problem: Prove there are infinitely many prime numbers. Solution: First recall that an arithmetic progression with difference $ d$ is a sequence of integers $ a_n \\subset \\mathbb{Z}$ so that for every pair $ a_k, a_{k+1}$ the difference $ a_{k+1} – a_k = d$. We proceed be defining a topology on the set of integers by defining a basis $ B$ of unbounded (in both directions) arithmetic progressions.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "source-8",
+			"kind": "paper",
+			"title": "There are Infinitely Many Primes (Erdős)",
+			"url": "https://doi.org/10.59350/cd47f-s6h88",
+			"provider": "crossref",
+			"externalId": "10.59350/cd47f-s6h88",
+			"doi": "10.59350/cd47f-s6h88",
+			"citationCount": 0,
+			"sourceType": "unknown",
+			"authors": [
+				"Jeremy Kun"
+			],
+			"summary": "Problem: Prove there are infinitely many primes Solution: Denote by $ \\pi(n)$ the number of primes less than or equal to $ n$. We will give a lower bound on $ \\pi(n)$ which increases without bound as $ n \\to \\infty$. Note that every number $ n$ can be factored as the product of a square free number $ r$ (a number which no square divides) and a square $ s^2$.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		}
+	],
+	"literatureSearches": [
+		{
+			"id": "literature-search-1",
+			"pathId": "path-5",
+			"runId": "research-run-1",
+			"queries": [
+				"Are there infinitely many primes of the form n^2 + 1",
+				"Are there infinitely many primes of the form n^2 + 1 Known theorem or literature reduction Identify whether known theorems settle imply or obstruct Are there infinitely many primes of the form n^2 + 1",
+				"infinitely many primes squared known theorem literature reduction identify whether",
+				"Landau problem prime values n^2 + 1"
+			],
+			"providers": [
+				{
+					"provider": "workspace",
+					"query": "Are there infinitely many primes of the form n^2 + 1?",
+					"status": "skipped",
+					"candidateCount": 0
+				},
+				{
+					"provider": "arxiv",
+					"query": "Are there infinitely many primes of the form n^2 + 1",
+					"status": "completed",
+					"candidateCount": 5
+				},
+				{
+					"provider": "semantic-scholar",
+					"query": "Are there infinitely many primes of the form n^2 + 1",
+					"status": "failed",
+					"candidateCount": 0,
+					"error": "HTTP 429"
+				},
+				{
+					"provider": "crossref",
+					"query": "Are there infinitely many primes of the form n^2 + 1",
+					"status": "completed",
+					"candidateCount": 5
+				}
+			],
+			"candidateCount": 10,
+			"selectedSourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"startedAt": "2026-07-02T23:42:10.166Z",
+			"completedAt": "2026-07-02T23:43:10.950Z",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		}
+	],
+	"literatureClaimSupports": [
+		{
+			"id": "claim-support-1",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Provided sources give source-backed context for conjectural prime-values-of-polynomials framing.",
+			"sourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"status": "partially-supported",
+			"note": "Context only; this does not by itself prove the target theorem claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-2",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "An unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "No source in this run established this unconditional theorem claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-3",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1] [source-2] [source-3] [source-4] [source-5] [source-6] [source-7] [source-8]",
+			"sourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"status": "supported",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-4",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-5",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Conjectural implications are not proofs of the original claim.",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-6",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-7",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "The exact root question is therefore **unresolved within this source set**.",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-8",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+			"sourceIds": [
+				"source-2"
+			],
+			"status": "supported",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-9",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+			"sourceIds": [
+				"source-2"
+			],
+			"status": "supported",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-10",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2].",
+			"sourceIds": [
+				"source-2"
+			],
+			"status": "supported",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-11",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-12",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-13",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-14",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "Unsupported from the supplied source set: “The problem is definitively solved.”",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "claim-support-15",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claim": "The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5].",
+			"sourceIds": [],
+			"status": "unsupported",
+			"note": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		}
+	],
+	"researchEvidenceBoard": [
+		{
+			"id": "evidence-board-1",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-1",
+			"sourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"computationalArtifactIds": [],
+			"claim": "Provided sources give source-backed context for conjectural prime-values-of-polynomials framing.",
+			"classification": "conjecture",
+			"rationale": "Context only; this does not by itself prove the target theorem claim. Sources: Infinitely many prime knots with the same Alexander invariants, type preprint, external id 1604.02510v2, 2016-04-09T02:10:05Z, via arxiv; The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes, type preprint, external id 2112.03617v3, 2021-12-07T10:20:19Z, via arxiv; An elemetary proof of an estimate for a number of primes less than the product of the first $n$ primes, type preprint, external id 1211.4571v1, 2012-11-17T18:31:10Z, via arxiv; Two-dimensional magnetic interactions in LaFeAsO, type preprint, external id 1303.4033v1, 2013-03-17T05:50:14Z, via arxiv; Twin Primes In Quadratic Arithmetic Progressions, type preprint, external id 1710.07827v1, 2017-10-21T16:56:22Z, via arxiv; Infinitely Many Primes (Using Topology), type unknown, DOI present, external id 10.59350/y5exx-hae02, via crossref; Infinitely Many Primes (Using Topology), type unknown, DOI present, external id 10.59350/nhhyc-rn105, via crossref; There are Infinitely Many Primes (Erdős), type unknown, DOI present, external id 10.59350/cd47f-s6h88, via crossref",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-2",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-2",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "An unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"classification": "unsupported",
+			"rationale": "No source in this run established this unconditional theorem claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-3",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-3",
+			"sourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"computationalArtifactIds": [],
+			"claim": "Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1] [source-2] [source-3] [source-4] [source-5] [source-6] [source-7] [source-8]",
+			"classification": "conjecture",
+			"rationale": "Recorded as supported by the literature workstream. Sources: Infinitely many prime knots with the same Alexander invariants, type preprint, external id 1604.02510v2, 2016-04-09T02:10:05Z, via arxiv; The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes, type preprint, external id 2112.03617v3, 2021-12-07T10:20:19Z, via arxiv; An elemetary proof of an estimate for a number of primes less than the product of the first $n$ primes, type preprint, external id 1211.4571v1, 2012-11-17T18:31:10Z, via arxiv; Two-dimensional magnetic interactions in LaFeAsO, type preprint, external id 1303.4033v1, 2013-03-17T05:50:14Z, via arxiv; Twin Primes In Quadratic Arithmetic Progressions, type preprint, external id 1710.07827v1, 2017-10-21T16:56:22Z, via arxiv; Infinitely Many Primes (Using Topology), type unknown, DOI present, external id 10.59350/y5exx-hae02, via crossref; Infinitely Many Primes (Using Topology), type unknown, DOI present, external id 10.59350/nhhyc-rn105, via crossref; There are Infinitely Many Primes (Erdős), type unknown, DOI present, external id 10.59350/cd47f-s6h88, via crossref",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-4",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-4",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"classification": "unsupported",
+			"rationale": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-5",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-5",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Conjectural implications are not proofs of the original claim.",
+			"classification": "unsupported",
+			"rationale": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-6",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-6",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+			"classification": "unsupported",
+			"rationale": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-7",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-7",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The exact root question is therefore **unresolved within this source set**.",
+			"classification": "unsupported",
+			"rationale": "No source id was attached to this claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-8",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-8",
+			"sourceIds": [
+				"source-2"
+			],
+			"computationalArtifactIds": [],
+			"claim": "Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+			"classification": "theorem",
+			"rationale": "Recorded as supported by the literature workstream. Sources: The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes, type preprint, external id 2112.03617v3, 2021-12-07T10:20:19Z, via arxiv",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-9",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-9",
+			"sourceIds": [
+				"source-2"
+			],
+			"computationalArtifactIds": [],
+			"claim": "These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+			"classification": "theorem",
+			"rationale": "Recorded as supported by the literature workstream. Sources: The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes, type preprint, external id 2112.03617v3, 2021-12-07T10:20:19Z, via arxiv",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-10",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-10",
+			"sourceIds": [
+				"source-2"
+			],
+			"computationalArtifactIds": [],
+			"claim": "Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2].",
+			"classification": "theorem",
+			"rationale": "Recorded as supported by the literature workstream. Sources: The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes, type preprint, external id 2112.03617v3, 2021-12-07T10:20:19Z, via arxiv",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-11",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-11",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+			"classification": "unsupported",
+			"rationale": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-12",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-12",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"classification": "unsupported",
+			"rationale": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-13",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-13",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"classification": "unsupported",
+			"rationale": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-14",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-14",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “The problem is definitively solved.”",
+			"classification": "unsupported",
+			"rationale": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-15",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"claimSupportId": "claim-support-15",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5].",
+			"classification": "unsupported",
+			"rationale": "Recorded as an unsupported or unresolved literature claim.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-16",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-17",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-18",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-19",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"marginNoteId": "margin-note-2",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open gap margin note for this research path.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-20",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"marginNoteId": "margin-note-3",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open gap margin note for this research path.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-21",
+			"pathId": "path-5",
+			"reportId": "research-report-1",
+			"marginNoteId": "margin-note-4",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Add authoritative references documenting the standard status of the \\(n^2+1\\) prime infinitude problem.",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open scrutiny margin note for this research path.",
+			"createdAt": "2026-07-02T23:43:10.950Z",
+			"updatedAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "evidence-board-22",
+			"pathId": "path-3",
+			"reportId": "research-report-2",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "No proof is known that infinitely many \\(n^2+1\\) are prime.",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "evidence-board-23",
+			"pathId": "path-3",
+			"reportId": "research-report-2",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The reformulations are equivalent viewpoints, not solutions.",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "evidence-board-24",
+			"pathId": "path-3",
+			"reportId": "research-report-2",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The Gaussian-prime line formulation gives no known proof mechanism.",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "evidence-board-25",
+			"pathId": "path-3",
+			"reportId": "research-report-2",
+			"marginNoteId": "margin-note-7",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The reformulations are equivalent viewpoints, not solutions.",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open gap margin note for this research path.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "evidence-board-26",
+			"pathId": "path-3",
+			"reportId": "research-report-2",
+			"marginNoteId": "margin-note-8",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The Gaussian-prime line formulation gives no known proof mechanism.",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open gap margin note for this research path.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "evidence-board-27",
+			"pathId": "path-3",
+			"reportId": "research-report-2",
+			"marginNoteId": "margin-note-9",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Verify numerical values/normalization of the Bateman–Horn constant for \\(4m^2+1\\).",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open scrutiny margin note for this research path.",
+			"createdAt": "2026-07-03T00:33:21.359Z",
+			"updatedAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "evidence-board-28",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"sourceIds": [],
+			"computationalArtifactIds": [
+				"computation-artifact-2"
+			],
+			"claim": "Specialist computation output: Count primes of the form n^2+1 for n up to 200000 and compare with a crude Ba...",
+			"classification": "computation",
+			"rationale": "Timed out after 10000ms.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-29",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"sourceIds": [],
+			"computationalArtifactIds": [
+				"computation-artifact-4"
+			],
+			"claim": "Specialist computation output: Count primes n^2+1 for n<=200000 using trial division by primes<=200000; also...",
+			"classification": "computation",
+			"rationale": "N 200000 count 12391 first [(1, 2), (2, 5), (4, 17), (6, 37), (10, 101), (14, 197), (16, 257), (20, 401), (24, 577), (26, 677), (36, 1297), (40, 1601)] last [(199926, 39970405477), (199940, 39976003601), (199956, 39982401937), (199976, 39990400577), (199994, 39997600037)] BH_p...",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-30",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-31",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "No known method upgrades current sieve/almost-prime information to primality.",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-32",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here.",
+			"classification": "unsupported",
+			"rationale": "Recorded by the critic/synthesizer as a gap or unresolved blocker.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-33",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"marginNoteId": "margin-note-12",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "No known method upgrades current sieve/almost-prime information to primality.",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open gap margin note for this research path.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-34",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"marginNoteId": "margin-note-13",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here.",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open gap margin note for this research path.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "evidence-board-35",
+			"pathId": "path-3",
+			"reportId": "research-report-3",
+			"marginNoteId": "margin-note-14",
+			"sourceIds": [],
+			"computationalArtifactIds": [],
+			"claim": "Verify exact statements and citations for almost-prime theorems concerning \\(n^2+1\\), especially results of the form “\\(n^2+1\\) has at most \\(r\\) prime factors infinitely often.”",
+			"classification": "unsupported",
+			"rationale": "Recorded as an open scrutiny margin note for this research path.",
+			"createdAt": "2026-07-03T00:51:36.736Z",
+			"updatedAt": "2026-07-03T00:51:36.736Z"
+		}
+	],
+	"computationalArtifacts": [
+		{
+			"id": "computation-artifact-1",
+			"pathId": "path-3",
+			"runId": "research-run-3",
+			"kind": "script",
+			"status": "failed",
+			"title": "Specialist computation: Count primes of the form n^2+1 for n up to 200000 and compare with a crude Ba...",
+			"filePath": ".pi/co-math/artifacts/research-run-3-specialist/specialist-check-1.py",
+			"command": "python3 specialist-check-1.py",
+			"exitCode": 124,
+			"summary": "import math def is_prime(n): if n < 2: return False if n % 2 == 0: return n == 2 if n % 3 == 0: return n == 3 r = int(math.isqrt(n)) f = 5 while f <= r: if n % f == 0 or n % (f+2) == 0: return False f += 6 return True N=200000 vals=[] for n in range(1,N+1): if is_prime(n*n+1): vals.append(n) print('N', N) print('count', len(vals)) print('first_n', vals[:20]) print('last_n', vals[-10:]) # Estimate BH constant for f=n^2+1: product over odd p of (1-rho(p)/p)/(1-1/p), rho=2 if p=1 mod4, rho=0 if p=3 mod4; p=2 factor handled separately gives 1. def primes_upto(M): sieve=bytearray(b'\\x01')*(M+1) sieve[:2]=b'\\x00\\x00' for i in range(2,int(math.isqrt(M))+1): if sieve[i]: step=i; start=i*i sieve[start:M+1:step]=b'\\x00'*(((M-start)//step)+1) return [i for i in range(2,M+1) if sieve[i]] for M in [100,1000,10000,100000]: C=1.0 for p in primes_upto(M): if p==2: continue rho = 2 if p%4==1 else 0 C...",
+			"createdAt": "2026-07-03T00:50:01.053Z",
+			"updatedAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "computation-artifact-2",
+			"pathId": "path-3",
+			"runId": "research-run-3",
+			"kind": "stdout",
+			"status": "failed",
+			"title": "Specialist computation output: Count primes of the form n^2+1 for n up to 200000 and compare with a crude Ba...",
+			"filePath": ".pi/co-math/artifacts/research-run-3-specialist/stdout.txt",
+			"exitCode": 124,
+			"summary": "Timed out after 10000ms.",
+			"createdAt": "2026-07-03T00:50:01.053Z",
+			"updatedAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "computation-artifact-3",
+			"pathId": "path-3",
+			"runId": "research-run-3",
+			"kind": "script",
+			"status": "completed",
+			"title": "Specialist computation: Count primes n^2+1 for n<=200000 using trial division by primes<=200000; also...",
+			"filePath": ".pi/co-math/artifacts/research-run-3-specialist/specialist-check-2.py",
+			"command": "python3 specialist-check-2.py",
+			"exitCode": 0,
+			"summary": "import math N=200000 # sieve primes up to N sieve=bytearray(b'\\x01')*(N+1) sieve[0:2]=b'\\x00\\x00' for i in range(2,int(N**0.5)+1): if sieve[i]: step=i; start=i*i sieve[start:N+1:step]=b'\\x00'*(((N-start)//step)+1) primes=[i for i in range(2,N+1) if sieve[i]] def isprime_m2p1(n): m=n*n+1 r=math.isqrt(m) for p in primes: if p>r: return True if m%p==0: return m==p return True cnt=0; examples=[]; last=[] for n in range(1,N+1): if isprime_m2p1(n): cnt+=1 if len(examples)<12: examples.append((n,n*n+1)) last.append((n,n*n+1)) if len(last)>5: last.pop(0) # BH product truncated at primes<=N prod=1.0 for p in primes: if p==2: roots=1 elif p%4==1: roots=2 else: roots=0 prod *= (1-roots/p)/(1-1/p) # numerical integral by midpoint rule, enough for comparison M=20000 h=N/M integ=0.0 for k in range(M): x=(k+0.5)*h if x>=1: integ += h/math.log(x*x+1) # avoid x near 0 issue; contribution negligible an...",
+			"createdAt": "2026-07-03T00:50:01.053Z",
+			"updatedAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "computation-artifact-4",
+			"pathId": "path-3",
+			"runId": "research-run-3",
+			"kind": "stdout",
+			"status": "completed",
+			"title": "Specialist computation output: Count primes n^2+1 for n<=200000 using trial division by primes<=200000; also...",
+			"filePath": ".pi/co-math/artifacts/research-run-3-specialist/stdout.txt",
+			"exitCode": 0,
+			"summary": "N 200000 count 12391 first [(1, 2), (2, 5), (4, 17), (6, 37), (10, 101), (14, 197), (16, 257), (20, 401), (24, 577), (26, 677), (36, 1297), (40, 1601)] last [(199926, 39970405477), (199940, 39976003601), (199956, 39982401937), (199976, 39990400577), (199994, 39997600037)] BH_product_truncated 1.3724923583128825 BH_integral_estimate 12377.102343063809 crude_coeff_count_logN_over_N 0.7562272307538219",
+			"createdAt": "2026-07-03T00:50:01.053Z",
+			"updatedAt": "2026-07-03T00:50:01.053Z"
+		}
+	],
+	"researchCoordinatorReports": [
+		{
+			"id": "coordinator-report-1",
+			"createdAt": "2026-07-03T00:33:21.361Z",
+			"updatedAt": "2026-07-03T00:33:21.361Z",
+			"inputReportIds": [
+				"research-report-1",
+				"research-report-2"
+			],
+			"inputPathIds": [
+				"path-1",
+				"path-2",
+				"path-3",
+				"path-4",
+				"path-5"
+			],
+			"inputSourceIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"inputComputationalArtifactIds": [],
+			"whatWeKnow": [
+				"Root question: whether infinitely many primes have the form \\(n^2+1\\).",
+				"No saved report gives a complete proof of the root question, so the workspace must treat it as unsolved.",
+				"Source-backed nearby result: Merikoski proves infinitude of primes represented by \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+				"Source-backed limitation: those multivariable results do not imply infinitely many primes of the one-variable form \\(n^2+1\\) [source-2].",
+				"Reformulation recorded: aside from parity, the problem can be studied via \\[ n=2m,\\qquad n^2+1=4m^2+1. \\]",
+				"Bateman–Horn and Schinzel’s Hypothesis H predict/ imply infinitude conjecturally, but they are not proofs here."
+			],
+			"roadblocks": [
+				"A finite list of prime values \\(n^2+1\\) is only evidence, not proof of infinitude.",
+				"A finite sieve can remove known small divisors but cannot prove primality or infinitude.",
+				"Euclid-style arguments are not yet recorded as successful; Path 2 remains open.",
+				"Literature claims that the problem is solved are unsupported in the saved state.",
+				"The claimed/proposed preprint [source-5] has not been verified as accepted, corrected, or refuted."
+			],
+			"recommendedNextMoves": [
+				{
+					"title": "with the finite-sieve model.",
+					"pathId": "path-4",
+					"rationale": "with the finite-sieve model.",
+					"prompt": "continue path 4",
+					"priority": "high"
+				},
+				{
+					"title": "Choose a finite set \\[ S\\subset\\{q",
+					"pathId": "path-1",
+					"rationale": "q\\equiv1\\pmod4\\}. \\]",
+					"prompt": "continue path 1",
+					"priority": "medium"
+				},
+				{
+					"title": "For each \\(q\\in S\\), find residues \\(r_q\\) satisfying \\[ r_q^2\\equiv -1\\pmod q. \\]",
+					"pathId": "path-3",
+					"rationale": "For each \\(q\\in S\\), find residues \\(r_q\\) satisfying \\[ r_q^2\\equiv -1\\pmod q. \\]",
+					"prompt": "continue path 3",
+					"priority": "low"
+				}
+			],
+			"humanHelpUseful": [
+				"Verify the Bateman–Horn constant normalization for \\(4m^2+1\\).",
+				"Supply precise references for known almost-prime results concerning \\(n^2+1\\).",
+				"Check the status of Carella’s preprint [source-5]: peer review, citations, corrections, or refutations."
+			],
+			"suggestedPathId": "path-4",
+			"suggestedPrompt": "continue path 4",
+			"workingPaperSectionId": "paper-section-4"
+		}
+	],
+	"events": [
+		{
+			"id": "event-1",
+			"kind": "project_initialized",
+			"actor": "human",
+			"summary": "Initialized co-math project: Are there infinitely many primes of the form n^2 + 1?",
+			"subjectId": "co-math-1783035730156",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.156Z"
+		},
+		{
+			"id": "event-2",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Added research path path-1: Small examples and counterexamples",
+			"subjectId": "path-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "event-3",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Added research path path-2: Direct proof attempt",
+			"subjectId": "path-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "event-4",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Added research path path-3: Reformulation",
+			"subjectId": "path-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "event-5",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Added research path path-4: Weaker special cases",
+			"subjectId": "path-4",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "event-6",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Added research path path-5: Known theorem or literature reduction",
+			"subjectId": "path-5",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "event-7",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Updated research focus: Start with the most concrete research path.",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:10.162Z"
+		},
+		{
+			"id": "event-8",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Started research workstream run for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:10.163Z"
+		},
+		{
+			"id": "event-9",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.167Z"
+		},
+		{
+			"id": "event-10",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.168Z"
+		},
+		{
+			"id": "event-11",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded coordinator progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:10.168Z"
+		},
+		{
+			"id": "event-12",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:10.170Z"
+		},
+		{
+			"id": "event-13",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded literature-search progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:10.170Z"
+		},
+		{
+			"id": "event-14",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:12.115Z"
+		},
+		{
+			"id": "event-15",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded literature-search progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:12.115Z"
+		},
+		{
+			"id": "event-16",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:12.117Z"
+		},
+		{
+			"id": "event-17",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded specialist progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:12.117Z"
+		},
+		{
+			"id": "event-18",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:31.937Z"
+		},
+		{
+			"id": "event-19",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded specialist progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:31.937Z"
+		},
+		{
+			"id": "event-20",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:31.940Z"
+		},
+		{
+			"id": "event-21",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded critic progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:31.940Z"
+		},
+		{
+			"id": "event-22",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:48.937Z"
+		},
+		{
+			"id": "event-23",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded critic progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:48.937Z"
+		},
+		{
+			"id": "event-24",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:42:48.939Z"
+		},
+		{
+			"id": "event-25",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded synthesizer progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:42:48.939Z"
+		},
+		{
+			"id": "event-26",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.947Z"
+		},
+		{
+			"id": "event-27",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded synthesizer progress for Known theorem or literature reduction",
+			"subjectId": "research-run-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:43:10.947Z"
+		},
+		{
+			"id": "event-28",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-1: Infinitely many prime knots with the same Alexander invariants",
+			"subjectId": "source-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-29",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-2: The polynomials $X^2+(Y^2+1)^2$ and $X^{2} + (Y^3+Z^3)^2$ also capture their primes",
+			"subjectId": "source-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-30",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-3: An elemetary proof of an estimate for a number of primes less than the product of the first $n$ primes",
+			"subjectId": "source-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-31",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-4: Two-dimensional magnetic interactions in LaFeAsO",
+			"subjectId": "source-4",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-32",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-5: Twin Primes In Quadratic Arithmetic Progressions",
+			"subjectId": "source-5",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-33",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-6: Infinitely Many Primes (Using Topology)",
+			"subjectId": "source-6",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-34",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-7: Infinitely Many Primes (Using Topology)",
+			"subjectId": "source-7",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-35",
+			"kind": "literature_source_recorded",
+			"actor": "system",
+			"summary": "Recorded literature source source-8: There are Infinitely Many Primes (Erdős)",
+			"subjectId": "source-8",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-36",
+			"kind": "literature_search_recorded",
+			"actor": "system",
+			"summary": "Recorded literature search literature-search-1",
+			"subjectId": "literature-search-1",
+			"relatedIds": [
+				"path-5",
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-37",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-1: Provided sources give source-backed context for conjectural prime-values-of-polynomials framing.",
+			"subjectId": "claim-support-1",
+			"relatedIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-38",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-2: An unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"subjectId": "claim-support-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-39",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-3: Source-backed context was reviewed for prime-producing polynomial and conjectural framing. [source-1] [source-2] [source-3] [source-4] [source-5] [source-6] [source-7] [source-8]",
+			"subjectId": "claim-support-3",
+			"relatedIds": [
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-40",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-4: No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
+			"subjectId": "claim-support-4",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-41",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-5: Conjectural implications are not proofs of the original claim.",
+			"subjectId": "claim-support-5",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-42",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-6: No supplied source establishes an accepted unconditional theorem that there are infinitely many primes of the exact form \\[ n^2+1. \\]",
+			"subjectId": "claim-support-6",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-43",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-7: The exact root question is therefore **unresolved within this source set**.",
+			"subjectId": "claim-support-7",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-44",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-8: Merikoski proves infinitude of primes represented by related multivariable polynomials \\[ X^2+(Y^2+1)^2,\\qquad X^2+(Y^3+Z^3)^2 \\] using Harman’s sieve and Type II estimates [source-2].",
+			"subjectId": "claim-support-8",
+			"relatedIds": [
+				"source-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-45",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-9: These results do **not** imply infinitely many primes \\(n^2+1\\), because they allow several variables to vary and do not establish infinitude on a one-variable subfamily [source-2].",
+			"subjectId": "claim-support-9",
+			"relatedIds": [
+				"source-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-46",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-10: Merikoski also cites the Friedlander–Iwaniec theorem on primes of the form \\[ X^2+Y^4, \\] but this likewise does **not** imply infinitely many primes of the form \\(1+Y^4\\) or \\(n^2+1\\) [source-2].",
+			"subjectId": "claim-support-10",
+			"relatedIds": [
+				"source-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-47",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-11: Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+			"subjectId": "claim-support-11",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-48",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-12: Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"subjectId": "claim-support-12",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-49",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-13: Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"subjectId": "claim-support-13",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-50",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-14: Unsupported from the supplied source set: “The problem is definitively solved.”",
+			"subjectId": "claim-support-14",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-51",
+			"kind": "literature_claim_support_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded literature support claim-support-15: The source context treats the exact \\(n^2+1\\) question as **unresolved by the cited accepted results**, with one supplied preprint making a proposed/claimed proof [source-5].",
+			"subjectId": "claim-support-15",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-52",
+			"kind": "human_intervention_recorded",
+			"actor": "system",
+			"summary": "Updated research path path-5",
+			"subjectId": "path-5",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-53",
+			"kind": "working_paper_section_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded working-paper section paper-section-1: Literature/theorem targets",
+			"subjectId": "paper-section-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-54",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-1 for path-5: Unsupported from the supplied source set: “There are infinitely many primes of the form \\(n^2+1\\).”",
+			"subjectId": "margin-note-1",
+			"relatedIds": [
+				"path-5",
+				"paper-section-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-55",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-2 for path-5: Unsupported from the supplied source set: “Merikoski’s theorem implies infinitely many primes \\(n^2+1\\).”",
+			"subjectId": "margin-note-2",
+			"relatedIds": [
+				"path-5",
+				"paper-section-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-56",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-3 for path-5: Unsupported from the supplied source set: “Friedlander–Iwaniec on \\(X^2+Y^4\\) implies infinitely many primes \\(1+n^4\\)” or \\(n^2+1\\).",
+			"subjectId": "margin-note-3",
+			"relatedIds": [
+				"path-5",
+				"paper-section-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-57",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-4 for path-5: Add authoritative references documenting the standard status of the \\(n^2+1\\) prime infinitude problem.",
+			"subjectId": "margin-note-4",
+			"relatedIds": [
+				"path-5",
+				"paper-section-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-58",
+			"kind": "research_workstream_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded research workstream report research-report-1 for Known theorem or literature reduction",
+			"subjectId": "research-report-1",
+			"relatedIds": [
+				"path-5"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-59",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-1: conjecture",
+			"subjectId": "evidence-board-1",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-1",
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-60",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-2: unsupported",
+			"subjectId": "evidence-board-2",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-61",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-3: conjecture",
+			"subjectId": "evidence-board-3",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-3",
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-62",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-4: unsupported",
+			"subjectId": "evidence-board-4",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-4"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-63",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-5: unsupported",
+			"subjectId": "evidence-board-5",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-5"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-64",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-6: unsupported",
+			"subjectId": "evidence-board-6",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-6"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-65",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-7: unsupported",
+			"subjectId": "evidence-board-7",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-7"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-66",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-8: theorem",
+			"subjectId": "evidence-board-8",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-8",
+				"source-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-67",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-9: theorem",
+			"subjectId": "evidence-board-9",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-9",
+				"source-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-68",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-10: theorem",
+			"subjectId": "evidence-board-10",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-10",
+				"source-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-69",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-11: unsupported",
+			"subjectId": "evidence-board-11",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-11"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-70",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-12: unsupported",
+			"subjectId": "evidence-board-12",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-12"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-71",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-13: unsupported",
+			"subjectId": "evidence-board-13",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-13"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-72",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-14: unsupported",
+			"subjectId": "evidence-board-14",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-14"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-73",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-15: unsupported",
+			"subjectId": "evidence-board-15",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"claim-support-15"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-74",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-16: unsupported",
+			"subjectId": "evidence-board-16",
+			"relatedIds": [
+				"path-5",
+				"research-report-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-75",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-17: unsupported",
+			"subjectId": "evidence-board-17",
+			"relatedIds": [
+				"path-5",
+				"research-report-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-76",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-18: unsupported",
+			"subjectId": "evidence-board-18",
+			"relatedIds": [
+				"path-5",
+				"research-report-1"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-77",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-19: unsupported",
+			"subjectId": "evidence-board-19",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"margin-note-2"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-78",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-20: unsupported",
+			"subjectId": "evidence-board-20",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"margin-note-3"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-79",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-21: unsupported",
+			"subjectId": "evidence-board-21",
+			"relatedIds": [
+				"path-5",
+				"research-report-1",
+				"margin-note-4"
+			],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-80",
+			"kind": "research_workstream_run_recorded",
+			"actor": "synthesizer",
+			"summary": "Updated research workstream run research-run-1",
+			"subjectId": "research-run-1",
+			"relatedIds": [],
+			"createdAt": "2026-07-02T23:43:10.950Z"
+		},
+		{
+			"id": "event-81",
+			"kind": "working_paper_section_recorded",
+			"actor": "human",
+			"summary": "Recorded working-paper section paper-section-2: User steering",
+			"subjectId": "paper-section-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:31:09.656Z"
+		},
+		{
+			"id": "event-82",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Updated research focus: User steering: Are there infinitely many primes of the form n^2 + 1?",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:31:09.656Z"
+		},
+		{
+			"id": "event-83",
+			"kind": "margin_note_recorded",
+			"actor": "human",
+			"summary": "Recorded margin note margin-note-5 for path-3: User steering: Are there infinitely many primes of the form n^2 + 1?",
+			"subjectId": "margin-note-5",
+			"relatedIds": [
+				"path-3",
+				"paper-section-2"
+			],
+			"createdAt": "2026-07-03T00:31:09.656Z"
+		},
+		{
+			"id": "event-84",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Started research workstream run for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:31:09.659Z"
+		},
+		{
+			"id": "event-85",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:31:09.665Z"
+		},
+		{
+			"id": "event-86",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:31:09.667Z"
+		},
+		{
+			"id": "event-87",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded coordinator progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:31:09.667Z"
+		},
+		{
+			"id": "event-88",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:31:09.670Z"
+		},
+		{
+			"id": "event-89",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded specialist progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:31:09.670Z"
+		},
+		{
+			"id": "event-90",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:32:04.873Z"
+		},
+		{
+			"id": "event-91",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded specialist progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:32:04.873Z"
+		},
+		{
+			"id": "event-92",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:32:04.874Z"
+		},
+		{
+			"id": "event-93",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded critic progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:32:04.874Z"
+		},
+		{
+			"id": "event-94",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:32:37.751Z"
+		},
+		{
+			"id": "event-95",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded critic progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:32:37.751Z"
+		},
+		{
+			"id": "event-96",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:32:37.753Z"
+		},
+		{
+			"id": "event-97",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded synthesizer progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:32:37.753Z"
+		},
+		{
+			"id": "event-98",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:33:21.355Z"
+		},
+		{
+			"id": "event-99",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded synthesizer progress for Reformulation",
+			"subjectId": "research-run-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:33:21.355Z"
+		},
+		{
+			"id": "event-100",
+			"kind": "human_intervention_recorded",
+			"actor": "system",
+			"summary": "Updated research path path-3",
+			"subjectId": "path-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-101",
+			"kind": "working_paper_section_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded working-paper section paper-section-3: Reformulations",
+			"subjectId": "paper-section-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-102",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-6 for path-3: No proof is known that infinitely many \\(n^2+1\\) are prime.",
+			"subjectId": "margin-note-6",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-103",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-7 for path-3: The reformulations are equivalent viewpoints, not solutions.",
+			"subjectId": "margin-note-7",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-104",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-8 for path-3: The Gaussian-prime line formulation gives no known proof mechanism.",
+			"subjectId": "margin-note-8",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-105",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-9 for path-3: Verify numerical values/normalization of the Bateman–Horn constant for \\(4m^2+1\\).",
+			"subjectId": "margin-note-9",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-106",
+			"kind": "research_workstream_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded research workstream report research-report-2 for Reformulation",
+			"subjectId": "research-report-2",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-107",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-22: unsupported",
+			"subjectId": "evidence-board-22",
+			"relatedIds": [
+				"path-3",
+				"research-report-2"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-108",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-23: unsupported",
+			"subjectId": "evidence-board-23",
+			"relatedIds": [
+				"path-3",
+				"research-report-2"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-109",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-24: unsupported",
+			"subjectId": "evidence-board-24",
+			"relatedIds": [
+				"path-3",
+				"research-report-2"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-110",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-25: unsupported",
+			"subjectId": "evidence-board-25",
+			"relatedIds": [
+				"path-3",
+				"research-report-2",
+				"margin-note-7"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-111",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-26: unsupported",
+			"subjectId": "evidence-board-26",
+			"relatedIds": [
+				"path-3",
+				"research-report-2",
+				"margin-note-8"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-112",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-27: unsupported",
+			"subjectId": "evidence-board-27",
+			"relatedIds": [
+				"path-3",
+				"research-report-2",
+				"margin-note-9"
+			],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-113",
+			"kind": "research_workstream_run_recorded",
+			"actor": "synthesizer",
+			"summary": "Updated research workstream run research-run-2",
+			"subjectId": "research-run-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:33:21.359Z"
+		},
+		{
+			"id": "event-114",
+			"kind": "working_paper_section_recorded",
+			"actor": "coordinator",
+			"summary": "Recorded working-paper section paper-section-4: Project coordinator synthesis",
+			"subjectId": "paper-section-4",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:33:21.361Z"
+		},
+		{
+			"id": "event-115",
+			"kind": "research_coordinator_report_recorded",
+			"actor": "coordinator",
+			"summary": "Recorded project coordinator report coordinator-report-1",
+			"subjectId": "coordinator-report-1",
+			"relatedIds": [
+				"research-report-1",
+				"research-report-2",
+				"path-1",
+				"path-2",
+				"path-3",
+				"path-4",
+				"path-5",
+				"source-1",
+				"source-2",
+				"source-3",
+				"source-4",
+				"source-5",
+				"source-6",
+				"source-7",
+				"source-8"
+			],
+			"createdAt": "2026-07-03T00:33:21.361Z"
+		},
+		{
+			"id": "event-116",
+			"kind": "human_intervention_recorded",
+			"actor": "coordinator",
+			"summary": "Updated research path path-4",
+			"subjectId": "path-4",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:33:21.361Z"
+		},
+		{
+			"id": "event-117",
+			"kind": "working_paper_section_recorded",
+			"actor": "human",
+			"summary": "Updated working-paper section paper-section-2: User steering",
+			"subjectId": "paper-section-2",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:48:43.723Z"
+		},
+		{
+			"id": "event-118",
+			"kind": "human_intervention_recorded",
+			"actor": "human",
+			"summary": "Updated research focus: User steering: Are there infinitely many primes of the form n^2 + 1?",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:48:43.723Z"
+		},
+		{
+			"id": "event-119",
+			"kind": "margin_note_recorded",
+			"actor": "human",
+			"summary": "Recorded margin note margin-note-10 for path-3: User steering: Are there infinitely many primes of the form n^2 + 1?",
+			"subjectId": "margin-note-10",
+			"relatedIds": [
+				"path-3",
+				"paper-section-2"
+			],
+			"createdAt": "2026-07-03T00:48:43.723Z"
+		},
+		{
+			"id": "event-120",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Started research workstream run for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:48:43.725Z"
+		},
+		{
+			"id": "event-121",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:48:43.731Z"
+		},
+		{
+			"id": "event-122",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:48:43.733Z"
+		},
+		{
+			"id": "event-123",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded coordinator progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:48:43.733Z"
+		},
+		{
+			"id": "event-124",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:48:43.735Z"
+		},
+		{
+			"id": "event-125",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded specialist progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:48:43.735Z"
+		},
+		{
+			"id": "event-126",
+			"kind": "computational_artifact_recorded",
+			"actor": "workstream",
+			"summary": "Recorded computation output computation-artifact-1: Specialist computation: Count primes of the form n^2+1 for n up to 200000 and compare with a crude Ba...",
+			"subjectId": "computation-artifact-1",
+			"relatedIds": [
+				"path-3",
+				"research-run-3"
+			],
+			"createdAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "event-127",
+			"kind": "computational_artifact_recorded",
+			"actor": "workstream",
+			"summary": "Recorded computation output computation-artifact-2: Specialist computation output: Count primes of the form n^2+1 for n up to 200000 and compare with a crude Ba...",
+			"subjectId": "computation-artifact-2",
+			"relatedIds": [
+				"path-3",
+				"research-run-3"
+			],
+			"createdAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "event-128",
+			"kind": "computational_artifact_recorded",
+			"actor": "workstream",
+			"summary": "Recorded computation output computation-artifact-3: Specialist computation: Count primes n^2+1 for n<=200000 using trial division by primes<=200000; also...",
+			"subjectId": "computation-artifact-3",
+			"relatedIds": [
+				"path-3",
+				"research-run-3"
+			],
+			"createdAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "event-129",
+			"kind": "computational_artifact_recorded",
+			"actor": "workstream",
+			"summary": "Recorded computation output computation-artifact-4: Specialist computation output: Count primes n^2+1 for n<=200000 using trial division by primes<=200000; also...",
+			"subjectId": "computation-artifact-4",
+			"relatedIds": [
+				"path-3",
+				"research-run-3"
+			],
+			"createdAt": "2026-07-03T00:50:01.053Z"
+		},
+		{
+			"id": "event-130",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:50:01.055Z"
+		},
+		{
+			"id": "event-131",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded specialist progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:50:01.055Z"
+		},
+		{
+			"id": "event-132",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:50:01.057Z"
+		},
+		{
+			"id": "event-133",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded critic progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:50:01.057Z"
+		},
+		{
+			"id": "event-134",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:50:41.997Z"
+		},
+		{
+			"id": "event-135",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded critic progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:50:41.997Z"
+		},
+		{
+			"id": "event-136",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:50:41.999Z"
+		},
+		{
+			"id": "event-137",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded synthesizer progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:50:41.999Z"
+		},
+		{
+			"id": "event-138",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:51:36.733Z"
+		},
+		{
+			"id": "event-139",
+			"kind": "research_workstream_run_recorded",
+			"actor": "system",
+			"summary": "Recorded synthesizer progress for Reformulation",
+			"subjectId": "research-run-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.733Z"
+		},
+		{
+			"id": "event-140",
+			"kind": "human_intervention_recorded",
+			"actor": "system",
+			"summary": "Updated research path path-3",
+			"subjectId": "path-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-141",
+			"kind": "working_paper_section_recorded",
+			"actor": "synthesizer",
+			"summary": "Updated working-paper section paper-section-3: Reformulations",
+			"subjectId": "paper-section-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-142",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-11 for path-3: No unconditional proof is known that infinitely many \\(n^2+1\\) are prime.",
+			"subjectId": "margin-note-11",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-143",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-12 for path-3: No known method upgrades current sieve/almost-prime information to primality.",
+			"subjectId": "margin-note-12",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-144",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-13 for path-3: The main obstruction in the sieve formulation is the parity barrier: sieves can often control numbers with few prime factors, but cannot distinguish primes from products of an even/odd number of large primes strongly enough here.",
+			"subjectId": "margin-note-13",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-145",
+			"kind": "margin_note_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded margin note margin-note-14 for path-3: Verify exact statements and citations for almost-prime theorems concerning \\(n^2+1\\), especially results of the form “\\(n^2+1\\) has at most \\(r\\) prime factors infinitely often.”",
+			"subjectId": "margin-note-14",
+			"relatedIds": [
+				"path-3",
+				"paper-section-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-146",
+			"kind": "research_workstream_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded research workstream report research-report-3 for Reformulation",
+			"subjectId": "research-report-3",
+			"relatedIds": [
+				"path-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-147",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-28: computation",
+			"subjectId": "evidence-board-28",
+			"relatedIds": [
+				"path-3",
+				"research-report-3",
+				"computation-artifact-2"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-148",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "synthesizer",
+			"summary": "Recorded evidence board entry evidence-board-29: computation",
+			"subjectId": "evidence-board-29",
+			"relatedIds": [
+				"path-3",
+				"research-report-3",
+				"computation-artifact-4"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-149",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-30: unsupported",
+			"subjectId": "evidence-board-30",
+			"relatedIds": [
+				"path-3",
+				"research-report-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-150",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-31: unsupported",
+			"subjectId": "evidence-board-31",
+			"relatedIds": [
+				"path-3",
+				"research-report-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-151",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-32: unsupported",
+			"subjectId": "evidence-board-32",
+			"relatedIds": [
+				"path-3",
+				"research-report-3"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-152",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-33: unsupported",
+			"subjectId": "evidence-board-33",
+			"relatedIds": [
+				"path-3",
+				"research-report-3",
+				"margin-note-12"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-153",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-34: unsupported",
+			"subjectId": "evidence-board-34",
+			"relatedIds": [
+				"path-3",
+				"research-report-3",
+				"margin-note-13"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-154",
+			"kind": "research_evidence_board_entry_recorded",
+			"actor": "reviewer",
+			"summary": "Recorded evidence board entry evidence-board-35: unsupported",
+			"subjectId": "evidence-board-35",
+			"relatedIds": [
+				"path-3",
+				"research-report-3",
+				"margin-note-14"
+			],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		},
+		{
+			"id": "event-155",
+			"kind": "research_workstream_run_recorded",
+			"actor": "synthesizer",
+			"summary": "Updated research workstream run research-run-3",
+			"subjectId": "research-run-3",
+			"relatedIds": [],
+			"createdAt": "2026-07-03T00:51:36.736Z"
+		}
+	],
+	"updatedAt": "2026-07-03T00:51:36.736Z",
+	"researchFocus": {
+		"pathIds": [
+			"path-3"
+		],
+		"reason": "User steering: Are there infinitely many primes of the form n^2 + 1?",
+		"updatedAt": "2026-07-03T00:48:43.723Z"
+	}
+}

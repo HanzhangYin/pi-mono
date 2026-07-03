@@ -18,6 +18,8 @@ import {
 	addResearchCoordinatorReport,
 	addResearchEvidenceBoardEntry,
 	addResearchPath,
+	addResearchPlan,
+	addResearchPlanTask,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
 	addResearchWorkstreamRun,
@@ -34,16 +36,21 @@ import {
 	finishRoleRun,
 	getActiveResearchBatch,
 	getActiveResearchPaths,
+	getActiveResearchPlan,
 	getActiveResearchWorkstreamRun,
 	getComputationalArtifactsForReport,
 	getComputationalArtifactsForRun,
 	getDefaultStatePath,
 	getLatestResearchCoordinatorReport,
+	getLatestResearchPlan,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
 	getLatestResearchWorkstreamRun,
 	getLiteratureClaimSupportsForReportOrPath,
 	getLiteratureSourcesForReport,
+	getNextRunnableResearchPlanTask,
+	getPausedResearchPlan,
+	getResearchPlanTasks,
 	isClaimSynthesisEligible,
 	loadProjectState,
 	queueRoleRun,
@@ -62,6 +69,8 @@ import {
 	updateComputationalArtifact,
 	updateResearchBatch,
 	updateResearchPath,
+	updateResearchPlan,
+	updateResearchPlanTask,
 	updateResearchWorkstreamRun,
 	upsertWorkingPaperSectionByTitle,
 } from "../src/modes/comath/storage.ts";
@@ -115,6 +124,8 @@ describe("co-math project state", () => {
 			researchReports: [],
 			researchWorkstreamRuns: [],
 			researchBatches: [],
+			researchPlans: [],
+			researchPlanTasks: [],
 			literatureSources: [],
 			literatureSearches: [],
 			literatureClaimSupports: [],
@@ -846,6 +857,140 @@ describe("co-math project state", () => {
 			interruptedRunId: "research-run-main",
 		});
 		expect(getActiveResearchBatch(nextState)).toBeUndefined();
+	});
+
+	it("records research plans and tasks with linkage and one-at-a-time runnability", () => {
+		let state = addResearchPath(createProject(), {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Check simple arguments.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchPlan(state, {
+			title: "Plan for the toy project",
+			objective: "Make durable progress.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "proof-attempt",
+			title: "Attempt a focused proof step",
+			description: "Try the most promising proof move.",
+			pathId: "path-1",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "synthesis",
+			title: "Summarize durable findings",
+			description: "Fold findings into the working paper.",
+			now: FIXED_NOW,
+			actor: "human",
+		});
+
+		expect(getActiveResearchPlan(state)?.id).toBe("research-plan-1");
+		expect(getLatestResearchPlan(state)?.id).toBe("research-plan-1");
+		expect(state.researchPlans[0]?.taskIds).toEqual(["research-plan-task-1", "research-plan-task-2"]);
+		expect(getResearchPlanTasks(state, "research-plan-1").map((task) => task.sequence)).toEqual([1, 2]);
+		expect(getNextRunnableResearchPlanTask(state, "research-plan-1")?.id).toBe("research-plan-task-1");
+
+		state = updateResearchPlanTask(state, {
+			taskId: "research-plan-task-1",
+			status: "running",
+			startedAt: FIXED_NOW,
+			now: FIXED_NOW,
+		});
+		expect(getNextRunnableResearchPlanTask(state, "research-plan-1")).toBeUndefined();
+
+		state = updateResearchPlanTask(state, {
+			taskId: "research-plan-task-1",
+			status: "completed",
+			runId: "research-run-1",
+			reportId: "research-report-1",
+			addSourceIds: ["source-1"],
+			addClaimSupportIds: ["claim-support-1"],
+			addComputationalArtifactIds: ["computation-artifact-1"],
+			addEvidenceEntryIds: ["evidence-board-1"],
+			completedAt: FIXED_NOW,
+			now: FIXED_NOW,
+		});
+		const completedTask = getResearchPlanTasks(state, "research-plan-1")[0];
+		expect(completedTask).toMatchObject({
+			status: "completed",
+			runId: "research-run-1",
+			reportId: "research-report-1",
+			sourceIds: ["source-1"],
+			claimSupportIds: ["claim-support-1"],
+			computationalArtifactIds: ["computation-artifact-1"],
+			evidenceEntryIds: ["evidence-board-1"],
+		});
+		expect(getNextRunnableResearchPlanTask(state, "research-plan-1")?.id).toBe("research-plan-task-2");
+
+		state = updateResearchPlan(state, {
+			planId: "research-plan-1",
+			status: "paused",
+			pauseReason: "Interrupted by session end.",
+			now: FIXED_NOW,
+		});
+		expect(getActiveResearchPlan(state)).toBeUndefined();
+		expect(getPausedResearchPlan(state)?.pauseReason).toBe("Interrupted by session end.");
+
+		state = updateResearchPlan(state, { planId: "research-plan-1", status: "active", now: FIXED_NOW });
+		expect(getActiveResearchPlan(state)?.pauseReason).toBeUndefined();
+	});
+
+	it("normalizes stored states that predate researchPlans and researchPlanTasks without a version bump", async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-plan-normalize-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			const legacy = createProject() as unknown as Record<string, unknown>;
+			delete legacy.researchPlans;
+			delete legacy.researchPlanTasks;
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+			expect(loaded).toBeDefined();
+			expect(loaded?.version).toBe(1);
+			expect(loaded?.researchPlans).toEqual([]);
+			expect(loaded?.researchPlanTasks).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes partial research plan records to safe defaults", async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-plan-partial-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			const legacy = createProject() as unknown as Record<string, unknown>;
+			legacy.researchPlans = [{ id: "research-plan-1", status: "not-a-status" }];
+			legacy.researchPlanTasks = [{ planId: "research-plan-1", kind: "mystery", status: "unknown" }];
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchPlans[0]).toMatchObject({
+				id: "research-plan-1",
+				status: "paused",
+				taskIds: [],
+			});
+			expect(loaded?.researchPlanTasks[0]).toMatchObject({
+				id: "research-plan-task-1",
+				planId: "research-plan-1",
+				kind: "synthesis",
+				status: "pending",
+				sequence: 1,
+				sourceIds: [],
+				claimSupportIds: [],
+				computationalArtifactIds: [],
+				evidenceEntryIds: [],
+			});
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("adds a goal with deterministic id and timestamp injection", () => {

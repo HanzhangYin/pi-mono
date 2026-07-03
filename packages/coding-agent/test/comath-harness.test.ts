@@ -17,12 +17,15 @@ import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
+import { STALE_RESEARCH_PLAN_TASK_REASON } from "../src/modes/comath/comath-research-plan-runner.ts";
 import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
 	addComputationalArtifact,
 	addLiteratureClaimSupport,
 	addResearchBatch,
 	addResearchPath,
+	addResearchPlan,
+	addResearchPlanTask,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
 	addResearchWorkstreamRun,
@@ -30,6 +33,8 @@ import {
 	loadProjectState,
 	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
+	updateResearchPlan,
+	updateResearchPlanTask,
 } from "../src/modes/comath/storage.ts";
 
 const OK: CoMathBackendCommandResult = { ok: true, messages: [] };
@@ -3403,6 +3408,381 @@ describe("co-math harness", () => {
 
 			expect(commands).toEqual(["note project: check lemma 2"]);
 			expect(notices.join("\n")).toContain("Noted. I’ll factor that into the next audit step.");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("creates a deterministic research plan from a fresh research workspace and shows it cleanly", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("make a plan");
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPlans).toHaveLength(1);
+			expect(state.researchPlans[0]).toMatchObject({ id: "research-plan-1", status: "active" });
+			expect(state.researchPlanTasks.map((task) => task.kind)).toEqual([
+				"literature-search",
+				"computation",
+				"proof-attempt",
+				"critic",
+				"synthesis",
+			]);
+			expect(state.researchPlanTasks.every((task) => task.status === "pending")).toBe(true);
+			expect(state.researchPlanTasks[0]?.pathId).toBe("path-5");
+			expect(state.researchPlanTasks[1]?.pathId).toBe("path-1");
+			expect(state.researchPlanTasks[2]?.pathId).toBe("path-2");
+
+			// A repeated "make a plan" reuses the existing plan instead of stacking a duplicate.
+			await harness.handlePrompt("create a research plan");
+			expect((await loadRequiredProjectState(statePath)).researchPlans).toHaveLength(1);
+
+			const before = notices.length;
+			await harness.handlePrompt("show plan");
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("Research plan");
+			expect(visible).toContain("Progress: 0/5 tasks");
+			expect(visible).toContain("1. Check the literature for known results — waiting");
+			expect(visible).toContain("5. Summarize durable findings and pick the next move — waiting");
+			expect(visible).not.toContain("research-plan");
+			expect(visible).not.toContain("path-1");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("bounded steps create a research plan and complete tasks with durable run linkage", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("work for 3 steps");
+			await waitForProjectState(statePath, "completed plan-backed bounded research run", (state) =>
+				Boolean(state?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPlans[0]).toMatchObject({ id: "research-plan-1", status: "active" });
+			expect(state.researchPlanTasks.map((task) => task.status)).toEqual([
+				"completed",
+				"completed",
+				"completed",
+				"pending",
+				"pending",
+			]);
+			expect(state.researchPlanTasks[0]).toMatchObject({
+				kind: "literature-search",
+				runId: "research-run-1",
+				reportId: "research-report-1",
+			});
+			expect(state.researchPlanTasks[1]).toMatchObject({
+				kind: "computation",
+				runId: "research-run-2",
+				reportId: "research-report-2",
+			});
+			expect(state.researchPlanTasks[2]).toMatchObject({
+				kind: "proof-attempt",
+				runId: "research-run-3",
+				reportId: "research-report-3",
+			});
+			expect(state.researchPlanTasks[0]?.evidenceEntryIds.length).toBeGreaterThan(0);
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 3,
+				completedStepCount: 3,
+				runIds: ["research-run-1", "research-run-2", "research-run-3"],
+			});
+			expect(state.researchWorkstreamRuns.map((run) => run.batchStepIndex)).toEqual([1, 2, 3]);
+
+			const progressBefore = notices.length;
+			await harness.handlePrompt("show progress");
+			expect(notices.slice(progressBefore).join("\n")).toContain("Progress: 3/5 tasks");
+
+			await harness.handlePrompt("continue the plan");
+			await waitForProjectState(statePath, "completed research plan", (candidate) =>
+				Boolean(
+					candidate?.researchPlans[0]?.status === "completed" &&
+						candidate.researchBatches[1]?.status === "completed",
+				),
+			);
+
+			const finalState = await loadRequiredProjectState(statePath);
+			expect(finalState.researchPlanTasks.every((task) => task.status === "completed")).toBe(true);
+			expect(finalState.researchCoordinatorReports.length).toBeGreaterThan(0);
+			expect(finalState.researchPlanTasks[3]?.reportId).toBe("research-report-3");
+			expect(finalState.researchPlanTasks[4]?.reportId).toBe(finalState.researchCoordinatorReports.at(-1)?.id);
+
+			const visible = notices.join("\n");
+			expect(visible).toContain("Research plan created");
+			expect(visible).toContain("Working on task 1 of 5: Check the literature for known results.");
+			expect(visible).toContain("Finished task 3 of 5: Attempt a focused proof step.");
+			expect(visible).toContain("Research steps completed");
+			expect(visible).toContain("Research plan completed");
+			expect(visible).not.toContain("research-plan");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("plan literature task runs the source lookup and links sources to the task", async () => {
+		const { executor } = createTwinPrimeLiteratureExecutor();
+		const { lookup, queries } = createLiteratureLookup(TWIN_PRIME_LITERATURE_SOURCES);
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, lookup);
+		try {
+			let state = createEmptyProjectState({
+				projectId: "proj-test",
+				title: "Are there infinitely many twin primes?",
+				rootQuestion: "Are there infinitely many twin primes?",
+				now: "2026-06-05T12:00:00.000Z",
+			});
+			state = addResearchPath(state, {
+				title: "Known theorem or literature reduction",
+				objective: "Find theorem references.",
+				suggestedNextMove: "Find source-backed theorem statements.",
+				priority: 1,
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			await saveProjectState(statePath, state);
+
+			await harness.handlePrompt("work the plan for 1 step");
+			await waitForProjectState(statePath, "completed plan literature task", (candidate) =>
+				Boolean(
+					candidate?.researchPlanTasks[0]?.status === "completed" &&
+						candidate.researchBatches[0]?.status === "completed",
+				),
+			);
+
+			const nextState = await loadRequiredProjectState(statePath);
+			expect(queries.length).toBeGreaterThan(0);
+			expect(nextState.researchPlanTasks[0]).toMatchObject({
+				kind: "literature-search",
+				runId: "research-run-1",
+			});
+			expect(nextState.researchPlanTasks[0]?.sourceIds.length).toBeGreaterThan(0);
+			expect(nextState.literatureSearches).toHaveLength(1);
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("plan computation task stores computation outputs and links them to the task", async () => {
+		const { executor } = createNSquaredComputationExecutor();
+		const { computationalExecutor, drafts } = createFakeComputationalExecutor();
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(
+			executor,
+			undefined,
+			computationalExecutor,
+		);
+		try {
+			let state = createEmptyProjectState({
+				projectId: "proj-test",
+				title: "n^2 + 1 primes",
+				rootQuestion: "Are there infinitely many primes of the form n^2 + 1?",
+				now: "2026-06-05T12:00:00.000Z",
+			});
+			state = addResearchPath(state, {
+				title: "Small examples and counterexamples",
+				objective: "Run bounded finite checks.",
+				suggestedNextMove: "Compute small cases.",
+				priority: 1,
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			await saveProjectState(statePath, state);
+
+			await harness.handlePrompt("work the plan for 1 step");
+			await waitForProjectState(statePath, "completed plan computation task", (candidate) =>
+				Boolean(
+					candidate?.researchPlanTasks[0]?.status === "completed" &&
+						candidate.researchBatches[0]?.status === "completed",
+				),
+			);
+
+			const nextState = await loadRequiredProjectState(statePath);
+			expect(drafts.length).toBeGreaterThan(0);
+			expect(nextState.computationalArtifacts.length).toBeGreaterThan(0);
+			expect(nextState.researchPlanTasks[0]?.kind).toBe("computation");
+			expect(nextState.researchPlanTasks[0]?.computationalArtifactIds).toContain("computation-artifact-1");
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("pauses the plan when a task blocks and resumes it from the durable boundary", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			let state = createTwinPrimeResearchState();
+			state = addResearchPlan(state, {
+				title: "Manual plan",
+				objective: "Review first, then attempt a proof step.",
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = addResearchPlanTask(state, {
+				planId: "research-plan-1",
+				kind: "critic",
+				title: "Review recent findings for gaps",
+				description: "Check for overclaims.",
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = addResearchPlanTask(state, {
+				planId: "research-plan-1",
+				kind: "proof-attempt",
+				title: "Attempt a focused proof step",
+				description: "Try the most promising proof move.",
+				pathId: "path-2",
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			await saveProjectState(statePath, state);
+
+			await harness.handlePrompt("execute the plan");
+			await waitForProjectState(statePath, "paused plan after blocked critic task", (candidate) =>
+				Boolean(
+					candidate?.researchPlans[0]?.status === "paused" && candidate.researchBatches[0]?.status === "paused",
+				),
+			);
+
+			let nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchPlanTasks[0]).toMatchObject({
+				status: "blocked",
+				blockedReason: "There is no research finding to review yet.",
+			});
+			expect(nextState.researchBatches[0]?.status).toBe("paused");
+			expect(notices.join("\n")).toContain("resume plan");
+
+			// With a completed report available, an explicit resume retries the review from the boundary.
+			nextState = addResearchWorkstreamReport(nextState, {
+				pathId: "path-1",
+				pathTitle: "Small examples and counterexamples",
+				status: "completed",
+				startedAt: "2026-06-05T12:10:00.000Z",
+				completedAt: "2026-06-05T12:10:00.000Z",
+				coordinatorBrief: "Gather examples.",
+				steps: [],
+				promisingStrategy: [],
+				findings: ["Twin primes up to 100 exist."],
+				criticisms: [],
+				gaps: ["No proof of infinitude."],
+				humanHelpUseful: [],
+				suggestedNextMove: "Try a proof step.",
+				workingPaperSectionTitle: "Examples and finite checks",
+				now: "2026-06-05T12:10:00.000Z",
+				actor: "synthesizer",
+			});
+			await saveProjectState(statePath, nextState);
+
+			await harness.handlePrompt("resume plan");
+			await waitForProjectState(statePath, "completed resumed research plan", (candidate) =>
+				Boolean(
+					candidate?.researchPlans[0]?.status === "completed" &&
+						candidate.researchBatches[0]?.status === "completed",
+				),
+			);
+
+			const finalState = await loadRequiredProjectState(statePath);
+			expect(finalState.researchPlanTasks.map((task) => task.status)).toEqual(["completed", "completed"]);
+			expect(finalState.researchPlanTasks[1]?.runId).toBe("research-run-1");
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("marks interrupted plan tasks stopped and never resumes the plan automatically", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			let state = createTwinPrimeResearchState();
+			state = addResearchPlan(state, {
+				title: "Manual plan",
+				objective: "Attempt a proof step.",
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = addResearchPlanTask(state, {
+				planId: "research-plan-1",
+				kind: "proof-attempt",
+				title: "Attempt a focused proof step",
+				description: "Try the most promising proof move.",
+				pathId: "path-2",
+				now: "2026-06-05T12:00:00.000Z",
+				actor: "human",
+			});
+			state = updateResearchPlanTask(state, {
+				taskId: "research-plan-task-1",
+				status: "running",
+				startedAt: "2026-06-05T12:01:00.000Z",
+				now: "2026-06-05T12:01:00.000Z",
+			});
+			state = updateResearchPlan(state, {
+				planId: "research-plan-1",
+				currentTaskId: "research-plan-task-1",
+				startedAt: "2026-06-05T12:01:00.000Z",
+				now: "2026-06-05T12:01:00.000Z",
+			});
+			await saveProjectState(statePath, state);
+
+			const before = notices.length;
+			await harness.handlePrompt("show progress");
+
+			let nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchPlans[0]).toMatchObject({
+				status: "paused",
+				pauseReason: STALE_RESEARCH_PLAN_TASK_REASON,
+			});
+			expect(nextState.researchPlanTasks[0]).toMatchObject({
+				status: "failed",
+				failureReason: STALE_RESEARCH_PLAN_TASK_REASON,
+			});
+			expect(nextState.researchWorkstreamRuns).toHaveLength(0);
+			const progressVisible = notices.slice(before).join("\n");
+			expect(progressVisible).toContain("This plan is paused.");
+			expect(progressVisible).toContain("resume plan");
+			expectProductCopy(progressVisible);
+
+			await harness.handlePrompt("resume plan");
+			await waitForProjectState(statePath, "completed plan after explicit resume", (candidate) =>
+				Boolean(
+					candidate?.researchPlans[0]?.status === "completed" &&
+						candidate.researchBatches[0]?.status === "completed",
+				),
+			);
+
+			nextState = await loadRequiredProjectState(statePath);
+			expect(nextState.researchPlanTasks[0]).toMatchObject({
+				status: "completed",
+				runId: "research-run-1",
+			});
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps explicit path continuation independent of research plans", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await saveProjectState(statePath, createTwinPrimeResearchState());
+
+			await harness.handlePrompt("continue path 2");
+			await waitForProjectState(statePath, "completed explicit path continuation", (state) =>
+				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPlans).toEqual([]);
+			expect(state.researchPlanTasks).toEqual([]);
+			expect(state.researchWorkstreamRuns[0]).toMatchObject({
+				pathId: "path-2",
+				status: "completed",
+			});
+			expectProductCopy(notices.join("\n"));
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

@@ -37,6 +37,8 @@ export interface RunLiteratureResearchWorkstreamInput {
 	now: string;
 	executor: ResearchWorkstreamModelExecutor;
 	sourceLookup: LiteratureSourceLookup;
+	/** Optional plan-task brief (goal + acceptance criteria) steering the literature specialist. */
+	directive?: string;
 }
 
 export interface LiteratureResearchWorkstreamResult {
@@ -108,7 +110,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 		allPaths,
 		priorFindings: path.latestFindings,
 		inputText: sourceContext,
-		prompt: buildLiteratureSpecialistPrompt(rootQuestion, path, sourceContext),
+		prompt: buildLiteratureSpecialistPrompt(rootQuestion, path, sourceContext, input.directive),
 	});
 	const specialist = parseMarkdown(specialistText);
 	await callbacks.onStageCompleted?.({
@@ -359,7 +361,12 @@ function formatProviderName(provider: LiteratureSourceSearchResponse["providers"
 	return "unknown";
 }
 
-function buildLiteratureSpecialistPrompt(rootQuestion: string, path: ResearchPath, sourceContext: string): string {
+function buildLiteratureSpecialistPrompt(
+	rootQuestion: string,
+	path: ResearchPath,
+	sourceContext: string,
+	directive?: string,
+): string {
 	return [
 		"You are the literature specialist for one co-math research path.",
 		`Root question: ${rootQuestion}`,
@@ -370,6 +377,7 @@ function buildLiteratureSpecialistPrompt(rootQuestion: string, path: ResearchPat
 		sourceContext,
 		"",
 		"Task:",
+		...(directive?.trim() ? ["Task brief from the research plan:", directive.trim(), ""] : []),
 		"Summarize only source-backed known results relevant to this path.",
 		"Use source ids like [source-1] for every sourced claim.",
 		"Do not fabricate citations or infer that a source proves more than the supplied text supports.",

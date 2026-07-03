@@ -850,6 +850,23 @@ export async function main(args: string[], options?: MainOptions) {
 				display: true,
 				details: { kind: "product", type },
 			});
+		// Real model calls for research workstreams, plus director planning/amendment and the
+		// independent skeptic review; the harness falls back to deterministic execution if these
+		// fail or no model is configured.
+		const coMathModelExecutor = createDefaultResearchModelExecutor({
+			getModel: () => session.model,
+			streamFn: session.agent.streamFn,
+			streamAssistantMessage: (stream) => session.streamAssistantMessage(stream),
+			streamOptions: () => ({
+				reasoning: session.thinkingLevel === "off" ? undefined : session.thinkingLevel,
+				sessionId: session.sessionId,
+				onPayload: session.agent.onPayload,
+				onResponse: session.agent.onResponse,
+				transport: session.agent.transport,
+				thinkingBudgets: session.agent.thinkingBudgets,
+				maxRetryDelayMs: session.agent.maxRetryDelayMs,
+			}),
+		});
 		session.setConversationHarness(
 			new CoMathHarness({
 				source,
@@ -862,22 +879,8 @@ export async function main(args: string[], options?: MainOptions) {
 						productMode: true,
 						silent: true,
 					}),
-				// Real specialist/critic/synthesizer model calls for `continue path N`; the harness
-				// falls back to deterministic execution if these fail or no model is configured.
-				researchModelExecutor: createDefaultResearchModelExecutor({
-					getModel: () => session.model,
-					streamFn: session.agent.streamFn,
-					streamAssistantMessage: (stream) => session.streamAssistantMessage(stream),
-					streamOptions: () => ({
-						reasoning: session.thinkingLevel === "off" ? undefined : session.thinkingLevel,
-						sessionId: session.sessionId,
-						onPayload: session.agent.onPayload,
-						onResponse: session.agent.onResponse,
-						transport: session.agent.transport,
-						thinkingBudgets: session.agent.thinkingBudgets,
-						maxRetryDelayMs: session.agent.maxRetryDelayMs,
-					}),
-				}),
+				researchModelExecutor: coMathModelExecutor,
+				researchDirectorExecutor: coMathModelExecutor,
 				onResearchWorkstreamActivityStart: (input) => coMathActivityBridge?.start(input),
 				onResearchWorkstreamActivityUpdate: (input) => coMathActivityBridge?.update(input),
 				onResearchWorkstreamActivityEnd: (input) => coMathActivityBridge?.end(input),

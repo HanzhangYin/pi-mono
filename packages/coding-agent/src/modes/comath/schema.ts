@@ -21,6 +21,16 @@ export type ResearchWorkstreamRunStatus = "queued" | "running" | "completed" | "
 export type ResearchWorkstreamRunStage = ResearchWorkstreamRole | "literature-search" | "computation";
 export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" | "blocked" | "failed";
 export type ResearchBatchStatus = "running" | "paused" | "completed" | "failed" | "cancelled";
+export type ResearchPlanStatus = "active" | "paused" | "completed" | "failed" | "cancelled";
+export type ResearchPlanTaskStatus = "pending" | "running" | "completed" | "blocked" | "failed" | "cancelled";
+export type ResearchPlanTaskKind =
+	| "literature-search"
+	| "proof-attempt"
+	| "computation"
+	| "critic"
+	| "synthesis"
+	| "source-refresh"
+	| "export";
 export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "user-provided" | "unknown";
 export type LiteratureSourceProvider =
 	| "workspace"
@@ -79,6 +89,8 @@ export type CoMathEventKind =
 	| "research_workstream_recorded"
 	| "research_workstream_run_recorded"
 	| "research_batch_recorded"
+	| "research_plan_recorded"
+	| "research_plan_task_recorded"
 	| "literature_source_recorded"
 	| "literature_search_recorded"
 	| "literature_claim_support_recorded"
@@ -467,6 +479,50 @@ export interface ResearchBatchRecord {
 	cancelledAt?: string;
 }
 
+export interface ResearchPlanRecord {
+	id: string;
+	title: string;
+	objective: string;
+	status: ResearchPlanStatus;
+	taskIds: string[];
+	currentTaskId?: string;
+	pauseReason?: string;
+	failureReason?: string;
+	cancelReason?: string;
+	createdAt: string;
+	startedAt?: string;
+	updatedAt: string;
+	completedAt?: string;
+	cancelledAt?: string;
+}
+
+export interface ResearchPlanTaskRecord {
+	id: string;
+	planId: string;
+	kind: ResearchPlanTaskKind;
+	status: ResearchPlanTaskStatus;
+	sequence: number;
+	title: string;
+	description: string;
+	/** Free-form task goal the executing role should pursue (model-authored plans). */
+	goal?: string;
+	/** What "done" means for this task; shown to the executing role and the skeptic. */
+	acceptanceCriteria: string[];
+	pathId?: string;
+	runId?: string;
+	reportId?: string;
+	sourceIds: string[];
+	claimSupportIds: string[];
+	computationalArtifactIds: string[];
+	evidenceEntryIds: string[];
+	blockedReason?: string;
+	failureReason?: string;
+	createdAt: string;
+	startedAt?: string;
+	updatedAt: string;
+	completedAt?: string;
+}
+
 export interface ResearchCoordinatorNextMove {
 	title: string;
 	pathId?: string;
@@ -516,6 +572,8 @@ export interface CoMathProjectState {
 	researchReports: ResearchWorkstreamReportRecord[];
 	researchWorkstreamRuns: ResearchWorkstreamRunRecord[];
 	researchBatches: ResearchBatchRecord[];
+	researchPlans: ResearchPlanRecord[];
+	researchPlanTasks: ResearchPlanTaskRecord[];
 	literatureSources: LiteratureSourceArtifact[];
 	literatureSearches: LiteratureSearchRecord[];
 	literatureClaimSupports: LiteratureClaimSupport[];

@@ -10,6 +10,8 @@ import type {
 	ResearchCoordinatorReportRecord,
 	ResearchEvidenceBoardEntry,
 	ResearchPath,
+	ResearchPlanRecord,
+	ResearchPlanTaskRecord,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
 } from "./schema.ts";
@@ -421,7 +423,7 @@ export function formatResearchBatchStarted(input: FormatResearchBatchInput): str
 		formatResearchBatchStepCount(input.batch),
 		input.batch.nextPathId
 			? `First path: ${formatResearchBatchPath(input.state, input.batch.nextPathId)}`
-			: "First path: Pi will choose the best available research path.",
+			: "I’ll work through the research plan, creating one if needed.",
 	].join("\n");
 }
 
@@ -497,6 +499,208 @@ export function formatResearchBatchFailed(input: FormatResearchBatchInput): stri
 		"Reason",
 		input.batch.failureReason ?? "Pi could not choose another research path.",
 	].join("\n");
+}
+
+export interface FormatResearchPlanInput {
+	plan: ResearchPlanRecord;
+	tasks: readonly ResearchPlanTaskRecord[];
+}
+
+export interface FormatResearchPlanTaskInput extends FormatResearchPlanInput {
+	task: ResearchPlanTaskRecord;
+}
+
+export function formatResearchPlanCreated(input: FormatResearchPlanInput): string {
+	return [
+		"Research plan created",
+		"",
+		"Objective",
+		input.plan.objective,
+		"",
+		"Tasks",
+		...formatResearchPlanTaskLines(input.tasks),
+		"",
+		'Say "work the plan for 3 steps" to start, or "show plan" any time.',
+	].join("\n");
+}
+
+/** Plan overview shown by `show plan` / `what is the plan` / plan-first `show progress`. */
+export function formatResearchPlanSummary(input: FormatResearchPlanInput): string {
+	const completed = input.tasks.filter((task) => task.status === "completed").length;
+	return [
+		"Research plan",
+		"",
+		formatResearchPlanProgressLine(input.tasks),
+		"",
+		"Tasks",
+		...formatResearchPlanTaskLines(input.tasks),
+		"",
+		...(input.plan.status === "paused"
+			? [
+					"This plan is paused.",
+					...(input.plan.pauseReason ? [`Reason: ${input.plan.pauseReason}`] : []),
+					'Say "resume plan" to retry from the last completed task.',
+				]
+			: input.plan.status === "completed"
+				? ['All plan tasks are done. Say "show latest report" for the newest findings.']
+				: completed < input.tasks.length
+					? ['Say "continue the plan" to work the next task.']
+					: ['Say "make a plan" to plan the next round of work.']),
+	].join("\n");
+}
+
+export function formatResearchPlanTaskStarted(input: FormatResearchPlanTaskInput): string {
+	return `Working on task ${input.task.sequence} of ${input.tasks.length}: ${input.task.title}.`;
+}
+
+export function formatResearchPlanTaskCompleted(input: FormatResearchPlanTaskInput): string {
+	return [
+		`Finished task ${input.task.sequence} of ${input.tasks.length}: ${input.task.title}.`,
+		formatResearchPlanProgressLine(input.tasks),
+	].join("\n");
+}
+
+export function formatResearchPlanPaused(input: FormatResearchPlanInput & { reason?: string }): string {
+	return [
+		"Plan paused",
+		"",
+		formatResearchPlanProgressLine(input.tasks),
+		"",
+		"Reason",
+		input.reason ?? input.plan.pauseReason ?? "The current task could not finish.",
+		"",
+		"Next command",
+		"resume plan",
+	].join("\n");
+}
+
+export function formatResearchPlanCompleted(input: FormatResearchPlanInput): string {
+	return [
+		"Research plan completed",
+		"",
+		formatResearchPlanProgressLine(input.tasks),
+		"",
+		'Say "show latest report" for the newest findings, or "make a plan" to plan the next round.',
+	].join("\n");
+}
+
+export function formatResearchPlanBlocked(input: FormatResearchPlanTaskInput): string {
+	return [
+		`Task ${input.task.sequence} of ${input.tasks.length} is blocked: ${input.task.title}.`,
+		"",
+		"Reason",
+		input.task.blockedReason ?? "The task could not proceed with what is currently known.",
+		"",
+		'The plan is paused. Say "resume plan" to retry, or steer me toward a different direction.',
+	].join("\n");
+}
+
+export function formatResearchPlanMissing(): string {
+	return 'No research plan exists yet. Say "make a plan" to create one.';
+}
+
+export interface FormatResearchPlanAmendedInput extends FormatResearchPlanInput {
+	addedTitles: readonly string[];
+	cancelledTitles: readonly string[];
+	reason?: string;
+}
+
+/** Announces a director amendment so direction changes are always visible to the user. */
+export function formatResearchPlanAmended(input: FormatResearchPlanAmendedInput): string {
+	return [
+		"Plan updated based on what was just learned.",
+		...(input.reason ? ["", "Why", input.reason] : []),
+		...(input.addedTitles.length > 0 ? ["", "Added", ...input.addedTitles.map((title) => `- ${title}`)] : []),
+		...(input.cancelledTitles.length > 0
+			? ["", "No longer needed", ...input.cancelledTitles.map((title) => `- ${title}`)]
+			: []),
+		"",
+		formatResearchPlanProgressLine(input.tasks),
+		'Say "show plan" to see the updated plan.',
+	].join("\n");
+}
+
+export interface FormatSkepticReviewCompletedInput {
+	concerns: readonly string[];
+	counterexampleFound: boolean;
+}
+
+/** Summary of the independent review of a finished step; concise, no internal ids. */
+export function formatSkepticReviewCompleted(input: FormatSkepticReviewCompletedInput): string {
+	return [
+		input.counterexampleFound
+			? "Independent review found a counterexample to this step's central claim."
+			: "Independent review raised concerns about this step.",
+		...(input.concerns.length > 0 ? ["", "Concerns", ...input.concerns.map((concern) => `- ${concern}`)] : []),
+		"",
+		input.counterexampleFound
+			? "The check and its output are saved with this step. Re-examine the claim before building on it."
+			: "These are recorded with the step's evidence so later work can address them.",
+	].join("\n");
+}
+
+export function formatResearchPlanExecutionStarted(
+	input: FormatResearchPlanInput & { requestedTaskCount: number },
+): string {
+	const nextTask = input.tasks.find((task) => task.status === "pending");
+	return [
+		`I’ll work ${input.requestedTaskCount} plan task${input.requestedTaskCount === 1 ? "" : "s"}.`,
+		formatResearchPlanProgressLine(input.tasks),
+		...(nextTask ? [`Next task: ${nextTask.title}`] : []),
+	].join("\n");
+}
+
+/** Evidence-board overview shown by `show evidence`; concise product copy without internal ids. */
+export function formatResearchEvidenceBoardSummary(
+	state: Pick<CoMathProjectState, "researchPaths"> & {
+		researchEvidenceBoard?: readonly ResearchEvidenceBoardEntry[];
+	},
+): string {
+	const entries = state.researchEvidenceBoard ?? [];
+	if (entries.length === 0) {
+		return 'No evidence has been recorded yet. Say "work the plan for 3 steps" to gather some.';
+	}
+	return [
+		"Evidence so far",
+		"",
+		...entries
+			.slice(-8)
+			.map(
+				(entry) =>
+					`- ${formatEvidenceClassification(entry.classification)}: ${stripInlineSourceLabels(entry.claim)} — ${stripInlineSourceLabels(entry.rationale)}`,
+			),
+	].join("\n");
+}
+
+function formatResearchPlanProgressLine(tasks: readonly ResearchPlanTaskRecord[]): string {
+	const completed = tasks.filter((task) => task.status === "completed").length;
+	return `Progress: ${completed}/${tasks.length} tasks`;
+}
+
+function formatResearchPlanTaskLines(tasks: readonly ResearchPlanTaskRecord[]): string[] {
+	if (tasks.length === 0) {
+		return ["- No tasks were planned."];
+	}
+	return tasks.map((task) => `${task.sequence}. ${task.title} — ${formatResearchPlanTaskStatus(task.status)}`);
+}
+
+function formatResearchPlanTaskStatus(status: ResearchPlanTaskRecord["status"]): string {
+	if (status === "pending") {
+		return "waiting";
+	}
+	if (status === "running") {
+		return "in progress";
+	}
+	if (status === "completed") {
+		return "done";
+	}
+	if (status === "blocked") {
+		return "blocked";
+	}
+	if (status === "failed") {
+		return "stopped";
+	}
+	return "cancelled";
 }
 
 /**

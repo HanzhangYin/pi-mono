@@ -81,6 +81,50 @@ function parseResearchBatchStepCount(value: string | undefined): number {
 	return Math.min(MAX_RESEARCH_BATCH_STEPS, Math.max(1, parsed));
 }
 
+/** `make a plan`, `create a research plan`, and polite variants. */
+export function isCreateResearchPlanPrompt(prompt: string): boolean {
+	return /^(?:make|create|build|draft) (?:a |the )?(?:new )?(?:research )?plan$/i.test(normalizeCoMathPrompt(prompt));
+}
+
+/** `show plan`, `show the research plan`, `what is the plan`, and polite variants. */
+export function isShowResearchPlanPrompt(prompt: string): boolean {
+	return /^(?:show (?:me )?(?:the )?(?:current )?(?:research )?plan|what(?:'s| is) the plan\??)$/i.test(
+		normalizeCoMathPrompt(prompt),
+	);
+}
+
+export interface ParsedResearchPlanExecutionPrompt {
+	requestedStepCount?: number;
+	resume: boolean;
+}
+
+/**
+ * Requests to run the durable research plan: `execute the plan`, `work the plan for 3 steps`,
+ * `continue the plan`, `resume plan`. Returns `undefined` for anything else so path-level
+ * continuation ("continue path 2") keeps its existing behavior.
+ */
+export function parseResearchPlanExecutionPrompt(prompt: string): ParsedResearchPlanExecutionPrompt | undefined {
+	const normalized = normalizeCoMathPrompt(prompt).toLowerCase();
+	if (/^resume (?:the )?(?:research )?plan$/.test(normalized)) {
+		return { resume: true };
+	}
+	const stepsMatch = /^(?:work|execute|run|continue) (?:on )?(?:the )?plan for (?:a few|(\d+)) (?:more )?steps?$/.exec(
+		normalized,
+	);
+	if (stepsMatch) {
+		return { resume: false, requestedStepCount: parseResearchBatchStepCount(stepsMatch[1]) };
+	}
+	if (/^(?:execute|run|work|continue) (?:on )?(?:the )?plan$/.test(normalized)) {
+		return { resume: false };
+	}
+	return undefined;
+}
+
+/** `show evidence`, `show the evidence board`, and polite variants. */
+export function isShowEvidencePrompt(prompt: string): boolean {
+	return /^show (?:me )?(?:the )?evidence(?: board)?$/i.test(normalizeCoMathPrompt(prompt));
+}
+
 /** `show progress`, `status`, `what are you doing`, `show latest run`, and polite variants. */
 export function isShowProgressPrompt(prompt: string): boolean {
 	return /^(?:show (?:the )?(?:current )?progress|status|what are you doing\??|show (?:the )?latest run)$/i.test(

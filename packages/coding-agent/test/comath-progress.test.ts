@@ -19,6 +19,13 @@ import {
 	formatResearchCoordinatorReport,
 	formatResearchFocusUpdated,
 	formatResearchPathDropped,
+	formatResearchPlanBlocked,
+	formatResearchPlanCompleted,
+	formatResearchPlanCreated,
+	formatResearchPlanPaused,
+	formatResearchPlanSummary,
+	formatResearchPlanTaskCompleted,
+	formatResearchPlanTaskStarted,
 	formatResearchRoundCompleted,
 	formatResearchRoundUpdated,
 	formatResearchStateSummary,
@@ -42,6 +49,8 @@ import type {
 	ComputationalArtifact,
 	ResearchBatchRecord,
 	ResearchPath,
+	ResearchPlanRecord,
+	ResearchPlanTaskRecord,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
 } from "../src/modes/comath/schema.ts";
@@ -1075,7 +1084,112 @@ describe("co-math product messages", () => {
 		expect(paused).toContain("Research paused");
 		expect(paused).toContain("resume research");
 	});
+
+	it("formats research plan lifecycle copy without internal ids", () => {
+		const plan = createResearchPlanRecord();
+		const tasks = createResearchPlanTaskRecords(plan.id);
+
+		const created = formatResearchPlanCreated({ plan, tasks });
+		const summary = formatResearchPlanSummary({ plan, tasks });
+		const taskStarted = formatResearchPlanTaskStarted({ plan, tasks, task: tasks[1] as ResearchPlanTaskRecord });
+		const taskCompleted = formatResearchPlanTaskCompleted({
+			plan,
+			tasks,
+			task: tasks[0] as ResearchPlanTaskRecord,
+		});
+		const paused = formatResearchPlanPaused({
+			plan: { ...plan, status: "paused", pauseReason: "The current task could not finish." },
+			tasks,
+		});
+		const completed = formatResearchPlanCompleted({
+			plan: { ...plan, status: "completed" },
+			tasks: tasks.map((task) => ({ ...task, status: "completed" as const })),
+		});
+		const blocked = formatResearchPlanBlocked({
+			plan: { ...plan, status: "paused" },
+			tasks,
+			task: {
+				...(tasks[1] as ResearchPlanTaskRecord),
+				status: "blocked",
+				blockedReason: "There is no research finding to review yet.",
+			},
+		});
+
+		for (const text of [created, summary, taskStarted, taskCompleted, paused, completed, blocked]) {
+			expect(text).not.toContain("research-plan");
+			expect(text).not.toContain("research-run-");
+			expect(text).not.toContain("path-1");
+			expectProductCopy(text);
+		}
+		expect(created).toContain("Research plan created");
+		expect(created).toContain("1. Check the literature for known results");
+		expect(summary).toContain("Progress: 1/3 tasks");
+		expect(summary).toContain("2. Review recent findings for gaps — waiting");
+		expect(taskStarted).toContain("Working on task 2 of 3: Review recent findings for gaps.");
+		expect(taskCompleted).toContain("Finished task 1 of 3: Check the literature for known results.");
+		expect(paused).toContain("Plan paused");
+		expect(paused).toContain("resume plan");
+		expect(completed).toContain("Research plan completed");
+		expect(blocked).toContain("blocked");
+		expect(blocked).toContain("resume plan");
+	});
 });
+
+function createResearchPlanRecord(): ResearchPlanRecord {
+	return {
+		id: "research-plan-1",
+		title: "Research plan for: Are there infinitely many primes of the form n^2 + 1?",
+		objective: "Make durable, reviewable progress on: Are there infinitely many primes of the form n^2 + 1?",
+		status: "active",
+		taskIds: ["research-plan-task-1", "research-plan-task-2", "research-plan-task-3"],
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+}
+
+function createResearchPlanTaskRecords(planId: string): ResearchPlanTaskRecord[] {
+	const base = {
+		planId,
+		acceptanceCriteria: [],
+		sourceIds: [],
+		claimSupportIds: [],
+		computationalArtifactIds: [],
+		evidenceEntryIds: [],
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+	return [
+		{
+			...base,
+			id: "research-plan-task-1",
+			kind: "literature-search",
+			status: "completed",
+			sequence: 1,
+			title: "Check the literature for known results",
+			description: "Search for relevant sources.",
+			pathId: "path-1",
+			runId: "research-run-1",
+		},
+		{
+			...base,
+			id: "research-plan-task-2",
+			kind: "critic",
+			status: "pending",
+			sequence: 2,
+			title: "Review recent findings for gaps",
+			description: "Check the latest findings for overclaims.",
+		},
+		{
+			...base,
+			id: "research-plan-task-3",
+			kind: "synthesis",
+			status: "pending",
+			sequence: 3,
+			title: "Summarize durable findings and pick the next move",
+			description: "Fold findings into the working paper.",
+		},
+	];
+}
 
 function createResearchPathsFromPlan(plan: ReturnType<typeof createCoMathResearchAutoPlan>): ResearchPath[] {
 	return plan.paths.map(

@@ -34,10 +34,15 @@ import {
 	formatResearchBatchProgress,
 	formatResearchBatchStarted,
 	formatResearchCoordinatorReport,
+	formatResearchEvidenceBoardSummary,
 	formatResearchFocusUpdated,
 	formatResearchNaturalSteeringQueued,
 	formatResearchNaturalSteeringStarted,
 	formatResearchPathDropped,
+	formatResearchPlanCreated,
+	formatResearchPlanExecutionStarted,
+	formatResearchPlanMissing,
+	formatResearchPlanSummary,
 	formatResearchStateSummary,
 	formatResearchWorkspacePrepared,
 	formatResearchWorkstreamReport,
@@ -47,25 +52,32 @@ import {
 	formatWaitingForContext,
 } from "./comath-progress.ts";
 import {
+	isCreateResearchPlanPrompt,
 	isLikelyMathValidationPrompt,
 	isLikelyOperationalNonMathPrompt,
 	isResearchCoordinatorPrompt,
 	isResumeResearchBatchPrompt,
+	isShowEvidencePrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowProgressPrompt,
 	isShowReportForPathPrompt,
+	isShowResearchPlanPrompt,
 	isShowResearchStatePrompt,
+	type ParsedResearchPlanExecutionPrompt,
 	type ParsedUserProvidedLiteratureSource,
 	parseCancelResearchBatchPrompt,
 	parseNaturalResearchQuestion,
 	parseResearchBatchPrompt,
+	parseResearchPlanExecutionPrompt,
 	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
 } from "./comath-prompts.ts";
 import { createCoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
 import { CoMathResearchBatchRunner } from "./comath-research-batches.ts";
+import { proposeResearchPlan } from "./comath-research-director.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
+import { CoMathResearchPlanRunner, resumeResearchPlan } from "./comath-research-plan-runner.ts";
 import {
 	CoMathResearchRunner,
 	type CoMathResearchWorkstreamActivityEnd,
@@ -90,12 +102,16 @@ import {
 	addResearchCoordinatorReport,
 	addResearchPath,
 	getActiveResearchBatch,
+	getActiveResearchPlan,
 	getActiveResearchWorkstreamRun,
 	getLatestResearchCoordinatorReport,
+	getLatestResearchPlan,
 	getLatestResearchWorkstreamReport,
 	getLatestResearchWorkstreamReportForPath,
 	getLatestResearchWorkstreamRun,
 	getPausedResearchBatch,
+	getPausedResearchPlan,
+	getResearchPlanTasks,
 	loadProjectState,
 	saveProjectState,
 	setResearchFocus,
@@ -134,6 +150,12 @@ export interface CoMathHarnessOptions {
 	 * the deterministic workstream instead.
 	 */
 	researchModelExecutor?: ResearchWorkstreamModelExecutor;
+	/**
+	 * Optional strong-model executor for the research director (model-authored plans and plan
+	 * amendments) and the independent skeptic review of finished plan tasks. Without it, plans are
+	 * deterministic and no skeptic pass runs.
+	 */
+	researchDirectorExecutor?: ResearchWorkstreamModelExecutor;
 	literatureSourceLookup?: LiteratureSourceLookup;
 	computationalExecutor?: ComputationalExecutor;
 	onResearchWorkstreamActivityStart?: CoMathResearchWorkstreamActivityStart;
@@ -149,7 +171,9 @@ export class CoMathHarness {
 	private readonly createPlan: (problemText: string, sourceTitle?: string) => CoMathAutoPlan;
 	private readonly startFirstRun: boolean;
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
+	private readonly researchDirectorExecutor: ResearchWorkstreamModelExecutor | undefined;
 	private readonly researchRunner: CoMathResearchRunner;
+	private readonly researchPlanRunner: CoMathResearchPlanRunner;
 	private readonly researchBatchRunner: CoMathResearchBatchRunner;
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
@@ -161,20 +185,31 @@ export class CoMathHarness {
 		this.createPlan = options.createPlan ?? createCoMathAutoPlan;
 		this.startFirstRun = options.startFirstRun ?? true;
 		this.researchModelExecutor = options.researchModelExecutor;
+		this.researchDirectorExecutor = options.researchDirectorExecutor;
+		const computationalExecutor = options.computationalExecutor ?? createDefaultComputationalExecutor();
 		this.researchRunner = new CoMathResearchRunner({
 			statePath: this.statePath,
 			notify: this.notify,
 			researchModelExecutor: this.researchModelExecutor,
 			literatureSourceLookup: options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup(),
-			computationalExecutor: options.computationalExecutor ?? createDefaultComputationalExecutor(),
+			computationalExecutor,
 			onResearchWorkstreamActivityStart: options.onResearchWorkstreamActivityStart,
 			onResearchWorkstreamActivityUpdate: options.onResearchWorkstreamActivityUpdate,
 			onResearchWorkstreamActivityEnd: options.onResearchWorkstreamActivityEnd,
+		});
+		this.researchPlanRunner = new CoMathResearchPlanRunner({
+			statePath: this.statePath,
+			notify: this.notify,
+			researchRunner: this.researchRunner,
+			...(this.researchModelExecutor ? { researchModelExecutor: this.researchModelExecutor } : {}),
+			...(this.researchDirectorExecutor ? { researchDirectorExecutor: this.researchDirectorExecutor } : {}),
+			computationalExecutor,
 		});
 		this.researchBatchRunner = new CoMathResearchBatchRunner({
 			statePath: this.statePath,
 			notify: this.notify,
 			researchRunner: this.researchRunner,
+			planRunner: this.researchPlanRunner,
 		});
 	}
 
@@ -237,7 +272,11 @@ export class CoMathHarness {
 			isShowProgressPrompt(problem) ||
 			isShowResearchStatePrompt(problem) ||
 			isShowLatestReportPrompt(problem) ||
-			isShowReportForPathPrompt(problem) !== undefined
+			isShowReportForPathPrompt(problem) !== undefined ||
+			isShowResearchPlanPrompt(problem) ||
+			isCreateResearchPlanPrompt(problem) ||
+			parseResearchPlanExecutionPrompt(problem) !== undefined ||
+			isShowEvidencePrompt(problem)
 		) {
 			await this.notify(
 				'Start by asking a math question, for example: "Are there infinitely many primes of the form n^2 + 1?"',
@@ -488,7 +527,7 @@ export class CoMathHarness {
 
 	private async handleResearchSteeringPrompt(state: CoMathProjectState, prompt: string): Promise<void> {
 		const reconciled = await this.researchRunner.reconcileStaleResearchWorkstreamRuns(state);
-		state = reconciled.state;
+		state = await this.researchPlanRunner.reconcileStaleResearchPlans(reconciled.state);
 		const latestInterruptedRun = reconciled.interruptedRuns.at(-1);
 		const cancelBatchReason = parseCancelResearchBatchPrompt(prompt);
 		if (cancelBatchReason) {
@@ -549,6 +588,46 @@ export class CoMathHarness {
 			await this.registerUserProvidedLiteratureSource(state, providedSource);
 			return;
 		}
+		if (isShowResearchPlanPrompt(prompt)) {
+			const plan = getActiveResearchPlan(state) ?? getPausedResearchPlan(state) ?? getLatestResearchPlan(state);
+			if (!plan) {
+				await this.notify(formatResearchPlanMissing());
+				return;
+			}
+			await this.notify(formatResearchPlanSummary({ plan, tasks: getResearchPlanTasks(state, plan.id) }));
+			return;
+		}
+		if (isCreateResearchPlanPrompt(prompt)) {
+			const existing = getActiveResearchPlan(state) ?? getPausedResearchPlan(state);
+			if (existing) {
+				await this.notify(
+					formatResearchPlanSummary({ plan: existing, tasks: getResearchPlanTasks(state, existing.id) }),
+				);
+				return;
+			}
+			const created = await proposeResearchPlan(state, {
+				...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+				now: new Date().toISOString(),
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, created.state);
+			await this.notify(
+				formatResearchPlanCreated({
+					plan: created.plan,
+					tasks: getResearchPlanTasks(created.state, created.plan.id),
+				}),
+			);
+			return;
+		}
+		const planExecution = parseResearchPlanExecutionPrompt(prompt);
+		if (planExecution) {
+			await this.handleResearchPlanExecutionPrompt(state, planExecution);
+			return;
+		}
+		if (isShowEvidencePrompt(prompt)) {
+			await this.notify(formatResearchEvidenceBoardSummary(state));
+			return;
+		}
 		if (isShowLatestCoordinatorReportPrompt(prompt)) {
 			const report = getLatestResearchCoordinatorReport(state);
 			if (!report) {
@@ -563,6 +642,17 @@ export class CoMathHarness {
 			return;
 		}
 		if (isShowProgressPrompt(prompt) || isShowResearchStatePrompt(prompt)) {
+			// Progress prefers the durable plan, then the bounded batch, then the single active run.
+			const progressPlan = getActiveResearchPlan(state) ?? getPausedResearchPlan(state);
+			if (isShowProgressPrompt(prompt) && progressPlan) {
+				await this.notify(
+					formatResearchPlanSummary({
+						plan: progressPlan,
+						tasks: getResearchPlanTasks(state, progressPlan.id),
+					}),
+				);
+				return;
+			}
 			const activeBatch = getActiveResearchBatch(state);
 			const pausedBatch = getPausedResearchBatch(state);
 			if (isShowProgressPrompt(prompt) && (activeBatch || pausedBatch)) {
@@ -784,6 +874,88 @@ export class CoMathHarness {
 		}
 		await this.handleNaturalResearchSteeringPrompt(state, prompt, latestInterruptedRun);
 		return;
+	}
+
+	/**
+	 * Explicit "execute/work/continue/resume the plan" requests. All of these are user consent to
+	 * run bounded plan work, so a paused plan is resumed here (never automatically) and the tasks
+	 * run through the bounded batch executor so pause/resume and interruption recovery stay shared.
+	 */
+	private async handleResearchPlanExecutionPrompt(
+		state: CoMathProjectState,
+		request: ParsedResearchPlanExecutionPrompt,
+	): Promise<void> {
+		const activeRun = getActiveResearchWorkstreamRun(state);
+		if (activeRun) {
+			await this.notify(formatResearchWorkstreamAlreadyRunning({ state, run: activeRun }), "warning");
+			return;
+		}
+		if (getActiveResearchBatch(state)) {
+			await this.notify('A research step sequence is already active. Say "show progress" to inspect it.', "warning");
+			return;
+		}
+		if (request.resume && !getPausedResearchPlan(state) && !getActiveResearchPlan(state)) {
+			await this.notify("No paused research plan is available to resume.", "warning");
+			return;
+		}
+		let workingState = state;
+		let plan = getActiveResearchPlan(workingState);
+		if (!plan) {
+			const paused = getPausedResearchPlan(workingState);
+			if (paused) {
+				workingState = resumeResearchPlan(workingState, paused.id, new Date().toISOString());
+				await saveProjectState(this.statePath, workingState);
+				plan = workingState.researchPlans.find((candidate) => candidate.id === paused.id);
+			}
+		}
+		if (!plan) {
+			if (request.resume) {
+				await this.notify("No paused research plan is available to resume.", "warning");
+				return;
+			}
+			const created = await proposeResearchPlan(workingState, {
+				...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+				now: new Date().toISOString(),
+				actor: "human",
+			});
+			workingState = created.state;
+			plan = created.plan;
+			await saveProjectState(this.statePath, workingState);
+			await this.notify(formatResearchPlanCreated({ plan, tasks: getResearchPlanTasks(workingState, plan.id) }));
+		}
+		const tasks = getResearchPlanTasks(workingState, plan.id);
+		const pendingCount = tasks.filter((task) => task.status === "pending").length;
+		if (pendingCount === 0) {
+			await this.notify(formatResearchPlanSummary({ plan, tasks }));
+			return;
+		}
+		const requestedStepCount = Math.min(5, Math.max(1, request.requestedStepCount ?? pendingCount));
+		const now = new Date().toISOString();
+		const pausedBatch = getPausedResearchBatch(workingState);
+		let batchId: string;
+		let nextState: CoMathProjectState;
+		if (pausedBatch && !pausedBatch.initialPathId) {
+			// Re-open the paused bounded run instead of stacking a second one for the same plan.
+			nextState = updateResearchBatch(workingState, {
+				batchId: pausedBatch.id,
+				status: "running",
+				clearInterruptedRunId: true,
+				now,
+				actor: "human",
+			});
+			batchId = pausedBatch.id;
+		} else {
+			nextState = addResearchBatch(workingState, { requestedStepCount, now, actor: "human" });
+			const batch = nextState.researchBatches.at(-1);
+			if (!batch) {
+				await this.notify("Could not start the plan tasks.", "error");
+				return;
+			}
+			batchId = batch.id;
+		}
+		await saveProjectState(this.statePath, nextState);
+		await this.notify(formatResearchPlanExecutionStarted({ plan, tasks, requestedTaskCount: requestedStepCount }));
+		this.researchBatchRunner.startResearchBatchExecution(batchId);
 	}
 
 	private async handleNaturalResearchSteeringPrompt(

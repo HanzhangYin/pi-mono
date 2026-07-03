@@ -41,6 +41,8 @@ export interface RunComputationResearchWorkstreamInput {
 	artifactDirectory: string;
 	workingDirectory?: string;
 	maxRuntimeMs?: number;
+	/** Optional plan-task brief (goal + acceptance criteria) steering the computational specialist. */
+	directive?: string;
 }
 
 export interface ComputationResearchWorkstreamResult {
@@ -82,7 +84,7 @@ export async function runComputationResearchWorkstreamStaged(
 			allPaths,
 			priorFindings: path.latestFindings,
 			inputText: "",
-			prompt: buildComputationSpecialistPrompt(rootQuestion, path),
+			prompt: buildComputationSpecialistPrompt(rootQuestion, path, input.directive),
 		},
 		buildFallbackSpecialistText(rootQuestion),
 	);
@@ -481,7 +483,7 @@ function buildDeterministicScriptDraft(rootQuestion: string, path: ResearchPath)
 	};
 }
 
-function buildComputationSpecialistPrompt(rootQuestion: string, path: ResearchPath): string {
+function buildComputationSpecialistPrompt(rootQuestion: string, path: ResearchPath, directive?: string): string {
 	return [
 		"You are the computational specialist for one co-math research path.",
 		`Root question: ${rootQuestion}`,
@@ -489,6 +491,7 @@ function buildComputationSpecialistPrompt(rootQuestion: string, path: ResearchPa
 		`Path objective: ${path.objective}`,
 		"",
 		"Task:",
+		...(directive?.trim() ? ["Task brief from the research plan:", directive.trim(), ""] : []),
 		"Design one bounded finite experiment and provide a small Python script.",
 		"Use only Python standard-library computation, no network, no files, no subprocesses, no package installs.",
 		"Print the checked bound/range and concise results to stdout.",

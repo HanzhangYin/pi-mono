@@ -5,6 +5,7 @@ import {
 	formatResearchBatchPaused,
 	formatResearchBatchStepCompleted,
 } from "./comath-progress.ts";
+import type { CoMathResearchPlanRunner } from "./comath-research-plan-runner.ts";
 import {
 	type CoMathResearchRunner,
 	type CoMathResearchRunnerNotify,
@@ -17,18 +18,21 @@ export interface CoMathResearchBatchRunnerOptions {
 	statePath: string;
 	notify: CoMathResearchRunnerNotify;
 	researchRunner: CoMathResearchRunner;
+	planRunner: CoMathResearchPlanRunner;
 }
 
 export class CoMathResearchBatchRunner {
 	private readonly statePath: string;
 	private readonly notify: CoMathResearchRunnerNotify;
 	private readonly researchRunner: CoMathResearchRunner;
+	private readonly planRunner: CoMathResearchPlanRunner;
 	private readonly activeResearchBatches = new Map<string, Promise<void>>();
 
 	constructor(options: CoMathResearchBatchRunnerOptions) {
 		this.statePath = options.statePath;
 		this.notify = options.notify;
 		this.researchRunner = options.researchRunner;
+		this.planRunner = options.planRunner;
 	}
 
 	startResearchBatchExecution(batchId: string): void {
@@ -71,6 +75,14 @@ export class CoMathResearchBatchRunner {
 			if (batch.completedStepCount >= batch.requestedStepCount) {
 				await this.completeResearchBatch(state, batch);
 				return;
+			}
+			// Without an explicit "work on path N" target, bounded steps work the durable research
+			// plan (creating one if needed) instead of rotating paths directly.
+			if (!batch.initialPathId) {
+				if ((await this.executePlanBackedBatchStep(batch)) === "stop") {
+					return;
+				}
+				continue;
 			}
 			const path = chooseNextResearchBatchPath(state, batch);
 			if (!path) {
@@ -152,6 +164,75 @@ export class CoMathResearchBatchRunner {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * Run one plan task as the next batch step. Each task execution persists on its own durable
+	 * boundaries inside the plan runner; this method only maps the task outcome onto the batch
+	 * record. Returns "continue" when the batch loop should attempt another step.
+	 */
+	private async executePlanBackedBatchStep(batch: ResearchBatchRecord): Promise<"continue" | "stop"> {
+		const prepared = await this.planRunner.ensureExecutablePlan();
+		if (!prepared) {
+			const state = await loadProjectState(this.statePath);
+			const currentBatch = state?.researchBatches.find((candidate) => candidate.id === batch.id);
+			if (state && currentBatch) {
+				await this.failResearchBatch(state, currentBatch, "No research plan is available for the next step.");
+			}
+			return "stop";
+		}
+		const stepIndex = batch.completedStepCount + 1;
+		const outcome = await this.planRunner.executeNextPlanTask(prepared.plan.id, {
+			batchId: batch.id,
+			stepIndex,
+		});
+		const state = await loadProjectState(this.statePath);
+		const currentBatch = state?.researchBatches.find((candidate) => candidate.id === batch.id);
+		if (!state || !currentBatch) {
+			return "stop";
+		}
+		if (currentBatch.status === "cancelled") {
+			await this.notify(formatResearchBatchCancelled({ state, batch: currentBatch }));
+			return "stop";
+		}
+		const now = new Date().toISOString();
+		if (outcome.kind === "plan-completed") {
+			await this.completeResearchBatch(state, currentBatch);
+			return "stop";
+		}
+		if (outcome.kind === "completed") {
+			const run = outcome.runId
+				? state.researchWorkstreamRuns.find((candidate) => candidate.id === outcome.runId)
+				: undefined;
+			const completedState = updateResearchBatch(state, {
+				batchId: batch.id,
+				completedStepCount: stepIndex,
+				...(outcome.runId ? { addRunId: outcome.runId } : {}),
+				...(run ? { currentPathId: run.pathId, lastCompletedPathId: run.pathId } : {}),
+				clearInterruptedRunId: true,
+				now,
+				actor: "system",
+			});
+			await saveProjectState(this.statePath, completedState);
+			const latestBatch =
+				completedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? currentBatch;
+			if (outcome.planCompleted || latestBatch.completedStepCount >= latestBatch.requestedStepCount) {
+				await this.completeResearchBatch(completedState, latestBatch);
+				return "stop";
+			}
+			return "continue";
+		}
+		// Blocked, failed, or not-runnable: the plan runner already paused the plan and told the
+		// user how to resume, so the batch pauses quietly at the same durable boundary.
+		const pausedState = updateResearchBatch(state, {
+			batchId: batch.id,
+			status: "paused",
+			...(outcome.kind === "blocked" || outcome.kind === "failed" ? { failureReason: outcome.reason } : {}),
+			now,
+			actor: "system",
+		});
+		await saveProjectState(this.statePath, pausedState);
+		return "stop";
 	}
 
 	private async completeResearchBatch(state: CoMathProjectState, batch: ResearchBatchRecord): Promise<void> {

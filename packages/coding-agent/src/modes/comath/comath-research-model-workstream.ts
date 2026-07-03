@@ -1,8 +1,10 @@
+import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import {
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
 	getCoMathMarkdownSectionItems as sectionItems,
 } from "./comath-markdown.ts";
+import { runSpecialistToolLoop, type SpecialistToolLoopResult } from "./comath-research-specialist-loop.ts";
 import {
 	buildCoordinatorBrief,
 	type ResearchWorkstreamReport,
@@ -38,6 +40,25 @@ export interface RunModelBackedResearchWorkstreamInput {
 	allPaths: readonly ResearchPath[];
 	now: string;
 	executor: ResearchWorkstreamModelExecutor;
+	/**
+	 * Optional plan-task brief (goal + acceptance criteria) steering the specialist. Only the
+	 * generic workstream honors this today; literature/computation workstreams have their own
+	 * stage-specific prompts.
+	 */
+	directive?: string;
+	/**
+	 * When present, the specialist stage runs as a bounded agentic tool loop (sandboxed
+	 * computations mid-attempt, durable claim recording) instead of a single model call. A model
+	 * that answers directly still makes exactly one call. `onFinished` hands the loop's durable
+	 * side-effects (computation records, recorded claims) to the caller for persistence before the
+	 * critic stage runs.
+	 */
+	specialistToolLoop?: {
+		computationalExecutor?: ComputationalExecutor;
+		workingDirectory?: string;
+		maxToolActions?: number;
+		onFinished?: (result: SpecialistToolLoopResult) => Promise<void> | void;
+	};
 }
 
 export interface ResearchWorkstreamStageResult {
@@ -83,21 +104,46 @@ export async function runModelBackedResearchWorkstreamStaged(
 	});
 
 	await callbacks.onStageStarted?.("specialist", "Specialist research is running.");
-	const specialistText = await runRole(executor, {
-		role: "specialist",
-		rootQuestion,
-		path,
-		allPaths,
-		priorFindings,
-		inputText: "",
-		prompt: buildSpecialistPrompt(rootQuestion, path, priorFindings),
-	});
+	let specialistText: string;
+	let specialistNotes: readonly string[] = [];
+	if (input.specialistToolLoop) {
+		const loop = await runSpecialistToolLoop({
+			rootQuestion,
+			path,
+			allPaths,
+			priorFindings,
+			...(input.directive?.trim() ? { directive: input.directive.trim() } : {}),
+			executor,
+			...(input.specialistToolLoop.computationalExecutor
+				? { computationalExecutor: input.specialistToolLoop.computationalExecutor }
+				: {}),
+			...(input.specialistToolLoop.workingDirectory
+				? { workingDirectory: input.specialistToolLoop.workingDirectory }
+				: {}),
+			...(input.specialistToolLoop.maxToolActions !== undefined
+				? { maxToolActions: input.specialistToolLoop.maxToolActions }
+				: {}),
+		});
+		await input.specialistToolLoop.onFinished?.(loop);
+		specialistText = loop.finalText;
+		specialistNotes = loop.stageNotes;
+	} else {
+		specialistText = await runRole(executor, {
+			role: "specialist",
+			rootQuestion,
+			path,
+			allPaths,
+			priorFindings,
+			inputText: "",
+			prompt: buildSpecialistPrompt(rootQuestion, path, priorFindings, input.directive),
+		});
+	}
 	const specialist = parseMarkdown(specialistText);
 	await callbacks.onStageCompleted?.({
 		stage: "specialist",
 		title: "Specialist attempt",
 		summary: "Specialist attempt completed.",
-		details: renderRoleDetails(specialist),
+		details: [...specialistNotes, ...renderRoleDetails(specialist)],
 		rawText: specialistText,
 	});
 
@@ -219,6 +265,7 @@ export function buildSpecialistPrompt(
 	rootQuestion: string,
 	path: ResearchPath,
 	priorFindings: readonly string[],
+	directive?: string,
 ): string {
 	return [
 		"You are the specialist for one research path in a co-mathematician workspace.",
@@ -229,6 +276,7 @@ export function buildSpecialistPrompt(
 		...formatPriorFindings(priorFindings),
 		"",
 		"Task:",
+		...(directive?.trim() ? ["Task brief from the research plan:", directive.trim(), ""] : []),
 		"Attempt this path. Produce useful partial progress, not polished certainty.",
 		...formatPathSpecificGuidance(path),
 		"Preserve uncertainty. Do not claim a proof of a famous or open problem unless you actually provide a complete proof from the information given.",

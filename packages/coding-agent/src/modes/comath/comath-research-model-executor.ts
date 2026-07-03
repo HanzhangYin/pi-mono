@@ -66,7 +66,7 @@ export function createDefaultResearchModelExecutor(
 	};
 }
 
-const RESEARCH_ROLE_SYSTEM_PROMPT = [
+export const RESEARCH_ROLE_SYSTEM_PROMPT = [
 	"You are a focused mathematical research role inside Pi.",
 	"Answer only the assigned role prompt as visible user-facing mathematical notes.",
 	"Do not narrate your drafting process, hidden reasoning, or intentions.",

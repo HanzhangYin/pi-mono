@@ -98,6 +98,22 @@ export function firstCoMathMarkdownSectionItem(parsed: CoMathParsedMarkdown, key
 	return getCoMathMarkdownSectionItems(parsed, keyword)[0];
 }
 
+/** Extract the first JSON object from model text, tolerating code fences and surrounding prose. */
+export function extractCoMathJsonObject(text: string): Record<string, unknown> | undefined {
+	const withoutFences = text.replace(/```(?:json)?/gi, "\n").trim();
+	const start = withoutFences.indexOf("{");
+	const end = withoutFences.lastIndexOf("}");
+	if (start === -1 || end <= start) {
+		return undefined;
+	}
+	try {
+		const parsed: unknown = JSON.parse(withoutFences.slice(start, end + 1));
+		return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 /** Strip a leading bullet marker (`-`, `*`, `•`, `1.`, `1)`) from a line. */
 export function stripCoMathBulletMarker(line: string): string {
 	return line.replace(BULLET_MARKER, "").trim();

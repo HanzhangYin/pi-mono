@@ -29,6 +29,7 @@ import {
 	type ResearchWorkstreamStageResult,
 	runModelBackedResearchWorkstreamStaged,
 } from "./comath-research-model-workstream.ts";
+import type { SpecialistComputationRecord, SpecialistRecordedClaim } from "./comath-research-specialist-loop.ts";
 import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
 import type {
 	CoMathProjectState,
@@ -231,6 +232,20 @@ export class CoMathResearchRunner {
 		batchId: string,
 		stepIndex: number,
 	): Promise<string> {
+		return this.runBoundedResearchWorkstreamStep(state, path, { batchId, stepIndex });
+	}
+
+	/**
+	 * Run a single research workstream step to completion and return its run id. Unlike
+	 * {@link runResearchWorkstreamForPath} this awaits the run, so bounded executors (research
+	 * batches, plan tasks) can persist durable linkage between steps. Batch linkage is optional:
+	 * plan tasks executed outside a batch reuse the same bounded step without batch fields.
+	 */
+	async runBoundedResearchWorkstreamStep(
+		state: CoMathProjectState,
+		path: ResearchPath,
+		options: { batchId?: string; stepIndex?: number; taskBrief?: string } = {},
+	): Promise<string> {
 		const now = new Date().toISOString();
 		const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
 		let nextState = addResearchWorkstreamRun(state, {
@@ -238,8 +253,8 @@ export class CoMathResearchRunner {
 			pathId: path.id,
 			pathTitle: path.title,
 			currentStage: "coordinator",
-			batchId,
-			batchStepIndex: stepIndex,
+			...(options.batchId ? { batchId: options.batchId } : {}),
+			...(options.stepIndex !== undefined ? { batchStepIndex: options.stepIndex } : {}),
 			now,
 			actor: "system",
 		});
@@ -249,7 +264,7 @@ export class CoMathResearchRunner {
 			await this.notifyResearchWorkstreamActivityStart(nextState, run);
 		}
 		if (this.researchModelExecutor) {
-			const workstream = this.executeResearchWorkstreamInBackground(runId).finally(async () => {
+			const workstream = this.executeResearchWorkstreamInBackground(runId, options.taskBrief).finally(async () => {
 				this.activeResearchWorkstreams.delete(runId);
 				await this.notifyResearchWorkstreamActivityEnd(runId);
 			});
@@ -286,7 +301,7 @@ export class CoMathResearchRunner {
 		return runId;
 	}
 
-	private async executeResearchWorkstreamInBackground(runId: string): Promise<void> {
+	private async executeResearchWorkstreamInBackground(runId: string, taskBrief?: string): Promise<void> {
 		const state = await loadProjectState(this.statePath);
 		const run = state?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
 		const path = run ? state?.researchPaths.find((candidate) => candidate.id === run.pathId) : undefined;
@@ -307,6 +322,7 @@ export class CoMathResearchRunner {
 							sources: state.literatureSources,
 							fallback: this.literatureSourceLookup,
 						}),
+						...(taskBrief?.trim() ? { directive: taskBrief.trim() } : {}),
 					},
 					{
 						onStageStarted: async (stage, summary) => {
@@ -338,6 +354,7 @@ export class CoMathResearchRunner {
 						computationalExecutor: this.computationalExecutor,
 						artifactDirectory: artifactPaths.relative,
 						workingDirectory: artifactPaths.absolute,
+						...(taskBrief?.trim() ? { directive: taskBrief.trim() } : {}),
 					},
 					{
 						onStageStarted: async (stage, summary) => {
@@ -357,6 +374,14 @@ export class CoMathResearchRunner {
 				await this.completeComputationResearchWorkstreamRun(runId, computationResult);
 				return;
 			}
+			// Generic (proof-oriented) paths run the specialist as a bounded agentic tool loop: it may
+			// run sandboxed computations mid-attempt and record durable claims before its final note.
+			// A model that answers directly degrades to the old single specialist call. Loop side
+			// effects are persisted as soon as the loop finishes (before the critic runs) so they
+			// survive a later interruption; claims are linked to the report after it exists.
+			const specialistPaths = this.getComputationArtifactPaths(`${runId}-specialist`);
+			let specialistArtifactIds: string[] = [];
+			let specialistClaims: readonly SpecialistRecordedClaim[] = [];
 			const report = await runModelBackedResearchWorkstreamStaged(
 				{
 					rootQuestion: state.rootQuestion,
@@ -364,6 +389,20 @@ export class CoMathResearchRunner {
 					allPaths: state.researchPaths,
 					now,
 					executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
+					...(taskBrief?.trim() ? { directive: taskBrief.trim() } : {}),
+					specialistToolLoop: {
+						computationalExecutor: this.computationalExecutor,
+						workingDirectory: specialistPaths.absolute,
+						onFinished: async (loop) => {
+							specialistClaims = loop.recordedClaims;
+							specialistArtifactIds = await this.persistSpecialistComputationRecords(
+								runId,
+								path.id,
+								specialistPaths.relative,
+								loop.computationRecords,
+							);
+						},
+					},
 				},
 				{
 					onStageStarted: async (stage, summary) => {
@@ -380,10 +419,92 @@ export class CoMathResearchRunner {
 					},
 				},
 			);
-			await this.completeResearchWorkstreamRun(runId, report);
+			await this.completeResearchWorkstreamRun(
+				runId,
+				specialistArtifactIds.length > 0
+					? {
+							...report,
+							computationalArtifactIds: [...(report.computationalArtifactIds ?? []), ...specialistArtifactIds],
+						}
+					: report,
+			);
+			await this.persistSpecialistRecordedClaims(runId, path.id, specialistClaims);
 		} catch (error: unknown) {
 			await this.completeResearchWorkstreamWithFallback(runId, error);
 		}
+	}
+
+	/**
+	 * Persist the computations the specialist ran mid-attempt as durable computation records
+	 * linked to the run; ids are folded into the final report so linkage flows to plan tasks.
+	 */
+	private async persistSpecialistComputationRecords(
+		runId: string,
+		pathId: string,
+		artifactDirectory: string,
+		records: readonly SpecialistComputationRecord[],
+	): Promise<string[]> {
+		if (records.length === 0) {
+			return [];
+		}
+		const state = await loadProjectState(this.statePath);
+		if (!state) {
+			return [];
+		}
+		const now = new Date().toISOString();
+		let nextState = state;
+		const artifactIds: string[] = [];
+		for (const record of records) {
+			nextState = addComputationalArtifact(nextState, {
+				pathId,
+				runId,
+				kind: record.kind,
+				status: record.exitCode === undefined || record.exitCode === 0 ? "completed" : "failed",
+				title: record.title,
+				...(record.fileName ? { filePath: `${artifactDirectory}/${record.fileName}` } : {}),
+				...(record.command ? { command: record.command } : {}),
+				...(record.exitCode !== undefined ? { exitCode: record.exitCode } : {}),
+				summary: record.summary,
+				now,
+				actor: "workstream",
+			});
+			const artifactId = nextState.computationalArtifacts.at(-1)?.id;
+			if (artifactId) {
+				artifactIds.push(artifactId);
+			}
+		}
+		await saveProjectState(this.statePath, nextState);
+		return artifactIds;
+	}
+
+	/** Persist claims the specialist recorded mid-attempt, linked to the run's final report. */
+	private async persistSpecialistRecordedClaims(
+		runId: string,
+		pathId: string,
+		claims: readonly SpecialistRecordedClaim[],
+	): Promise<void> {
+		if (claims.length === 0) {
+			return;
+		}
+		const state = await loadProjectState(this.statePath);
+		if (!state) {
+			return;
+		}
+		const reportId = state.researchWorkstreamRuns.find((candidate) => candidate.id === runId)?.finalReportId;
+		const now = new Date().toISOString();
+		let nextState = state;
+		for (const claim of claims) {
+			nextState = addResearchEvidenceBoardEntry(nextState, {
+				pathId,
+				...(reportId ? { reportId } : {}),
+				claim: claim.claim,
+				classification: claim.classification,
+				rationale: `${claim.rationale} Recorded by the specialist during the attempt.`,
+				now,
+				actor: "workstream",
+			});
+		}
+		await saveProjectState(this.statePath, nextState);
 	}
 
 	private async saveResearchWorkstreamStageStarted(
@@ -784,33 +905,46 @@ export class CoMathResearchRunner {
 		if (latestCoordinator?.inputReportIds.length === state.researchReports.length) {
 			return;
 		}
-		const now = new Date().toISOString();
-		const result = await runResearchCoordinatorSynthesis({
+		const result = await persistResearchCoordinatorSynthesisReport(
 			state,
-			executor: this.researchModelExecutor,
-			now,
-		});
-		let nextState = upsertWorkingPaperSectionByTitle(state, {
-			title: "Project coordinator synthesis",
-			body: buildCoordinatorWorkingPaperBody(result.report),
-			now,
-			actor: "coordinator",
-		});
-		const section = nextState.workingPaperSections.find(
-			(candidate) => candidate.title === "Project coordinator synthesis",
+			this.researchModelExecutor,
+			new Date().toISOString(),
 		);
-		nextState = addResearchCoordinatorReport(nextState, {
-			...result.report,
-			...(section ? { workingPaperSectionId: section.id } : {}),
-			now,
-			actor: "coordinator",
-		});
-		const report = nextState.researchCoordinatorReports.at(-1);
-		if (report) {
-			nextState = applyCoordinatorPathDecisions(nextState, report, now);
-		}
-		await saveProjectState(this.statePath, nextState);
+		await saveProjectState(this.statePath, result.state);
 	}
+}
+
+/**
+ * Run the project coordinator synthesis and fold its report, working-paper section, and path
+ * decisions into the state. Shared by the automatic post-report refresh and the plan runner's
+ * synthesis task. The caller persists the returned state.
+ */
+export async function persistResearchCoordinatorSynthesisReport(
+	state: CoMathProjectState,
+	executor: ResearchWorkstreamModelExecutor | undefined,
+	now: string,
+): Promise<{ state: CoMathProjectState; reportId?: string }> {
+	const result = await runResearchCoordinatorSynthesis({ state, executor, now });
+	let nextState = upsertWorkingPaperSectionByTitle(state, {
+		title: "Project coordinator synthesis",
+		body: buildCoordinatorWorkingPaperBody(result.report),
+		now,
+		actor: "coordinator",
+	});
+	const section = nextState.workingPaperSections.find(
+		(candidate) => candidate.title === "Project coordinator synthesis",
+	);
+	nextState = addResearchCoordinatorReport(nextState, {
+		...result.report,
+		...(section ? { workingPaperSectionId: section.id } : {}),
+		now,
+		actor: "coordinator",
+	});
+	const report = nextState.researchCoordinatorReports.at(-1);
+	if (report) {
+		nextState = applyCoordinatorPathDecisions(nextState, report, now);
+	}
+	return { state: nextState, ...(report ? { reportId: report.id } : {}) };
 }
 
 function appendIncrementalReports(

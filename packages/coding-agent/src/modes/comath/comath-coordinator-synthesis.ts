@@ -91,7 +91,7 @@ export function buildResearchCoordinatorPrompt(state: CoMathProjectState): strin
 	].join("\n");
 }
 
-function buildCoordinatorContext(state: CoMathProjectState): string {
+export function buildCoordinatorContext(state: CoMathProjectState): string {
 	return [
 		"Durable project state",
 		`Root question: ${state.rootQuestion}`,
