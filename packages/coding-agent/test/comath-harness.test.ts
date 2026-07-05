@@ -2057,7 +2057,10 @@ describe("co-math harness", () => {
 
 	it("records unsupported n^2 + 1 Path 5 status when no source backend is available", async () => {
 		const { executor, requests } = createNSquaredLiteratureExecutor();
-		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		// An empty stub keeps the "no sources found" premise true even on machines with internet
+		// access; the default lookup would query real providers here.
+		const { lookup } = createLiteratureLookup([]);
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, lookup);
 		try {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
 			await harness.handlePrompt("continue path 5");
@@ -2093,7 +2096,10 @@ describe("co-math harness", () => {
 
 	it("uses registered Path 5 sources for source-backed claim classification", async () => {
 		const { executor, requests } = createNSquaredLiteratureExecutor();
-		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor);
+		// The registered workspace source must be the only one: an empty fallback keeps real
+		// provider results from merging in on machines with internet access.
+		const { lookup } = createLiteratureLookup([]);
+		const { dir, harness, notices, statePath } = await createModelHarnessFixture(executor, lookup);
 		try {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
 			await harness.handlePrompt(
@@ -3426,13 +3432,15 @@ describe("co-math harness", () => {
 				"literature-search",
 				"computation",
 				"proof-attempt",
-				"critic",
+				"refutation-attempt",
 				"synthesis",
 			]);
 			expect(state.researchPlanTasks.every((task) => task.status === "pending")).toBe(true);
 			expect(state.researchPlanTasks[0]?.pathId).toBe("path-5");
 			expect(state.researchPlanTasks[1]?.pathId).toBe("path-1");
 			expect(state.researchPlanTasks[2]?.pathId).toBe("path-2");
+			// The refutation attempt prefers the computational path.
+			expect(state.researchPlanTasks[3]?.pathId).toBe("path-1");
 
 			// A repeated "make a plan" reuses the existing plan instead of stacking a duplicate.
 			await harness.handlePrompt("create a research plan");
@@ -3510,7 +3518,12 @@ describe("co-math harness", () => {
 			const finalState = await loadRequiredProjectState(statePath);
 			expect(finalState.researchPlanTasks.every((task) => task.status === "completed")).toBe(true);
 			expect(finalState.researchCoordinatorReports.length).toBeGreaterThan(0);
-			expect(finalState.researchPlanTasks[3]?.reportId).toBe("research-report-3");
+			// The refutation attempt runs its own research step with its own report.
+			expect(finalState.researchPlanTasks[3]).toMatchObject({
+				kind: "refutation-attempt",
+				runId: "research-run-4",
+				reportId: "research-report-4",
+			});
 			expect(finalState.researchPlanTasks[4]?.reportId).toBe(finalState.researchCoordinatorReports.at(-1)?.id);
 
 			const visible = notices.join("\n");

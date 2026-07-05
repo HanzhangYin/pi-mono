@@ -26,11 +26,14 @@ export type ResearchPlanTaskStatus = "pending" | "running" | "completed" | "bloc
 export type ResearchPlanTaskKind =
 	| "literature-search"
 	| "proof-attempt"
+	| "refutation-attempt"
 	| "computation"
 	| "critic"
 	| "synthesis"
 	| "source-refresh"
+	| "revise-conjecture"
 	| "export";
+export type ConjectureRevisionKind = "weakened" | "strengthened" | "specialized" | "generalized" | "repaired";
 export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "user-provided" | "unknown";
 export type LiteratureSourceProvider =
 	| "workspace"
@@ -380,6 +383,12 @@ export interface ResearchEvidenceBoardEntry {
 	claim: string;
 	classification: ResearchEvidenceClassification;
 	rationale: string;
+	/** Evidence entry this statement was revised from (conjecture lineage). */
+	parentEntryId?: string;
+	/** How the statement changed relative to its parent. */
+	revisionKind?: ConjectureRevisionKind;
+	/** One sentence recording what refuted or wounded the parent statement. */
+	revisionNote?: string;
 	createdAt: string;
 	updatedAt: string;
 }

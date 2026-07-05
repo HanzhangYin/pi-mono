@@ -13,6 +13,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import * as nodePath from "node:path";
 import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import {
+	formatConjectureRefuted,
+	formatConjectureRevised,
 	formatResearchPlanAmended,
 	formatResearchPlanBlocked,
 	formatResearchPlanCompleted,
@@ -25,6 +27,7 @@ import {
 import { amendResearchPlanAfterTask, proposeResearchPlan } from "./comath-research-director.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import { chooseResearchPathForPlanTaskKind } from "./comath-research-planner.ts";
+import { runConjectureRevisionTask } from "./comath-research-revision.ts";
 import {
 	type CoMathResearchRunner,
 	type CoMathResearchRunnerNotify,
@@ -283,12 +286,16 @@ export class CoMathResearchPlanRunner {
 			task.kind === "literature-search" ||
 			task.kind === "source-refresh" ||
 			task.kind === "computation" ||
-			task.kind === "proof-attempt"
+			task.kind === "proof-attempt" ||
+			task.kind === "refutation-attempt"
 		) {
 			return await this.executeWorkstreamBackedTask(state, task, options);
 		}
 		if (task.kind === "critic") {
 			return await this.executeCriticTask(state);
+		}
+		if (task.kind === "revise-conjecture") {
+			return await this.executeConjectureRevisionTask(task);
 		}
 		if (task.kind === "synthesis") {
 			return await this.executeSynthesisTask(state);
@@ -324,6 +331,7 @@ export class CoMathResearchPlanRunner {
 			const evidenceEntryIds = report
 				? latest.researchEvidenceBoard.filter((entry) => entry.reportId === report.id).map((entry) => entry.id)
 				: [];
+			await this.maybeAnnounceRefutation(latest, task, evidenceEntryIds, skeptic?.counterexampleFound ?? false);
 			return {
 				status: "completed",
 				runId,
@@ -365,7 +373,9 @@ export class CoMathResearchPlanRunner {
 		task: ResearchPlanTaskRecord,
 		reportId: string,
 		runId: string,
-	): Promise<{ state: CoMathProjectState; computationalArtifactIds: string[] } | undefined> {
+	): Promise<
+		{ state: CoMathProjectState; computationalArtifactIds: string[]; counterexampleFound: boolean } | undefined
+	> {
 		if (!this.researchDirectorExecutor) {
 			return undefined;
 		}
@@ -395,10 +405,65 @@ export class CoMathResearchPlanRunner {
 					gate.counterexampleFound ? "warning" : "info",
 				);
 			}
-			return { state: gate.state, computationalArtifactIds: gate.computationalArtifactIds };
+			return {
+				state: gate.state,
+				computationalArtifactIds: gate.computationalArtifactIds,
+				counterexampleFound: gate.counterexampleFound,
+			};
 		} catch {
 			return undefined;
 		}
+	}
+
+	/**
+	 * Announce when a completed task's evidence points against the statement as written: a skeptic
+	 * counterexample or a conflicting evidence entry from this task. Detection is data-driven, so it
+	 * works the same whether the evidence came from the specialist loop or the skeptic gate.
+	 */
+	private async maybeAnnounceRefutation(
+		state: CoMathProjectState,
+		task: ResearchPlanTaskRecord,
+		evidenceEntryIds: readonly string[],
+		counterexampleFound: boolean,
+	): Promise<void> {
+		const entryIds = new Set(evidenceEntryIds);
+		const conflicting = state.researchEvidenceBoard.find(
+			(entry) => entryIds.has(entry.id) && entry.classification === "conflicting",
+		);
+		if (!conflicting && !counterexampleFound) {
+			return;
+		}
+		const revisionPlanned = getResearchPlanTasks(state, task.planId).some(
+			(candidate) => candidate.kind === "revise-conjecture" && candidate.status === "pending",
+		);
+		await this.notify(
+			formatConjectureRefuted({
+				...(conflicting ? { evidenceHint: `${conflicting.claim} — ${conflicting.rationale}` } : {}),
+				revisionPlanned,
+			}),
+			"warning",
+		);
+	}
+
+	private async executeConjectureRevisionTask(task: ResearchPlanTaskRecord): Promise<PlanTaskExecutionResult> {
+		const state = await loadProjectState(this.statePath);
+		if (!state) {
+			return { status: "failed", reason: "The research workspace could not be loaded." };
+		}
+		const result = await runConjectureRevisionTask(state, {
+			...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+			task,
+			now: new Date().toISOString(),
+		});
+		if (result.outcome === "blocked") {
+			return { status: "blocked", reason: result.blockedReason ?? "The statement could not be revised." };
+		}
+		await saveProjectState(this.statePath, result.state);
+		await this.notify(formatConjectureRevised({ state: result.state, revisedEntryIds: result.revisedEntryIds }));
+		return {
+			status: "completed",
+			evidenceEntryIds: [...(result.parentEntryId ? [result.parentEntryId] : []), ...result.revisedEntryIds],
+		};
 	}
 
 	private async executeCriticTask(state: CoMathProjectState): Promise<PlanTaskExecutionResult> {
@@ -621,9 +686,20 @@ export class CoMathResearchPlanRunner {
 	}
 }
 
-/** Compact brief handed to the executing workstream: goal plus what "done" means. */
+/**
+ * Compact brief handed to the executing workstream: goal plus what "done" means. Refutation tasks
+ * always carry a falsification directive, even when the task has no model-authored goal, so the
+ * specialist works against the statement instead of for it.
+ */
 function buildPlanTaskBrief(task: ResearchPlanTaskRecord): string | undefined {
 	const lines = [
+		...(task.kind === "refutation-attempt"
+			? [
+					"Your job on this step is to disprove the statement, not to support it.",
+					"Prefer concrete computations over argument: search for a counterexample or a structural obstruction.",
+					"If a computation refutes the statement, say so plainly — a counterexample here is success, not failure.",
+				]
+			: []),
 		...(task.goal ? [`Goal: ${task.goal}`] : []),
 		...(task.acceptanceCriteria.length > 0
 			? ["Done when:", ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`)]

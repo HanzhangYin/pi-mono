@@ -39,13 +39,16 @@ export interface CreateResearchPlanResult {
 
 /**
  * Build the ordered task blueprints for a fresh plan: check sources first, gather computational
- * evidence, attempt a proof step, then review and synthesize. Tasks whose path type does not exist
- * in the workspace are skipped, and the total is capped at {@link MAX_RESEARCH_PLAN_TASKS}.
+ * evidence, then work both sides of the question — a proof attempt and a refutation attempt —
+ * before synthesizing. Adversarial review of each task is the skeptic gate's job, so no standalone
+ * critic task is planned. Tasks whose path type does not exist in the workspace are skipped, and
+ * the total is capped at {@link MAX_RESEARCH_PLAN_TASKS}.
  */
 export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): ResearchPlanTaskBlueprint[] {
 	const literaturePath = chooseResearchPathForPlanTaskKind(state, "literature-search");
 	const computationPath = chooseResearchPathForPlanTaskKind(state, "computation");
 	const proofPath = chooseResearchPathForPlanTaskKind(state, "proof-attempt");
+	const refutationPath = chooseResearchPathForPlanTaskKind(state, "refutation-attempt");
 	const blueprints: ResearchPlanTaskBlueprint[] = [
 		...(literaturePath
 			? [
@@ -77,11 +80,16 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 					},
 				]
 			: []),
-		{
-			kind: "critic" as const,
-			title: "Review recent findings for gaps",
-			description: "Check the latest findings for overclaims, missing support, and open gaps.",
-		},
+		...(refutationPath
+			? [
+					{
+						kind: "refutation-attempt" as const,
+						title: "Try to disprove it",
+						description: `Search actively for a counterexample or obstruction to: ${state.rootQuestion}`,
+						pathId: refutationPath.id,
+					},
+				]
+			: []),
 		{
 			kind: "synthesis" as const,
 			title: "Summarize durable findings and pick the next move",
@@ -139,6 +147,10 @@ export function chooseResearchPathForPlanTaskKind(
 	}
 	if (kind === "proof-attempt") {
 		return chooseProofAttemptPath(usablePaths);
+	}
+	if (kind === "refutation-attempt") {
+		// Refutation prefers concrete computation over argument; fall back to the proof path.
+		return usablePaths.find((path) => isComputationalResearchPath(path)) ?? chooseProofAttemptPath(usablePaths);
 	}
 	return undefined;
 }

@@ -41,6 +41,8 @@ import {
 	getComputationalArtifactsForReport,
 	getComputationalArtifactsForRun,
 	getDefaultStatePath,
+	getEvidenceChildren,
+	getEvidenceLineage,
 	getLatestResearchCoordinatorReport,
 	getLatestResearchPlan,
 	getLatestResearchWorkstreamReport,
@@ -941,6 +943,120 @@ describe("co-math project state", () => {
 
 		state = updateResearchPlan(state, { planId: "research-plan-1", status: "active", now: FIXED_NOW });
 		expect(getActiveResearchPlan(state)?.pauseReason).toBeUndefined();
+	});
+
+	it("records conjecture lineage on evidence entries and walks it in both directions", async () => {
+		let state = createProject();
+		state = addResearchEvidenceBoardEntry(state, {
+			claim: "n^2 + n + 41 is prime for every non-negative integer n.",
+			classification: "conjecture",
+			rationale: "Original statement of the research question.",
+			now: FIXED_NOW,
+			actor: "coordinator",
+		});
+		state = addResearchEvidenceBoardEntry(state, {
+			claim: "n^2 + n + 41 is prime for every integer 0 <= n <= 39.",
+			classification: "conjecture",
+			rationale: "Revised (weakened) after the earlier statement was refuted.",
+			parentEntryId: "evidence-board-1",
+			revisionKind: "weakened",
+			revisionNote: "n = 40 gives 41^2, which is composite.",
+			now: FIXED_NOW,
+			actor: "coordinator",
+		});
+		// A dangling parent id drops the lineage link but keeps the entry.
+		state = addResearchEvidenceBoardEntry(state, {
+			claim: "An unrelated claim with a bogus parent.",
+			classification: "heuristic",
+			rationale: "Should keep the entry, not the link.",
+			parentEntryId: "evidence-board-999",
+			revisionKind: "repaired",
+			revisionNote: "Should be dropped with the link.",
+			now: FIXED_NOW,
+			actor: "coordinator",
+		});
+
+		expect(state.researchEvidenceBoard[1]).toMatchObject({
+			parentEntryId: "evidence-board-1",
+			revisionKind: "weakened",
+			revisionNote: "n = 40 gives 41^2, which is composite.",
+		});
+		expect(state.researchEvidenceBoard[2]?.parentEntryId).toBeUndefined();
+		expect(state.researchEvidenceBoard[2]?.revisionKind).toBeUndefined();
+		expect(state.researchEvidenceBoard[2]?.revisionNote).toBeUndefined();
+		expect(getEvidenceLineage(state, "evidence-board-2").map((entry) => entry.id)).toEqual([
+			"evidence-board-1",
+			"evidence-board-2",
+		]);
+		expect(getEvidenceChildren(state, "evidence-board-1").map((entry) => entry.id)).toEqual(["evidence-board-2"]);
+		expect(getEvidenceChildren(state, "evidence-board-2")).toEqual([]);
+
+		// Lineage fields survive a save/load round trip; legacy entries without them stay untouched.
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-lineage-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			await saveProjectState(statePath, state);
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchEvidenceBoard[1]).toMatchObject({
+				parentEntryId: "evidence-board-1",
+				revisionKind: "weakened",
+			});
+			expect(loaded?.researchEvidenceBoard[0]?.parentEntryId).toBeUndefined();
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes unknown revision kinds away while keeping the lineage link", async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-lineage-normalize-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			const legacy = createProject() as unknown as Record<string, unknown>;
+			legacy.researchEvidenceBoard = [
+				{ id: "evidence-board-1", claim: "Original.", classification: "conjecture", rationale: "Root." },
+				{
+					id: "evidence-board-2",
+					claim: "Revised.",
+					classification: "conjecture",
+					rationale: "Child.",
+					parentEntryId: "evidence-board-1",
+					revisionKind: "made-up-kind",
+					revisionNote: "kept",
+				},
+			];
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchEvidenceBoard[1]).toMatchObject({
+				parentEntryId: "evidence-board-1",
+				revisionNote: "kept",
+			});
+			expect(loaded?.researchEvidenceBoard[1]?.revisionKind).toBeUndefined();
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("accepts the refutation-attempt and revise-conjecture plan task kinds", async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-new-kinds-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			const legacy = createProject() as unknown as Record<string, unknown>;
+			legacy.researchPlans = [{ id: "research-plan-1", status: "active" }];
+			legacy.researchPlanTasks = [
+				{ planId: "research-plan-1", kind: "refutation-attempt" },
+				{ planId: "research-plan-1", kind: "revise-conjecture" },
+			];
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchPlanTasks.map((task) => task.kind)).toEqual([
+				"refutation-attempt",
+				"revise-conjecture",
+			]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("normalizes stored states that predate researchPlans and researchPlanTasks without a version bump", async () => {

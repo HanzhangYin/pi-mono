@@ -14,6 +14,7 @@ import type {
 	ComputationalArtifact,
 	ComputationalArtifactKind,
 	ComputationalArtifactStatus,
+	ConjectureRevisionKind,
 	Evidence,
 	EvidenceKind,
 	GoalStatus,
@@ -376,6 +377,9 @@ export interface AddResearchEvidenceBoardEntryInput {
 	claim: string;
 	classification: ResearchEvidenceClassification;
 	rationale: string;
+	parentEntryId?: string;
+	revisionKind?: ConjectureRevisionKind;
+	revisionNote?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -1558,6 +1562,12 @@ export function addResearchEvidenceBoardEntry(
 	if (state.researchEvidenceBoard.some((entry) => entry.id === id)) {
 		throw new Error(`Duplicate research evidence board entry id: ${id}`);
 	}
+	// Lineage links must resolve; a dangling parent id drops the link but keeps the entry.
+	const parentEntryId = input.parentEntryId?.trim();
+	const parentExists =
+		parentEntryId !== undefined &&
+		parentEntryId.length > 0 &&
+		state.researchEvidenceBoard.some((entry) => entry.id === parentEntryId);
 	const entry: ResearchEvidenceBoardEntry = {
 		id,
 		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
@@ -1569,6 +1579,9 @@ export function addResearchEvidenceBoardEntry(
 		claim,
 		classification: input.classification,
 		rationale,
+		...(parentExists ? { parentEntryId } : {}),
+		...(parentExists && input.revisionKind ? { revisionKind: input.revisionKind } : {}),
+		...(parentExists && input.revisionNote?.trim() ? { revisionNote: input.revisionNote.trim() } : {}),
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
@@ -1594,6 +1607,27 @@ export function addResearchEvidenceBoardEntry(
 			now: input.now,
 		},
 	);
+}
+
+/**
+ * Root-to-leaf revision chain ending at the given evidence entry. Cycles and dangling parent ids
+ * terminate the walk instead of looping.
+ */
+export function getEvidenceLineage(state: CoMathProjectState, entryId: string): ResearchEvidenceBoardEntry[] {
+	const byId = new Map(state.researchEvidenceBoard.map((entry) => [entry.id, entry]));
+	const chain: ResearchEvidenceBoardEntry[] = [];
+	const seen = new Set<string>();
+	let current = byId.get(entryId);
+	while (current && !seen.has(current.id)) {
+		seen.add(current.id);
+		chain.unshift(current);
+		current = current.parentEntryId ? byId.get(current.parentEntryId) : undefined;
+	}
+	return chain;
+}
+
+export function getEvidenceChildren(state: CoMathProjectState, entryId: string): ResearchEvidenceBoardEntry[] {
+	return state.researchEvidenceBoard.filter((entry) => entry.parentEntryId === entryId);
 }
 
 export function getLiteratureSourcesForReport(state: CoMathProjectState, reportId: string): LiteratureSourceArtifact[] {
@@ -3469,9 +3503,31 @@ function normalizeResearchEvidenceBoardEntry(
 		claim: getStringField(value, "claim", ""),
 		classification: normalizeResearchEvidenceClassification(value.classification),
 		rationale: getStringField(value, "rationale", ""),
+		...(getOptionalStringField(value, "parentEntryId")
+			? { parentEntryId: getOptionalStringField(value, "parentEntryId") }
+			: {}),
+		...(normalizeConjectureRevisionKind(value.revisionKind)
+			? { revisionKind: normalizeConjectureRevisionKind(value.revisionKind) }
+			: {}),
+		...(getOptionalStringField(value, "revisionNote")
+			? { revisionNote: getOptionalStringField(value, "revisionNote") }
+			: {}),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
+}
+
+function normalizeConjectureRevisionKind(value: unknown): ConjectureRevisionKind | undefined {
+	if (
+		value === "weakened" ||
+		value === "strengthened" ||
+		value === "specialized" ||
+		value === "generalized" ||
+		value === "repaired"
+	) {
+		return value;
+	}
+	return undefined;
 }
 
 function normalizeComputationalArtifact(
@@ -3732,10 +3788,12 @@ function normalizeResearchPlanTaskKind(value: unknown): ResearchPlanTaskKind {
 	if (
 		value === "literature-search" ||
 		value === "proof-attempt" ||
+		value === "refutation-attempt" ||
 		value === "computation" ||
 		value === "critic" ||
 		value === "synthesis" ||
 		value === "source-refresh" ||
+		value === "revise-conjecture" ||
 		value === "export"
 	) {
 		return value;

@@ -125,6 +125,13 @@ export function isShowEvidencePrompt(prompt: string): boolean {
 	return /^show (?:me )?(?:the )?evidence(?: board)?$/i.test(normalizeCoMathPrompt(prompt));
 }
 
+/** `show lineage`, `show the conjecture history`, `how did the conjecture change`, and variants. */
+export function isShowConjectureLineagePrompt(prompt: string): boolean {
+	return /^(?:show (?:me )?(?:the )?(?:conjecture |statement )?(?:lineage|revision history)|show (?:me )?(?:the )?(?:conjecture|statement) history|how did the (?:conjecture|statement) (?:change|evolve)\??)$/i.test(
+		normalizeCoMathPrompt(prompt),
+	);
+}
+
 /** `show progress`, `status`, `what are you doing`, `show latest run`, and polite variants. */
 export function isShowProgressPrompt(prompt: string): boolean {
 	return /^(?:show (?:the )?(?:current )?progress|status|what are you doing\??|show (?:the )?latest run)$/i.test(

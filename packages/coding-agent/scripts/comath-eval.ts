@@ -94,6 +94,8 @@ interface EvalScore {
 	overclaims: string[];
 	copyViolations: string[];
 	counterexampleSurfaced: boolean | undefined;
+	/** Tier 3 only: whether a revised statement with lineage was recorded after the refutation. */
+	conjectureRevised: boolean | undefined;
 	resumedCleanly: boolean;
 }
 
@@ -218,6 +220,9 @@ async function evaluateCase(evalCase: EvalCase, options: EvalOptions): Promise<E
 			counterexampleSurfaced: evalCase.counterexampleSignal
 				? hasCounterexampleEvidence(state, evalCase.counterexampleSignal)
 				: undefined,
+			conjectureRevised: evalCase.counterexampleSignal
+				? (state?.researchEvidenceBoard.some((entry) => entry.parentEntryId !== undefined) ?? false)
+				: undefined,
 			resumedCleanly,
 		};
 	} finally {
@@ -230,7 +235,7 @@ function hasCounterexampleEvidence(state: CoMathProjectState | undefined, signal
 		return false;
 	}
 	const evidenceText = [
-		...state.researchEvidenceBoard.map((entry) => `${entry.claim} ${entry.rationale}`),
+		...state.researchEvidenceBoard.map((entry) => `${entry.claim} ${entry.rationale} ${entry.revisionNote ?? ""}`),
 		...state.computationalArtifacts.map((record) => record.summary),
 		...state.researchReports.flatMap((report) => report.findings),
 	].join("\n");
@@ -304,6 +309,14 @@ for (const score of scores) {
 		} else {
 			problems.push("counterexample not surfaced (informational without a model)");
 		}
+	}
+	// Soft expectation for this milestone: report it, never hard-fail on it.
+	if (score.conjectureRevised === false) {
+		problems.push(
+			modelExecutor
+				? "statement not revised after refutation (soft expectation in model mode)"
+				: "statement not revised (informational without a model)",
+		);
 	}
 	if (hardFailure) {
 		failures += 1;

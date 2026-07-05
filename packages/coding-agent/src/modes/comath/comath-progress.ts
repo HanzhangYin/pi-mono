@@ -639,6 +639,89 @@ export function formatSkepticReviewCompleted(input: FormatSkepticReviewCompleted
 	].join("\n");
 }
 
+export interface FormatConjectureRefutedInput {
+	/** Human-readable line of the evidence that points against the statement. */
+	evidenceHint?: string;
+	/** Whether a revision step is already planned. */
+	revisionPlanned: boolean;
+}
+
+/** Announces that durable evidence now points against the statement as written. */
+export function formatConjectureRefuted(input: FormatConjectureRefutedInput): string {
+	return [
+		"The evidence now points against the statement as written.",
+		...(input.evidenceHint ? ["", "What failed", `- ${stripInlineSourceLabels(input.evidenceHint)}`] : []),
+		"",
+		input.revisionPlanned
+			? "A step to repair the statement is already planned; the refuted version stays on record."
+			: 'The refuted version stays on record. Say "show evidence" for the details.',
+	].join("\n");
+}
+
+export interface FormatConjectureRevisedInput {
+	state: { researchEvidenceBoard: readonly ResearchEvidenceBoardEntry[] };
+	revisedEntryIds: readonly string[];
+}
+
+/** Announces the revised statement(s) recorded by a revision step. */
+export function formatConjectureRevised(input: FormatConjectureRevisedInput): string {
+	const revised = input.state.researchEvidenceBoard.filter((entry) => input.revisedEntryIds.includes(entry.id));
+	return [
+		"I revised the statement to fit the evidence.",
+		"",
+		revised.length === 1 ? "New statement" : "New statements",
+		...revised.map(
+			(entry) => `- ${stripInlineSourceLabels(entry.claim)}${entry.revisionKind ? ` (${entry.revisionKind})` : ""}`,
+		),
+		"",
+		'The earlier version stays on record with what refuted it. Say "show lineage" to see how the statement evolved.',
+	].join("\n");
+}
+
+/** Indented revision tree shown by `show lineage`; concise product copy without internal ids. */
+export function formatConjectureLineage(state: {
+	researchEvidenceBoard: readonly ResearchEvidenceBoardEntry[];
+}): string {
+	const entries = state.researchEvidenceBoard;
+	const linked = new Set<string>();
+	for (const entry of entries) {
+		if (entry.parentEntryId && entries.some((candidate) => candidate.id === entry.parentEntryId)) {
+			linked.add(entry.id);
+			linked.add(entry.parentEntryId);
+		}
+	}
+	if (linked.size === 0) {
+		return "The statement hasn't needed revision yet.";
+	}
+	const roots = entries.filter(
+		(entry) => linked.has(entry.id) && (!entry.parentEntryId || !entries.some((e) => e.id === entry.parentEntryId)),
+	);
+	const lines: string[] = ["How the statement evolved", ""];
+	const seen = new Set<string>();
+	const renderNode = (entry: ResearchEvidenceBoardEntry, depth: number): void => {
+		if (seen.has(entry.id)) {
+			return;
+		}
+		seen.add(entry.id);
+		const children = entries.filter((candidate) => candidate.parentEntryId === entry.id);
+		const status = children.length > 0 ? "superseded" : "current";
+		// A child's revisionNote records what refuted its parent.
+		const refutedBy = children.find((child) => child.revisionNote)?.revisionNote;
+		const detail =
+			status === "superseded"
+				? `superseded${refutedBy ? ` — ${stripInlineSourceLabels(refutedBy)}` : ""}`
+				: `current${entry.revisionKind ? ` (${entry.revisionKind})` : ""}`;
+		lines.push(`${"  ".repeat(depth)}- ${stripInlineSourceLabels(entry.claim)} — ${detail}`);
+		for (const child of children) {
+			renderNode(child, depth + 1);
+		}
+	};
+	for (const root of roots) {
+		renderNode(root, 0);
+	}
+	return lines.join("\n");
+}
+
 export function formatResearchPlanExecutionStarted(
 	input: FormatResearchPlanInput & { requestedTaskCount: number },
 ): string {
@@ -660,15 +743,26 @@ export function formatResearchEvidenceBoardSummary(
 	if (entries.length === 0) {
 		return 'No evidence has been recorded yet. Say "work the plan for 3 steps" to gather some.';
 	}
+	const superseded = new Set(
+		entries.map((entry) => entry.parentEntryId).filter((id): id is string => id !== undefined),
+	);
+	// Refuting evidence is what the user must not miss; it sorts above supporting evidence.
+	const recent = entries.slice(-8);
+	const ordered = [
+		...recent.filter((entry) => entry.classification === "conflicting"),
+		...recent.filter((entry) => entry.classification !== "conflicting"),
+	];
 	return [
 		"Evidence so far",
 		"",
-		...entries
-			.slice(-8)
-			.map(
-				(entry) =>
-					`- ${formatEvidenceClassification(entry.classification)}: ${stripInlineSourceLabels(entry.claim)} — ${stripInlineSourceLabels(entry.rationale)}`,
-			),
+		...ordered.map(
+			(entry) =>
+				`- ${formatEvidenceClassification(entry.classification)}: ${stripInlineSourceLabels(entry.claim)} — ${
+					superseded.has(entry.id)
+						? "superseded; see the revised statement"
+						: stripInlineSourceLabels(entry.rationale)
+				}`,
+		),
 	].join("\n");
 }
 

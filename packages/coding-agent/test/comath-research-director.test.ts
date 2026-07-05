@@ -138,7 +138,12 @@ describe("co-math research director", () => {
 
 		expect(result.source).toBe("deterministic");
 		const tasks = getResearchPlanTasks(result.state, result.plan.id);
-		expect(tasks.map((task) => task.kind)).toEqual(["computation", "proof-attempt", "critic", "synthesis"]);
+		expect(tasks.map((task) => task.kind)).toEqual([
+			"computation",
+			"proof-attempt",
+			"refutation-attempt",
+			"synthesis",
+		]);
 	});
 
 	it("falls back to the deterministic planner when the executor throws", async () => {

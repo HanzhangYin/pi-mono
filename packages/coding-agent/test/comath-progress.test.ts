@@ -4,6 +4,9 @@ import {
 	formatCoMathProductHelp,
 	formatCoMathResearchActivityStatus,
 	formatCoMathWelcome,
+	formatConjectureLineage,
+	formatConjectureRefuted,
+	formatConjectureRevised,
 	formatContextRecorded,
 	formatExistingProjectHelp,
 	formatFocusNoted,
@@ -17,6 +20,7 @@ import {
 	formatResearchBatchStarted,
 	formatResearchBatchStepCompleted,
 	formatResearchCoordinatorReport,
+	formatResearchEvidenceBoardSummary,
 	formatResearchFocusUpdated,
 	formatResearchPathDropped,
 	formatResearchPlanBlocked,
@@ -48,6 +52,7 @@ import { runResearchWorkstream } from "../src/modes/comath/comath-research-works
 import type {
 	ComputationalArtifact,
 	ResearchBatchRecord,
+	ResearchEvidenceBoardEntry,
 	ResearchPath,
 	ResearchPlanRecord,
 	ResearchPlanTaskRecord,
@@ -1133,7 +1138,92 @@ describe("co-math product messages", () => {
 		expect(blocked).toContain("blocked");
 		expect(blocked).toContain("resume plan");
 	});
+
+	it("formats refutation and revision copy without internal ids", () => {
+		const refuted = formatConjectureRefuted({
+			evidenceHint: "n = 40 gives 41^2, which is composite. — Direct computation.",
+			revisionPlanned: true,
+		});
+		const refutedNoPlan = formatConjectureRefuted({ revisionPlanned: false });
+		const revised = formatConjectureRevised({
+			state: {
+				researchEvidenceBoard: [
+					lineageEntry("evidence-board-1", "n^2 + n + 41 is prime for every non-negative integer n."),
+					{
+						...lineageEntry("evidence-board-2", "n^2 + n + 41 is prime for every integer 0 <= n <= 39."),
+						parentEntryId: "evidence-board-1",
+						revisionKind: "weakened",
+						revisionNote: "n = 40 gives 41^2, which is composite.",
+					},
+				],
+			},
+			revisedEntryIds: ["evidence-board-2"],
+		});
+
+		for (const text of [refuted, refutedNoPlan, revised]) {
+			expect(text).not.toContain("evidence-board");
+			expectProductCopy(text);
+		}
+		expect(refuted).toContain("The evidence now points against the statement as written.");
+		expect(refuted).toContain("n = 40 gives 41^2, which is composite.");
+		expect(refuted).toContain("A step to repair the statement is already planned");
+		expect(refutedNoPlan).toContain('Say "show evidence" for the details.');
+		expect(revised).toContain("I revised the statement to fit the evidence.");
+		expect(revised).toContain("n^2 + n + 41 is prime for every integer 0 <= n <= 39. (weakened)");
+		expect(revised).toContain('Say "show lineage"');
+	});
+
+	it("renders the conjecture lineage tree and marks superseded evidence in the board summary", () => {
+		const root = lineageEntry("evidence-board-1", "n^2 + n + 41 is prime for every non-negative integer n.");
+		const child: ResearchEvidenceBoardEntry = {
+			...lineageEntry("evidence-board-2", "n^2 + n + 41 is prime for every integer 0 <= n <= 39."),
+			parentEntryId: "evidence-board-1",
+			revisionKind: "weakened",
+			revisionNote: "n = 40 gives 41^2, which is composite.",
+		};
+		const conflicting: ResearchEvidenceBoardEntry = {
+			...lineageEntry("evidence-board-3", "n = 40 gives a composite value."),
+			classification: "conflicting",
+		};
+
+		const trivial = formatConjectureLineage({ researchEvidenceBoard: [root] });
+		expect(trivial).toBe("The statement hasn't needed revision yet.");
+
+		const lineage = formatConjectureLineage({ researchEvidenceBoard: [root, child, conflicting] });
+		expect(lineage).toContain("How the statement evolved");
+		expect(lineage).toContain(
+			"- n^2 + n + 41 is prime for every non-negative integer n. — superseded — n = 40 gives 41^2, which is composite.",
+		);
+		expect(lineage).toContain("  - n^2 + n + 41 is prime for every integer 0 <= n <= 39. — current (weakened)");
+		expect(lineage).not.toContain("evidence-board");
+		expectProductCopy(lineage);
+
+		const board = formatResearchEvidenceBoardSummary({
+			researchPaths: [],
+			researchEvidenceBoard: [root, child, conflicting],
+		});
+		const lines = board.split("\n");
+		const conflictIndex = lines.findIndex((line) => line.includes("n = 40 gives a composite value."));
+		const rootIndex = lines.findIndex((line) => line.includes("superseded; see the revised statement"));
+		expect(conflictIndex).toBeGreaterThan(-1);
+		expect(rootIndex).toBeGreaterThan(-1);
+		expect(conflictIndex).toBeLessThan(rootIndex);
+		expectProductCopy(board);
+	});
 });
+
+function lineageEntry(id: string, claim: string): ResearchEvidenceBoardEntry {
+	return {
+		id,
+		sourceIds: [],
+		computationalArtifactIds: [],
+		claim,
+		classification: "conjecture",
+		rationale: "Recorded for the lineage test.",
+		createdAt: "2026-06-05T12:00:00.000Z",
+		updatedAt: "2026-06-05T12:00:00.000Z",
+	};
+}
 
 function createResearchPlanRecord(): ResearchPlanRecord {
 	return {

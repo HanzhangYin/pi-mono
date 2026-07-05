@@ -23,6 +23,7 @@ import {
 	formatCoMathNonMathEntryGuidance,
 	formatCoMathProductHelp,
 	formatCoMathResearchModeOperationalPromptIgnored,
+	formatConjectureLineage,
 	formatContextRecorded,
 	formatFocusNoted,
 	formatInitialValidationPlan,
@@ -57,6 +58,7 @@ import {
 	isLikelyOperationalNonMathPrompt,
 	isResearchCoordinatorPrompt,
 	isResumeResearchBatchPrompt,
+	isShowConjectureLineagePrompt,
 	isShowEvidencePrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
@@ -276,7 +278,8 @@ export class CoMathHarness {
 			isShowResearchPlanPrompt(problem) ||
 			isCreateResearchPlanPrompt(problem) ||
 			parseResearchPlanExecutionPrompt(problem) !== undefined ||
-			isShowEvidencePrompt(problem)
+			isShowEvidencePrompt(problem) ||
+			isShowConjectureLineagePrompt(problem)
 		) {
 			await this.notify(
 				'Start by asking a math question, for example: "Are there infinitely many primes of the form n^2 + 1?"',
@@ -626,6 +629,10 @@ export class CoMathHarness {
 		}
 		if (isShowEvidencePrompt(prompt)) {
 			await this.notify(formatResearchEvidenceBoardSummary(state));
+			return;
+		}
+		if (isShowConjectureLineagePrompt(prompt)) {
+			await this.notify(formatConjectureLineage(state));
 			return;
 		}
 		if (isShowLatestCoordinatorReportPrompt(prompt)) {

@@ -19,6 +19,7 @@ import {
 	createResearchPlanFromState,
 	MAX_RESEARCH_PLAN_TASKS,
 } from "./comath-research-planner.ts";
+import { findRevisionTarget } from "./comath-research-revision.ts";
 import type {
 	CoMathActor,
 	CoMathProjectState,
@@ -27,15 +28,23 @@ import type {
 	ResearchPlanTaskKind,
 	ResearchPlanTaskRecord,
 } from "./schema.ts";
-import { addResearchPlan, addResearchPlanTask, getResearchPlanTasks, updateResearchPlanTask } from "./storage.ts";
+import {
+	addResearchPlan,
+	addResearchPlanTask,
+	getEvidenceLineage,
+	getResearchPlanTasks,
+	updateResearchPlanTask,
+} from "./storage.ts";
 
 const RESEARCH_PLAN_TASK_KINDS: readonly ResearchPlanTaskKind[] = [
 	"literature-search",
 	"proof-attempt",
+	"refutation-attempt",
 	"computation",
 	"critic",
 	"synthesis",
 	"source-refresh",
+	"revise-conjecture",
 	"export",
 ];
 
@@ -244,8 +253,10 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 		"Rules:",
 		`- Between 1 and ${MAX_RESEARCH_PLAN_TASKS} tasks, ordered so earlier tasks inform later ones.`,
 		`- Each task kind must be one of: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}.`,
-		"- literature-search, source-refresh, computation, and proof-attempt tasks run against a research path; give pathNumber (1-based, from the paths listed below).",
+		"- literature-search, source-refresh, computation, proof-attempt, and refutation-attempt tasks run against a research path; give pathNumber (1-based, from the paths listed below).",
 		"- Give each task a concrete goal and 1-3 acceptance criteria stating what counts as done.",
+		"- Work both sides: alongside proof attempts, plan a refutation-attempt that actively searches for counterexamples.",
+		"- When evidence has refuted the current statement, plan a revise-conjecture task to repair it before more proof attempts.",
 		"- Plan from what is actually known: pursue counterexamples found, prove lemmas already supported by evidence, do not repeat settled work.",
 		"- Never plan to 'prove' a famous open problem outright; plan reductions, weaker targets, or evidence.",
 		"",
@@ -286,12 +297,15 @@ export function buildDirectorAmendmentPrompt(
 		"- You may only cancel PENDING tasks (by their task number) and add new tasks.",
 		`- Task kinds: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}. Added tasks need title, description, goal, acceptanceCriteria, and pathNumber for path-backed kinds.`,
 		`- Pending tasks must stay at or below ${MAX_RESEARCH_PLAN_TASKS}.`,
+		"- Reallocate toward the productive side: when refuting evidence dominates, add a revise-conjecture task and cancel pending proof-attempt tasks aimed at the refuted statement; when supporting evidence dominates, cancel stale refutation work.",
 		"",
 		"Pending tasks:",
 		...(pending.length > 0
 			? pending.map((task) => `- Task ${task.sequence} (${task.kind}): ${task.title}`)
 			: ["- (none)"]),
 		"",
+		...buildTwinTrackScoreboard(state),
+		...buildStatementLineageContext(state),
 		buildResearchContextPack(state),
 		"",
 		"Return ONLY a JSON object, no prose, shaped like:",
@@ -316,6 +330,46 @@ export function buildDirectorAmendmentPrompt(
 		),
 		'If no change is needed, return {"reason":"","actions":[]}.',
 	].join("\n");
+}
+
+/** Evidence counts for and against the statement, so amendments can reallocate between tracks. */
+function buildTwinTrackScoreboard(state: CoMathProjectState): string[] {
+	const supporting = state.researchEvidenceBoard.filter(
+		(entry) => entry.classification === "theorem" || entry.classification === "computation",
+	).length;
+	const refuting = state.researchEvidenceBoard.filter((entry) => entry.classification === "conflicting").length;
+	if (supporting === 0 && refuting === 0) {
+		return [];
+	}
+	return [
+		"Evidence balance for the current statement:",
+		`- Supporting entries (proved or computation-backed): ${supporting}`,
+		`- Refuting entries (conflicting or counterexample-backed): ${refuting}`,
+		"",
+	];
+}
+
+/** Revision ancestry of the live statement, so amendments target the current version, not a refuted ancestor. */
+function buildStatementLineageContext(state: CoMathProjectState): string[] {
+	const target = findRevisionTarget(state);
+	if (!target) {
+		return [];
+	}
+	const lineage = getEvidenceLineage(state, target.id);
+	if (lineage.length <= 1) {
+		return [];
+	}
+	return [
+		"Statement revision history (earliest first; plan against the LAST one):",
+		// A child's revisionNote records what refuted its parent, so the note for a superseded
+		// statement lives on the entry that replaced it.
+		...lineage.map((entry, index) =>
+			index === lineage.length - 1
+				? `- Current: ${entry.claim}`
+				: `- Superseded: ${entry.claim}${lineage[index + 1]?.revisionNote ? ` (${lineage[index + 1]?.revisionNote})` : ""}`,
+		),
+		"",
+	];
 }
 
 function parsePlanProposal(state: CoMathProjectState, text: string): DirectorTaskDraft[] {
@@ -371,7 +425,11 @@ function validateTaskDraft(state: CoMathProjectState, raw: Record<string, unknow
 				.map((item) => truncate(item.trim(), 200))
 		: [];
 	const needsPath =
-		kind === "literature-search" || kind === "source-refresh" || kind === "computation" || kind === "proof-attempt";
+		kind === "literature-search" ||
+		kind === "source-refresh" ||
+		kind === "computation" ||
+		kind === "proof-attempt" ||
+		kind === "refutation-attempt";
 	let pathId: string | undefined;
 	if (needsPath) {
 		const pathNumber = toPositiveInteger(raw.pathNumber ?? raw.path);
