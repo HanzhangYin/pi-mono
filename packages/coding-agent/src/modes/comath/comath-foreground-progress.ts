@@ -33,6 +33,45 @@ export function formatCoMathResearchActivityStatus(input: FormatCoMathResearchAc
 	return `co-math: ${pathLabel} running · ${formatResearchActivityStage(input.stage ?? input.run.currentStage)}`;
 }
 
+/**
+ * Research phases that run outside a workstream run (director planning, the independent review,
+ * plan amendment, synthesis, statement revision) still hold the user's attention for a full model
+ * call, so each gets its own footer status instead of leaving the indicator blank.
+ */
+export type CoMathResearchActivityPhase = "planning" | "independent-review" | "plan-update" | "synthesis" | "revision";
+
+export function formatCoMathResearchPhaseActivityStatus(phase: CoMathResearchActivityPhase): string {
+	if (phase === "planning") {
+		return "co-math: planning the next research steps";
+	}
+	if (phase === "independent-review") {
+		return "co-math: independently reviewing the finished step";
+	}
+	if (phase === "plan-update") {
+		return "co-math: updating the plan with what was learned";
+	}
+	if (phase === "synthesis") {
+		return "co-math: writing the research synthesis";
+	}
+	return "co-math: revising the statement";
+}
+
+/** Footer status for one bounded batch step, so the user can see where the budget stands. */
+export function formatCoMathResearchStepActivityStatus(stepIndex: number, requestedStepCount: number): string {
+	return `co-math: research step ${stepIndex} of ${requestedStepCount}`;
+}
+
+/** Compact elapsed-time suffix for the footer status ("42s", "3m 05s"). */
+export function formatCoMathActivityElapsed(elapsedMs: number): string {
+	const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+	if (totalSeconds < 60) {
+		return `${totalSeconds}s`;
+	}
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+}
+
 export function formatResearchWorkstreamRunStarted(input: FormatResearchWorkstreamRunInput): string {
 	const pathLabel = formatResearchRunPathLabel(input.state, input.run);
 	const stage = formatResearchStage(input.run.currentStage);

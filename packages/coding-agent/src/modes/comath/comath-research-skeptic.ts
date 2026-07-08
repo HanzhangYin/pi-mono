@@ -6,14 +6,20 @@
  * context (not the specialist's transcript) and may propose a small bounded Python script that
  * searches for a counterexample to the report's central claim. Concerns become durable scrutiny
  * notes and evidence-board entries; a counterexample check becomes a computation record linked to
- * the task. The skeptic never blocks the plan by itself — it makes doubt durable and visible so
- * the director and the human can act on it. Without an executor the gate is a no-op, which keeps
- * deterministic runs byte-identical to the pre-skeptic harness.
+ * the task. The verdict has teeth: a step the skeptic explicitly rejects is not treated as
+ * completed (the plan runner blocks it at the durable boundary), concerns mark the task
+ * completed-with-concerns, and only a clean review reads as accepted. Without an executor the
+ * gate is a no-op, which keeps deterministic runs byte-identical to the pre-skeptic harness.
  */
 
 import type { ComputationalExecutor } from "./comath-computation-executor.ts";
-import { getCoMathMarkdownSectionItems, parseCoMathMarkdown } from "./comath-markdown.ts";
+import {
+	firstCoMathMarkdownSectionItem,
+	getCoMathMarkdownSectionItems,
+	parseCoMathMarkdown,
+} from "./comath-markdown.ts";
 import { buildResearchContextPack } from "./comath-research-context.ts";
+import { parseNegativeConstraints, parseTheoremApplicabilityChecks } from "./comath-research-discipline.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import type {
 	CoMathProjectState,
@@ -21,7 +27,13 @@ import type {
 	ResearchPlanTaskRecord,
 	ResearchWorkstreamReportRecord,
 } from "./schema.ts";
-import { addComputationalArtifact, addMarginNote, addResearchEvidenceBoardEntry } from "./storage.ts";
+import {
+	addComputationalArtifact,
+	addMarginNote,
+	addResearchConstraint,
+	addResearchEvidenceBoardEntry,
+	addTheoremApplicabilityCheck,
+} from "./storage.ts";
 
 const MAX_SKEPTIC_CONCERNS = 3;
 const SKEPTIC_SCRIPT_MAX_RUNTIME_MS = 10_000;
@@ -41,8 +53,12 @@ export interface RunSkepticGateInput {
 	now: string;
 }
 
+export type SkepticVerdict = "accepted" | "needs-revision" | "rejected";
+
 export interface RunSkepticGateResult {
 	state: CoMathProjectState;
+	/** The review's overall verdict; "rejected" means the step failed its acceptance criteria. */
+	verdict: SkepticVerdict;
 	concerns: string[];
 	counterexampleFound: boolean;
 	/** Computation records created by the counterexample check, for task linkage. */
@@ -58,6 +74,7 @@ export interface RunSkepticGateResult {
 export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSkepticGateResult> {
 	const emptyResult: RunSkepticGateResult = {
 		state: input.state,
+		verdict: "accepted",
 		concerns: [],
 		counterexampleFound: false,
 		computationalArtifactIds: [],
@@ -86,10 +103,37 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 	const knownGaps = new Set([...report.gaps, ...report.criticisms].map(normalizeConcern));
 	const concerns = getCoMathMarkdownSectionItems(parsed, "concern")
 		.map((concern) => concern.trim())
-		.filter((concern) => concern.length > 0 && !knownGaps.has(normalizeConcern(concern)))
+		.filter((concern) => concern.length > 0 && !isNoConcernLine(concern) && !knownGaps.has(normalizeConcern(concern)))
 		.slice(0, MAX_SKEPTIC_CONCERNS);
 
 	let nextState = input.state;
+	// Standing rules the skeptic derives ("Do not conflate general infinitude of primes with
+	// infinitude in the quadratic sequence.") become durable reviewer constraints.
+	for (const constraintText of parseNegativeConstraints(responseText)) {
+		nextState = addResearchConstraint(nextState, {
+			text: constraintText,
+			kind: /\bconvention\b/i.test(constraintText) ? "convention" : "avoid",
+			origin: "reviewer",
+			now: input.now,
+			actor: "reviewer",
+		});
+	}
+	// The skeptic's own theorem checks are durable: an applicability rejection recorded here is
+	// what later cautions any route that leans on the same theorem.
+	for (const check of parseTheoremApplicabilityChecks(responseText)) {
+		nextState = addTheoremApplicabilityCheck(nextState, {
+			theorem: check.theorem,
+			targetObject: check.targetObject,
+			hypotheses: check.hypotheses,
+			status: check.status,
+			...(check.consequence ? { consequence: check.consequence } : {}),
+			pathId: report.pathId,
+			reportId: report.id,
+			taskId: input.task.id,
+			now: input.now,
+			actor: "reviewer",
+		});
+	}
 	const evidenceEntryIds: string[] = [];
 	for (const concern of concerns) {
 		nextState = addMarginNote(nextState, {
@@ -206,11 +250,28 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 
 	return {
 		state: nextState,
+		verdict: normalizeSkepticVerdict(firstCoMathMarkdownSectionItem(parsed, "verdict"), concerns),
 		concerns,
 		counterexampleFound,
 		computationalArtifactIds,
 		evidenceEntryIds,
 	};
+}
+
+/**
+ * Map the free-text verdict onto the three durable outcomes. Conservative: "rejected" needs the
+ * skeptic to say so explicitly; unclear verdicts with concerns read as needs-revision, and only a
+ * clean, concern-free review reads as accepted.
+ */
+function normalizeSkepticVerdict(value: string | undefined, concerns: readonly string[]): SkepticVerdict {
+	const normalized = (value ?? "").trim().toLowerCase();
+	if (/\breject|not accepted|fails? (?:the |its )?acceptance/.test(normalized)) {
+		return "rejected";
+	}
+	if (concerns.length === 0 && (normalized.length === 0 || /\b(?:sound|accept|approve|pass|clean)/.test(normalized))) {
+		return "accepted";
+	}
+	return "needs-revision";
 }
 
 export function buildSkepticPrompt(
@@ -235,9 +296,13 @@ export function buildSkepticPrompt(
 		"",
 		"Rules:",
 		`- Raise at most ${MAX_SKEPTIC_CONCERNS} NEW concerns not already listed as gaps in the report. If the report is honest about its limits, say so with an empty concerns list.`,
+		"- If the report builds on a named theorem, verify its applicability against the actual object and add a `## Theorem check` section (bullets: `Theorem:`, `Object:`, one `Hypothesis: <text> - satisfied|failed|unknown` per hypothesis, `Status: applies | rejected-as-direct-route | needs-verification`, `Consequence:`).",
+		'- If your review reveals a standing rule future steps must respect (e.g. "Do not treat proposed or heuristic preprints as settled proofs."), add a `## Negative constraints` section with one imperative bullet per rule.',
 		"- If the step's central mathematical claim can be tested by a small bounded computation, provide ONE short Python script (standard library only, no imports of os/subprocess/network, no file access, prints its verdict) that searches for a counterexample.",
 		"- The script must print `counterexample_found: true` or `counterexample_found: false` as its last line.",
 		"- Do not fabricate citations. Write user-facing notes only.",
+		"",
+		'- In `## Verdict`, answer with exactly one of: accepted | needs-revision | rejected. Say "rejected" only when the step fails its stated acceptance criteria or its central claim is wrong; a rejected step is not treated as completed.',
 		"",
 		"Return markdown with these headings:",
 		"## Verdict",
@@ -270,6 +335,11 @@ function classifyConcern(concern: string): ResearchEvidenceClassification {
 
 function normalizeConcern(text: string): string {
 	return text.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function isNoConcernLine(text: string): boolean {
+	const normalized = normalizeConcern(text).replace(/[.!?]+$/g, "");
+	return /^(?:none|no concerns|no new concerns|nothing|n\/a|not applicable)(?:\.|$|\s)/i.test(normalized);
 }
 
 function extractPythonScript(text: string): string | undefined {

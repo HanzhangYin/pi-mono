@@ -24,6 +24,7 @@ import {
 	formatResearchWorkstreamCompleted,
 	formatResearchWorkstreamStarted,
 } from "./comath-progress.ts";
+import { isActionableRouteText } from "./comath-research-discipline.ts";
 import {
 	type ResearchWorkstreamModelExecutor,
 	type ResearchWorkstreamStageResult,
@@ -38,8 +39,10 @@ import type {
 	MarginNoteKind,
 	ResearchEvidenceClassification,
 	ResearchPath,
+	ResearchPlanTaskKind,
 	ResearchWorkstreamRunRecord,
 	ResearchWorkstreamRunStage,
+	TheoremHypothesisCheck,
 } from "./schema.ts";
 import {
 	addComputationalArtifact,
@@ -47,13 +50,17 @@ import {
 	addLiteratureSearchRecord,
 	addLiteratureSourceArtifact,
 	addMarginNote,
+	addResearchConstraint,
 	addResearchCoordinatorReport,
 	addResearchEvidenceBoardEntry,
 	addResearchPath,
+	addResearchPivot,
 	addResearchWorkstreamIncrementalReport,
 	addResearchWorkstreamReport,
 	addResearchWorkstreamRun,
+	addTheoremApplicabilityCheck,
 	failStaleResearchWorkstreamRuns,
+	getActiveResearchConstraints,
 	loadProjectState,
 	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
@@ -92,6 +99,17 @@ export type CoMathResearchWorkstreamActivityUpdate = (
 export type CoMathResearchWorkstreamActivityEnd = (
 	input: CoMathResearchWorkstreamActivityEndInput,
 ) => void | Promise<void>;
+
+/**
+ * Activity signal for research work that happens outside a workstream run: director planning, the
+ * independent review of a finished step, plan amendments, synthesis, statement revision, and the
+ * bounded batch step itself. `status` is finished product copy; the UI only has to display it.
+ * Signals are best-effort UI hints — emitters must never let them affect research execution.
+ */
+export type CoMathResearchPhaseActivitySignal =
+	| { kind: "start"; activityId: string; status: string }
+	| { kind: "end"; activityId: string };
+export type CoMathResearchPhaseActivityNotify = (signal: CoMathResearchPhaseActivitySignal) => void | Promise<void>;
 
 export interface CoMathResearchRunnerOptions {
 	statePath: string;
@@ -244,7 +262,7 @@ export class CoMathResearchRunner {
 	async runBoundedResearchWorkstreamStep(
 		state: CoMathProjectState,
 		path: ResearchPath,
-		options: { batchId?: string; stepIndex?: number; taskBrief?: string } = {},
+		options: { batchId?: string; stepIndex?: number; taskBrief?: string; taskKind?: ResearchPlanTaskKind } = {},
 	): Promise<string> {
 		const now = new Date().toISOString();
 		const runId = `research-run-${state.researchWorkstreamRuns.length + 1}`;
@@ -264,7 +282,11 @@ export class CoMathResearchRunner {
 			await this.notifyResearchWorkstreamActivityStart(nextState, run);
 		}
 		if (this.researchModelExecutor) {
-			const workstream = this.executeResearchWorkstreamInBackground(runId, options.taskBrief).finally(async () => {
+			const workstream = this.executeResearchWorkstreamInBackground(
+				runId,
+				options.taskBrief,
+				options.taskKind,
+			).finally(async () => {
 				this.activeResearchWorkstreams.delete(runId);
 				await this.notifyResearchWorkstreamActivityEnd(runId);
 			});
@@ -301,7 +323,11 @@ export class CoMathResearchRunner {
 		return runId;
 	}
 
-	private async executeResearchWorkstreamInBackground(runId: string, taskBrief?: string): Promise<void> {
+	private async executeResearchWorkstreamInBackground(
+		runId: string,
+		taskBrief?: string,
+		taskKind?: ResearchPlanTaskKind,
+	): Promise<void> {
 		const state = await loadProjectState(this.statePath);
 		const run = state?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
 		const path = run ? state?.researchPaths.find((candidate) => candidate.id === run.pathId) : undefined;
@@ -310,7 +336,18 @@ export class CoMathResearchRunner {
 		}
 		const now = new Date().toISOString();
 		try {
-			if (isLiteratureResearchPath(path)) {
+			// The task kind, not the path's wording, chooses the workstream: a proof-attempt pinned
+			// to an "examples/finite checks" path must still write mathematics, and computation or
+			// literature machinery only runs for tasks that asked for it. Kind-less runs (explicit
+			// "work on path N") keep the path-based selection.
+			const useLiterature =
+				taskKind === "literature-search" ||
+				taskKind === "source-refresh" ||
+				(taskKind === undefined && isLiteratureResearchPath(path));
+			const useComputation =
+				!useLiterature &&
+				(taskKind === "computation" || (taskKind === undefined && isComputationalResearchPath(path)));
+			if (useLiterature) {
 				const literatureResult = await runLiteratureResearchWorkstreamStaged(
 					{
 						rootQuestion: state.rootQuestion,
@@ -323,6 +360,7 @@ export class CoMathResearchRunner {
 							fallback: this.literatureSourceLookup,
 						}),
 						...(taskBrief?.trim() ? { directive: taskBrief.trim() } : {}),
+						standingConstraints: getActiveResearchConstraints(state),
 					},
 					{
 						onStageStarted: async (stage, summary) => {
@@ -342,7 +380,7 @@ export class CoMathResearchRunner {
 				await this.completeLiteratureResearchWorkstreamRun(runId, literatureResult);
 				return;
 			}
-			if (isComputationalResearchPath(path)) {
+			if (useComputation) {
 				const artifactPaths = this.getComputationArtifactPaths(runId);
 				const computationResult = await runComputationResearchWorkstreamStaged(
 					{
@@ -390,6 +428,8 @@ export class CoMathResearchRunner {
 					now,
 					executor: this.researchModelExecutor as ResearchWorkstreamModelExecutor,
 					...(taskBrief?.trim() ? { directive: taskBrief.trim() } : {}),
+					...(taskKind ? { taskKind } : {}),
+					standingConstraints: getActiveResearchConstraints(state),
 					specialistToolLoop: {
 						computationalExecutor: this.computationalExecutor,
 						workingDirectory: specialistPaths.absolute,
@@ -499,6 +539,7 @@ export class CoMathResearchRunner {
 				...(reportId ? { reportId } : {}),
 				claim: claim.claim,
 				classification: claim.classification,
+				...(claim.claimCategory ? { claimCategory: claim.claimCategory } : {}),
 				rationale: `${claim.rationale} Recorded by the specialist during the attempt.`,
 				now,
 				actor: "workstream",
@@ -583,6 +624,7 @@ export class CoMathResearchRunner {
 		const now = new Date().toISOString();
 		let nextState = persistResearchWorkstreamReport(state, path, report, now);
 		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = this.persistDisciplineRecords(nextState, report, path.id, finalReportId, now);
 		nextState = updateResearchWorkstreamRun(nextState, {
 			runId,
 			status: "completed",
@@ -595,6 +637,76 @@ export class CoMathResearchRunner {
 		await saveProjectState(this.statePath, nextState);
 		await this.maybeRefreshCoordinatorAfterReport(nextState);
 		await this.notify(formatResearchWorkstreamCompleted({ state: nextState, report }));
+	}
+
+	/**
+	 * Persist the structured `## Theorem check` and `## Route change` sections a model-backed run
+	 * produced. A rejected theorem check whose consequence names a replacement route also records
+	 * the pivot, so "rejected-as-direct-route" is never a dead end in durable state.
+	 */
+	private persistDisciplineRecords(
+		state: CoMathProjectState,
+		report: ResearchWorkstreamReport,
+		pathId: string,
+		reportId: string | undefined,
+		now: string,
+	): CoMathProjectState {
+		let nextState = state;
+		for (const check of report.theoremChecks ?? []) {
+			nextState = addTheoremApplicabilityCheck(nextState, {
+				theorem: check.theorem,
+				targetObject: check.targetObject,
+				hypotheses: check.hypotheses,
+				status: check.status,
+				...(check.consequence ? { consequence: check.consequence } : {}),
+				pathId,
+				...(reportId ? { reportId } : {}),
+				now,
+				actor: "workstream",
+			});
+			const checkId = nextState.theoremApplicabilityChecks.at(-1)?.id;
+			// The consequence must name a route to pursue; a verdict ("cannot settle the root
+			// question") would otherwise become a pivot destination and then a nonsense agenda task.
+			if (
+				check.status === "rejected-as-direct-route" &&
+				check.consequence &&
+				isActionableRouteText(check.consequence)
+			) {
+				nextState = addResearchPivot(nextState, {
+					fromRoute: `Direct use of ${check.theorem}`,
+					toRoute: check.consequence,
+					reason: describeFailedHypotheses(check.hypotheses) ?? "A required hypothesis is not satisfied.",
+					pathId,
+					...(reportId ? { reportId } : {}),
+					...(checkId ? { applicabilityCheckId: checkId } : {}),
+					now,
+					actor: "workstream",
+				});
+			}
+		}
+		for (const pivot of report.routePivots ?? []) {
+			nextState = addResearchPivot(nextState, {
+				fromRoute: pivot.fromRoute,
+				toRoute: pivot.toRoute,
+				reason: pivot.reason,
+				pathId,
+				...(reportId ? { reportId } : {}),
+				now,
+				actor: "workstream",
+			});
+		}
+		// Standing rules a review derived ("Do not treat heuristic preprints as settled proofs.")
+		// become reviewer-origin constraints; duplicates of active constraints are ignored.
+		for (const constraintText of report.negativeConstraints ?? []) {
+			nextState = addResearchConstraint(nextState, {
+				text: constraintText,
+				kind: /\bconvention\b/i.test(constraintText) ? "convention" : "avoid",
+				origin: "reviewer",
+				now,
+				actor: "reviewer",
+			});
+		}
+		return nextState;
 	}
 
 	private async completeLiteratureResearchWorkstreamRun(
@@ -682,6 +794,7 @@ export class CoMathResearchRunner {
 		};
 		nextState = persistResearchWorkstreamReport(nextState, path, report, now);
 		const finalReportId = nextState.researchReports.at(-1)?.id;
+		nextState = this.persistDisciplineRecords(nextState, report, path.id, finalReportId, now);
 		nextState = updateResearchWorkstreamRun(nextState, {
 			runId,
 			status: report.status === "blocked" ? "blocked" : "completed",
@@ -1007,7 +1120,7 @@ function persistResearchWorkstreamReport(
 			actor: "reviewer",
 		});
 	}
-	const scrutinyMessage = report.humanHelpUseful[0] ?? report.gaps[0] ?? report.criticisms[0];
+	const scrutinyMessage = report.gaps[0] ?? report.criticisms[0];
 	if (scrutinyMessage && !hasOpenMarginNote(nextState, section?.id, "scrutiny", scrutinyMessage)) {
 		nextState = addMarginNote(nextState, {
 			id: `margin-note-${nextState.marginNotes.length + 1}`,
@@ -1031,7 +1144,7 @@ function persistResearchWorkstreamReport(
 		findings: report.findings,
 		criticisms: report.criticisms,
 		gaps: report.gaps,
-		humanHelpUseful: report.humanHelpUseful,
+		humanHelpUseful: [],
 		suggestedNextMove: report.suggestedNextMove,
 		workingPaperSectionTitle: report.workingPaperSectionTitle,
 		...(section ? { workingPaperSectionId: section.id } : {}),
@@ -1126,6 +1239,13 @@ function classifyLiteratureSupport(support: LiteratureClaimSupport): ResearchEvi
 	if (/\b(?:heuristic|predict|expected|probabilistic)\b/.test(text)) {
 		return "heuristic";
 	}
+	if (
+		/\b(?:irrelevant|does not|do not|not imply|not establish|not prove|no source|no supplied|not settled|related but|weaker|different|context only)\b/.test(
+			text,
+		)
+	) {
+		return "survey-context";
+	}
 	if (/\b(?:survey|context|background|review)\b/.test(text) || support.status === "partially-supported") {
 		return "survey-context";
 	}
@@ -1178,7 +1298,7 @@ function summarizeEvidenceText(value: string): string {
 function buildCoordinatorWorkingPaperBody(
 	report: Pick<
 		CoMathProjectState["researchCoordinatorReports"][number],
-		"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "humanHelpUseful" | "suggestedPrompt"
+		"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "suggestedPrompt"
 	>,
 ): string {
 	return [
@@ -1195,9 +1315,6 @@ function buildCoordinatorWorkingPaperBody(
 			const prompt = move.prompt ? ` (${move.prompt})` : "";
 			return `${index + 1}. ${move.title}${prompt}: ${move.rationale}`;
 		}),
-		...(report.humanHelpUseful.length > 0
-			? ["", "Human help useful:", ...report.humanHelpUseful.map((item) => `- ${item}`)]
-			: []),
 		...(report.suggestedPrompt ? ["", `Suggested next step: ${report.suggestedPrompt}`] : []),
 	].join("\n");
 }
@@ -1331,6 +1448,16 @@ export function safeErrorMessage(error: unknown): string {
 		return error.trim();
 	}
 	return "The research attempt stopped unexpectedly.";
+}
+
+function describeFailedHypotheses(hypotheses: readonly TheoremHypothesisCheck[]): string | undefined {
+	const failed = hypotheses.filter((hypothesis) => hypothesis.status === "failed");
+	if (failed.length === 0) {
+		return undefined;
+	}
+	return failed
+		.map((hypothesis) => `${hypothesis.hypothesis} fails${hypothesis.note ? ` (${hypothesis.note})` : ""}`)
+		.join("; ");
 }
 
 function uniqueStrings(values: readonly string[]): string[] {

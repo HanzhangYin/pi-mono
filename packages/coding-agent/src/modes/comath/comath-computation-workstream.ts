@@ -4,6 +4,7 @@ import type {
 	ComputationalScriptDraft,
 } from "./comath-computation-executor.ts";
 import {
+	filterCoMathProductLines,
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
 	getCoMathMarkdownSectionItems as sectionItems,
@@ -203,8 +204,18 @@ function buildReport(input: {
 			defaultCriticisms(execution),
 		),
 	);
+	const volunteeredHumanHelp = pickItems(
+		sectionItems(input.synthesizer, "human"),
+		sectionItems(input.critic, "human"),
+	);
 	const gaps = ensureNonEmpty(
-		pickItems(sectionItems(input.synthesizer, "gap"), sectionItems(input.critic, "gap")),
+		[
+			...pickItems(sectionItems(input.synthesizer, "gap"), sectionItems(input.critic, "gap")),
+			...volunteeredHumanHelp,
+			...(execution.exitCode === 0
+				? []
+				: ["The failed computation should be adjusted before relying on its output."]),
+		],
 		defaultGaps(execution),
 	);
 	const suggestedNextMove =
@@ -257,10 +268,7 @@ function buildReport(input: {
 		findings,
 		criticisms,
 		gaps,
-		humanHelpUseful:
-			execution.exitCode === 0
-				? pickItems(sectionItems(input.synthesizer, "human"), sectionItems(input.critic, "human"))
-				: ["Review the failed computation or adjust the finite experiment before relying on its output."],
+		humanHelpUseful: [],
 		suggestedNextMove,
 		workingPaperSectionTitle: "Examples and finite checks",
 		workingPaperSummary: buildWorkingPaperSummary(path, {
@@ -518,7 +526,6 @@ function buildComputationCriticPrompt(rootQuestion: string, path: ResearchPath, 
 		"## Review",
 		"## Limitations",
 		"## Gaps",
-		"## Human help useful",
 	].join("\n");
 }
 
@@ -548,7 +555,6 @@ function buildComputationSynthesizerPrompt(
 		"## Findings",
 		"## Limitations",
 		"## Gaps",
-		"## Human help useful",
 		"## Next",
 		"## Working paper summary",
 	].join("\n");
@@ -616,8 +622,8 @@ function buildFallbackSynthesizerText(execution: ComputationalExecutionResult): 
 }
 
 function renderRoleDetails(parsed: ParsedMarkdown): string[] {
-	const items = parsed.sections.flatMap((section) => section.items);
-	return items.length > 0 ? items : parsed.raw.slice(0, 12);
+	const items = filterCoMathProductLines(parsed.sections.flatMap((section) => section.items));
+	return items.length > 0 ? items : filterCoMathProductLines(parsed.raw).slice(0, 12);
 }
 
 function pickItems(...candidates: string[][]): string[] {

@@ -23,6 +23,20 @@ export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" 
 export type ResearchBatchStatus = "running" | "paused" | "completed" | "failed" | "cancelled";
 export type ResearchPlanStatus = "active" | "paused" | "completed" | "failed" | "cancelled";
 export type ResearchPlanTaskStatus = "pending" | "running" | "completed" | "blocked" | "failed" | "cancelled";
+/**
+ * What a completed plan task actually produced:
+ * - "mathematical": new evidence, computations, claims, or a repaired statement.
+ * - "obstruction": a durable reason a route fails (rejected theorem check, recorded pivot) —
+ *   negative knowledge that steers later planning.
+ * - "status": context/status only (sources listed, state summarized); no new mathematics.
+ */
+export type ResearchTaskProgressKind = "mathematical" | "obstruction" | "status";
+/**
+ * The independent review's verdict on a completed task: accepted cleanly, completed but with
+ * recorded concerns, or rejected (the step failed its acceptance criteria and is not treated as
+ * cleanly completed).
+ */
+export type ResearchTaskReviewOutcome = "accepted" | "completed-with-concerns" | "rejected";
 export type ResearchPlanTaskKind =
 	| "literature-search"
 	| "proof-attempt"
@@ -34,6 +48,20 @@ export type ResearchPlanTaskKind =
 	| "revise-conjecture"
 	| "export";
 export type ConjectureRevisionKind = "weakened" | "strengthened" | "specialized" | "generalized" | "repaired";
+export type ResearchObligationStatus = "open" | "supported" | "established" | "refuted" | "retired";
+export type ResearchConstraintKind = "avoid" | "convention" | "scope";
+export type ResearchConstraintStatus = "active" | "retired";
+export type ResearchConstraintOrigin = "human" | "director" | "reviewer";
+export type TheoremHypothesisStatus = "satisfied" | "failed" | "unknown";
+export type TheoremApplicabilityStatus = "applies" | "rejected-as-direct-route" | "needs-verification";
+export type ResearchClaimCategory =
+	| "verified-fact"
+	| "source-backed-theorem"
+	| "computed-anchor-result"
+	| "convention-dependent-claim"
+	| "plausible-interpretation"
+	| "failed-route"
+	| "open-caveat";
 export type LiteratureSourceKind = "web" | "paper" | "book" | "local-file" | "user-provided" | "unknown";
 export type LiteratureSourceProvider =
 	| "workspace"
@@ -94,6 +122,10 @@ export type CoMathEventKind =
 	| "research_batch_recorded"
 	| "research_plan_recorded"
 	| "research_plan_task_recorded"
+	| "research_obligation_recorded"
+	| "research_constraint_recorded"
+	| "theorem_applicability_check_recorded"
+	| "research_pivot_recorded"
 	| "literature_source_recorded"
 	| "literature_search_recorded"
 	| "literature_claim_support_recorded"
@@ -382,6 +414,8 @@ export interface ResearchEvidenceBoardEntry {
 	computationalArtifactIds: string[];
 	claim: string;
 	classification: ResearchEvidenceClassification;
+	/** Researcher-facing claim category (verified fact, computed anchor result, failed route, ...). */
+	claimCategory?: ResearchClaimCategory;
 	rationale: string;
 	/** Evidence entry this statement was revised from (conjecture lineage). */
 	parentEntryId?: string;
@@ -524,12 +558,112 @@ export interface ResearchPlanTaskRecord {
 	claimSupportIds: string[];
 	computationalArtifactIds: string[];
 	evidenceEntryIds: string[];
+	/** Classification of what this task produced, recorded when it completes. */
+	progressKind?: ResearchTaskProgressKind;
+	/** The independent review's verdict on this task, when a review ran. */
+	reviewOutcome?: ResearchTaskReviewOutcome;
 	blockedReason?: string;
 	failureReason?: string;
 	createdAt: string;
 	startedAt?: string;
 	updatedAt: string;
 	completedAt?: string;
+}
+
+/**
+ * A standing research constraint: a rule the user (or a role) imposed on how the research may
+ * proceed, most importantly negative constraints ("do not attack arbitrary Schubert
+ * multiplication") and convention choices. Active constraints are shown to every model role and
+ * must survive session restarts.
+ */
+export interface ResearchConstraintRecord {
+	id: string;
+	text: string;
+	kind: ResearchConstraintKind;
+	status: ResearchConstraintStatus;
+	origin: ResearchConstraintOrigin;
+	retiredReason?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface TheoremHypothesisCheck {
+	hypothesis: string;
+	status: TheoremHypothesisStatus;
+	note?: string;
+}
+
+/**
+ * An explicit applicability check of a named theorem against the current object: which hypotheses
+ * are satisfied, failed, or unknown, and what follows. A route must not silently "use theorem X" —
+ * it either records `applies`, or records why not and what the consequence is (typically a pivot).
+ */
+export interface TheoremApplicabilityCheckRecord {
+	id: string;
+	theorem: string;
+	/** The object/situation the theorem was checked against. */
+	targetObject: string;
+	hypotheses: TheoremHypothesisCheck[];
+	status: TheoremApplicabilityStatus;
+	/** What follows from the verdict, e.g. the pivot taken after a rejection. */
+	consequence?: string;
+	pathId?: string;
+	reportId?: string;
+	taskId?: string;
+	sourceIds: string[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+/**
+ * A recorded route change: the intended route that failed or was rejected, the replacement route,
+ * and why. Pivots preserve the negative space of the project so failed routes are never silently
+ * retried.
+ */
+export interface ResearchPivotRecord {
+	id: string;
+	fromRoute: string;
+	toRoute: string;
+	reason: string;
+	pathId?: string;
+	taskId?: string;
+	reportId?: string;
+	/** The theorem check that forced this pivot, when one did. */
+	applicabilityCheckId?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/**
+ * A mathematical obligation: one claim the project must either establish or refute, with its
+ * assumptions, subclaims (children via `parentObligationId`), supporting and refuting evidence,
+ * and known gaps. Status is durable mathematical state, separate from product copy:
+ * - "open": no usable support yet.
+ * - "supported": has model-backed supporting evidence; gaps may remain.
+ * - "established": passed the deterministic establishment gate (support present, no open gaps,
+ *   all subclaims settled, and a clean independent review). The only status synthesis may
+ *   present as a finding.
+ * - "refuted": refutation evidence (for example a counterexample) stands against it.
+ * - "retired": superseded, typically by a conjecture revision.
+ */
+export interface ResearchObligationRecord {
+	id: string;
+	statement: string;
+	assumptions: string[];
+	/** When set, this obligation is a required subclaim/lemma of its parent. */
+	parentObligationId?: string;
+	evidenceEntryIds: string[];
+	computationalArtifactIds: string[];
+	refutationEvidenceEntryIds: string[];
+	gaps: string[];
+	status: ResearchObligationStatus;
+	statusReason?: string;
+	/** Set when an independent review of this obligation's support raised zero concerns. */
+	reviewedCleanAt?: string;
+	taskId?: string;
+	reportId?: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface ResearchCoordinatorNextMove {
@@ -583,6 +717,10 @@ export interface CoMathProjectState {
 	researchBatches: ResearchBatchRecord[];
 	researchPlans: ResearchPlanRecord[];
 	researchPlanTasks: ResearchPlanTaskRecord[];
+	researchObligations: ResearchObligationRecord[];
+	researchConstraints: ResearchConstraintRecord[];
+	theoremApplicabilityChecks: TheoremApplicabilityCheckRecord[];
+	researchPivots: ResearchPivotRecord[];
 	literatureSources: LiteratureSourceArtifact[];
 	literatureSearches: LiteratureSearchRecord[];
 	literatureClaimSupports: LiteratureClaimSupport[];

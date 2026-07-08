@@ -1,3 +1,4 @@
+import type { ResearchPivotDraft, TheoremApplicabilityCheckDraft } from "./comath-research-discipline.ts";
 import { type ResearchRoundResult, runResearchPathRound } from "./comath-research-execution.ts";
 import type { ResearchPath, ResearchWorkstreamReportStatus, ResearchWorkstreamStepRecord } from "./schema.ts";
 
@@ -22,6 +23,12 @@ export interface ResearchWorkstreamReport {
 	sourceIds?: string[];
 	claimSupportIds?: string[];
 	computationalArtifactIds?: string[];
+	/** Structured `## Theorem check` sections the roles produced (model-backed runs only). */
+	theoremChecks?: TheoremApplicabilityCheckDraft[];
+	/** Structured `## Route change` sections the roles produced (model-backed runs only). */
+	routePivots?: ResearchPivotDraft[];
+	/** Standing rules from `## Negative constraints` sections (model-backed runs only). */
+	negativeConstraints?: string[];
 }
 
 export interface RunResearchWorkstreamInput {
@@ -82,7 +89,6 @@ export function runResearchWorkstream(input: RunResearchWorkstreamInput): Resear
 			summary: "Deciding what enters the working paper and what stays an open gap.",
 			details: [
 				...(synthesis.promisingStrategy.length > 0 ? ["Promising strategy:", ...synthesis.promisingStrategy] : []),
-				...(synthesis.humanHelpUseful.length > 0 ? ["Human help useful:", ...synthesis.humanHelpUseful] : []),
 				`Next: ${synthesis.suggestedNextMove}`,
 			],
 		},
@@ -274,9 +280,7 @@ function buildSynthesis(rootQuestion: string, path: ResearchPath, round: Researc
 			promisingStrategy: [
 				"Register a reliable source or search notes, then verify the exact status of the relevant theorem targets.",
 			],
-			humanHelpUseful: [
-				"A mathematician or a reliable reference could confirm the exact status of the relevant theorem targets.",
-			],
+			humanHelpUseful: [],
 			suggestedNextMove: round.suggestedNextMove,
 		};
 	}

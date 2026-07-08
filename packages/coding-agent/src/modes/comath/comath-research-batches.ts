@@ -1,12 +1,17 @@
 import {
+	formatCoMathResearchStepActivityStatus,
 	formatResearchBatchCancelled,
 	formatResearchBatchCompleted,
+	formatResearchBatchContinuation,
 	formatResearchBatchFailed,
 	formatResearchBatchPaused,
 	formatResearchBatchStepCompleted,
 } from "./comath-progress.ts";
+import { hasRunnableResearchAgendaWork } from "./comath-research-agenda.ts";
 import type { CoMathResearchPlanRunner } from "./comath-research-plan-runner.ts";
 import {
+	type CoMathResearchPhaseActivityNotify,
+	type CoMathResearchPhaseActivitySignal,
 	type CoMathResearchRunner,
 	type CoMathResearchRunnerNotify,
 	safeErrorMessage,
@@ -19,6 +24,8 @@ export interface CoMathResearchBatchRunnerOptions {
 	notify: CoMathResearchRunnerNotify;
 	researchRunner: CoMathResearchRunner;
 	planRunner: CoMathResearchPlanRunner;
+	/** Best-effort UI status showing which bounded step of the budget is running. */
+	onResearchPhaseActivity?: CoMathResearchPhaseActivityNotify;
 }
 
 export class CoMathResearchBatchRunner {
@@ -26,6 +33,7 @@ export class CoMathResearchBatchRunner {
 	private readonly notify: CoMathResearchRunnerNotify;
 	private readonly researchRunner: CoMathResearchRunner;
 	private readonly planRunner: CoMathResearchPlanRunner;
+	private readonly onResearchPhaseActivity: CoMathResearchPhaseActivityNotify | undefined;
 	private readonly activeResearchBatches = new Map<string, Promise<void>>();
 
 	constructor(options: CoMathResearchBatchRunnerOptions) {
@@ -33,6 +41,16 @@ export class CoMathResearchBatchRunner {
 		this.notify = options.notify;
 		this.researchRunner = options.researchRunner;
 		this.planRunner = options.planRunner;
+		this.onResearchPhaseActivity = options.onResearchPhaseActivity;
+	}
+
+	/** Fire a phase-activity UI signal; failures never affect batch execution. */
+	private async signalPhaseActivity(signal: CoMathResearchPhaseActivitySignal): Promise<void> {
+		try {
+			await this.onResearchPhaseActivity?.(signal);
+		} catch {
+			// UI status updates are best-effort and must not affect research execution.
+		}
 	}
 
 	startResearchBatchExecution(batchId: string): void {
@@ -172,6 +190,28 @@ export class CoMathResearchBatchRunner {
 	 * record. Returns "continue" when the batch loop should attempt another step.
 	 */
 	private async executePlanBackedBatchStep(batch: ResearchBatchRecord): Promise<"continue" | "stop"> {
+		const stepIndex = batch.completedStepCount + 1;
+		// A persistent footer status for the whole bounded step: finer-grained statuses (planning,
+		// run stages, the independent review) stack on top of it while they are active, and this one
+		// resurfaces in the gaps between them, so the "still working" signal never goes dark
+		// mid-step.
+		const stepActivityId = `research-batch-step-${batch.id}-${stepIndex}`;
+		await this.signalPhaseActivity({
+			kind: "start",
+			activityId: stepActivityId,
+			status: formatCoMathResearchStepActivityStatus(stepIndex, batch.requestedStepCount),
+		});
+		try {
+			return await this.executePlanBackedBatchStepInner(batch, stepIndex);
+		} finally {
+			await this.signalPhaseActivity({ kind: "end", activityId: stepActivityId });
+		}
+	}
+
+	private async executePlanBackedBatchStepInner(
+		batch: ResearchBatchRecord,
+		stepIndex: number,
+	): Promise<"continue" | "stop"> {
 		const prepared = await this.planRunner.ensureExecutablePlan();
 		if (!prepared) {
 			const state = await loadProjectState(this.statePath);
@@ -181,7 +221,6 @@ export class CoMathResearchBatchRunner {
 			}
 			return "stop";
 		}
-		const stepIndex = batch.completedStepCount + 1;
 		const outcome = await this.planRunner.executeNextPlanTask(prepared.plan.id, {
 			batchId: batch.id,
 			stepIndex,
@@ -197,8 +236,7 @@ export class CoMathResearchBatchRunner {
 		}
 		const now = new Date().toISOString();
 		if (outcome.kind === "plan-completed") {
-			await this.completeResearchBatch(state, currentBatch);
-			return "stop";
+			return await this.continueOrCompleteAfterPlan(state, currentBatch);
 		}
 		if (outcome.kind === "completed") {
 			const run = outcome.runId
@@ -216,8 +254,32 @@ export class CoMathResearchBatchRunner {
 			await saveProjectState(this.statePath, completedState);
 			const latestBatch =
 				completedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? currentBatch;
-			if (outcome.planCompleted || latestBatch.completedStepCount >= latestBatch.requestedStepCount) {
+			if (latestBatch.completedStepCount >= latestBatch.requestedStepCount) {
 				await this.completeResearchBatch(completedState, latestBatch);
+				return "stop";
+			}
+			if (outcome.planCompleted) {
+				return await this.continueOrCompleteAfterPlan(completedState, latestBatch);
+			}
+			return "continue";
+		}
+		// A review rejection that left the plan active consumed a full bounded step (the run and its
+		// review both happened), so it counts against the budget and the batch moves on to the next
+		// planned task.
+		if (outcome.kind === "blocked" && !outcome.planPaused) {
+			const rejectedState = updateResearchBatch(state, {
+				batchId: batch.id,
+				completedStepCount: stepIndex,
+				...(outcome.runId ? { addRunId: outcome.runId } : {}),
+				clearInterruptedRunId: true,
+				now,
+				actor: "system",
+			});
+			await saveProjectState(this.statePath, rejectedState);
+			const latestBatch =
+				rejectedState.researchBatches.find((candidate) => candidate.id === batch.id) ?? currentBatch;
+			if (latestBatch.completedStepCount >= latestBatch.requestedStepCount) {
+				await this.completeResearchBatch(rejectedState, latestBatch);
 				return "stop";
 			}
 			return "continue";
@@ -232,6 +294,26 @@ export class CoMathResearchBatchRunner {
 			actor: "system",
 		});
 		await saveProjectState(this.statePath, pausedState);
+		return "stop";
+	}
+
+	/**
+	 * The autonomous continuation decision: a finished plan does not end the batch while the user's
+	 * step budget has room and the state-derived agenda offers genuinely new work (the agenda
+	 * deduplicates against every task that already ran and filters rejected routes, so continuing
+	 * can never loop over the same moves). The next loop iteration derives the continuation plan
+	 * from what was just learned. When no new work is derivable, the batch completes honestly
+	 * instead of re-summarizing the same status.
+	 */
+	private async continueOrCompleteAfterPlan(
+		state: CoMathProjectState,
+		batch: ResearchBatchRecord,
+	): Promise<"continue" | "stop"> {
+		if (batch.completedStepCount < batch.requestedStepCount && hasRunnableResearchAgendaWork(state)) {
+			await this.notify(formatResearchBatchContinuation({ state, batch }));
+			return "continue";
+		}
+		await this.completeResearchBatch(state, batch);
 		return "stop";
 	}
 

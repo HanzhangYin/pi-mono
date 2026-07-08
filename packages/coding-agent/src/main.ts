@@ -46,11 +46,16 @@ import { hasProjectTrustInputs, ProjectTrustStore } from "./core/trust-manager.t
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
 import {
 	CoMathHarness,
+	type CoMathResearchPhaseActivitySignal,
 	type CoMathResearchWorkstreamActivityEndInput,
 	type CoMathResearchWorkstreamActivityStartInput,
 	type CoMathResearchWorkstreamActivityUpdateInput,
 } from "./modes/comath/comath-harness.ts";
-import { formatCoMathResearchActivityStatus, formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
+import {
+	formatCoMathActivityElapsed,
+	formatCoMathResearchActivityStatus,
+	formatCoMathWelcome,
+} from "./modes/comath/comath-progress.ts";
 import { createDefaultResearchModelExecutor } from "./modes/comath/comath-research-model-executor.ts";
 import { resolveCoMathSource } from "./modes/comath/comath-source.ts";
 import { getDefaultStatePath } from "./modes/comath/storage.ts";
@@ -113,33 +118,76 @@ interface CoMathInteractiveActivityBridge {
 	start(input: CoMathResearchWorkstreamActivityStartInput): void;
 	update(input: CoMathResearchWorkstreamActivityUpdateInput): void;
 	end(input: CoMathResearchWorkstreamActivityEndInput): void;
+	phase(signal: CoMathResearchPhaseActivitySignal): void;
 }
+
+/** How often the footer status re-renders to advance the elapsed-time suffix. */
+const CO_MATH_ACTIVITY_TICK_MS = 5_000;
 
 /**
  * Co-math research runs execute as background promises *after* the normal agent turn ends, so they
  * are not covered by `AgentSession.isStreaming` and the standard loader. This bridge maps the
- * harness's per-run activity callbacks onto a footer extension status so the user still sees a
- * persistent "running" indicator. It is a deliberate stopgap for the single co-math consumer; see
- * docs/comath-background-activity-api-notes.md for the proposed first-class background-activity API.
- * It keeps the latest status per run so concurrent runs do not clobber one another.
+ * harness's activity callbacks — per-run stage updates plus the phase signals for work between
+ * runs (planning, the independent review, plan amendments, batch steps) — onto a footer extension
+ * status so the user always sees a live "still working" indicator. Activities behave as a stack:
+ * the most recently started one is shown, and when it ends the enclosing one (e.g. "research step
+ * 2 of 3") resurfaces. An elapsed-time suffix ticks while anything is active, so a long model call
+ * is visibly alive rather than a frozen line. It is a deliberate stopgap for the single co-math
+ * consumer; see docs/comath-background-activity-api-notes.md for the proposed first-class
+ * background-activity API.
  */
 function createCoMathInteractiveActivityBridge(interactiveMode: InteractiveMode): CoMathInteractiveActivityBridge {
-	const statusesByRunId = new Map<string, string>();
+	const activities = new Map<string, { status: string; startedAt: number }>();
+	let ticker: NodeJS.Timeout | undefined;
 	const render = () => {
-		interactiveMode.setCoMathActivityStatus(Array.from(statusesByRunId.values()).at(-1));
+		const latest = Array.from(activities.values()).at(-1);
+		if (!latest) {
+			interactiveMode.setCoMathActivityStatus(undefined);
+			return;
+		}
+		const elapsedMs = Date.now() - latest.startedAt;
+		interactiveMode.setCoMathActivityStatus(
+			elapsedMs >= CO_MATH_ACTIVITY_TICK_MS
+				? `${latest.status} · ${formatCoMathActivityElapsed(elapsedMs)}`
+				: latest.status,
+		);
+	};
+	const syncTicker = () => {
+		if (activities.size > 0 && !ticker) {
+			ticker = setInterval(render, CO_MATH_ACTIVITY_TICK_MS);
+			ticker.unref?.();
+		} else if (activities.size === 0 && ticker) {
+			clearInterval(ticker);
+			ticker = undefined;
+		}
+	};
+	const upsert = (activityId: string, status: string) => {
+		const existing = activities.get(activityId);
+		activities.set(activityId, { status, startedAt: existing?.startedAt ?? Date.now() });
+		render();
+		syncTicker();
+	};
+	const remove = (activityId: string) => {
+		activities.delete(activityId);
+		render();
+		syncTicker();
 	};
 	return {
 		start(input) {
-			statusesByRunId.set(input.run.id, formatCoMathResearchActivityStatus(input));
-			render();
+			upsert(input.run.id, formatCoMathResearchActivityStatus(input));
 		},
 		update(input) {
-			statusesByRunId.set(input.run.id, formatCoMathResearchActivityStatus(input));
-			render();
+			upsert(input.run.id, formatCoMathResearchActivityStatus(input));
 		},
 		end(input) {
-			statusesByRunId.delete(input.runId);
-			render();
+			remove(input.runId);
+		},
+		phase(signal) {
+			if (signal.kind === "end") {
+				remove(signal.activityId);
+				return;
+			}
+			upsert(signal.activityId, signal.status);
 		},
 	};
 }
@@ -853,19 +901,28 @@ export async function main(args: string[], options?: MainOptions) {
 		// Real model calls for research workstreams, plus director planning/amendment and the
 		// independent skeptic review; the harness falls back to deterministic execution if these
 		// fail or no model is configured.
+		const coMathStreamOptions = () => ({
+			reasoning: session.thinkingLevel === "off" ? undefined : session.thinkingLevel,
+			sessionId: session.sessionId,
+			onPayload: session.agent.onPayload,
+			onResponse: session.agent.onResponse,
+			transport: session.agent.transport,
+			thinkingBudgets: session.agent.thinkingBudgets,
+			maxRetryDelayMs: session.agent.maxRetryDelayMs,
+		});
 		const coMathModelExecutor = createDefaultResearchModelExecutor({
 			getModel: () => session.model,
 			streamFn: session.agent.streamFn,
 			streamAssistantMessage: (stream) => session.streamAssistantMessage(stream),
-			streamOptions: () => ({
-				reasoning: session.thinkingLevel === "off" ? undefined : session.thinkingLevel,
-				sessionId: session.sessionId,
-				onPayload: session.agent.onPayload,
-				onResponse: session.agent.onResponse,
-				transport: session.agent.transport,
-				thinkingBudgets: session.agent.thinkingBudgets,
-				maxRetryDelayMs: session.agent.maxRetryDelayMs,
-			}),
+			streamOptions: coMathStreamOptions,
+		});
+		// Director planning/amendment, revision, and skeptic calls speak a JSON/structured protocol
+		// that is parsed into durable records and rendered as product text; their raw output must
+		// never stream into the conversation.
+		const coMathDirectorExecutor = createDefaultResearchModelExecutor({
+			getModel: () => session.model,
+			streamFn: session.agent.streamFn,
+			streamOptions: coMathStreamOptions,
 		});
 		session.setConversationHarness(
 			new CoMathHarness({
@@ -880,10 +937,12 @@ export async function main(args: string[], options?: MainOptions) {
 						silent: true,
 					}),
 				researchModelExecutor: coMathModelExecutor,
-				researchDirectorExecutor: coMathModelExecutor,
+				researchDirectorExecutor: coMathDirectorExecutor,
 				onResearchWorkstreamActivityStart: (input) => coMathActivityBridge?.start(input),
 				onResearchWorkstreamActivityUpdate: (input) => coMathActivityBridge?.update(input),
 				onResearchWorkstreamActivityEnd: (input) => coMathActivityBridge?.end(input),
+				onResearchPhaseActivity: (signal) => coMathActivityBridge?.phase(signal),
+				...(parsed.comathInitialSteps !== undefined ? { initialResearchStepCount: parsed.comathInitialSteps } : {}),
 			}),
 		);
 		await sendCoMathNotice(formatCoMathWelcome(source));

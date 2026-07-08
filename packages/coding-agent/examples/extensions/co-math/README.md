@@ -4,6 +4,39 @@ A minimal research-workspace assistant prototype for keeping a mathematical proj
 
 This example is scaffolding only. It does not establish any mathematical claim, prove a theorem, or replace human review. Treat all sample text as placeholder workflow content.
 
+## First-class research mode (`pi comath`)
+
+The first-class product mode wraps the same durable workspace in a natural-language research harness:
+
+```bash
+pi comath                  # fresh research workspace in the current directory
+pi comath paper.pdf        # pin a source document for validation work
+```
+
+Typing a fresh math question starts a bounded autonomous run: the harness plans durable tasks, executes them one at a time through model-backed workstreams, and puts every finished step through an independent review before anything counts as progress.
+
+### First-run step budget
+
+The autonomous first run takes **3 bounded steps by default** and then pauses for your direction. Each step is a full model-backed run plus an independent review, so the default deliberately bounds unprompted model spend. To change it:
+
+```bash
+pi comath --comath-steps 8          # bigger first run (also accepts --comath-steps=8)
+```
+
+- The value is clamped to 1–10; missing or non-numeric values are rejected at the command line.
+- The flag only sizes the unprompted first run. Explicit prompts pick their own budget (`work the plan for 5 steps`, capped at 5 per request), and `continue` extends work after any pause.
+- When a plan finishes with budget left and durable state offers genuinely new work, the run derives the next round and continues on its own; otherwise it completes honestly.
+
+### Live activity indicator
+
+Background research is visible in the footer for the whole run, so you can always tell co-math is still working:
+
+- Every phase holds a status: `co-math: planning the next research steps`, `co-math: Path 2 running · specialist`, `co-math: independently reviewing the finished step`, `co-math: updating the plan with what was learned`.
+- Each bounded step holds a backdrop status like `co-math: research step 2 of 3` that resurfaces between finer-grained phases, so the indicator never goes dark mid-step.
+- An elapsed-time suffix ticks every few seconds (`… · 1m 35s`), so a long model call is visibly alive rather than a frozen line.
+
+The indicator is purely cosmetic: status updates are best-effort and never affect research execution or durable state.
+
 ## Manual usage
 
 From the coding-agent package:

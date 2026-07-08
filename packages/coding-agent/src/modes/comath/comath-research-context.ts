@@ -7,8 +7,18 @@
  */
 
 import { buildCoordinatorContext } from "./comath-coordinator-synthesis.ts";
-import type { CoMathProjectState, ResearchPlanRecord, ResearchPlanTaskRecord } from "./schema.ts";
-import { getActiveResearchPlan, getLatestResearchPlan, getResearchPlanTasks } from "./storage.ts";
+import type {
+	CoMathProjectState,
+	ResearchObligationRecord,
+	ResearchPlanRecord,
+	ResearchPlanTaskRecord,
+} from "./schema.ts";
+import {
+	getActiveResearchPlan,
+	getLatestResearchPlan,
+	getResearchObligationChildren,
+	getResearchPlanTasks,
+} from "./storage.ts";
 
 /**
  * Full research context pack: the durable-state summary shared with the coordinator plus the
@@ -16,7 +26,39 @@ import { getActiveResearchPlan, getLatestResearchPlan, getResearchPlanTasks } fr
  * the skeptic when reviewing a finished task.
  */
 export function buildResearchContextPack(state: CoMathProjectState): string {
-	return [buildCoordinatorContext(state), "", "Research plan:", ...formatPlanForContext(state)].join("\n");
+	// The discipline records (constraints, theorem checks, pivots) come along with the coordinator
+	// context, which now includes them for every consumer.
+	return [
+		buildCoordinatorContext(state),
+		"",
+		"Research plan:",
+		...formatPlanForContext(state),
+		"",
+		"Obligations (claims the project must establish or refute):",
+		...formatObligationsForContext(state),
+	].join("\n");
+}
+
+function formatObligationsForContext(state: CoMathProjectState): string[] {
+	if (state.researchObligations.length === 0) {
+		return ["- (none recorded yet)"];
+	}
+	return state.researchObligations.map((obligation) => formatObligationForContext(state, obligation));
+}
+
+function formatObligationForContext(state: CoMathProjectState, obligation: ResearchObligationRecord): string {
+	const children = getResearchObligationChildren(state, obligation.id);
+	const parts = [
+		`- [${obligation.status}] ${obligation.statement}`,
+		...(obligation.gaps.length > 0 ? [`gaps: ${obligation.gaps.length}`] : []),
+		...(obligation.evidenceEntryIds.length > 0 ? [`support: ${obligation.evidenceEntryIds.length}`] : []),
+		...(obligation.refutationEvidenceEntryIds.length > 0
+			? [`refutations: ${obligation.refutationEvidenceEntryIds.length}`]
+			: []),
+		...(children.length > 0 ? [`subclaims: ${children.length}`] : []),
+		...(obligation.statusReason ? [`reason: ${obligation.statusReason}`] : []),
+	];
+	return parts.join("; ");
 }
 
 function formatPlanForContext(state: CoMathProjectState): string[] {

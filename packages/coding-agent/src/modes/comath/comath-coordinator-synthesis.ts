@@ -3,6 +3,7 @@ import {
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
 } from "./comath-markdown.ts";
+import { formatDisciplineStateForContext } from "./comath-research-discipline.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import type {
 	CoMathProjectState,
@@ -78,7 +79,9 @@ export function buildResearchCoordinatorPrompt(state: CoMathProjectState): strin
 		"Distinguish finite computation from proof. A bounded computation can guide search, but cannot prove an infinite claim.",
 		"Distinguish source-backed facts from unsupported literature claims.",
 		"Do not claim the root question is solved unless a saved report explicitly gives a complete proof.",
-		"Recommend concrete next moves with rationale.",
+		"Respect the standing constraints in the state below, and never recommend a route a theorem check already rejected.",
+		"When a route was rejected or changed, recommend the recorded replacement route as a concrete next move.",
+		"Recommend concrete next moves with rationale (references to find, computations to run, weaker statements to prove).",
 		"",
 		buildCoordinatorContext(state),
 		"",
@@ -86,7 +89,6 @@ export function buildResearchCoordinatorPrompt(state: CoMathProjectState): strin
 		"## What we know",
 		"## Roadblocks",
 		"## Recommended next moves",
-		"## Human help useful",
 		"## Suggested next step",
 	].join("\n");
 }
@@ -119,6 +121,7 @@ export function buildCoordinatorContext(state: CoMathProjectState): string {
 		"",
 		"Working paper sections:",
 		...formatWorkingPaperSectionsForContext(state.workingPaperSections),
+		...formatDisciplineStateForContext(state),
 	].join("\n");
 }
 
@@ -170,12 +173,6 @@ function buildFallbackCoordinatorReport(state: CoMathProjectState): ResearchCoor
 			: []),
 	]);
 	const recommendedNextMoves = buildFallbackNextMoves(state);
-	const humanHelpUseful = uniqueStrings([
-		...state.researchReports.flatMap((report) => report.humanHelpUseful).slice(-MAX_REPORT_ITEMS),
-		...state.literatureClaimSupports
-			.filter((support) => support.status === "unsupported" || support.sourceIds.length === 0)
-			.map((support) => `Provide a theorem statement or source for: ${support.claim}`),
-	]);
 	const firstMove = recommendedNextMoves[0];
 	return {
 		...ids,
@@ -183,7 +180,7 @@ function buildFallbackCoordinatorReport(state: CoMathProjectState): ResearchCoor
 			whatWeKnow.length > 0 ? whatWeKnow : ["No completed research report has produced durable findings yet."],
 		roadblocks: roadblocks.length > 0 ? roadblocks : ["No current roadblock was identified."],
 		recommendedNextMoves,
-		humanHelpUseful,
+		humanHelpUseful: [],
 		...(firstMove?.pathId ? { suggestedPathId: firstMove.pathId } : {}),
 		...(firstMove?.prompt ? { suggestedPrompt: firstMove.prompt } : {}),
 	};
@@ -196,7 +193,6 @@ function parseCoordinatorMarkdown(text: string, state: CoMathProjectState): Rese
 		sanitizeCoordinatorText(softenComputationProofClaim(item, state)),
 	);
 	const roadblocks = sectionItems(parsed, "roadblock").map(sanitizeCoordinatorText);
-	const humanHelpUseful = sectionItems(parsed, "human").map(sanitizeCoordinatorText);
 	let recommendedNextMoves = sectionItems(parsed, "recommended")
 		.map((item, index) => parseNextMove(item, index, state))
 		.filter((move): move is ResearchCoordinatorNextMove => move !== undefined)
@@ -237,7 +233,7 @@ function parseCoordinatorMarkdown(text: string, state: CoMathProjectState): Rese
 				: []),
 		]).slice(0, MAX_REPORT_ITEMS),
 		recommendedNextMoves: fallbackNextMoves(recommendedNextMoves, state),
-		humanHelpUseful: uniqueStrings(humanHelpUseful).slice(0, MAX_REPORT_ITEMS),
+		humanHelpUseful: [],
 		...((suggestedPath?.id ?? firstMove?.pathId) ? { suggestedPathId: suggestedPath?.id ?? firstMove?.pathId } : {}),
 		...(suggestedPrompt ? { suggestedPrompt } : {}),
 	};
@@ -413,7 +409,7 @@ function parseNextMove(
 	state: CoMathProjectState,
 ): ResearchCoordinatorNextMove | undefined {
 	const normalized = sanitizeCoordinatorText(normalizeNextStepItem(item));
-	if (!normalized || isNextMoveDetailLabel(normalized)) {
+	if (!normalized || isNextMoveDetailLabel(normalized) || isNextMoveFragment(normalized)) {
 		return undefined;
 	}
 	const path = findPathReference(state, normalized);
@@ -423,7 +419,7 @@ function parseNextMove(
 		.replace(/\[(?:high|medium|low)\]/gi, "")
 		.trim();
 	const withoutPathLead = withoutPriority.replace(/^(?:continue\s+)?path\s+\d+\s*[:.-]?\s*/i, "").trim();
-	if (isNextMoveDetailLabel(withoutPathLead)) {
+	if (isNextMoveDetailLabel(withoutPathLead) || isNextMoveFragment(withoutPathLead)) {
 		return undefined;
 	}
 	const split = splitMoveTitleAndRationale(withoutPathLead);
@@ -437,6 +433,17 @@ function parseNextMove(
 
 function isNextMoveDetailLabel(item: string): boolean {
 	return /^(?:rationale|reason|priority|prompt|path|important caveat|caveat|note)$/i.test(item.trim());
+}
+
+function isNextMoveFragment(item: string): boolean {
+	const normalized = item.trim();
+	return (
+		/,$/.test(normalized) ||
+		/^(?:whether|primality|least prime factor|congruence classes?|runtime|exit code)\b/i.test(normalized) ||
+		(/^[a-z0-9^+()\\\s-]+$/i.test(normalized) &&
+			normalized.split(/\s+/).length <= 5 &&
+			!/\b(?:continue|compute|prove|check|find|source|run|compare|record|use|try|follow)\b/i.test(normalized))
+	);
 }
 
 function parsePriority(item: string, index: number): ResearchCoordinatorNextMove["priority"] {
@@ -652,9 +659,6 @@ function formatReportsForContext(state: CoMathProjectState): string[] {
 				...(report.findings.length > 0 ? [`  Findings: ${report.findings.slice(0, 3).join(" | ")}`] : []),
 				...(report.gaps.length > 0 ? [`  Gaps: ${report.gaps.slice(0, 3).join(" | ")}`] : []),
 				...(report.criticisms.length > 0 ? [`  Criticisms: ${report.criticisms.slice(0, 3).join(" | ")}`] : []),
-				...(report.humanHelpUseful.length > 0
-					? [`  Human help useful: ${report.humanHelpUseful.slice(0, 2).join(" | ")}`]
-					: []),
 				...(report.sourceIds.length > 0 ? [`  Source ids: ${report.sourceIds.join(", ")}`] : []),
 				...(report.claimSupportIds.length > 0 ? [`  Claim support ids: ${report.claimSupportIds.join(", ")}`] : []),
 				...(report.computationalArtifactIds.length > 0

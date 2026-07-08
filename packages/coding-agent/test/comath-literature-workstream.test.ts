@@ -380,7 +380,7 @@ describe("literature research workstream", () => {
 		);
 
 		expect(requests).toHaveLength(3);
-		expect(requests[0]?.prompt).toContain("whether the source context treats the problem as open");
+		expect(requests[0]?.prompt).toContain("whether the source context treats the root question as open");
 		expect(result.sources).toHaveLength(1);
 		expect(result.report.sourceIds).toEqual(["source-1"]);
 		expect(result.report.findings.join("\n")).toContain("Source-backed context was reviewed");
@@ -392,7 +392,7 @@ describe("literature research workstream", () => {
 				expect.objectContaining({
 					status: "partially-supported",
 					sourceIds: ["source-1"],
-					claim: expect.stringContaining("conjectural prime-values-of-polynomials framing"),
+					claim: expect.stringContaining("source-backed context for this literature path"),
 				}),
 				expect.objectContaining({
 					status: "unsupported",
@@ -404,6 +404,97 @@ describe("literature research workstream", () => {
 		expect(
 			[...result.report.findings, ...result.report.promisingStrategy, ...result.report.criticisms].join("\n"),
 		).not.toMatch(/\b(proves|proved|establishes) infinitely many primes of the form n\^2 \+ 1\b/i);
+	});
+
+	it("deduplicates source labels and extracts inline discipline blocks", async () => {
+		const duplicateSources: LiteratureSourceResult[] = [
+			{
+				kind: "paper",
+				title: "Repeated source title",
+				url: "https://example.test/one",
+				summary: "First copy.",
+			},
+			{
+				kind: "paper",
+				title: "Repeated source title",
+				url: "https://example.test/two",
+				summary: "Second copy.",
+			},
+		];
+		const responses: Record<ResearchWorkstreamModelRequest["role"], string> = {
+			specialist: [
+				"## Source-backed status",
+				"- The source gives related multivariable context. [source-1]",
+				"## Unsupported or unresolved",
+				"- No one-variable theorem is established. [source-1]",
+				"## Next",
+				"- Continue with a one-variable sieve check.",
+			].join("\n"),
+			critic: [
+				"## Review",
+				"- The multivariable theorem is not a direct proof.",
+				"Theorem check:",
+				"Theorem: Multivariable prime theorem.",
+				"Object: n^2+1.",
+				"Hypothesis: fixed one-variable slice is controlled - failed.",
+				"Status: rejected-as-direct-route.",
+				"Consequence: use it only as related context.",
+				"Route change:",
+				"From: use the multivariable theorem directly.",
+				"To: seek one-variable-specific sieve evidence.",
+				"Reason: fixed slices are not controlled.",
+				"Negative constraints:",
+				"Do not infer fixed one-variable prime infinitude from multivariable theorems.",
+			].join("\n"),
+			synthesizer: [
+				"## Source-backed status",
+				"- Source-backed context is related only. [source-1]",
+				"## Source-backed distinctions",
+				"- The related theorem does not imply the target.",
+				"## Unsupported or unresolved",
+				"- The one-variable target is unresolved here.",
+				"## Next",
+				"- Concrete replacement route:",
+				"- Compute initial data for n^2+1.",
+				"- Prove admissibility directly.",
+			].join("\n"),
+		};
+		const { lookup } = createLookup(duplicateSources);
+		const { executor } = createExecutorWithResponses(responses);
+		const path = buildNSquaredPlusOneLiteraturePath();
+
+		const result = await runLiteratureResearchWorkstreamStaged(
+			{
+				rootQuestion: N_SQUARED_PLUS_ONE_QUESTION,
+				path,
+				allPaths: [path],
+				now: "2026-06-05T12:30:00.000Z",
+				executor,
+				sourceLookup: lookup,
+			},
+			{},
+		);
+
+		expect(result.sources).toHaveLength(1);
+		expect(result.report.sourceIds).toEqual(["source-1"]);
+		expect(result.report.suggestedNextMove).toBe("Compute initial data for n^2+1. Prove admissibility directly.");
+		expect(result.report.theoremChecks).toEqual([
+			expect.objectContaining({
+				theorem: "Multivariable prime theorem.",
+				status: "rejected-as-direct-route",
+				consequence: "use it only as related context.",
+			}),
+		]);
+		expect(result.report.routePivots).toEqual([
+			{
+				fromRoute: "use the multivariable theorem directly.",
+				toRoute: "seek one-variable-specific sieve evidence.",
+				reason: "fixed slices are not controlled.",
+			},
+		]);
+		expect(result.report.negativeConstraints).toEqual([
+			"Do not infer fixed one-variable prime infinitude from multivariable theorems.",
+		]);
 	});
 
 	it("returns a safe unsupported report without model calls when no sources are available", async () => {
@@ -427,7 +518,9 @@ describe("literature research workstream", () => {
 		expect(result.sources).toEqual([]);
 		expect(result.report.status).toBe("blocked");
 		expect(result.report.sourceIds).toEqual([]);
-		expect(result.report.findings.join("\n")).toContain("No source lookup backend returned references");
+		expect(result.report.findings.join("\n")).toContain(
+			"No source was available, so no theorem claim is established",
+		);
 		expect(result.report.findings.join("\n")).not.toContain("Chen");
 		expect(result.report.findings.join("\n")).not.toContain("Maynard");
 		expect(result.claimSupports).toEqual([
@@ -461,12 +554,14 @@ describe("literature research workstream", () => {
 		expect(result.sources).toEqual([]);
 		expect(result.report.status).toBe("blocked");
 		expect(result.report.findings.join("\n")).toContain("No source was available");
-		expect(result.report.findings.join("\n")).toContain("Bunyakovsky-type conjectures");
+		expect(result.report.findings.join("\n")).toContain(
+			"Treat named theorems and conjectures as search targets only",
+		);
 		expect(result.report.findings.join("\n")).toContain("search targets only");
 		expect(result.report.findings.join("\n")).toContain("No unconditional proof");
 		expect(result.report.gaps.join("\n")).toContain("source-backed literature check");
 		expect(result.report.gaps.join("\n")).toContain("Conjectural implications");
-		expect(result.report.suggestedNextMove).toContain("what should we try next?");
+		expect(result.report.suggestedNextMove).toContain("Work the problem directly next");
 		expect(result.claimSupports).toEqual([
 			{
 				claim: "No source-backed theorem claim is established for this path yet.",

@@ -343,6 +343,28 @@ describe("parseArgs", () => {
 		});
 	});
 
+	describe("--comath-steps flag", () => {
+		test("parses a step budget in both flag forms", () => {
+			expect(parseArgs(["comath", "--comath-steps", "5"]).comathInitialSteps).toBe(5);
+			expect(parseArgs(["comath", "--comath-steps=8"]).comathInitialSteps).toBe(8);
+			expect(parseArgs(["comath", "--comath-steps", "5"]).diagnostics).toEqual([]);
+		});
+
+		test("rejects missing or non-numeric values without consuming other flags", () => {
+			const missing = parseArgs(["comath", "--comath-steps", "--approve"]);
+			expect(missing.comathInitialSteps).toBeUndefined();
+			expect(missing.projectTrustOverride).toBe(true);
+			expect(missing.diagnostics.some((diagnostic) => diagnostic.message.includes("--comath-steps"))).toBe(true);
+
+			const invalid = parseArgs(["comath", "--comath-steps", "many"]);
+			expect(invalid.comathInitialSteps).toBeUndefined();
+			expect(invalid.diagnostics.some((diagnostic) => diagnostic.type === "error")).toBe(true);
+
+			expect(parseArgs(["comath", "--comath-steps", "0"]).comathInitialSteps).toBeUndefined();
+			expect(parseArgs(["comath", "--comath-steps", "2.5"]).comathInitialSteps).toBeUndefined();
+		});
+	});
+
 	describe("comath product mode", () => {
 		test("parses source and leaves later prompt text as messages", () => {
 			const result = parseArgs(["comath", "paper.pdf", "--approve", "Validate Question 3."]);

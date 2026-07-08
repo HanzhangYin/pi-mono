@@ -19,9 +19,17 @@
  */
 
 import type { ComputationalExecutor } from "./comath-computation-executor.ts";
-import { extractCoMathJsonObject } from "./comath-markdown.ts";
+import { extractCoMathJsonObject, stripCoMathJsonObjects } from "./comath-markdown.ts";
+import { buildProofTaskGuidance, buildStandingConstraintsBlock } from "./comath-research-discipline.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
-import type { ResearchEvidenceClassification, ResearchPath } from "./schema.ts";
+import type {
+	ResearchClaimCategory,
+	ResearchConstraintRecord,
+	ResearchEvidenceClassification,
+	ResearchPath,
+	ResearchPlanTaskKind,
+} from "./schema.ts";
+import { normalizeResearchClaimCategory } from "./storage.ts";
 
 const DEFAULT_MAX_TOOL_ACTIONS = 3;
 const SCRIPT_MAX_RUNTIME_MS = 10_000;
@@ -40,6 +48,8 @@ const RECORDABLE_CLASSIFICATIONS: readonly ResearchEvidenceClassification[] = [
 export interface SpecialistRecordedClaim {
 	claim: string;
 	classification: ResearchEvidenceClassification;
+	/** Researcher-facing category (computed anchor result, convention-dependent claim, ...). */
+	claimCategory?: ResearchClaimCategory;
 	rationale: string;
 }
 
@@ -58,6 +68,10 @@ export interface RunSpecialistToolLoopInput {
 	allPaths: readonly ResearchPath[];
 	priorFindings: readonly string[];
 	directive?: string;
+	/** Standing research constraints the specialist must respect. */
+	standingConstraints?: readonly ResearchConstraintRecord[];
+	/** The plan-task kind this attempt executes; proof-level kinds get proof-first guidance. */
+	taskKind?: ResearchPlanTaskKind;
 	executor: ResearchWorkstreamModelExecutor;
 	computationalExecutor?: ComputationalExecutor;
 	/** Absolute directory the specialist's scripts run in (created by the executor). */
@@ -137,6 +151,7 @@ export async function runSpecialistToolLoop(input: RunSpecialistToolLoopInput): 
 			recordedClaims.push({
 				claim: action.claim,
 				classification: action.classification,
+				...(action.claimCategory ? { claimCategory: action.claimCategory } : {}),
 				rationale: action.rationale,
 			});
 			stageNotes.push(`Recorded a durable claim (${action.classification}): ${truncate(action.claim, 160)}`);
@@ -212,7 +227,13 @@ export async function runSpecialistToolLoop(input: RunSpecialistToolLoopInput): 
 
 type SpecialistAction =
 	| { kind: "run_computation"; summary: string; script: string }
-	| { kind: "record_claim"; claim: string; classification: ResearchEvidenceClassification; rationale: string }
+	| {
+			kind: "record_claim";
+			claim: string;
+			classification: ResearchEvidenceClassification;
+			claimCategory?: ResearchClaimCategory;
+			rationale: string;
+	  }
 	| { kind: "finish"; report: string };
 
 export function parseSpecialistAction(text: string): SpecialistAction | undefined {
@@ -239,10 +260,12 @@ export function parseSpecialistAction(text: string): SpecialistAction | undefine
 		if (!claim) {
 			return undefined;
 		}
+		const claimCategory = normalizeResearchClaimCategory(parsed.category ?? parsed.claimCategory);
 		return {
 			kind: "record_claim",
 			claim: truncate(claim, 400),
 			classification: normalizeRecordableClassification(parsed.classification),
+			...(claimCategory ? { claimCategory } : {}),
 			rationale:
 				typeof parsed.rationale === "string" && parsed.rationale.trim()
 					? truncate(parsed.rationale.trim(), 400)
@@ -265,7 +288,10 @@ function normalizeRecordableClassification(value: unknown): ResearchEvidenceClas
 }
 
 export function buildAgenticSpecialistPrompt(
-	input: Pick<RunSpecialistToolLoopInput, "rootQuestion" | "path" | "priorFindings" | "directive">,
+	input: Pick<
+		RunSpecialistToolLoopInput,
+		"rootQuestion" | "path" | "priorFindings" | "directive" | "standingConstraints" | "taskKind"
+	>,
 	exchanges: readonly ToolExchange[],
 	remainingActions: number,
 ): string {
@@ -276,10 +302,12 @@ export function buildAgenticSpecialistPrompt(
 		`Path objective: ${input.path.objective}`,
 		"Existing findings:",
 		...(input.priorFindings.length > 0 ? input.priorFindings.map((finding) => `- ${finding}`) : ["- (none yet)"]),
+		...buildStandingConstraintsBlock(input.standingConstraints ?? []),
 		"",
 		"Task:",
 		...(input.directive?.trim() ? ["Task brief from the research plan:", input.directive.trim(), ""] : []),
 		"Attempt this path. Produce useful partial progress, not polished certainty.",
+		...buildProofTaskGuidance(input.taskKind),
 		...(exchanges.length > 0
 			? ["", "Actions taken so far:", ...exchanges.map((exchange) => `${exchange.description}\n${exchange.result}`)]
 			: []),
@@ -290,7 +318,7 @@ export function buildAgenticSpecialistPrompt(
 		...(remainingActions > 0
 			? [
 					'- Run a bounded computation: {"action":"run_computation","summary":"what it checks","script":"<small Python, standard library only, no os/subprocess/network/file access, prints its results>"}',
-					'- Record a durable claim: {"action":"record_claim","claim":"...","classification":"conjecture|heuristic|computation|survey-context|unsupported|conflicting","rationale":"..."}',
+					'- Record a durable claim: {"action":"record_claim","claim":"...","classification":"conjecture|heuristic|computation|survey-context|unsupported|conflicting","category":"verified-fact|source-backed-theorem|computed-anchor-result|convention-dependent-claim|plausible-interpretation|failed-route|open-caveat","rationale":"..."}',
 					"Use a computation when a finite check would sharpen the attempt; record claims for statements worth keeping even if this attempt stalls.",
 					"",
 					"When you are done (or if no action is needed), return your final note as plain markdown instead of JSON.",
@@ -311,13 +339,7 @@ export function buildAgenticSpecialistPrompt(
 }
 
 function stripActionJson(text: string): string {
-	const withoutFences = text.replace(/```(?:json)?/gi, "\n");
-	const start = withoutFences.indexOf("{");
-	const end = withoutFences.lastIndexOf("}");
-	if (start === -1 || end <= start) {
-		return text;
-	}
-	return `${withoutFences.slice(0, start)}${withoutFences.slice(end + 1)}`.trim();
+	return stripCoMathJsonObjects(text);
 }
 
 function buildBudgetExhaustedNote(stageNotes: readonly string[]): string {

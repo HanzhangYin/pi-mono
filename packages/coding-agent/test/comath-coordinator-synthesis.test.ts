@@ -77,7 +77,7 @@ describe("co-math coordinator synthesis", () => {
 		});
 		expect(result.report.recommendedNextMoves.map((move) => move.title)).not.toContain("Rationale");
 		expect(result.report.recommendedNextMoves.map((move) => move.title)).not.toContain("Important caveat");
-		expect(result.report.humanHelpUseful).toEqual(["Share a source on quadratic prime values."]);
+		expect(result.report.humanHelpUseful).toEqual([]);
 		expect(result.report.suggestedPathId).toBe("path-3");
 		expect(result.report.suggestedPrompt).toBe("continue path 3");
 	});
@@ -104,6 +104,37 @@ describe("co-math coordinator synthesis", () => {
 		expect(result.report.whatWeKnow.join("\n")).not.toContain("proves infinitely many");
 		expect(result.report.whatWeKnow.join("\n")).toContain("finite evidence only");
 		expect(result.report.roadblocks.join("\n")).toContain("does not prove an infinite claim");
+	});
+
+	it("drops fragment bullets from recommended next moves", async () => {
+		const state = createCoordinatorState();
+		const executor: ResearchWorkstreamModelExecutor = {
+			run: async () => ({
+				text: [
+					"## What we know",
+					"- The computation is useful finite evidence.",
+					"## Roadblocks",
+					"- The full theorem is still open.",
+					"## Recommended next moves",
+					"- Follow the recorded replacement route for Path 1: compute n^2+1 for even n <= B, recording:",
+					"- primality,",
+					"- least prime factor,",
+					"- congruence classes causing compositeness.",
+					"## Suggested next step",
+					"- continue path 1",
+				].join("\n"),
+			}),
+		};
+
+		const result = await runResearchCoordinatorSynthesis({ state, executor, now: NOW });
+
+		expect(result.report.recommendedNextMoves.map((move) => move.title)).toEqual([
+			"Follow the recorded replacement route for Path 1",
+		]);
+		expect(result.report.recommendedNextMoves[0]).toMatchObject({
+			pathId: "path-1",
+			prompt: "continue path 1",
+		});
 	});
 
 	it("falls back deterministically when the model call fails", async () => {

@@ -7,24 +7,32 @@ import type {
 	LiteratureClaimSupport,
 	LiteratureSourceArtifact,
 	ResearchBatchRecord,
+	ResearchConstraintRecord,
 	ResearchCoordinatorReportRecord,
 	ResearchEvidenceBoardEntry,
+	ResearchObligationRecord,
 	ResearchPath,
+	ResearchPivotRecord,
 	ResearchPlanRecord,
 	ResearchPlanTaskRecord,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamRunRecord,
+	TheoremApplicabilityCheckRecord,
 } from "./schema.ts";
 import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "./storage.ts";
 
 export type {
+	CoMathResearchActivityPhase,
 	FormatCoMathResearchActivityStatusInput,
 	FormatResearchWorkstreamRunInput,
 	FormatResearchWorkstreamStageCompletedInput,
 	FormatResearchWorkstreamStageStartedInput,
 } from "./comath-foreground-progress.ts";
 export {
+	formatCoMathActivityElapsed,
 	formatCoMathResearchActivityStatus,
+	formatCoMathResearchPhaseActivityStatus,
+	formatCoMathResearchStepActivityStatus,
 	formatResearchWorkstreamAlreadyRunning,
 	formatResearchWorkstreamRunFailed,
 	formatResearchWorkstreamRunProgress,
@@ -237,6 +245,9 @@ export function formatUserProvidedLiteratureSourceRegistered(input: { title: str
 
 export type ResearchStateSummaryInput = Pick<CoMathProjectState, "researchPaths" | "researchFocus"> & {
 	researchReports?: readonly ResearchWorkstreamReportRecord[];
+	researchConstraints?: readonly ResearchConstraintRecord[];
+	theoremApplicabilityChecks?: readonly TheoremApplicabilityCheckRecord[];
+	researchPivots?: readonly ResearchPivotRecord[];
 };
 
 /** Research-state overview shown by `show research state` / `summarize current state`. */
@@ -263,6 +274,9 @@ export function formatResearchStateSummary(state: ResearchStateSummaryInput): st
 		...(abandoned.length > 0
 			? ["", "Abandoned for now", ...abandoned.map((path) => `- ${formatResearchPathLabel(state, path)}`)]
 			: []),
+		...formatStandingConstraintLines(state.researchConstraints ?? []),
+		...formatTheoremCheckLines(state.theoremApplicabilityChecks ?? []),
+		...formatRoutePivotLines(state.researchPivots ?? []),
 		"",
 		...(best && bestIndex >= 0
 			? [
@@ -273,6 +287,87 @@ export function formatResearchStateSummary(state: ResearchStateSummaryInput): st
 					`I can work on ${formatResearchPathLabel(state, best)} next.`,
 				]
 			: ["Suggested next step", "Choose a path to explore next."]),
+	].join("\n");
+}
+
+function formatStandingConstraintLines(constraints: readonly ResearchConstraintRecord[]): string[] {
+	const active = constraints.filter((constraint) => constraint.status === "active");
+	if (active.length === 0) {
+		return [];
+	}
+	return ["", "Standing constraints", ...active.slice(-4).map((constraint) => `- ${constraint.text}`)];
+}
+
+function formatTheoremCheckLines(checks: readonly TheoremApplicabilityCheckRecord[]): string[] {
+	if (checks.length === 0) {
+		return [];
+	}
+	return [
+		"",
+		"Theorem checks",
+		...checks
+			.slice(-3)
+			.map(
+				(check) =>
+					`- ${check.theorem}: ${formatTheoremCheckStatus(check.status)}${check.consequence ? ` — ${check.consequence}` : ""}`,
+			),
+	];
+}
+
+function formatTheoremCheckStatus(status: TheoremApplicabilityCheckRecord["status"]): string {
+	if (status === "applies") {
+		return "applies to our object";
+	}
+	if (status === "rejected-as-direct-route") {
+		return "does not apply directly";
+	}
+	return "still needs verification";
+}
+
+function formatRoutePivotLines(pivots: readonly ResearchPivotRecord[]): string[] {
+	if (pivots.length === 0) {
+		return [];
+	}
+	return [
+		"",
+		"Route changes",
+		...pivots.slice(-3).map((pivot) => `- Dropped "${pivot.fromRoute}" for "${pivot.toRoute}": ${pivot.reason}`),
+	];
+}
+
+export interface FormatDifferentResearchQuestionDetectedInput {
+	currentQuestion: string;
+	newQuestion: string;
+}
+
+/**
+ * Shown when a prompt looks like a brand-new research question while this workspace is already
+ * researching a different one. Nothing is changed: mixing two problems in one workspace silently
+ * corrupts the durable research state.
+ */
+export function formatDifferentResearchQuestionDetected(input: FormatDifferentResearchQuestionDetectedInput): string {
+	return [
+		"That looks like a new research question, not steering for the current one.",
+		"",
+		"This workspace is researching:",
+		`- ${input.currentQuestion}`,
+		"You asked:",
+		`- ${input.newQuestion}`,
+		"",
+		"I have not changed the current research, so the two problems stay separate.",
+		"To explore the new question, start Pi in a fresh directory and ask it there.",
+		'If you meant to steer the current research, phrase it as an instruction, for example: "focus on path 3" or "check the residues modulo 4".',
+	].join("\n");
+}
+
+/** Confirms a standing constraint was made durable and will steer every later step. */
+export function formatResearchConstraintRecorded(text: string): string {
+	return [
+		"Standing constraint recorded",
+		"",
+		`- ${text}`,
+		"",
+		'Every research step will see this and work around it. Say "show research state" to review the active constraints.',
 	].join("\n");
 }
 
@@ -424,6 +519,7 @@ export function formatResearchBatchStarted(input: FormatResearchBatchInput): str
 		input.batch.nextPathId
 			? `First path: ${formatResearchBatchPath(input.state, input.batch.nextPathId)}`
 			: "I’ll work through the research plan, creating one if needed.",
+		'I’ll pause when these are done — say "continue" or "work the plan for N steps" to go further.',
 	].join("\n");
 }
 
@@ -440,6 +536,21 @@ export function formatResearchBatchProgress(input: FormatResearchBatchInput): st
 		input.batch.status === "paused"
 			? 'This run is paused. Say "resume research" to retry from the last durable boundary.'
 			: 'Say "show progress" for the latest status.',
+	].join("\n");
+}
+
+/**
+ * Announced when a plan finished but the user's step budget still has room and durable state
+ * offers new work: the run continues into the next derived round instead of stopping at a status
+ * summary.
+ */
+export function formatResearchBatchContinuation(input: FormatResearchBatchInput): string {
+	return [
+		"The plan finished with steps left in the budget.",
+		"",
+		formatResearchBatchStepCount(input.batch),
+		"",
+		"What was just learned points to further concrete work, so I'm deriving the next round and continuing.",
 	].join("\n");
 }
 
@@ -556,8 +667,22 @@ export function formatResearchPlanTaskStarted(input: FormatResearchPlanTaskInput
 export function formatResearchPlanTaskCompleted(input: FormatResearchPlanTaskInput): string {
 	return [
 		`Finished task ${input.task.sequence} of ${input.tasks.length}: ${input.task.title}.`,
+		...(input.task.progressKind ? [formatTaskProgressKindLine(input.task.progressKind)] : []),
+		...(input.task.reviewOutcome === "completed-with-concerns"
+			? ["The independent review raised concerns; they are recorded with the step."]
+			: []),
 		formatResearchPlanProgressLine(input.tasks),
 	].join("\n");
+}
+
+function formatTaskProgressKindLine(progressKind: NonNullable<ResearchPlanTaskRecord["progressKind"]>): string {
+	if (progressKind === "mathematical") {
+		return "This step produced new mathematical content.";
+	}
+	if (progressKind === "obstruction") {
+		return "This step recorded why a route fails; later planning will steer around it.";
+	}
+	return "This step produced status and context only.";
 }
 
 export function formatResearchPlanPaused(input: FormatResearchPlanInput & { reason?: string }): string {
@@ -581,6 +706,22 @@ export function formatResearchPlanCompleted(input: FormatResearchPlanInput): str
 		formatResearchPlanProgressLine(input.tasks),
 		"",
 		'Say "show latest report" for the newest findings, or "make a plan" to plan the next round.',
+	].join("\n");
+}
+
+/**
+ * A review rejection that blocked one step without pausing the plan: the remaining planned tasks
+ * are usually exactly the work the review's diagnosis calls for, so execution moves on to them
+ * instead of retrying a step that would meet the same review again.
+ */
+export function formatResearchPlanTaskRejectedContinuing(input: FormatResearchPlanTaskInput): string {
+	return [
+		`The independent review did not accept task ${input.task.sequence} of ${input.tasks.length}: ${input.task.title}.`,
+		"",
+		"Reason",
+		input.task.blockedReason ?? "The review found the step's acceptance criteria unmet.",
+		"",
+		"The rejection and its concerns are recorded with the step. Moving on to the next planned task instead of retrying the same step.",
 	].join("\n");
 }
 
@@ -637,6 +778,47 @@ export function formatSkepticReviewCompleted(input: FormatSkepticReviewCompleted
 			? "The check and its output are saved with this step. Re-examine the claim before building on it."
 			: "These are recorded with the step's evidence so later work can address them.",
 	].join("\n");
+}
+
+const OBLIGATION_STATUS_ORDER = ["established", "supported", "open", "refuted", "retired"] as const;
+
+const OBLIGATION_STATUS_LABELS: Record<ResearchObligationRecord["status"], string> = {
+	established: "established (reviewed and supported)",
+	supported: "supported (evidence recorded, not established yet)",
+	open: "open (no usable support yet)",
+	refuted: "refuted",
+	retired: "superseded",
+};
+
+/**
+ * Ledger of what the project owes mathematically, shown by `show obligations`. Only established
+ * claims read as settled; speculative and refuted statements stay visible with their gaps so the
+ * durable math state is never flattered by the copy.
+ */
+export function formatResearchObligationsSummary(state: {
+	researchObligations: readonly ResearchObligationRecord[];
+}): string {
+	const obligations = state.researchObligations;
+	if (obligations.length === 0) {
+		return 'No claims are on the ledger yet. Say "work the plan for 3 steps" to make progress first.';
+	}
+	const ordered = [...obligations].sort(
+		(a, b) => OBLIGATION_STATUS_ORDER.indexOf(a.status) - OBLIGATION_STATUS_ORDER.indexOf(b.status),
+	);
+	const lines: string[] = ["What the research owes and where it stands", ""];
+	for (const obligation of ordered) {
+		lines.push(`- ${stripInlineSourceLabels(obligation.statement)} — ${OBLIGATION_STATUS_LABELS[obligation.status]}`);
+		if (obligation.statusReason) {
+			lines.push(`  Why: ${stripInlineSourceLabels(obligation.statusReason)}`);
+		}
+		for (const gap of obligation.gaps.slice(0, 3)) {
+			lines.push(`  Gap: ${stripInlineSourceLabels(gap)}`);
+		}
+		if (obligation.gaps.length > 3) {
+			lines.push(`  (${obligation.gaps.length - 3} more gaps recorded)`);
+		}
+	}
+	return lines.join("\n");
 }
 
 export interface FormatConjectureRefutedInput {
@@ -757,7 +939,9 @@ export function formatResearchEvidenceBoardSummary(
 		"",
 		...ordered.map(
 			(entry) =>
-				`- ${formatEvidenceClassification(entry.classification)}: ${stripInlineSourceLabels(entry.claim)} — ${
+				`- ${formatEvidenceClassification(entry.classification)}${
+					entry.claimCategory ? ` (${entry.claimCategory.replace(/-/g, " ")})` : ""
+				}: ${stripInlineSourceLabels(entry.claim)} — ${
 					superseded.has(entry.id)
 						? "superseded; see the revised statement"
 						: stripInlineSourceLabels(entry.rationale)
@@ -861,10 +1045,7 @@ export function formatResearchWorkstreamReport(input: FormatResearchWorkstreamIn
 		...(evidenceBoard.length > 0 ? ["", "Evidence board", ...evidenceBoard] : []),
 		...(supports.length > 0 ? ["", "Claim support", ...supports] : []),
 		...(references.length > 0 ? ["", "References / attachments", ...references] : []),
-		...(report.gaps.length > 0 ? ["", "Needs human attention", ...report.gaps.map((item) => `- ${item}`)] : []),
-		...(report.humanHelpUseful.length > 0
-			? ["", "Human help useful", ...report.humanHelpUseful.map((item) => `- ${item}`)]
-			: []),
+		...(report.gaps.length > 0 ? ["", "Open gaps", ...report.gaps.map((item) => `- ${item}`)] : []),
 		"",
 		"Next",
 		report.suggestedNextMove,
@@ -894,9 +1075,6 @@ export function formatResearchCoordinatorReport(input: FormatResearchCoordinator
 		"",
 		"Recommended next moves",
 		...formatCoordinatorNextMoves(input),
-		...(input.report.humanHelpUseful.length > 0
-			? ["", "Human help useful", ...input.report.humanHelpUseful.map((item) => `- ${item}`)]
-			: []),
 		"",
 		"Suggested next step",
 		suggested,
@@ -1274,10 +1452,14 @@ function chooseNextResearchPathAfter(
 
 function formatResearchCompletionNextLines(
 	state: Pick<CoMathProjectState, "researchPaths">,
-	report: Pick<ResearchWorkstreamReportView, "pathId" | "pathTitle">,
+	report: Pick<ResearchWorkstreamReportView, "pathId" | "pathTitle" | "suggestedNextMove">,
 ): string[] {
+	// A literature step ends with the report's own concrete next move (replacement routes, direct
+	// mathematics), never a canned "ask the coordinator" hand-off.
 	if (normalizeResearchPathTitle(report.pathTitle) === "known theorem or literature reduction") {
-		return ["Ask the coordinator for the next useful move:", "what should we try next?"];
+		return report.suggestedNextMove.trim().length > 0
+			? [stripInlineSourceLabels(report.suggestedNextMove)]
+			: ["The detailed report is ready to review."];
 	}
 	const nextPath = chooseNextResearchPathAfter(state, report);
 	const nextPathIndex = nextPath ? state.researchPaths.findIndex((path) => path.id === nextPath.id) : -1;

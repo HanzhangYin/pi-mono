@@ -105,7 +105,10 @@ describe("co-math research workstream", () => {
 		const report = runForTitle("Known theorem or literature reduction");
 		expect(report.criticisms.join("\n")).toContain("search targets, not verified citations");
 		expect(report.gaps.join("\n")).toContain("source-backed literature check is still needed");
-		expect(report.humanHelpUseful.join("\n")).toContain("confirm the exact status of the relevant theorem targets");
+		// The deterministic workstream no longer volunteers human help; the verification need is an
+		// agent-actionable strategy line instead.
+		expect(report.promisingStrategy.join("\n")).toContain("verify the exact status of the relevant theorem targets");
+		expect(report.humanHelpUseful).toEqual([]);
 	});
 
 	it("produces a working-paper summary and a concrete next move", () => {

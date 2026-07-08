@@ -7,10 +7,22 @@ import {
 	normalizeLiteratureSourceLookupResult,
 } from "./comath-literature-source.ts";
 import {
+	filterCoMathProductLines,
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
 	getCoMathMarkdownSectionItems as sectionItems,
 } from "./comath-markdown.ts";
+import {
+	applyPivotsToSuggestedNextMove,
+	buildDisciplineGuidance,
+	buildStandingConstraintsBlock,
+	dedupeRoutePivots,
+	dedupeTheoremChecks,
+	parseNegativeConstraints,
+	parseRoutePivots,
+	parseTheoremApplicabilityChecks,
+	splitHumanHelpItems,
+} from "./comath-research-discipline.ts";
 import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
@@ -21,7 +33,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
-import type { LiteratureClaimSupportStatus, ResearchPath } from "./schema.ts";
+import type { LiteratureClaimSupportStatus, ResearchConstraintRecord, ResearchPath } from "./schema.ts";
 
 export interface LiteratureClaimSupportDraft {
 	claim: string;
@@ -39,6 +51,8 @@ export interface RunLiteratureResearchWorkstreamInput {
 	sourceLookup: LiteratureSourceLookup;
 	/** Optional plan-task brief (goal + acceptance criteria) steering the literature specialist. */
 	directive?: string;
+	/** Standing research constraints every role must respect (active ones are shown verbatim). */
+	standingConstraints?: readonly ResearchConstraintRecord[];
 }
 
 export interface LiteratureResearchWorkstreamResult {
@@ -75,7 +89,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 		`Searching arXiv, Semantic Scholar, Crossref${process.env.OPENALEX_API_KEY || process.env.PI_OPENALEX_API_KEY ? ", OpenAlex" : ""}.`,
 	);
 	const search = normalizeLiteratureSourceLookupResult(await sourceLookup.search(searchQuery), searchQuery);
-	const sources = search.sources;
+	const sources = uniqueLiteratureSources(search.sources);
 	await callbacks.onStageCompleted?.({
 		stage: "literature-search",
 		title: "Literature search",
@@ -110,7 +124,13 @@ export async function runLiteratureResearchWorkstreamStaged(
 		allPaths,
 		priorFindings: path.latestFindings,
 		inputText: sourceContext,
-		prompt: buildLiteratureSpecialistPrompt(rootQuestion, path, sourceContext, input.directive),
+		prompt: buildLiteratureSpecialistPrompt(
+			rootQuestion,
+			path,
+			sourceContext,
+			input.directive,
+			input.standingConstraints,
+		),
 	});
 	const specialist = parseMarkdown(specialistText);
 	await callbacks.onStageCompleted?.({
@@ -129,7 +149,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 		allPaths,
 		priorFindings: path.latestFindings,
 		inputText: `${sourceContext}\n\nSpecialist findings:\n${specialistText}`.trim(),
-		prompt: buildLiteratureCriticPrompt(rootQuestion, path, sourceContext, specialistText),
+		prompt: buildLiteratureCriticPrompt(rootQuestion, path, sourceContext, specialistText, input.standingConstraints),
 	});
 	const critic = parseMarkdown(criticText);
 	await callbacks.onStageCompleted?.({
@@ -148,7 +168,14 @@ export async function runLiteratureResearchWorkstreamStaged(
 		allPaths,
 		priorFindings: path.latestFindings,
 		inputText: `${sourceContext}\n\nSpecialist findings:\n${specialistText}\n\nCritic review:\n${criticText}`.trim(),
-		prompt: buildLiteratureSynthesizerPrompt(rootQuestion, path, sourceContext, specialistText, criticText),
+		prompt: buildLiteratureSynthesizerPrompt(
+			rootQuestion,
+			path,
+			sourceContext,
+			specialistText,
+			criticText,
+			input.standingConstraints,
+		),
 	});
 	const synthesizer = parseMarkdown(synthesizerText);
 	await callbacks.onStageCompleted?.({
@@ -183,17 +210,49 @@ export async function runLiteratureResearchWorkstreamStaged(
 		sectionItems(specialist, "finding"),
 	);
 	const criticisms = pickItems(sectionItems(synthesizer, "distinction"), sectionItems(critic, "review"));
-	const gaps = pickItems(
-		sectionItems(synthesizer, "unresolved"),
-		sectionItems(synthesizer, "unsupported"),
-		sectionItems(synthesizer, "gap"),
-		sectionItems(critic, "unresolved"),
-		sectionItems(critic, "unsupported"),
-		sectionItems(critic, "gap"),
-	);
+	// Human-help sections are not requested; a volunteered one is partitioned so only genuinely
+	// external requests surface, and the agent-actionable rest become gaps to act on.
+	const humanHelp = splitHumanHelpItems(pickItems(sectionItems(synthesizer, "human"), sectionItems(critic, "human")));
+	const gaps = [
+		...new Set([
+			...pickItems(
+				sectionItems(synthesizer, "unresolved"),
+				sectionItems(synthesizer, "unsupported"),
+				sectionItems(synthesizer, "gap"),
+				sectionItems(critic, "unresolved"),
+				sectionItems(critic, "unsupported"),
+				sectionItems(critic, "gap"),
+			),
+			...humanHelp.agentActionable,
+			...humanHelp.external,
+		]),
+	];
+	// Structured research-discipline sections: the literature roles are where "does theorem X
+	// actually settle the root question" gets decided, so their checks, pivots, and derived
+	// constraints must land in the report for durable persistence.
+	const theoremChecks = dedupeTheoremChecks([
+		...parseTheoremApplicabilityChecks(specialistText),
+		...parseTheoremApplicabilityChecks(criticText),
+		...parseTheoremApplicabilityChecks(synthesizerText),
+	]);
+	const routePivots = dedupeRoutePivots([
+		...parseRoutePivots(specialistText),
+		...parseRoutePivots(criticText),
+		...parseRoutePivots(synthesizerText),
+	]);
+	const negativeConstraints = [
+		...new Set([
+			...parseNegativeConstraints(specialistText),
+			...parseNegativeConstraints(criticText),
+			...parseNegativeConstraints(synthesizerText),
+		]),
+	];
 	const suggestedNextMove =
-		pickItems(sectionItems(synthesizer, "next"), sectionItems(specialist, "next"))[0] ??
-		"Use the source-backed distinctions to choose a weaker or more precise next path.";
+		applyPivotsToSuggestedNextMove(
+			pickSuggestedNextMove(sectionItems(synthesizer, "next"), sectionItems(specialist, "next")),
+			routePivots,
+			theoremChecks,
+		) ?? "Use the source-backed distinctions to choose a weaker or more precise next path.";
 	const claimSupports = buildClaimSupports({
 		findings,
 		criticisms,
@@ -247,7 +306,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 			findings,
 			criticisms,
 			gaps,
-			humanHelpUseful: pickItems(sectionItems(synthesizer, "human"), sectionItems(critic, "human")),
+			humanHelpUseful: [],
 			suggestedNextMove,
 			workingPaperSectionTitle: "Literature/theorem targets",
 			workingPaperSummary: buildWorkingPaperSummary(path, {
@@ -259,6 +318,9 @@ export async function runLiteratureResearchWorkstreamStaged(
 			}),
 			sourceIds,
 			claimSupportIds: [],
+			...(theoremChecks.length > 0 ? { theoremChecks } : {}),
+			...(routePivots.length > 0 ? { routePivots } : {}),
+			...(negativeConstraints.length > 0 ? { negativeConstraints } : {}),
 		},
 	};
 }
@@ -275,9 +337,10 @@ function buildNoSourceResult(
 ): LiteratureResearchWorkstreamResult {
 	const sourceStatus = buildNoSourceFindings(input);
 	const gaps = buildNoSourceGaps(input);
-	const next = isKnownTheoremOrLiteraturePath(input.path)
-		? "Provide a reference or ask the coordinator what to try next: what should we try next?"
-		: "Ask for references, attach a source file, or provide exact theorem statements to review.";
+	// No sources is not a dead end: the concrete next move is direct mathematics, and the durable
+	// agenda will plan exactly that when the budget allows.
+	const next =
+		"Work the problem directly next: run bounded computations on small cases and target a weaker or special-case statement while sources are unavailable.";
 	const steps: ResearchWorkstreamStep[] = [
 		{
 			role: "coordinator",
@@ -324,7 +387,7 @@ function buildNoSourceResult(
 			findings: sourceStatus,
 			criticisms: ["No source in this run supports a theorem-level claim."],
 			gaps,
-			humanHelpUseful: ["Provide references or a source file for the relevant theorem targets."],
+			humanHelpUseful: [],
 			suggestedNextMove: next,
 			workingPaperSectionTitle: "Literature/theorem targets",
 			workingPaperSummary: buildWorkingPaperSummary(input.path, {
@@ -361,17 +424,35 @@ function formatProviderName(provider: LiteratureSourceSearchResponse["providers"
 	return "unknown";
 }
 
+function uniqueLiteratureSources(sources: readonly LiteratureSourceResult[]): LiteratureSourceResult[] {
+	const seen = new Set<string>();
+	return sources.filter((source) => {
+		const key =
+			source.title.trim().toLowerCase() ||
+			[source.provider ?? "", source.externalId ?? "", source.doi ?? "", source.url ?? "", source.path ?? ""]
+				.filter((part) => part.length > 0)
+				.join("\n");
+		if (seen.has(key)) {
+			return false;
+		}
+		seen.add(key);
+		return true;
+	});
+}
+
 function buildLiteratureSpecialistPrompt(
 	rootQuestion: string,
 	path: ResearchPath,
 	sourceContext: string,
 	directive?: string,
+	standingConstraints?: readonly ResearchConstraintRecord[],
 ): string {
 	return [
 		"You are the literature specialist for one co-math research path.",
 		`Root question: ${rootQuestion}`,
 		`Selected path: ${path.title}`,
 		`Path objective: ${path.objective}`,
+		...buildStandingConstraintsBlock(standingConstraints ?? []),
 		"",
 		"Candidate sources:",
 		sourceContext,
@@ -383,9 +464,10 @@ function buildLiteratureSpecialistPrompt(
 		"Do not fabricate citations or infer that a source proves more than the supplied text supports.",
 		"Separate unconditional theorem claims from conjectural or heuristic claims.",
 		"Mark unsupported claims explicitly.",
-		"For n^2 + 1, say whether the source context treats the problem as open, unresolved, conjectural, or proved.",
-		"Never infer that Bunyakovsky-type conjectures or Schinzel's hypothesis H prove the original statement unconditionally.",
-		"Separate exact results from weaker or related results.",
+		"Say whether the source context treats the root question as open, unresolved, conjectural, or proved.",
+		"Never infer that a named conjecture, hypothesis, or heuristic proves the statement unconditionally.",
+		"Separate exact results from weaker or related results (a theorem about a related object is not a theorem about this one).",
+		...buildDisciplineGuidance(),
 		"",
 		"Return markdown with these headings:",
 		"## Source-backed status",
@@ -400,11 +482,13 @@ function buildLiteratureCriticPrompt(
 	path: ResearchPath,
 	sourceContext: string,
 	specialistText: string,
+	standingConstraints?: readonly ResearchConstraintRecord[],
 ): string {
 	return [
 		"You are the critic for a source-backed co-math literature workstream.",
 		`Root question: ${rootQuestion}`,
 		`Selected path: ${path.title}`,
+		...buildStandingConstraintsBlock(standingConstraints ?? []),
 		"",
 		"Candidate sources:",
 		sourceContext,
@@ -418,13 +502,12 @@ function buildLiteratureCriticPrompt(
 		"Separate unconditional theorem claims from conjectural claims.",
 		"Mark unsupported claims explicitly.",
 		"For famous open problems, do not accept a proof claim unless the supplied source text explicitly supports it.",
-		"For n^2 + 1, reject any unconditional proof claim unless the supplied source text explicitly proves it.",
+		'When your review reveals a standing rule future steps must respect (e.g. "Do not treat proposed or heuristic preprints as settled proofs."), add a `## Negative constraints` section with one imperative bullet per rule.',
 		"",
 		"Return markdown with these headings:",
 		"## Review",
 		"## Unsupported or unresolved",
 		"## Gaps",
-		"## Human help useful",
 	].join("\n");
 }
 
@@ -434,11 +517,13 @@ function buildLiteratureSynthesizerPrompt(
 	sourceContext: string,
 	specialistText: string,
 	criticText: string,
+	standingConstraints?: readonly ResearchConstraintRecord[],
 ): string {
 	return [
 		"You are the synthesizer for a source-backed co-math literature workstream.",
 		`Root question: ${rootQuestion}`,
 		`Selected path: ${path.title}`,
+		...buildStandingConstraintsBlock(standingConstraints ?? []),
 		"",
 		"Candidate sources:",
 		sourceContext,
@@ -454,15 +539,16 @@ function buildLiteratureSynthesizerPrompt(
 		"Clearly mark unsupported claims. Do not fabricate citations.",
 		"Separate unconditional theorem claims from conjectural or heuristic claims.",
 		"Distinguish the exact target statement from weaker related theorems.",
-		"Never infer that Bunyakovsky-type conjectures or Schinzel's hypothesis H prove the original statement unconditionally.",
-		"For n^2 + 1, say whether the source context treats the problem as open, unresolved, conjectural, or proved.",
+		"Never infer that a named conjecture, hypothesis, or heuristic proves the statement unconditionally.",
+		"Say whether the source context treats the root question as open, unresolved, conjectural, or proved.",
+		"In `## Next`, name concrete mathematical work (examples to compute, weaker statements to prove, obstructions to check) — never just more searching.",
+		...buildDisciplineGuidance(),
 		"",
 		"Return markdown with these headings:",
 		"## Source-backed status",
 		"## Conjectural or heuristic context",
 		"## Source-backed distinctions",
 		"## Unsupported or unresolved",
-		"## Human help useful",
 		"## Next",
 		"## Working paper summary",
 	].join("\n");
@@ -477,8 +563,8 @@ async function runRole(
 }
 
 function renderRoleDetails(parsed: ParsedMarkdown): string[] {
-	const items = parsed.sections.flatMap((section) => section.items);
-	return items.length > 0 ? items : parsed.raw.slice(0, 12);
+	const items = filterCoMathProductLines(parsed.sections.flatMap((section) => section.items));
+	return items.length > 0 ? items : filterCoMathProductLines(parsed.raw).slice(0, 12);
 }
 
 function pickItems(...candidates: string[][]): string[] {
@@ -486,6 +572,36 @@ function pickItems(...candidates: string[][]): string[] {
 		if (candidate.length > 0) return candidate;
 	}
 	return [];
+}
+
+function pickSuggestedNextMove(...candidates: string[][]): string | undefined {
+	for (const candidate of candidates) {
+		const items = candidate.map(normalizeNextStepItem).filter((item) => item.length > 0);
+		if (items.length > 0) {
+			return items.slice(0, 3).join(" ");
+		}
+	}
+	return undefined;
+}
+
+function normalizeNextStepItem(item: string): string {
+	const normalized = item
+		.trim()
+		.replace(/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:\s*/i, "")
+		.replace(/^next\s*:\s*/i, "")
+		.trim();
+	if (!normalized || isHeadingLikeNextStep(normalized)) {
+		return "";
+	}
+	return normalized;
+}
+
+function isHeadingLikeNextStep(item: string): boolean {
+	return (
+		/^(?:concrete\s+)?(?:replacement\s+)?route\s*:$/i.test(item) ||
+		/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:$/i.test(item) ||
+		(/^[-\w\s]+:$/.test(item) && item.split(/\s+/).length <= 6)
+	);
 }
 
 function buildClaimSupports(input: {
@@ -522,18 +638,12 @@ function buildPath5SourceBackedStatus(input: {
 	if (!isKnownTheoremOrLiteraturePath(input.path)) {
 		return [];
 	}
-	if (isNSquaredPlusOneQuestion(input.rootQuestion)) {
-		const sourceList =
-			input.sourceIds.length > 0 ? ` ${input.sourceIds.map((sourceId) => `[${sourceId}]`).join(" ")}` : "";
-		return [
-			`Source-backed context was reviewed for prime-producing polynomial and conjectural framing.${sourceList}`,
-			"No source in this run established an unconditional proof of infinitely many primes of the form n^2 + 1.",
-			"Conjectural implications are not proofs of the original claim.",
-		];
-	}
+	const sourceList =
+		input.sourceIds.length > 0 ? ` ${input.sourceIds.map((sourceId) => `[${sourceId}]`).join(" ")}` : "";
 	return [
-		"Source-backed context was reviewed for this theorem/literature path.",
-		"No theorem claim should be treated as established unless it is supported by a listed source.",
+		`Source-backed context was reviewed for this theorem/literature path.${sourceList}`,
+		"No source in this run established an unconditional proof of the root question.",
+		"Conjectural implications are not proofs of the original claim.",
 	];
 }
 
@@ -545,9 +655,7 @@ function buildPath5ClaimSupports(input: {
 	if (!isKnownTheoremOrLiteraturePath(input.path)) {
 		return [];
 	}
-	const noProofClaim = isNSquaredPlusOneQuestion(input.rootQuestion)
-		? "An unconditional proof of infinitely many primes of the form n^2 + 1."
-		: "The target theorem claim for this path.";
+	const noProofClaim = "An unconditional proof of the root question.";
 	if (input.sourceIds.length === 0) {
 		return [
 			{
@@ -560,9 +668,7 @@ function buildPath5ClaimSupports(input: {
 	}
 	return [
 		{
-			claim: isNSquaredPlusOneQuestion(input.rootQuestion)
-				? "Provided sources give source-backed context for conjectural prime-values-of-polynomials framing."
-				: "Provided sources give source-backed context for this literature path.",
+			claim: "Provided sources give source-backed context for this literature path.",
 			sourceIds: input.sourceIds,
 			status: "partially-supported",
 			note: "Context only; this does not by itself prove the target theorem claim.",
@@ -577,12 +683,11 @@ function buildPath5ClaimSupports(input: {
 }
 
 function buildNoSourceFindings(input: RunLiteratureResearchWorkstreamInput): string[] {
-	if (isKnownTheoremOrLiteraturePath(input.path) && isNSquaredPlusOneQuestion(input.rootQuestion)) {
+	if (isKnownTheoremOrLiteraturePath(input.path)) {
 		return [
 			"No source was available, so no theorem claim is established for this path.",
-			"Search targets: prime values of polynomials, Bunyakovsky-type conjectures, Schinzel's hypothesis H, Landau-style problem lists, and primes of the form n^2 + 1.",
-			"Treat those names as search targets only until a source verifies the exact statement.",
-			"No unconditional proof of infinitely many primes n^2 + 1 is established in this workspace.",
+			"Treat named theorems and conjectures as search targets only until a source verifies the exact statement.",
+			"No unconditional proof of the root question is established in this workspace.",
 		];
 	}
 	return [
@@ -607,10 +712,6 @@ function isKnownTheoremOrLiteraturePath(path: ResearchPath): boolean {
 		title === "known theorem or literature reduction" ||
 		/\b(?:known theorem|literature|reference|source)\b/.test(title)
 	);
-}
-
-function isNSquaredPlusOneQuestion(rootQuestion: string): boolean {
-	return /\bn\s*(?:\^2|²)\s*\+\s*1\b/i.test(rootQuestion);
 }
 
 function uniqueClaimSupports(supports: LiteratureClaimSupportDraft[]): LiteratureClaimSupportDraft[] {

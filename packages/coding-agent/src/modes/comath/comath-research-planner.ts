@@ -9,6 +9,7 @@
 
 import { isComputationalResearchPath } from "./comath-computation-workstream.ts";
 import { isLiteratureResearchPath } from "./comath-literature-workstream.ts";
+import { deriveResearchAgenda, violatesRejectedRoute } from "./comath-research-agenda.ts";
 import type {
 	CoMathActor,
 	CoMathProjectState,
@@ -24,6 +25,7 @@ export interface ResearchPlanTaskBlueprint {
 	kind: ResearchPlanTaskKind;
 	title: string;
 	description: string;
+	goal?: string;
 	pathId?: string;
 }
 
@@ -38,28 +40,55 @@ export interface CreateResearchPlanResult {
 }
 
 /**
- * Build the ordered task blueprints for a fresh plan: check sources first, gather computational
- * evidence, then work both sides of the question — a proof attempt and a refutation attempt —
- * before synthesizing. Adversarial review of each task is the skeptic gate's job, so no standalone
- * critic task is planned. Tasks whose path type does not exist in the workspace are skipped, and
- * the total is capped at {@link MAX_RESEARCH_PLAN_TASKS}.
+ * Build the ordered task blueprints for the next plan. When durable state already carries
+ * follow-up work — a refuted statement to repair, a recorded pivot's replacement route, open
+ * gaps, unsettled subclaims, or an inconclusive literature pass — the state-derived agenda plans
+ * that continuation instead of restarting from the static blueprint. A fresh workspace (empty
+ * agenda) gets the static shape: check sources, gather computational evidence, then work both
+ * sides of the question before synthesizing. Tasks whose path type does not exist are skipped,
+ * routes already rejected by a theorem check are never planned, and the total is capped at
+ * {@link MAX_RESEARCH_PLAN_TASKS}.
  */
 export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): ResearchPlanTaskBlueprint[] {
+	const agenda = deriveResearchAgenda(state);
+	if (agenda.length > 0) {
+		const blueprints: ResearchPlanTaskBlueprint[] = [];
+		for (const item of agenda) {
+			const path = chooseResearchPathForPlanTaskKind(state, item.kind);
+			const needsPath = item.kind !== "revise-conjecture" && item.kind !== "synthesis" && item.kind !== "critic";
+			if (needsPath && !path) {
+				continue;
+			}
+			blueprints.push({
+				kind: item.kind,
+				title: item.title,
+				description: item.description,
+				goal: item.goal,
+				...(path ? { pathId: path.id } : {}),
+			});
+		}
+		if (blueprints.length > 0) {
+			return [
+				...blueprints.slice(0, MAX_RESEARCH_PLAN_TASKS - 1),
+				{
+					kind: "synthesis" as const,
+					title: "Summarize durable findings and pick the next move",
+					description: "Combine what is known across paths into the working paper and recommend the next move.",
+				},
+			];
+		}
+	}
+	return buildFreshWorkspaceBlueprints(state);
+}
+
+function buildFreshWorkspaceBlueprints(state: CoMathProjectState): ResearchPlanTaskBlueprint[] {
 	const literaturePath = chooseResearchPathForPlanTaskKind(state, "literature-search");
 	const computationPath = chooseResearchPathForPlanTaskKind(state, "computation");
 	const proofPath = chooseResearchPathForPlanTaskKind(state, "proof-attempt");
 	const refutationPath = chooseResearchPathForPlanTaskKind(state, "refutation-attempt");
+	// Concrete mathematics leads: anchor examples and a proof attempt come before the literature
+	// check, so the first steps work the problem instead of describing its status.
 	const blueprints: ResearchPlanTaskBlueprint[] = [
-		...(literaturePath
-			? [
-					{
-						kind: "literature-search" as const,
-						title: "Check the literature for known results",
-						description: `Search for sources that settle, support, or obstruct: ${state.rootQuestion}`,
-						pathId: literaturePath.id,
-					},
-				]
-			: []),
 		...(computationPath
 			? [
 					{
@@ -80,6 +109,16 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 					},
 				]
 			: []),
+		...(literaturePath
+			? [
+					{
+						kind: "literature-search" as const,
+						title: "Check the literature for known results",
+						description: `Search for sources that settle, support, or obstruct: ${state.rootQuestion}`,
+						pathId: literaturePath.id,
+					},
+				]
+			: []),
 		...(refutationPath
 			? [
 					{
@@ -96,7 +135,9 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 			description: "Combine what is known across paths into the working paper and recommend the next move.",
 		},
 	];
-	return blueprints.slice(0, MAX_RESEARCH_PLAN_TASKS);
+	return blueprints
+		.filter((blueprint) => !violatesRejectedRoute(state, `${blueprint.title} ${blueprint.description}`))
+		.slice(0, MAX_RESEARCH_PLAN_TASKS);
 }
 
 /** Create a durable research plan (with its tasks) from the current state. Caller persists. */
@@ -121,6 +162,7 @@ export function createResearchPlanFromState(
 			kind: blueprint.kind,
 			title: blueprint.title,
 			description: blueprint.description,
+			...(blueprint.goal ? { goal: blueprint.goal } : {}),
 			...(blueprint.pathId ? { pathId: blueprint.pathId } : {}),
 			now: input.now,
 			actor: input.actor,

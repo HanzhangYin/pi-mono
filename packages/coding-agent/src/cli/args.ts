@@ -25,6 +25,8 @@ export interface Args {
 	mode?: Mode;
 	productMode?: ProductMode;
 	comathSource?: string;
+	/** Step budget for the autonomous first run a fresh co-math question starts. */
+	comathInitialSteps?: number;
 	conversationMode?: ConversationMode;
 	name?: string;
 	noSession?: boolean;
@@ -194,6 +196,26 @@ export function parseArgs(args: string[]): Args {
 			result.projectTrustOverride = false;
 		} else if (arg === "--offline") {
 			result.offline = true;
+		} else if (arg === "--comath-steps" || arg.startsWith("--comath-steps=")) {
+			let raw: string | undefined;
+			if (arg.startsWith("--comath-steps=")) {
+				raw = arg.slice("--comath-steps=".length);
+			} else {
+				const next = parseInput[i + 1];
+				if (next !== undefined && !next.startsWith("-")) {
+					raw = next;
+					i++;
+				}
+			}
+			const value = raw !== undefined ? Number.parseInt(raw, 10) : Number.NaN;
+			if (raw !== undefined && Number.isInteger(value) && value >= 1 && String(value) === raw.trim()) {
+				result.comathInitialSteps = value;
+			} else {
+				result.diagnostics.push({
+					type: "error",
+					message: "--comath-steps requires a positive whole number (e.g. --comath-steps 5).",
+				});
+			}
 		} else if (arg.startsWith("@")) {
 			result.fileArgs.push(arg.slice(1)); // Remove @ prefix
 		} else if (arg.startsWith("--")) {
@@ -267,6 +289,8 @@ ${chalk.bold("Options:")}
   --append-system-prompt <text>  Append text or file contents to the system prompt (can be used multiple times)
   --mode <mode>                  Output mode: text (default), json, rpc, or comath
   --comath                       Co-math conversation mode for ordinary prompts
+  --comath-steps <n>             Step budget for the autonomous first run on a fresh co-math question
+                                 (default 3, capped at 10; each step is a bounded run plus review)
   --print, -p                    Non-interactive mode: process prompt and exit
   --continue, -c                 Continue previous session
   --resume, -r                   Select a session to resume

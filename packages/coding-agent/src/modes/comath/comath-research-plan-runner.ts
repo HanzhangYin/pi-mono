@@ -13,6 +13,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import * as nodePath from "node:path";
 import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import {
+	type CoMathResearchActivityPhase,
+	formatCoMathResearchPhaseActivityStatus,
 	formatConjectureRefuted,
 	formatConjectureRevised,
 	formatResearchPlanAmended,
@@ -21,26 +23,34 @@ import {
 	formatResearchPlanCreated,
 	formatResearchPlanPaused,
 	formatResearchPlanTaskCompleted,
+	formatResearchPlanTaskRejectedContinuing,
 	formatResearchPlanTaskStarted,
 	formatSkepticReviewCompleted,
 } from "./comath-progress.ts";
+import { classifyResearchTaskProgress } from "./comath-research-agenda.ts";
 import { amendResearchPlanAfterTask, proposeResearchPlan } from "./comath-research-director.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
+import {
+	applyCompletedTaskToObligations,
+	applyConjectureRevisionToObligations,
+} from "./comath-research-obligations.ts";
 import { chooseResearchPathForPlanTaskKind } from "./comath-research-planner.ts";
 import { runConjectureRevisionTask } from "./comath-research-revision.ts";
 import {
+	type CoMathResearchPhaseActivityNotify,
 	type CoMathResearchRunner,
 	type CoMathResearchRunnerNotify,
 	persistResearchCoordinatorSynthesisReport,
 	safeErrorMessage,
 } from "./comath-research-runner.ts";
-import { runSkepticGate } from "./comath-research-skeptic.ts";
+import { runSkepticGate, type SkepticVerdict } from "./comath-research-skeptic.ts";
 import type {
 	CoMathActor,
 	CoMathProjectState,
 	ResearchPath,
 	ResearchPlanRecord,
 	ResearchPlanTaskRecord,
+	ResearchTaskReviewOutcome,
 } from "./schema.ts";
 import {
 	addMarginNote,
@@ -48,6 +58,7 @@ import {
 	getNextRunnableResearchPlanTask,
 	getPausedResearchPlan,
 	getResearchPlanTasks,
+	getTheoremApplicabilityChecksForPath,
 	loadProjectState,
 	recordWorkingPaperExport,
 	saveProjectState,
@@ -70,6 +81,8 @@ export interface CoMathResearchPlanRunnerOptions {
 	researchDirectorExecutor?: ResearchWorkstreamModelExecutor;
 	/** Runs the skeptic's bounded counterexample scripts; unused without a director executor. */
 	computationalExecutor?: ComputationalExecutor;
+	/** Best-effort UI status for phases outside a workstream run (planning, review, amendment, …). */
+	onResearchPhaseActivity?: CoMathResearchPhaseActivityNotify;
 }
 
 export interface ResearchPlanTaskExecutionOptions {
@@ -79,7 +92,17 @@ export interface ResearchPlanTaskExecutionOptions {
 
 export type ResearchPlanTaskExecutionOutcome =
 	| { kind: "completed"; task: ResearchPlanTaskRecord; runId?: string; planCompleted: boolean }
-	| { kind: "blocked"; task: ResearchPlanTaskRecord; reason: string }
+	| {
+			kind: "blocked";
+			task: ResearchPlanTaskRecord;
+			reason: string;
+			runId?: string;
+			/**
+			 * False when a review rejection blocked only this task and the plan moved on to its next
+			 * pending task; true when the whole plan paused at this boundary.
+			 */
+			planPaused: boolean;
+	  }
 	| { kind: "failed"; task: ResearchPlanTaskRecord; reason: string }
 	| { kind: "plan-completed" }
 	| { kind: "not-runnable"; reason: string };
@@ -93,13 +116,34 @@ type PlanTaskExecutionResult =
 			claimSupportIds?: readonly string[];
 			computationalArtifactIds?: readonly string[];
 			evidenceEntryIds?: readonly string[];
+			reviewOutcome?: ResearchTaskReviewOutcome;
+			/** Records the independent review created; linked to the task but not its own output. */
+			reviewComputationalArtifactIds?: readonly string[];
+			reviewEvidenceEntryIds?: readonly string[];
 	  }
-	| { status: "blocked"; reason: string; runId?: string }
+	| {
+			status: "blocked";
+			reason: string;
+			runId?: string;
+			/** True when an independent review rejected an otherwise-finished step. */
+			reviewRejected?: boolean;
+			/** What the rejected step still produced; kept on the task so its trail survives. */
+			reportId?: string;
+			sourceIds?: readonly string[];
+			claimSupportIds?: readonly string[];
+			computationalArtifactIds?: readonly string[];
+			evidenceEntryIds?: readonly string[];
+	  }
 	| { status: "failed"; reason: string; runId?: string };
 
 /**
  * Reset a paused plan so its interrupted/blocked/failed tasks are retried from the last durable
  * boundary. Pure state transform; the caller decides when a user prompt justifies resuming.
+ *
+ * A task the independent review rejected is not retried by default: re-running the identical step
+ * would meet the identical review, so a resume that blindly retried it first would loop instead of
+ * progressing. Rejected tasks become retryable only when they are the plan's sole remaining work,
+ * where an explicit resume can only mean "try that step again".
  */
 export function resumeResearchPlan(
 	state: CoMathProjectState,
@@ -107,16 +151,21 @@ export function resumeResearchPlan(
 	now: string,
 	actor: CoMathActor = "human",
 ): CoMathProjectState {
+	const tasks = getResearchPlanTasks(state, planId);
+	const stopped = tasks.filter(
+		(task) => task.status === "running" || task.status === "blocked" || task.status === "failed",
+	);
+	const retryable = stopped.filter((task) => !isReviewRejectedTask(task));
+	const hasOtherWork = retryable.length > 0 || tasks.some((task) => task.status === "pending");
+	const toRetry = hasOtherWork ? retryable : stopped;
 	let nextState = state;
-	for (const task of getResearchPlanTasks(state, planId)) {
-		if (task.status === "running" || task.status === "blocked" || task.status === "failed") {
-			nextState = updateResearchPlanTask(nextState, {
-				taskId: task.id,
-				status: "pending",
-				now,
-				actor,
-			});
-		}
+	for (const task of toRetry) {
+		nextState = updateResearchPlanTask(nextState, {
+			taskId: task.id,
+			status: "pending",
+			now,
+			actor,
+		});
 	}
 	return updateResearchPlan(nextState, {
 		planId,
@@ -127,6 +176,29 @@ export function resumeResearchPlan(
 	});
 }
 
+function isReviewRejectedTask(task: ResearchPlanTaskRecord): boolean {
+	return task.status === "blocked" && task.reviewOutcome === "rejected";
+}
+
+/**
+ * A task that can never run again within this plan: done, cancelled, or rejected by the
+ * independent review. A plan whose remaining tasks are all rejected has no runnable work left, so
+ * treating rejections as terminal lets the plan finish and the agenda derive repair work from the
+ * durably recorded concerns, instead of freezing the plan on a step that would fail review again.
+ */
+function isTerminalPlanTask(task: ResearchPlanTaskRecord): boolean {
+	return task.status === "completed" || task.status === "cancelled" || isReviewRejectedTask(task);
+}
+
+/** A plan completes when every task is terminal and at least one actually finished or was cancelled. */
+function planTasksSettled(tasks: readonly ResearchPlanTaskRecord[]): boolean {
+	return (
+		tasks.length > 0 &&
+		tasks.every((task) => isTerminalPlanTask(task)) &&
+		tasks.some((task) => task.status === "completed" || task.status === "cancelled")
+	);
+}
+
 export class CoMathResearchPlanRunner {
 	private readonly statePath: string;
 	private readonly notify: CoMathResearchRunnerNotify;
@@ -134,6 +206,7 @@ export class CoMathResearchPlanRunner {
 	private readonly researchModelExecutor: ResearchWorkstreamModelExecutor | undefined;
 	private readonly researchDirectorExecutor: ResearchWorkstreamModelExecutor | undefined;
 	private readonly computationalExecutor: ComputationalExecutor | undefined;
+	private readonly onResearchPhaseActivity: CoMathResearchPhaseActivityNotify | undefined;
 	private readonly executingPlanIds = new Set<string>();
 
 	constructor(options: CoMathResearchPlanRunnerOptions) {
@@ -143,6 +216,37 @@ export class CoMathResearchPlanRunner {
 		this.researchModelExecutor = options.researchModelExecutor;
 		this.researchDirectorExecutor = options.researchDirectorExecutor;
 		this.computationalExecutor = options.computationalExecutor;
+		this.onResearchPhaseActivity = options.onResearchPhaseActivity;
+	}
+
+	/**
+	 * Show a footer status for the duration of a research phase that runs outside a workstream run,
+	 * so the user always has a live "still working" signal during model calls the run indicator does
+	 * not cover. Purely cosmetic: failures are swallowed and never affect the phase itself.
+	 */
+	private async withPhaseActivity<T>(
+		activityId: string,
+		phase: CoMathResearchActivityPhase,
+		work: () => Promise<T>,
+	): Promise<T> {
+		try {
+			await this.onResearchPhaseActivity?.({
+				kind: "start",
+				activityId,
+				status: formatCoMathResearchPhaseActivityStatus(phase),
+			});
+		} catch {
+			// UI status updates are best-effort and must not affect research execution.
+		}
+		try {
+			return await work();
+		} finally {
+			try {
+				await this.onResearchPhaseActivity?.({ kind: "end", activityId });
+			} catch {
+				// UI status updates are best-effort and must not affect research execution.
+			}
+		}
 	}
 
 	/**
@@ -205,11 +309,13 @@ export class CoMathResearchPlanRunner {
 			const plan = resumedState.researchPlans.find((candidate) => candidate.id === paused.id) ?? paused;
 			return { state: resumedState, plan };
 		}
-		const created = await proposeResearchPlan(state, {
-			...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
-			now: new Date().toISOString(),
-			actor: "system",
-		});
+		const created = await this.withPhaseActivity("research-plan-proposal", "planning", () =>
+			proposeResearchPlan(state, {
+				...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+				now: new Date().toISOString(),
+				actor: "system",
+			}),
+		);
 		await saveProjectState(this.statePath, created.state);
 		await this.notify(
 			formatResearchPlanCreated({
@@ -222,8 +328,9 @@ export class CoMathResearchPlanRunner {
 
 	/**
 	 * Execute exactly one plan task: persist the task as running, run it, then persist the outcome.
-	 * A blocked or failed task pauses the plan; a completed task records durable linkage to the run,
-	 * report, sources, claim supports, computation outputs, and evidence entries it produced.
+	 * A blocked or failed task pauses the plan — except a review-rejected task with other pending
+	 * work, which blocks only itself. A completed task records durable linkage to the run, report,
+	 * sources, claim supports, computation outputs, and evidence entries it produced.
 	 */
 	async executeNextPlanTask(
 		planId: string,
@@ -312,10 +419,11 @@ export class CoMathResearchPlanRunner {
 		if (!path) {
 			return { status: "blocked", reason: "No research direction in this workspace matches this task." };
 		}
-		const taskBrief = buildPlanTaskBrief(task);
+		const taskBrief = buildPlanTaskBrief(state, task, path);
 		const runId = await this.researchRunner.runBoundedResearchWorkstreamStep(state, path, {
 			...options,
 			...(taskBrief ? { taskBrief } : {}),
+			taskKind: task.kind,
 		});
 		const after = await loadProjectState(this.statePath);
 		const run = after?.researchWorkstreamRuns.find((candidate) => candidate.id === runId);
@@ -332,9 +440,51 @@ export class CoMathResearchPlanRunner {
 				? latest.researchEvidenceBoard.filter((entry) => entry.reportId === report.id).map((entry) => entry.id)
 				: [];
 			await this.maybeAnnounceRefutation(latest, task, evidenceEntryIds, skeptic?.counterexampleFound ?? false);
+			const withObligations = applyCompletedTaskToObligations(latest, {
+				task,
+				...(report ? { reportId: report.id } : {}),
+				runUsedFallback: run.usedFallback === true,
+				modelBacked: this.researchModelExecutor !== undefined,
+				newEvidenceEntryIds: evidenceEntryIds,
+				...(skeptic
+					? { skeptic: { concerns: skeptic.concerns, counterexampleFound: skeptic.counterexampleFound } }
+					: {}),
+				now: new Date().toISOString(),
+			});
+			if (withObligations !== latest) {
+				await saveProjectState(this.statePath, withObligations);
+			}
+			// An explicitly rejected step is not a completed step: the review's concerns are already
+			// durable (gaps, scrutiny notes). The task blocks, but keeps its linkage to what the run
+			// produced so the step's trail survives the rejection.
+			if (skeptic?.verdict === "rejected") {
+				return {
+					status: "blocked",
+					reason: `The independent review did not accept this step as completed${
+						skeptic.concerns[0] ? `: ${skeptic.concerns[0]}` : "."
+					}`,
+					runId,
+					reviewRejected: true,
+					...(report
+						? {
+								reportId: report.id,
+								sourceIds: report.sourceIds,
+								claimSupportIds: report.claimSupportIds,
+								computationalArtifactIds: [
+									...report.computationalArtifactIds,
+									...skeptic.computationalArtifactIds,
+								],
+								evidenceEntryIds,
+							}
+						: {}),
+				};
+			}
 			return {
 				status: "completed",
 				runId,
+				...(skeptic
+					? { reviewOutcome: skeptic.verdict === "accepted" ? "accepted" : "completed-with-concerns" }
+					: {}),
 				...(report
 					? {
 							reportId: report.id,
@@ -345,6 +495,9 @@ export class CoMathResearchPlanRunner {
 								...(skeptic?.computationalArtifactIds ?? []),
 							],
 							evidenceEntryIds,
+							// The review's own artifacts must not count as the task's mathematical output.
+							reviewComputationalArtifactIds: skeptic?.computationalArtifactIds ?? [],
+							reviewEvidenceEntryIds: skeptic?.evidenceEntryIds ?? [],
 						}
 					: {}),
 			};
@@ -374,25 +527,36 @@ export class CoMathResearchPlanRunner {
 		reportId: string,
 		runId: string,
 	): Promise<
-		{ state: CoMathProjectState; computationalArtifactIds: string[]; counterexampleFound: boolean } | undefined
+		| {
+				state: CoMathProjectState;
+				verdict: SkepticVerdict;
+				computationalArtifactIds: string[];
+				evidenceEntryIds: string[];
+				concerns: string[];
+				counterexampleFound: boolean;
+		  }
+		| undefined
 	> {
-		if (!this.researchDirectorExecutor) {
+		const directorExecutor = this.researchDirectorExecutor;
+		if (!directorExecutor) {
 			return undefined;
 		}
 		try {
 			const relative = `.pi/co-math/artifacts/${runId}-skeptic`;
 			const projectRoot = nodePath.dirname(nodePath.dirname(nodePath.dirname(this.statePath)));
-			const gate = await runSkepticGate({
-				state,
-				task,
-				reportId,
-				runId,
-				executor: this.researchDirectorExecutor,
-				...(this.computationalExecutor ? { computationalExecutor: this.computationalExecutor } : {}),
-				artifactDirectory: relative,
-				workingDirectory: nodePath.join(projectRoot, relative),
-				now: new Date().toISOString(),
-			});
+			const gate = await this.withPhaseActivity(`independent-review-${runId}`, "independent-review", () =>
+				runSkepticGate({
+					state,
+					task,
+					reportId,
+					runId,
+					executor: directorExecutor,
+					...(this.computationalExecutor ? { computationalExecutor: this.computationalExecutor } : {}),
+					artifactDirectory: relative,
+					workingDirectory: nodePath.join(projectRoot, relative),
+					now: new Date().toISOString(),
+				}),
+			);
 			if (gate.state !== state) {
 				await saveProjectState(this.statePath, gate.state);
 			}
@@ -407,7 +571,10 @@ export class CoMathResearchPlanRunner {
 			}
 			return {
 				state: gate.state,
+				verdict: gate.verdict,
 				computationalArtifactIds: gate.computationalArtifactIds,
+				evidenceEntryIds: [...gate.evidenceEntryIds],
+				concerns: [...gate.concerns],
 				counterexampleFound: gate.counterexampleFound,
 			};
 		} catch {
@@ -450,16 +617,24 @@ export class CoMathResearchPlanRunner {
 		if (!state) {
 			return { status: "failed", reason: "The research workspace could not be loaded." };
 		}
-		const result = await runConjectureRevisionTask(state, {
-			...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
-			task,
-			now: new Date().toISOString(),
-		});
+		const result = await this.withPhaseActivity(`statement-revision-${task.id}`, "revision", () =>
+			runConjectureRevisionTask(state, {
+				...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+				task,
+				now: new Date().toISOString(),
+			}),
+		);
 		if (result.outcome === "blocked") {
 			return { status: "blocked", reason: result.blockedReason ?? "The statement could not be revised." };
 		}
-		await saveProjectState(this.statePath, result.state);
-		await this.notify(formatConjectureRevised({ state: result.state, revisedEntryIds: result.revisedEntryIds }));
+		const withObligations = applyConjectureRevisionToObligations(result.state, {
+			task,
+			...(result.parentEntryId ? { parentEntryId: result.parentEntryId } : {}),
+			revisedEntryIds: result.revisedEntryIds,
+			now: new Date().toISOString(),
+		});
+		await saveProjectState(this.statePath, withObligations);
+		await this.notify(formatConjectureRevised({ state: withObligations, revisedEntryIds: result.revisedEntryIds }));
 		return {
 			status: "completed",
 			evidenceEntryIds: [...(result.parentEntryId ? [result.parentEntryId] : []), ...result.revisedEntryIds],
@@ -490,10 +665,8 @@ export class CoMathResearchPlanRunner {
 	}
 
 	private async executeSynthesisTask(state: CoMathProjectState): Promise<PlanTaskExecutionResult> {
-		const result = await persistResearchCoordinatorSynthesisReport(
-			state,
-			this.researchModelExecutor,
-			new Date().toISOString(),
+		const result = await this.withPhaseActivity("research-synthesis", "synthesis", () =>
+			persistResearchCoordinatorSynthesisReport(state, this.researchModelExecutor, new Date().toISOString()),
 		);
 		await saveProjectState(this.statePath, result.state);
 		return { status: "completed", ...(result.reportId ? { reportId: result.reportId } : {}) };
@@ -537,6 +710,22 @@ export class CoMathResearchPlanRunner {
 		}
 		const now = new Date().toISOString();
 		if (result.status === "completed") {
+			const completedTask = state.researchPlanTasks.find((candidate) => candidate.id === taskId);
+			// Progress classification counts only the task's own output: records the independent
+			// review created (its check scripts, its concern entries) are review provenance, not the
+			// step's mathematical content.
+			const reviewComputationIds = new Set(result.reviewComputationalArtifactIds ?? []);
+			const reviewEvidenceIds = new Set(result.reviewEvidenceEntryIds ?? []);
+			const progressKind = completedTask
+				? classifyResearchTaskProgress(state, {
+						kind: completedTask.kind,
+						...(result.reportId ? { reportId: result.reportId } : {}),
+						evidenceEntryIds: (result.evidenceEntryIds ?? []).filter((id) => !reviewEvidenceIds.has(id)),
+						computationalArtifactIds: (result.computationalArtifactIds ?? []).filter(
+							(id) => !reviewComputationIds.has(id),
+						),
+					})
+				: undefined;
 			let nextState = updateResearchPlanTask(state, {
 				taskId,
 				status: "completed",
@@ -549,14 +738,14 @@ export class CoMathResearchPlanRunner {
 					? { addComputationalArtifactIds: result.computationalArtifactIds }
 					: {}),
 				...(result.evidenceEntryIds ? { addEvidenceEntryIds: result.evidenceEntryIds } : {}),
+				...(progressKind ? { progressKind } : {}),
+				...(result.reviewOutcome ? { reviewOutcome: result.reviewOutcome } : {}),
 				now,
 				actor: "system",
 			});
 			nextState = updateResearchPlan(nextState, { planId, clearCurrentTaskId: true, now, actor: "system" });
 			const tasks = getResearchPlanTasks(nextState, planId);
-			const planCompleted =
-				tasks.length > 0 &&
-				tasks.every((candidate) => candidate.status === "completed" || candidate.status === "cancelled");
+			const planCompleted = planTasksSettled(tasks);
 			if (planCompleted) {
 				nextState = updateResearchPlan(nextState, {
 					planId,
@@ -582,18 +771,35 @@ export class CoMathResearchPlanRunner {
 			return { kind: "completed", task, ...(result.runId ? { runId: result.runId } : {}), planCompleted };
 		}
 		const failed = result.status === "failed";
+		const reviewRejected = result.status === "blocked" && result.reviewRejected === true;
 		let nextState = updateResearchPlanTask(state, {
 			taskId,
 			status: failed ? "failed" : "blocked",
 			...(result.runId ? { runId: result.runId } : {}),
 			...(failed ? { failureReason: result.reason } : { blockedReason: result.reason }),
+			...(result.status === "blocked"
+				? {
+						...(result.reportId ? { reportId: result.reportId } : {}),
+						...(result.sourceIds ? { addSourceIds: result.sourceIds } : {}),
+						...(result.claimSupportIds ? { addClaimSupportIds: result.claimSupportIds } : {}),
+						...(result.computationalArtifactIds
+							? { addComputationalArtifactIds: result.computationalArtifactIds }
+							: {}),
+						...(result.evidenceEntryIds ? { addEvidenceEntryIds: result.evidenceEntryIds } : {}),
+						...(reviewRejected ? { reviewOutcome: "rejected" as const } : {}),
+					}
+				: {}),
 			now,
 			actor: "system",
 		});
+		// A review rejection blocks only the rejected step: while another task is still pending, the
+		// plan stays active and the next task runs, since the pending work is usually exactly what
+		// the review's diagnosis calls for. Every other blocker pauses the plan for an explicit
+		// resume, and so does a rejection that leaves nothing else runnable.
+		const planContinues = reviewRejected && getNextRunnableResearchPlanTask(nextState, planId) !== undefined;
 		nextState = updateResearchPlan(nextState, {
 			planId,
-			status: "paused",
-			pauseReason: result.reason,
+			...(planContinues ? {} : { status: "paused", pauseReason: result.reason }),
 			clearCurrentTaskId: true,
 			now,
 			actor: "system",
@@ -609,8 +815,24 @@ export class CoMathResearchPlanRunner {
 			await this.notify(formatResearchPlanPaused({ plan, tasks, reason: result.reason }), "warning");
 			return { kind: "failed", task, reason: result.reason };
 		}
+		if (planContinues) {
+			await this.notify(formatResearchPlanTaskRejectedContinuing({ plan, tasks, task }), "warning");
+			return {
+				kind: "blocked",
+				task,
+				reason: result.reason,
+				...(result.runId ? { runId: result.runId } : {}),
+				planPaused: false,
+			};
+		}
 		await this.notify(formatResearchPlanBlocked({ plan, tasks, task }), "warning");
-		return { kind: "blocked", task, reason: result.reason };
+		return {
+			kind: "blocked",
+			task,
+			reason: result.reason,
+			...(result.runId ? { runId: result.runId } : {}),
+			planPaused: true,
+		};
 	}
 
 	/**
@@ -619,7 +841,8 @@ export class CoMathResearchPlanRunner {
 	 * announced so direction changes are always visible and auditable.
 	 */
 	private async maybeAmendPlanAfterTask(planId: string, completedTask: ResearchPlanTaskRecord): Promise<void> {
-		if (!this.researchDirectorExecutor) {
+		const directorExecutor = this.researchDirectorExecutor;
+		if (!directorExecutor) {
 			return;
 		}
 		try {
@@ -627,11 +850,13 @@ export class CoMathResearchPlanRunner {
 			if (!state) {
 				return;
 			}
-			const amendment = await amendResearchPlanAfterTask(state, planId, {
-				executor: this.researchDirectorExecutor,
-				completedTask,
-				now: new Date().toISOString(),
-			});
+			const amendment = await this.withPhaseActivity(`plan-amendment-${completedTask.id}`, "plan-update", () =>
+				amendResearchPlanAfterTask(state, planId, {
+					executor: directorExecutor,
+					completedTask,
+					now: new Date().toISOString(),
+				}),
+			);
 			if (!amendment.amended) {
 				return;
 			}
@@ -662,8 +887,7 @@ export class CoMathResearchPlanRunner {
 			return { kind: "not-runnable", reason: "A plan task is already in progress." };
 		}
 		const now = new Date().toISOString();
-		const allDone =
-			tasks.length > 0 && tasks.every((task) => task.status === "completed" || task.status === "cancelled");
+		const allDone = planTasksSettled(tasks);
 		const nextState = updateResearchPlan(state, {
 			planId: plan.id,
 			status: allDone ? "completed" : "paused",
@@ -689,9 +913,20 @@ export class CoMathResearchPlanRunner {
 /**
  * Compact brief handed to the executing workstream: goal plus what "done" means. Refutation tasks
  * always carry a falsification directive, even when the task has no model-authored goal, so the
- * specialist works against the statement instead of for it.
+ * specialist works against the statement instead of for it. Theorem applicability rejections
+ * recorded on the task's path become explicit cautions, so a rejected route is never silently
+ * retried by a later step.
  */
-function buildPlanTaskBrief(task: ResearchPlanTaskRecord): string | undefined {
+function buildPlanTaskBrief(
+	state: CoMathProjectState,
+	task: ResearchPlanTaskRecord,
+	path: ResearchPath | undefined,
+): string | undefined {
+	const rejectedChecks = path
+		? getTheoremApplicabilityChecksForPath(state, path.id).filter(
+				(check) => check.status === "rejected-as-direct-route",
+			)
+		: [];
 	const lines = [
 		...(task.kind === "refutation-attempt"
 			? [
@@ -703,6 +938,17 @@ function buildPlanTaskBrief(task: ResearchPlanTaskRecord): string | undefined {
 		...(task.goal ? [`Goal: ${task.goal}`] : []),
 		...(task.acceptanceCriteria.length > 0
 			? ["Done when:", ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`)]
+			: []),
+		...(rejectedChecks.length > 0
+			? [
+					"Route cautions (already checked; do not build on these as direct routes):",
+					...rejectedChecks
+						.slice(-3)
+						.map(
+							(check) =>
+								`- ${check.theorem} was rejected for ${check.targetObject}${check.consequence ? `; instead: ${check.consequence}` : ""}`,
+						),
+				]
 			: []),
 	];
 	return lines.length > 0 ? lines.join("\n") : undefined;

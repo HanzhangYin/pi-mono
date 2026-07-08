@@ -751,18 +751,29 @@ describe("co-math harness", () => {
 		});
 		try {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await waitForProjectState(statePath, "completed initial autonomous research batch", (candidate) =>
+				Boolean(candidate?.researchBatches[0]?.status === "completed"),
+			);
 
 			const state = await loadRequiredProjectState(statePath);
 			expect(state.researchPaths.length).toBeGreaterThanOrEqual(5);
-			expect(state.researchWorkstreamRuns).toHaveLength(1);
+			// A fresh math question starts a bounded autonomous plan run, not a single scripted path.
+			expect(state.researchPlans[0]).toMatchObject({ id: "research-plan-1", status: "active" });
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 3,
+				completedStepCount: 3,
+			});
+			expect(state.researchWorkstreamRuns).toHaveLength(3);
 			expect(state.researchWorkstreamRuns[0]).toMatchObject({
 				pathTitle: "Small examples and counterexamples",
 				status: "completed",
 			});
-			expect(state.researchReports).toHaveLength(1);
+			expect(state.researchPlanTasks[0]?.kind).toBe("computation");
 			const visible = notices.join("\n");
 			expect(visible).toContain("I’ll start with small examples and counterexamples.");
-			expect(visible).toContain("Finished: Trying the research path.");
+			expect(visible).toContain("Research plan created");
+			expect(visible).toContain("Working on task 1 of 5: Run a bounded computation on small cases.");
 			expect(visible).toContain("Finished this step.");
 			expect(visible).not.toContain("continue path 1");
 			expectProductCopy(visible);
@@ -770,6 +781,50 @@ describe("co-math harness", () => {
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
+	});
+
+	it("honors a configured first-run step budget and clamps out-of-range values", async () => {
+		const runWithBudget = async (initialResearchStepCount: number, expectedStepCount: number): Promise<void> => {
+			const dir = await mkdtemp(join(tmpdir(), "comath-configured-budget-"));
+			const statePath = join(dir, ".pi", "co-math", "state.json");
+			const harness = new CoMathHarness({
+				statePath,
+				notify: () => {},
+				runBackendCommand: async (command) => {
+					if (command.startsWith("init ")) {
+						await saveProjectState(
+							statePath,
+							createEmptyProjectState({
+								projectId: "proj-test",
+								title: command.slice("init ".length),
+								rootQuestion: command.slice("init ".length),
+								now: "2026-06-05T12:00:00.000Z",
+							}),
+						);
+					}
+					return OK;
+				},
+				initialResearchStepCount,
+			});
+			try {
+				await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+				await waitForProjectState(statePath, "completed configured-budget research batch", (candidate) =>
+					Boolean(candidate?.researchBatches[0]?.status === "completed"),
+				);
+				const state = await loadRequiredProjectState(statePath);
+				expect(state.researchBatches[0]).toMatchObject({
+					status: "completed",
+					requestedStepCount: expectedStepCount,
+					completedStepCount: expectedStepCount,
+				});
+			} finally {
+				await rm(dir, { recursive: true, force: true });
+			}
+		};
+
+		await runWithBudget(5, 5);
+		// Out-of-range budgets clamp instead of running unbounded or refusing to start.
+		await runWithBudget(0, 1);
 	});
 
 	it("initializes source search on the first model-backed research prompt", async () => {
@@ -804,25 +859,27 @@ describe("co-math harness", () => {
 		});
 		try {
 			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
-			await waitForProjectState(statePath, "completed initial source-backed research run", (state) =>
-				Boolean(state?.researchWorkstreamRuns[0]?.status === "completed"),
+			await waitForProjectState(statePath, "completed initial autonomous model-backed batch", (state) =>
+				Boolean(state?.researchBatches[0]?.status === "completed"),
 			);
 
 			const state = await loadRequiredProjectState(statePath);
-			expect(state.researchWorkstreamRuns).toHaveLength(1);
-			expect(state.researchWorkstreamRuns[0]).toMatchObject({
+			// The autonomous first batch works the plan: computation and proof first, then the
+			// literature step, which uses the registered source lookup when it runs.
+			expect(state.researchWorkstreamRuns).toHaveLength(3);
+			expect(state.researchWorkstreamRuns[0]?.pathTitle).toBe("Small examples and counterexamples");
+			expect(state.researchWorkstreamRuns[2]).toMatchObject({
 				pathTitle: "Known theorem or literature reduction",
 				status: "completed",
 			});
 			expect(state.literatureSearches).toHaveLength(1);
 			expect(state.literatureSources).toHaveLength(1);
 			expect(queries[0]).toContain("Known theorem or literature reduction");
-			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
+			expect(requests.length).toBeGreaterThan(0);
 			expect(commands).toEqual(["init Are there infinitely many primes of the form n^2 + 1?"]);
 			const visible = notices.join("\n");
-			expect(visible).toContain("I’ll start with known theorem or literature reduction.");
+			expect(visible).toContain("I’ll start with small examples and counterexamples.");
 			expect(visible).toContain("Searching arXiv, Semantic Scholar, Crossref.");
-			expect(visible).toContain("Checking source-backed context.");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -1097,6 +1154,7 @@ describe("co-math harness", () => {
 			const notices: string[] = [];
 			const harness = new CoMathHarness({
 				statePath,
+				startFirstRun: false,
 				notify: (message) => {
 					notices.push(message);
 				},
@@ -1472,7 +1530,7 @@ describe("co-math harness", () => {
 			expect(reportVisible).toContain("Path 5: Known theorem or literature reduction");
 			expect(reportVisible).toContain("Critic review");
 			expect(reportVisible).toContain("source-backed literature check");
-			expect(reportVisible).toContain("Human help useful");
+			expect(reportVisible).not.toContain("Human help useful");
 			expectProductCopy(reportVisible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -2009,9 +2067,9 @@ describe("co-math harness", () => {
 				sourceIds: [],
 			});
 			const visible = notices.join("\n");
-			expect(visible).toContain("No source lookup backend returned references for this path.");
+			expect(visible).toContain("No source was available, so no theorem claim is established for this path.");
 			expect(visible).toContain("A source-backed literature check is needed before citing named theorems.");
-			expect(visible).toContain("what should we try next?");
+			expect(visible).toContain("Work the problem directly next");
 			expect(visible).toContain("The detailed report is saved.");
 			expect(visible).not.toContain("Chen");
 			expect(visible).not.toContain("Maynard");
@@ -2087,7 +2145,7 @@ describe("co-math harness", () => {
 			const visible = notices.join("\n");
 			expect(visible).toContain("No source was available");
 			expect(visible).toContain("A source-backed literature check is needed");
-			expect(visible).toContain("what should we try next?");
+			expect(visible).toContain("Work the problem directly next");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -2126,7 +2184,7 @@ describe("co-math harness", () => {
 					expect.objectContaining({
 						status: "partially-supported",
 						sourceIds: ["source-1"],
-						claim: expect.stringContaining("conjectural prime-values-of-polynomials framing"),
+						claim: expect.stringContaining("source-backed context for this literature path"),
 					}),
 					expect.objectContaining({
 						status: "unsupported",
@@ -2161,7 +2219,9 @@ describe("co-math harness", () => {
 
 			const state = await loadRequiredProjectState(statePath);
 			expect(requests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
-			expect(requests[0]?.prompt).toContain("Bunyakovsky-type conjectures");
+			expect(requests[0]?.prompt).toContain(
+				"Never infer that a named conjecture, hypothesis, or heuristic proves the statement unconditionally.",
+			);
 			expect(state.literatureSources).toMatchObject([
 				{
 					id: "source-1",
@@ -2173,7 +2233,7 @@ describe("co-math harness", () => {
 					expect.objectContaining({
 						status: "partially-supported",
 						sourceIds: ["source-1"],
-						claim: expect.stringContaining("conjectural prime-values-of-polynomials framing"),
+						claim: expect.stringContaining("source-backed context for this literature path"),
 					}),
 					expect.objectContaining({
 						status: "unsupported",
@@ -3419,6 +3479,66 @@ describe("co-math harness", () => {
 		}
 	});
 
+	it("warns instead of treating a different standalone question as steering for the old project", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Is n^2 + n + 41 prime for every non-negative integer n?");
+			const before = await loadRequiredProjectState(statePath);
+			expect(before.researchPaths.length).toBeGreaterThan(0);
+
+			const noticesBefore = notices.length;
+			await harness.handlePrompt("Are there infinitely many primes of the form n^2 + 1?");
+
+			const after = await loadRequiredProjectState(statePath);
+			// The old project must not gain a run, a batch, or steering focus for the new question.
+			expect(after.researchWorkstreamRuns).toEqual([]);
+			expect(after.researchBatches).toEqual([]);
+			expect(after.researchFocus?.reason ?? "").not.toContain("n^2 + 1");
+			expect(after.rootQuestion).toBe("Is n^2 + n + 41 prime for every non-negative integer n?");
+			const visible = notices.slice(noticesBefore).join("\n");
+			expect(visible).toContain("That looks like a new research question");
+			expect(visible).toContain("Is n^2 + n + 41 prime for every non-negative integer n?");
+			expect(visible).toContain("Are there infinitely many primes of the form n^2 + 1?");
+			expect(visible).toContain("start Pi in a fresh directory");
+			expectProductCopy(visible);
+
+			// The explicit exploration form gets the same protection.
+			const explicitBefore = notices.length;
+			await harness.handlePrompt("Explore this problem: Are there infinitely many twin primes?");
+			expect(notices.slice(explicitBefore).join("\n")).toContain("That looks like a new research question");
+			expect((await loadRequiredProjectState(statePath)).researchWorkstreamRuns).toEqual([]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps same-project steering, restatements, and short instructions flowing as steering", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Is n^2 + n + 41 prime for every non-negative integer n?");
+
+			await harness.handlePrompt("try a weaker theorem");
+			const focused = await loadRequiredProjectState(statePath);
+			expect(focused.researchFocus?.reason).toBe("User asked to try a weaker theorem.");
+
+			// A restatement of the same question stays steering; no new-question warning.
+			const restatementBefore = notices.length;
+			await harness.handlePrompt("Is n^2 + n + 41 always prime?");
+			expect(notices.slice(restatementBefore).join("\n")).not.toContain("That looks like a new research question");
+
+			// A short instruction stays steering too.
+			const instructionBefore = notices.length;
+			await harness.handlePrompt("check modulo 41");
+			expect(notices.slice(instructionBefore).join("\n")).not.toContain("That looks like a new research question");
+
+			await waitForProjectState(statePath, "idle research runs after steering", (state) =>
+				Boolean(state?.researchWorkstreamRuns.every((run) => run.status !== "running" && run.status !== "queued")),
+			);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("creates a deterministic research plan from a fresh research workspace and shows it cleanly", async () => {
 		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
 		try {
@@ -3429,16 +3549,16 @@ describe("co-math harness", () => {
 			expect(state.researchPlans).toHaveLength(1);
 			expect(state.researchPlans[0]).toMatchObject({ id: "research-plan-1", status: "active" });
 			expect(state.researchPlanTasks.map((task) => task.kind)).toEqual([
-				"literature-search",
 				"computation",
 				"proof-attempt",
+				"literature-search",
 				"refutation-attempt",
 				"synthesis",
 			]);
 			expect(state.researchPlanTasks.every((task) => task.status === "pending")).toBe(true);
-			expect(state.researchPlanTasks[0]?.pathId).toBe("path-5");
-			expect(state.researchPlanTasks[1]?.pathId).toBe("path-1");
-			expect(state.researchPlanTasks[2]?.pathId).toBe("path-2");
+			expect(state.researchPlanTasks[0]?.pathId).toBe("path-1");
+			expect(state.researchPlanTasks[1]?.pathId).toBe("path-2");
+			expect(state.researchPlanTasks[2]?.pathId).toBe("path-5");
 			// The refutation attempt prefers the computational path.
 			expect(state.researchPlanTasks[3]?.pathId).toBe("path-1");
 
@@ -3451,7 +3571,7 @@ describe("co-math harness", () => {
 			const visible = notices.slice(before).join("\n");
 			expect(visible).toContain("Research plan");
 			expect(visible).toContain("Progress: 0/5 tasks");
-			expect(visible).toContain("1. Check the literature for known results — waiting");
+			expect(visible).toContain("1. Run a bounded computation on small cases — waiting");
 			expect(visible).toContain("5. Summarize durable findings and pick the next move — waiting");
 			expect(visible).not.toContain("research-plan");
 			expect(visible).not.toContain("path-1");
@@ -3480,21 +3600,21 @@ describe("co-math harness", () => {
 				"pending",
 			]);
 			expect(state.researchPlanTasks[0]).toMatchObject({
-				kind: "literature-search",
+				kind: "computation",
 				runId: "research-run-1",
 				reportId: "research-report-1",
 			});
 			expect(state.researchPlanTasks[1]).toMatchObject({
-				kind: "computation",
+				kind: "proof-attempt",
 				runId: "research-run-2",
 				reportId: "research-report-2",
 			});
 			expect(state.researchPlanTasks[2]).toMatchObject({
-				kind: "proof-attempt",
+				kind: "literature-search",
 				runId: "research-run-3",
 				reportId: "research-report-3",
 			});
-			expect(state.researchPlanTasks[0]?.evidenceEntryIds.length).toBeGreaterThan(0);
+			expect(state.researchPlanTasks[2]?.evidenceEntryIds.length).toBeGreaterThan(0);
 			expect(state.researchBatches[0]).toMatchObject({
 				status: "completed",
 				requestedStepCount: 3,
@@ -3528,8 +3648,8 @@ describe("co-math harness", () => {
 
 			const visible = notices.join("\n");
 			expect(visible).toContain("Research plan created");
-			expect(visible).toContain("Working on task 1 of 5: Check the literature for known results.");
-			expect(visible).toContain("Finished task 3 of 5: Attempt a focused proof step.");
+			expect(visible).toContain("Working on task 1 of 5: Run a bounded computation on small cases.");
+			expect(visible).toContain("Finished task 3 of 5: Check the literature for known results.");
 			expect(visible).toContain("Research steps completed");
 			expect(visible).toContain("Research plan completed");
 			expect(visible).not.toContain("research-plan");

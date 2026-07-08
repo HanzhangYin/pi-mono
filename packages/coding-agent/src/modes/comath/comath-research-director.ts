@@ -11,6 +11,7 @@
  */
 
 import { extractCoMathJsonObject } from "./comath-markdown.ts";
+import { deriveResearchAgenda, describeAgendaProvenance, violatesRejectedRoute } from "./comath-research-agenda.ts";
 import { buildResearchContextPack } from "./comath-research-context.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import {
@@ -29,6 +30,7 @@ import type {
 	ResearchPlanTaskRecord,
 } from "./schema.ts";
 import {
+	addResearchPivot,
 	addResearchPlan,
 	addResearchPlanTask,
 	getEvidenceLineage,
@@ -233,6 +235,18 @@ export async function amendResearchPlanAfterTask(
 		if (addedTitles.length === 0 && cancelledTitles.length === 0) {
 			return noAmendment;
 		}
+		// Cancelling one route while adding another is a pivot; make it durable so the abandoned
+		// route and the reason are never silently forgotten.
+		if (cancelledTitles.length > 0 && addedTitles.length > 0) {
+			nextState = addResearchPivot(nextState, {
+				fromRoute: cancelledTitles.join("; "),
+				toRoute: addedTitles.join("; "),
+				reason: reason || "The completed step changed which route is worth pursuing.",
+				taskId: input.completedTask.id,
+				now: input.now,
+				actor: "coordinator",
+			});
+		}
 		return {
 			state: nextState,
 			amended: true,
@@ -247,6 +261,7 @@ export async function amendResearchPlanAfterTask(
 
 export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 	const fallback = buildResearchPlanTaskBlueprints(state);
+	const agenda = deriveResearchAgenda(state);
 	return [
 		"You are the research director for a mathematical research workspace.",
 		"Design a bounded research plan from the durable state below.",
@@ -255,10 +270,19 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 		`- Each task kind must be one of: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}.`,
 		"- literature-search, source-refresh, computation, proof-attempt, and refutation-attempt tasks run against a research path; give pathNumber (1-based, from the paths listed below).",
 		"- Give each task a concrete goal and 1-3 acceptance criteria stating what counts as done.",
+		"- Respect the standing constraints listed in the state below; never plan a task they exclude.",
+		"- Respect recorded theorem applicability rejections and route changes; do not plan a rejected route again.",
 		"- Work both sides: alongside proof attempts, plan a refutation-attempt that actively searches for counterexamples.",
 		"- When evidence has refuted the current statement, plan a revise-conjecture task to repair it before more proof attempts.",
 		"- Plan from what is actually known: pursue counterexamples found, prove lemmas already supported by evidence, do not repeat settled work.",
 		"- Never plan to 'prove' a famous open problem outright; plan reductions, weaker targets, or evidence.",
+		...(agenda.length > 0
+			? [
+					"",
+					"Continuation agenda derived from the durable state (adopt these unless you have a concretely better plan; each line says why the work exists):",
+					...describeAgendaProvenance(agenda),
+				]
+			: []),
 		"",
 		buildResearchContextPack(state),
 		"",
@@ -418,6 +442,11 @@ function validateTaskDraft(state: CoMathProjectState, raw: Record<string, unknow
 		typeof raw.description === "string" && raw.description.trim()
 			? truncate(raw.description.trim(), 400)
 			: (goal ?? title);
+	// A route a durable theorem check already rejected must not re-enter the plan, no matter how
+	// the model phrased it. Goals are exempt: they may cite the rejection as history.
+	if (violatesRejectedRoute(state, `${title} ${description}`)) {
+		return undefined;
+	}
 	const acceptanceCriteria = Array.isArray(raw.acceptanceCriteria)
 		? raw.acceptanceCriteria
 				.filter((item): item is string => typeof item === "string" && item.trim().length > 0)

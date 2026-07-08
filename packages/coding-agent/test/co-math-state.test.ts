@@ -17,6 +17,7 @@ import {
 	addResearchBatch,
 	addResearchCoordinatorReport,
 	addResearchEvidenceBoardEntry,
+	addResearchObligation,
 	addResearchPath,
 	addResearchPlan,
 	addResearchPlanTask,
@@ -30,6 +31,7 @@ import {
 	addWorkstream,
 	cancelQueuedRoleRun,
 	createEmptyProjectState,
+	describeObligationEstablishmentGate,
 	dispatchQueuedRoleRun,
 	failRoleRun,
 	failStaleResearchWorkstreamRuns,
@@ -52,7 +54,10 @@ import {
 	getLiteratureSourcesForReport,
 	getNextRunnableResearchPlanTask,
 	getPausedResearchPlan,
+	getResearchObligation,
+	getResearchObligationChildren,
 	getResearchPlanTasks,
+	getRootResearchObligation,
 	isClaimSynthesisEligible,
 	loadProjectState,
 	queueRoleRun,
@@ -70,6 +75,7 @@ import {
 	startRoleRun,
 	updateComputationalArtifact,
 	updateResearchBatch,
+	updateResearchObligation,
 	updateResearchPath,
 	updateResearchPlan,
 	updateResearchPlanTask,
@@ -128,6 +134,10 @@ describe("co-math project state", () => {
 			researchBatches: [],
 			researchPlans: [],
 			researchPlanTasks: [],
+			researchObligations: [],
+			researchConstraints: [],
+			theoremApplicabilityChecks: [],
+			researchPivots: [],
 			literatureSources: [],
 			literatureSearches: [],
 			literatureClaimSupports: [],
@@ -1037,6 +1047,137 @@ describe("co-math project state", () => {
 		}
 	});
 
+	it("records research obligations with subclaims and refuses ungated establishment", () => {
+		let state = createProject();
+		state = addResearchObligation(state, {
+			statement: "Are there infinitely many twin primes?",
+			assumptions: ["Standard arithmetic."],
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = addResearchObligation(state, {
+			statement: "Every twin prime pair beyond (3, 5) has the form (6k - 1, 6k + 1).",
+			parentObligationId: "obligation-1",
+			status: "supported",
+			evidenceEntryIds: ["evidence-board-9"],
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		expect(getRootResearchObligation(state)?.id).toBe("obligation-1");
+		expect(getResearchObligationChildren(state, "obligation-1").map((obligation) => obligation.id)).toEqual([
+			"obligation-2",
+		]);
+
+		// A dangling parent drops the link but keeps the obligation.
+		state = addResearchObligation(state, {
+			statement: "An orphan claim.",
+			parentObligationId: "obligation-99",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		expect(getResearchObligation(state, "obligation-3")?.parentObligationId).toBeUndefined();
+
+		// The establishment gate names every unmet requirement.
+		const gate = describeObligationEstablishmentGate(state, "obligation-1");
+		expect(gate.ok).toBe(false);
+		expect(gate.reasons).toEqual([
+			"There is no supporting evidence.",
+			"No independent review has passed cleanly.",
+			"1 required subclaim is not settled.",
+		]);
+		expect(() =>
+			updateResearchObligation(state, { obligationId: "obligation-1", status: "established", now: FIXED_NOW }),
+		).toThrow(/cannot be established/);
+
+		// Meeting every requirement lets the same update pass: evidence, a clean review, a settled
+		// subclaim, and no open gaps.
+		state = updateResearchObligation(state, {
+			obligationId: "obligation-2",
+			addEvidenceEntryIds: ["evidence-board-9"],
+			reviewedCleanAt: FIXED_NOW,
+			status: "established",
+			now: FIXED_NOW,
+		});
+		state = updateResearchObligation(state, {
+			obligationId: "obligation-1",
+			addEvidenceEntryIds: ["evidence-board-1"],
+			addGaps: ["The general argument is missing."],
+			reviewedCleanAt: FIXED_NOW,
+			now: FIXED_NOW,
+		});
+		expect(() =>
+			updateResearchObligation(state, { obligationId: "obligation-1", status: "established", now: FIXED_NOW }),
+		).toThrow(/1 open gap/);
+		state = updateResearchObligation(state, {
+			obligationId: "obligation-1",
+			clearGaps: true,
+			status: "established",
+			statusReason: "Reviewed with settled subclaims.",
+			now: FIXED_NOW,
+		});
+		expect(getResearchObligation(state, "obligation-1")).toMatchObject({
+			status: "established",
+			gaps: [],
+		});
+
+		// Refuted obligations can never be established.
+		let refutedState = addResearchObligation(createProject(), {
+			statement: "n^2 + n + 41 is prime for all n.",
+			status: "refuted",
+			refutationEvidenceEntryIds: ["evidence-board-2"],
+			now: FIXED_NOW,
+		});
+		expect(describeObligationEstablishmentGate(refutedState, "obligation-1").reasons).toContain(
+			"The obligation is refuted.",
+		);
+		refutedState = updateResearchObligation(refutedState, {
+			obligationId: "obligation-1",
+			status: "retired",
+			now: FIXED_NOW,
+		});
+		expect(describeObligationEstablishmentGate(refutedState, "obligation-1").reasons).toContain(
+			"The obligation was retired.",
+		);
+	});
+
+	it("treats the latest non-retired top-level obligation as the root", () => {
+		let state = addResearchObligation(createProject(), {
+			statement: "Original statement.",
+			status: "refuted",
+			now: FIXED_NOW,
+		});
+		state = updateResearchObligation(state, { obligationId: "obligation-1", status: "retired", now: FIXED_NOW });
+		state = addResearchObligation(state, { statement: "Revised statement.", now: FIXED_NOW });
+
+		expect(getRootResearchObligation(state)?.statement).toBe("Revised statement.");
+	});
+
+	it("normalizes partial research obligation records to safe defaults", async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-obligation-normalize-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			const legacy = createProject() as unknown as Record<string, unknown>;
+			delete legacy.researchObligations;
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+			expect((await loadProjectState(statePath))?.researchObligations).toEqual([]);
+
+			legacy.researchObligations = [{ statement: "Partially recorded claim.", status: "mystery" }];
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchObligations[0]).toMatchObject({
+				id: "obligation-1",
+				statement: "Partially recorded claim.",
+				status: "open",
+				assumptions: [],
+				evidenceEntryIds: [],
+				refutationEvidenceEntryIds: [],
+				gaps: [],
+			});
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("accepts the refutation-attempt and revise-conjecture plan task kinds", async () => {
 		const dir = await mkdtemp(path.join(tmpdir(), "comath-new-kinds-"));
 		const statePath = path.join(dir, "state.json");
@@ -1813,7 +1954,7 @@ describe("co-math project state", () => {
 		expect(state.workingPaperSections[0]).toMatchObject({
 			id: "paper-section-1",
 			title: "Examples and evidence",
-			body: "First round.\n\nSecond round.",
+			body: "Second round.",
 			updatedAt: "2026-06-05T12:05:00.000Z",
 		});
 		expect(state.events.at(-1)).toMatchObject({

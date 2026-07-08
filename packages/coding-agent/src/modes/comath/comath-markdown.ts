@@ -98,20 +98,57 @@ export function firstCoMathMarkdownSectionItem(parsed: CoMathParsedMarkdown, key
 	return getCoMathMarkdownSectionItems(parsed, keyword)[0];
 }
 
-/** Extract the first JSON object from model text, tolerating code fences and surrounding prose. */
+/** Extract the first complete JSON object from model text, tolerating code fences and surrounding prose. */
 export function extractCoMathJsonObject(text: string): Record<string, unknown> | undefined {
 	const withoutFences = text.replace(/```(?:json)?/gi, "\n").trim();
-	const start = withoutFences.indexOf("{");
-	const end = withoutFences.lastIndexOf("}");
-	if (start === -1 || end <= start) {
-		return undefined;
+	for (let start = withoutFences.indexOf("{"); start !== -1; start = withoutFences.indexOf("{", start + 1)) {
+		const end = findJsonObjectEnd(withoutFences, start);
+		if (end === undefined) {
+			continue;
+		}
+		try {
+			const parsed: unknown = JSON.parse(withoutFences.slice(start, end + 1));
+			if (typeof parsed === "object" && parsed !== null) {
+				return parsed as Record<string, unknown>;
+			}
+		} catch {
+			// Keep scanning: a prose brace before the real JSON object should not poison parsing.
+		}
 	}
-	try {
-		const parsed: unknown = JSON.parse(withoutFences.slice(start, end + 1));
-		return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : undefined;
-	} catch {
-		return undefined;
+	return undefined;
+}
+
+/** Remove JSON action protocol objects before showing model text to the user. */
+export function stripCoMathJsonObjects(text: string): string {
+	const withoutFences = text.replace(/```(?:json)?/gi, "\n");
+	let output = "";
+	let cursor = 0;
+	for (;;) {
+		const start = withoutFences.indexOf("{", cursor);
+		if (start === -1) {
+			return `${output}${withoutFences.slice(cursor)}`.trim();
+		}
+		const end = findJsonObjectEnd(withoutFences, start);
+		if (end === undefined) {
+			return `${output}${withoutFences.slice(cursor)}`.trim();
+		}
+		const candidate = withoutFences.slice(start, end + 1);
+		if (isCoMathActionJsonObject(candidate)) {
+			output += withoutFences.slice(cursor, start);
+			cursor = end + 1;
+		} else {
+			output += withoutFences.slice(cursor, start + 1);
+			cursor = start + 1;
+		}
 	}
+}
+
+/** Keep user-facing report details while dropping scratchpad/self-talk and tool protocol lines. */
+export function filterCoMathProductLines(lines: readonly string[]): string[] {
+	return stripCoMathJsonObjects(lines.join("\n"))
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0 && !isScratchpadLine(line) && !isToolProtocolLine(line));
 }
 
 /** Strip a leading bullet marker (`-`, `*`, `•`, `1.`, `1)`) from a line. */
@@ -130,4 +167,68 @@ function appendToLastItem(items: string[], text: string): void {
 		return;
 	}
 	items[items.length - 1] = `${items[items.length - 1]} ${text}`.replace(/\s+/g, " ").trim();
+}
+
+function findJsonObjectEnd(text: string, start: number): number | undefined {
+	let depth = 0;
+	let inString = false;
+	let escaped = false;
+	for (let index = start; index < text.length; index += 1) {
+		const char = text[index];
+		if (inString) {
+			if (escaped) {
+				escaped = false;
+			} else if (char === "\\") {
+				escaped = true;
+			} else if (char === '"') {
+				inString = false;
+			}
+			continue;
+		}
+		if (char === '"') {
+			inString = true;
+			continue;
+		}
+		if (char === "{") {
+			depth += 1;
+			continue;
+		}
+		if (char !== "}") {
+			continue;
+		}
+		depth -= 1;
+		if (depth === 0) {
+			return index;
+		}
+	}
+	return undefined;
+}
+
+function isScratchpadLine(line: string): boolean {
+	return /\b(?:I need to|I should|I(?:.m| am) (?:thinking|considering|wondering|looking|trying|going|focused|noticing|realizing)|I.m|Let.s)\b/i.test(
+		line,
+	);
+}
+
+function isToolProtocolLine(line: string): boolean {
+	return (
+		/^\{[\s\S]*"action"\s*:\s*"(?:run_computation|record_claim|finish)"/.test(line) ||
+		/^\s*[{}]\s*,?\s*$/.test(line) ||
+		/^\s*"(?:action|summary|script|claim|classification|category|claimCategory|rationale|report)"\s*:/.test(line)
+	);
+}
+
+function isCoMathActionJsonObject(candidate: string): boolean {
+	try {
+		const parsed: unknown = JSON.parse(candidate);
+		return (
+			typeof parsed === "object" &&
+			parsed !== null &&
+			"action" in parsed &&
+			typeof (parsed as { action?: unknown }).action === "string" &&
+			/^(?:run_computation|record_claim|finish)$/.test((parsed as { action: string }).action)
+		);
+	} catch {
+		return false;
+	}
 }

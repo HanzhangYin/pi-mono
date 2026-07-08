@@ -23,8 +23,10 @@ import {
 	formatCoMathNonMathEntryGuidance,
 	formatCoMathProductHelp,
 	formatCoMathResearchModeOperationalPromptIgnored,
+	formatCoMathResearchPhaseActivityStatus,
 	formatConjectureLineage,
 	formatContextRecorded,
+	formatDifferentResearchQuestionDetected,
 	formatFocusNoted,
 	formatInitialValidationPlan,
 	formatLatestResearchCoordinatorReportMissing,
@@ -34,11 +36,13 @@ import {
 	formatResearchBatchPaused,
 	formatResearchBatchProgress,
 	formatResearchBatchStarted,
+	formatResearchConstraintRecorded,
 	formatResearchCoordinatorReport,
 	formatResearchEvidenceBoardSummary,
 	formatResearchFocusUpdated,
 	formatResearchNaturalSteeringQueued,
 	formatResearchNaturalSteeringStarted,
+	formatResearchObligationsSummary,
 	formatResearchPathDropped,
 	formatResearchPlanCreated,
 	formatResearchPlanExecutionStarted,
@@ -54,6 +58,7 @@ import {
 } from "./comath-progress.ts";
 import {
 	isCreateResearchPlanPrompt,
+	isDifferentResearchQuestion,
 	isLikelyMathValidationPrompt,
 	isLikelyOperationalNonMathPrompt,
 	isResearchCoordinatorPrompt,
@@ -62,6 +67,7 @@ import {
 	isShowEvidencePrompt,
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
+	isShowObligationsPrompt,
 	isShowProgressPrompt,
 	isShowReportForPathPrompt,
 	isShowResearchPlanPrompt,
@@ -71,6 +77,7 @@ import {
 	parseCancelResearchBatchPrompt,
 	parseNaturalResearchQuestion,
 	parseResearchBatchPrompt,
+	parseResearchConstraintPrompt,
 	parseResearchPlanExecutionPrompt,
 	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
@@ -81,6 +88,8 @@ import { proposeResearchPlan } from "./comath-research-director.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import { CoMathResearchPlanRunner, resumeResearchPlan } from "./comath-research-plan-runner.ts";
 import {
+	type CoMathResearchPhaseActivityNotify,
+	type CoMathResearchPhaseActivitySignal,
 	CoMathResearchRunner,
 	type CoMathResearchWorkstreamActivityEnd,
 	type CoMathResearchWorkstreamActivityEndInput,
@@ -101,6 +110,7 @@ import {
 	addLiteratureSourceArtifact,
 	addMarginNote,
 	addResearchBatch,
+	addResearchConstraint,
 	addResearchCoordinatorReport,
 	addResearchPath,
 	getActiveResearchBatch,
@@ -131,6 +141,8 @@ export interface CoMathBackendCommandResult {
 }
 export type CoMathBackendCommandRunner = (args: string) => Promise<CoMathBackendCommandResult>;
 export type {
+	CoMathResearchPhaseActivityNotify,
+	CoMathResearchPhaseActivitySignal,
 	CoMathResearchWorkstreamActivityEnd,
 	CoMathResearchWorkstreamActivityEndInput,
 	CoMathResearchWorkstreamActivityStart,
@@ -163,6 +175,18 @@ export interface CoMathHarnessOptions {
 	onResearchWorkstreamActivityStart?: CoMathResearchWorkstreamActivityStart;
 	onResearchWorkstreamActivityUpdate?: CoMathResearchWorkstreamActivityUpdate;
 	onResearchWorkstreamActivityEnd?: CoMathResearchWorkstreamActivityEnd;
+	/**
+	 * Best-effort UI status for research work outside a workstream run (planning, the independent
+	 * review, plan amendment, synthesis, revision, and the bounded batch step), so the "still
+	 * working" indicator never goes dark between run stages.
+	 */
+	onResearchPhaseActivity?: CoMathResearchPhaseActivityNotify;
+	/**
+	 * Step budget for the autonomous first run a fresh math question starts (default 3). Clamped to
+	 * 1–10: each step is a full model-backed run plus an independent review, so the cap bounds
+	 * unprompted model spend even with a misconfigured value.
+	 */
+	initialResearchStepCount?: number;
 }
 
 export class CoMathHarness {
@@ -177,6 +201,8 @@ export class CoMathHarness {
 	private readonly researchRunner: CoMathResearchRunner;
 	private readonly researchPlanRunner: CoMathResearchPlanRunner;
 	private readonly researchBatchRunner: CoMathResearchBatchRunner;
+	private readonly onResearchPhaseActivity: CoMathResearchPhaseActivityNotify | undefined;
+	private readonly initialResearchStepCount: number;
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
 
 	constructor(options: CoMathHarnessOptions) {
@@ -199,6 +225,8 @@ export class CoMathHarness {
 			onResearchWorkstreamActivityUpdate: options.onResearchWorkstreamActivityUpdate,
 			onResearchWorkstreamActivityEnd: options.onResearchWorkstreamActivityEnd,
 		});
+		this.onResearchPhaseActivity = options.onResearchPhaseActivity;
+		this.initialResearchStepCount = clampInitialResearchStepCount(options.initialResearchStepCount);
 		this.researchPlanRunner = new CoMathResearchPlanRunner({
 			statePath: this.statePath,
 			notify: this.notify,
@@ -206,13 +234,39 @@ export class CoMathHarness {
 			...(this.researchModelExecutor ? { researchModelExecutor: this.researchModelExecutor } : {}),
 			...(this.researchDirectorExecutor ? { researchDirectorExecutor: this.researchDirectorExecutor } : {}),
 			computationalExecutor,
+			...(options.onResearchPhaseActivity ? { onResearchPhaseActivity: options.onResearchPhaseActivity } : {}),
 		});
 		this.researchBatchRunner = new CoMathResearchBatchRunner({
 			statePath: this.statePath,
 			notify: this.notify,
 			researchRunner: this.researchRunner,
 			planRunner: this.researchPlanRunner,
+			...(options.onResearchPhaseActivity ? { onResearchPhaseActivity: options.onResearchPhaseActivity } : {}),
 		});
+	}
+
+	/**
+	 * Show a footer status while a harness-driven research phase (plan proposal from an explicit
+	 * prompt) runs. Purely cosmetic; failures never affect the phase.
+	 */
+	private async withPlanningActivity<T>(work: () => Promise<T>): Promise<T> {
+		const signal = async (message: CoMathResearchPhaseActivitySignal): Promise<void> => {
+			try {
+				await this.onResearchPhaseActivity?.(message);
+			} catch {
+				// UI status updates are best-effort and must not affect research execution.
+			}
+		};
+		await signal({
+			kind: "start",
+			activityId: "research-plan-proposal",
+			status: formatCoMathResearchPhaseActivityStatus("planning"),
+		});
+		try {
+			return await work();
+		} finally {
+			await signal({ kind: "end", activityId: "research-plan-proposal" });
+		}
 	}
 
 	async handlePrompt(problemText: string): Promise<void> {
@@ -279,7 +333,8 @@ export class CoMathHarness {
 			isCreateResearchPlanPrompt(problem) ||
 			parseResearchPlanExecutionPrompt(problem) !== undefined ||
 			isShowEvidencePrompt(problem) ||
-			isShowConjectureLineagePrompt(problem)
+			isShowConjectureLineagePrompt(problem) ||
+			isShowObligationsPrompt(problem)
 		) {
 			await this.notify(
 				'Start by asking a math question, for example: "Are there infinitely many primes of the form n^2 + 1?"',
@@ -331,7 +386,6 @@ export class CoMathHarness {
 		}
 		const initialPath = chooseInitialResearchPath(nextState, {
 			initialFocusSlug: plan.initialFocusSlug,
-			preferLiterature: this.researchModelExecutor !== undefined,
 		});
 		if (initialPath) {
 			nextState = setResearchFocus(nextState, {
@@ -342,9 +396,24 @@ export class CoMathHarness {
 			});
 		}
 		await saveProjectState(this.statePath, nextState);
-		await this.notify(formatResearchWorkspacePrepared(plan, initialPath?.title));
-		if (this.startFirstRun && initialPath) {
-			await this.researchRunner.runResearchWorkstreamForPath(nextState, initialPath);
+		await this.notify(formatResearchWorkspacePrepared(plan));
+		// A bare hard-math question starts a bounded autonomous research plan (created from the
+		// durable state by the plan runner), not a single hard-coded path run. The batch keeps the
+		// usual caps and pause/resume boundaries.
+		if (this.startFirstRun) {
+			const batchState = addResearchBatch(nextState, {
+				requestedStepCount: this.initialResearchStepCount,
+				now: new Date().toISOString(),
+				actor: "human",
+			});
+			const batch = batchState.researchBatches.at(-1);
+			if (!batch) {
+				await this.notify("Could not start the first research steps.", "error");
+				return true;
+			}
+			await saveProjectState(this.statePath, batchState);
+			await this.notify(formatResearchBatchStarted({ state: batchState, batch }));
+			this.researchBatchRunner.startResearchBatchExecution(batch.id);
 		}
 		return true;
 	}
@@ -608,11 +677,13 @@ export class CoMathHarness {
 				);
 				return;
 			}
-			const created = await proposeResearchPlan(state, {
-				...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
-				now: new Date().toISOString(),
-				actor: "human",
-			});
+			const created = await this.withPlanningActivity(() =>
+				proposeResearchPlan(state, {
+					...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+					now: new Date().toISOString(),
+					actor: "human",
+				}),
+			);
 			await saveProjectState(this.statePath, created.state);
 			await this.notify(
 				formatResearchPlanCreated({
@@ -633,6 +704,10 @@ export class CoMathHarness {
 		}
 		if (isShowConjectureLineagePrompt(prompt)) {
 			await this.notify(formatConjectureLineage(state));
+			return;
+		}
+		if (isShowObligationsPrompt(prompt)) {
+			await this.notify(formatResearchObligationsSummary(state));
 			return;
 		}
 		if (isShowLatestCoordinatorReportPrompt(prompt)) {
@@ -879,6 +954,23 @@ export class CoMathHarness {
 			await this.notify(formatCoMathResearchModeOperationalPromptIgnored(), "warning");
 			return;
 		}
+		// A standalone math question that differs from this workspace's root question must never be
+		// silently recorded as steering for the old project: warn and change nothing. Long prompts
+		// are exempt so pasted context for the same project keeps flowing as a note.
+		const candidateQuestion =
+			prompt.trim().length <= 400
+				? (parseExplicitResearchProblemPrompt(prompt) ?? parseNaturalResearchQuestion(prompt))
+				: undefined;
+		if (candidateQuestion && isDifferentResearchQuestion(candidateQuestion, [state.rootQuestion, state.title])) {
+			await this.notify(
+				formatDifferentResearchQuestionDetected({
+					currentQuestion: state.rootQuestion,
+					newQuestion: candidateQuestion,
+				}),
+				"warning",
+			);
+			return;
+		}
 		await this.handleNaturalResearchSteeringPrompt(state, prompt, latestInterruptedRun);
 		return;
 	}
@@ -920,11 +1012,13 @@ export class CoMathHarness {
 				await this.notify("No paused research plan is available to resume.", "warning");
 				return;
 			}
-			const created = await proposeResearchPlan(workingState, {
-				...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
-				now: new Date().toISOString(),
-				actor: "human",
-			});
+			const created = await this.withPlanningActivity(() =>
+				proposeResearchPlan(workingState, {
+					...(this.researchDirectorExecutor ? { executor: this.researchDirectorExecutor } : {}),
+					now: new Date().toISOString(),
+					actor: "human",
+				}),
+			);
 			workingState = created.state;
 			plan = created.plan;
 			await saveProjectState(this.statePath, workingState);
@@ -970,6 +1064,21 @@ export class CoMathHarness {
 		prompt: string,
 		latestInterruptedRun: ResearchWorkstreamRunRecord | undefined,
 	): Promise<void> {
+		// A constraint-shaped steering message ("do not attack X", "use convention Y") becomes a
+		// durable standing constraint instead of a one-off run: every later role prompt carries it.
+		const constraint = parseResearchConstraintPrompt(prompt);
+		if (constraint) {
+			const nextState = addResearchConstraint(state, {
+				text: constraint.text,
+				kind: constraint.kind,
+				origin: "human",
+				now: new Date().toISOString(),
+				actor: "human",
+			});
+			await saveProjectState(this.statePath, nextState);
+			await this.notify(formatResearchConstraintRecorded(constraint.text));
+			return;
+		}
 		const path = chooseNaturalSteeringResearchPath(state, prompt);
 		const now = new Date().toISOString();
 		const nextState = saveNaturalResearchSteering(state, prompt, path, now);
@@ -1293,6 +1402,20 @@ function demoteBackendHeading(message: string): string {
 	return message.replace(/^Co-math (\w)/, (_match, first: string) => first.toUpperCase());
 }
 
+/**
+ * Only the explicit "explore this problem: X" forms. Bare "explore <topic>" phrasings stay out so
+ * steering like "explore the mod 4 obstruction" is never mistaken for a new root question.
+ */
+function parseExplicitResearchProblemPrompt(prompt: string): string | undefined {
+	const normalized = prompt.trim().replace(/\s+/g, " ");
+	const match =
+		/^(?:(?:explore|research|investigate|find approaches to|try to solve)\s+this\s+(?:problem|conjecture|question)):\s+(.+)$/i.exec(
+			normalized,
+		);
+	const problem = match?.[1]?.trim();
+	return problem && !isIncompleteExplorationProblem(problem) ? problem : undefined;
+}
+
 function parseExplorationPrompt(prompt: string): string | undefined {
 	const normalized = prompt.trim().replace(/\s+/g, " ");
 	const patterns = [
@@ -1356,16 +1479,8 @@ function chooseNaturalSteeringResearchPath(state: CoMathProjectState, prompt: st
 
 function chooseInitialResearchPath(
 	state: CoMathProjectState,
-	input: { initialFocusSlug: string; preferLiterature: boolean },
+	input: { initialFocusSlug: string },
 ): ResearchPath | undefined {
-	if (input.preferLiterature) {
-		const literaturePath = state.researchPaths.find((path) =>
-			/\b(?:known theorem|literature|reference|source)\b/i.test(`${path.title} ${path.objective}`),
-		);
-		if (literaturePath) {
-			return literaturePath;
-		}
-	}
 	const slugTitle = input.initialFocusSlug.replace(/-/g, " ");
 	const initialBySlug = findResearchPath(state, slugTitle);
 	return initialBySlug ?? state.researchPaths.find((path) => path.priority === 1);
@@ -1423,6 +1538,25 @@ function parseResearchPathNumber(query: string): number | undefined {
 	}
 	const pathNumber = Number.parseInt(match[1], 10);
 	return pathNumber > 0 ? pathNumber : undefined;
+}
+
+/**
+ * Default step budget for the autonomous plan run a fresh math question starts. Each step is a
+ * full model-backed workstream run plus an independent review, so this bounds unprompted model
+ * spend: three steps covers a typical opening arc (a status check, a bounded computation, and a
+ * first proof or refutation attempt) before pausing for the user's direction. Only the unprompted
+ * first move is sized by this default — the `--comath-steps` flag overrides it (clamped below),
+ * explicit prompts pick their own budget ("work the plan for N steps", capped at 5), and
+ * "continue" extends work after the pause.
+ */
+const INITIAL_RESEARCH_BATCH_STEPS = 3;
+const MAX_INITIAL_RESEARCH_BATCH_STEPS = 10;
+
+function clampInitialResearchStepCount(requested: number | undefined): number {
+	if (requested === undefined || !Number.isFinite(requested)) {
+		return INITIAL_RESEARCH_BATCH_STEPS;
+	}
+	return Math.min(MAX_INITIAL_RESEARCH_BATCH_STEPS, Math.max(1, Math.round(requested)));
 }
 
 const RESEARCH_PATH_ORDINALS: Record<string, number> = {
@@ -1533,7 +1667,7 @@ function findPersistedLiteratureSource(
 function buildResearchCoordinatorWorkingPaperBody(
 	report: Pick<
 		ResearchCoordinatorReportRecord,
-		"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "humanHelpUseful" | "suggestedPrompt" | "suggestedPathId"
+		"whatWeKnow" | "roadblocks" | "recommendedNextMoves" | "suggestedPrompt" | "suggestedPathId"
 	>,
 ): string {
 	return [
@@ -1550,9 +1684,6 @@ function buildResearchCoordinatorWorkingPaperBody(
 			const prompt = move.prompt ? ` (${move.prompt})` : "";
 			return `${index + 1}. ${move.title}${prompt}: ${move.rationale}`;
 		}),
-		...(report.humanHelpUseful.length > 0
-			? ["", "Human help useful:", ...report.humanHelpUseful.map((item) => `- ${item}`)]
-			: []),
 		...(report.suggestedPrompt ? ["", `Suggested next step: ${report.suggestedPrompt}`] : []),
 	].join("\n");
 }

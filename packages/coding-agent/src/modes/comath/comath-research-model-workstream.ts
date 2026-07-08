@@ -1,16 +1,34 @@
 import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import {
+	filterCoMathProductLines,
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
 	getCoMathMarkdownSectionItems as sectionItems,
 } from "./comath-markdown.ts";
+import {
+	applyPivotsToSuggestedNextMove,
+	buildDisciplineGuidance,
+	buildProofTaskGuidance,
+	buildStandingConstraintsBlock,
+	dedupeRoutePivots,
+	dedupeTheoremChecks,
+	parseNegativeConstraints,
+	parseRoutePivots,
+	parseTheoremApplicabilityChecks,
+	splitHumanHelpItems,
+} from "./comath-research-discipline.ts";
 import { runSpecialistToolLoop, type SpecialistToolLoopResult } from "./comath-research-specialist-loop.ts";
 import {
 	buildCoordinatorBrief,
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
-import type { ResearchPath, ResearchWorkstreamRunStage } from "./schema.ts";
+import type {
+	ResearchConstraintRecord,
+	ResearchPath,
+	ResearchPlanTaskKind,
+	ResearchWorkstreamRunStage,
+} from "./schema.ts";
 
 export type ResearchWorkstreamModelRole = "specialist" | "critic" | "synthesizer";
 
@@ -46,6 +64,10 @@ export interface RunModelBackedResearchWorkstreamInput {
 	 * stage-specific prompts.
 	 */
 	directive?: string;
+	/** Standing research constraints every role must respect (active ones are shown verbatim). */
+	standingConstraints?: readonly ResearchConstraintRecord[];
+	/** The plan-task kind this run executes; proof-level kinds get proof-first guidance. */
+	taskKind?: ResearchPlanTaskKind;
 	/**
 	 * When present, the specialist stage runs as a bounded agentic tool loop (sandboxed
 	 * computations mid-attempt, durable claim recording) instead of a single model call. A model
@@ -113,6 +135,8 @@ export async function runModelBackedResearchWorkstreamStaged(
 			allPaths,
 			priorFindings,
 			...(input.directive?.trim() ? { directive: input.directive.trim() } : {}),
+			...(input.standingConstraints ? { standingConstraints: input.standingConstraints } : {}),
+			...(input.taskKind ? { taskKind: input.taskKind } : {}),
 			executor,
 			...(input.specialistToolLoop.computationalExecutor
 				? { computationalExecutor: input.specialistToolLoop.computationalExecutor }
@@ -135,7 +159,14 @@ export async function runModelBackedResearchWorkstreamStaged(
 			allPaths,
 			priorFindings,
 			inputText: "",
-			prompt: buildSpecialistPrompt(rootQuestion, path, priorFindings, input.directive),
+			prompt: buildSpecialistPrompt(
+				rootQuestion,
+				path,
+				priorFindings,
+				input.directive,
+				input.standingConstraints,
+				input.taskKind,
+			),
 		});
 	}
 	const specialist = parseMarkdown(specialistText);
@@ -155,7 +186,7 @@ export async function runModelBackedResearchWorkstreamStaged(
 		allPaths,
 		priorFindings,
 		inputText: specialistText,
-		prompt: buildCriticPrompt(rootQuestion, path, specialistText),
+		prompt: buildCriticPrompt(rootQuestion, path, specialistText, input.standingConstraints),
 	});
 	const critic = parseMarkdown(criticText);
 	await callbacks.onStageCompleted?.({
@@ -174,7 +205,7 @@ export async function runModelBackedResearchWorkstreamStaged(
 		allPaths,
 		priorFindings,
 		inputText: `${specialistText}\n\n${criticText}`.trim(),
-		prompt: buildSynthesizerPrompt(rootQuestion, path, specialistText, criticText),
+		prompt: buildSynthesizerPrompt(rootQuestion, path, specialistText, criticText, input.standingConstraints),
 	});
 	const synthesizer = parseMarkdown(synthesizerText);
 	await callbacks.onStageCompleted?.({
@@ -188,15 +219,41 @@ export async function runModelBackedResearchWorkstreamStaged(
 	const promisingStrategy = pickItems(sectionItems(synthesizer, "promising"), sectionItems(specialist, "promising"));
 	const findings = pickItems(sectionItems(synthesizer, "finding"), sectionItems(specialist, "finding"));
 	const criticisms = pickItems(sectionItems(synthesizer, "review"), sectionItems(critic, "review"));
-	const gaps = pickItems(
-		sectionItems(synthesizer, "gap"),
-		sectionItems(critic, "gap"),
-		sectionItems(specialist, "gap"),
-	);
-	const humanHelpUseful = pickItems(sectionItems(synthesizer, "human"), sectionItems(critic, "human"));
-	const parsedSuggestedNextMove = pickSuggestedNextMove(
-		sectionItems(synthesizer, "next"),
-		sectionItems(specialist, "next"),
+	// Human-help sections are not requested anymore; when a model volunteers one, only genuinely
+	// external requests surface as human help, and the agent-actionable rest become gaps the
+	// planner acts on itself.
+	const humanHelp = splitHumanHelpItems(pickItems(sectionItems(synthesizer, "human"), sectionItems(critic, "human")));
+	const gaps = [
+		...new Set([
+			...pickItems(sectionItems(synthesizer, "gap"), sectionItems(critic, "gap"), sectionItems(specialist, "gap")),
+			...humanHelp.agentActionable,
+			...humanHelp.external,
+		]),
+	];
+	// Structured research-discipline sections: theorem checks, route pivots, and negative
+	// constraints emitted by the roles become part of the report draft so the runner can persist
+	// them. Constraints may also come from the critic's review.
+	const theoremChecks = dedupeTheoremChecks([
+		...parseTheoremApplicabilityChecks(specialistText),
+		...parseTheoremApplicabilityChecks(criticText),
+		...parseTheoremApplicabilityChecks(synthesizerText),
+	]);
+	const routePivots = dedupeRoutePivots([
+		...parseRoutePivots(specialistText),
+		...parseRoutePivots(criticText),
+		...parseRoutePivots(synthesizerText),
+	]);
+	const negativeConstraints = [
+		...new Set([
+			...parseNegativeConstraints(specialistText),
+			...parseNegativeConstraints(criticText),
+			...parseNegativeConstraints(synthesizerText),
+		]),
+	];
+	const parsedSuggestedNextMove = applyPivotsToSuggestedNextMove(
+		pickSuggestedNextMove(sectionItems(synthesizer, "next"), sectionItems(specialist, "next")),
+		routePivots,
+		theoremChecks,
 	);
 	const suggestedNextMove = formatPathSpecificSuggestedNextMove(path, allPaths, parsedSuggestedNextMove);
 	const workingPaperSummary = buildWorkingPaperSummary(path, {
@@ -246,10 +303,13 @@ export async function runModelBackedResearchWorkstreamStaged(
 		findings,
 		criticisms,
 		gaps,
-		humanHelpUseful,
+		humanHelpUseful: [],
 		suggestedNextMove,
 		workingPaperSectionTitle: workingPaperSectionTitle(path),
 		workingPaperSummary,
+		...(theoremChecks.length > 0 ? { theoremChecks } : {}),
+		...(routePivots.length > 0 ? { routePivots } : {}),
+		...(negativeConstraints.length > 0 ? { negativeConstraints } : {}),
 	};
 }
 
@@ -266,6 +326,8 @@ export function buildSpecialistPrompt(
 	path: ResearchPath,
 	priorFindings: readonly string[],
 	directive?: string,
+	standingConstraints?: readonly ResearchConstraintRecord[],
+	taskKind?: ResearchPlanTaskKind,
 ): string {
 	return [
 		"You are the specialist for one research path in a co-mathematician workspace.",
@@ -274,11 +336,14 @@ export function buildSpecialistPrompt(
 		`Path objective: ${path.objective}`,
 		"Existing findings:",
 		...formatPriorFindings(priorFindings),
+		...buildStandingConstraintsBlock(standingConstraints ?? []),
 		"",
 		"Task:",
 		...(directive?.trim() ? ["Task brief from the research plan:", directive.trim(), ""] : []),
 		"Attempt this path. Produce useful partial progress, not polished certainty.",
+		...buildProofTaskGuidance(taskKind),
 		...formatPathSpecificGuidance(path),
+		...buildDisciplineGuidance(),
 		"Preserve uncertainty. Do not claim a proof of a famous or open problem unless you actually provide a complete proof from the information given.",
 		"Do not fabricate citations.",
 		"Write user-facing notes only. Do not include scratchpad planning, self-talk, or drafting narration.",
@@ -292,17 +357,24 @@ export function buildSpecialistPrompt(
 	].join("\n");
 }
 
-export function buildCriticPrompt(rootQuestion: string, path: ResearchPath, specialistText: string): string {
+export function buildCriticPrompt(
+	rootQuestion: string,
+	path: ResearchPath,
+	specialistText: string,
+	standingConstraints?: readonly ResearchConstraintRecord[],
+): string {
 	return [
 		"You are the critic for one research path in a co-mathematician workspace.",
 		`Root question: ${rootQuestion}`,
 		`Selected path: ${path.title}`,
+		...buildStandingConstraintsBlock(standingConstraints ?? []),
 		"",
 		"Specialist attempt:",
 		specialistText.trim() || "(the specialist produced no usable output)",
 		"",
 		"Task:",
 		"Review the specialist attempt for mathematical gaps, overclaims, missing assumptions, and unsupported citations.",
+		"Flag any violation of a standing constraint, and flag any use of a named theorem whose applicability was not checked against the actual object.",
 		...formatPathSpecificGuidance(path),
 		"Do not solve the whole problem; critique what was attempted. Preserve uncertainty. Do not fabricate citations.",
 		"Write user-facing notes only. Do not include scratchpad planning, self-talk, or drafting narration.",
@@ -312,7 +384,6 @@ export function buildCriticPrompt(rootQuestion: string, path: ResearchPath, spec
 		"## Review",
 		"## Gaps",
 		"## Overclaims or source issues",
-		"## Human help useful",
 	].join("\n");
 }
 
@@ -321,11 +392,13 @@ export function buildSynthesizerPrompt(
 	path: ResearchPath,
 	specialistText: string,
 	criticText: string,
+	standingConstraints?: readonly ResearchConstraintRecord[],
 ): string {
 	return [
 		"You are the synthesizer for one research path in a co-mathematician workspace.",
 		`Root question: ${rootQuestion}`,
 		`Selected path: ${path.title}`,
+		...buildStandingConstraintsBlock(standingConstraints ?? []),
 		"",
 		"Specialist attempt:",
 		specialistText.trim() || "(the specialist produced no usable output)",
@@ -336,6 +409,7 @@ export function buildSynthesizerPrompt(
 		"Task:",
 		"Write a cautious research-workstream synthesis for the user and the working paper.",
 		...formatPathSpecificGuidance(path),
+		...buildDisciplineGuidance(),
 		"Keep useful ideas. Preserve gaps. Do not claim proofs of famous or open problems. Avoid fabricated citations.",
 		"Write user-facing notes only. Do not include scratchpad planning, self-talk, or drafting narration.",
 		"Keep the answer compact: short bullets.",
@@ -345,7 +419,6 @@ export function buildSynthesizerPrompt(
 		"## Findings",
 		"## Review",
 		"## Gap",
-		"## Human help useful",
 		"## Next",
 		"## Working paper summary",
 	].join("\n");
@@ -417,11 +490,11 @@ function formatPriorFindings(priorFindings: readonly string[]): string[] {
 }
 
 function renderRoleDetails(parsed: ParsedMarkdown): string[] {
-	const items = parsed.sections.flatMap((section) => section.items);
+	const items = filterCoMathProductLines(parsed.sections.flatMap((section) => section.items));
 	if (items.length > 0) {
 		return items;
 	}
-	return parsed.raw.slice(0, 12);
+	return filterCoMathProductLines(parsed.raw).slice(0, 12);
 }
 
 function pickItems(...candidates: string[][]): string[] {

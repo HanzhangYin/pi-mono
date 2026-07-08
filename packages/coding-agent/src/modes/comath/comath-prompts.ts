@@ -7,6 +7,8 @@
  * ("report that this theorem is false") is not turned into a command.
  */
 
+import { extractMathExpressions, squashForFormulaComparison } from "./comath-text-similarity.ts";
+
 const POLITE_PREFIX = /^(?:please|can you|could you|would you|will you|kindly|let'?s)\b[\s,]*/i;
 
 /** Remove leading polite/filler phrases ("please", "can you", "let's", …); repeats for stacked prefixes. */
@@ -123,6 +125,43 @@ export function parseResearchPlanExecutionPrompt(prompt: string): ParsedResearch
 /** `show evidence`, `show the evidence board`, and polite variants. */
 export function isShowEvidencePrompt(prompt: string): boolean {
 	return /^show (?:me )?(?:the )?evidence(?: board)?$/i.test(normalizeCoMathPrompt(prompt));
+}
+
+export interface ParsedResearchConstraintPrompt {
+	text: string;
+	kind: "avoid" | "convention";
+}
+
+/**
+ * Detect steering messages that impose a standing constraint, e.g. "do not attack arbitrary
+ * Schubert multiplication" or "use the French convention for tableaux". Returns the constraint
+ * text verbatim so nothing is lost in normalization.
+ */
+export function parseResearchConstraintPrompt(prompt: string): ParsedResearchConstraintPrompt | undefined {
+	const normalized = prompt
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/[.!]+$/, "");
+	if (normalized.length === 0 || normalized.length > 300) {
+		return undefined;
+	}
+	if (/^(?:please\s+)?(?:do not|don't|never|avoid|stay away from|stop attacking)\s+\S/i.test(normalized)) {
+		return { text: normalized, kind: "avoid" };
+	}
+	if (
+		/^(?:please\s+)?(?:use|assume|adopt|stick to|work in|fix)\s+.*\bconventions?\b/i.test(normalized) ||
+		/^(?:please\s+)?(?:by|under) convention\b/i.test(normalized)
+	) {
+		return { text: normalized, kind: "convention" };
+	}
+	return undefined;
+}
+
+/** `show obligations`, `show the claims`, `what is proved`, and polite variants. */
+export function isShowObligationsPrompt(prompt: string): boolean {
+	return /^(?:show (?:me )?(?:the )?(?:obligations?|claims? ledger|open claims?)|what (?:is|has been) (?:proved|established)\??)$/i.test(
+		normalizeCoMathPrompt(prompt),
+	);
 }
 
 /** `show lineage`, `show the conjecture history`, `how did the conjecture change`, and variants. */
@@ -289,6 +328,90 @@ export function parseNaturalResearchQuestion(prompt: string): string | undefined
 	const trimmed = prompt.trim();
 	const stripped = trimmed.replace(NATURAL_RESEARCH_PREAMBLE, "").trim();
 	return stripped.length > 0 ? stripped : trimmed;
+}
+
+// Generic question words that carry no signal about which mathematical problem is meant.
+const QUESTION_STOPWORDS = new Set([
+	"a",
+	"all",
+	"an",
+	"and",
+	"any",
+	"are",
+	"be",
+	"by",
+	"can",
+	"do",
+	"does",
+	"every",
+	"for",
+	"from",
+	"how",
+	"i",
+	"in",
+	"is",
+	"it",
+	"many",
+	"of",
+	"on",
+	"or",
+	"that",
+	"the",
+	"there",
+	"this",
+	"to",
+	"we",
+	"what",
+	"when",
+	"which",
+	"why",
+	"with",
+	"you",
+]);
+
+/**
+ * Whether a standalone question is substantially different from the questions an existing
+ * workspace is researching. Conservative on purpose: shared significant words or a shared math
+ * expression count as "same project", so restatements and follow-ups keep flowing as steering.
+ * Used to stop a genuinely new problem from being silently recorded as steering for the old one.
+ */
+export function isDifferentResearchQuestion(candidate: string, existingQuestionTexts: readonly string[]): boolean {
+	const candidateTokens = significantQuestionTokens(candidate);
+	if (candidateTokens.size < 2) {
+		return false;
+	}
+	const candidateFormulas = extractMathExpressions(candidate);
+	for (const existing of existingQuestionTexts) {
+		if (!existing.trim()) {
+			continue;
+		}
+		const existingTokens = significantQuestionTokens(existing);
+		const shared = [...candidateTokens].filter((token) => existingTokens.has(token)).length;
+		const containment = shared / Math.min(candidateTokens.size, existingTokens.size || 1);
+		if (containment >= 0.6) {
+			return false;
+		}
+		const squashedExisting = squashForFormulaComparison(existing);
+		const existingFormulas = extractMathExpressions(existing);
+		const squashedCandidate = squashForFormulaComparison(candidate);
+		if (
+			candidateFormulas.some((formula) => squashedExisting.includes(formula)) ||
+			existingFormulas.some((formula) => squashedCandidate.includes(formula))
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function significantQuestionTokens(text: string): Set<string> {
+	return new Set(
+		text
+			.toLowerCase()
+			.split(/[^a-z0-9]+/)
+			.map((token) => token.replace(/s$/, ""))
+			.filter((token) => token.length >= 2 && !QUESTION_STOPWORDS.has(token)),
+	);
 }
 
 // Leading exec/dev verbs and operational phrases that should never create co-math state.

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { normalizeTheoremKey, textsNearlyMatch } from "./comath-text-similarity.ts";
 import type {
 	ArtifactKind,
 	ArtifactRecord,
@@ -34,19 +35,28 @@ import type {
 	ReportReviewRoundRecord,
 	ResearchBatchRecord,
 	ResearchBatchStatus,
+	ResearchClaimCategory,
+	ResearchConstraintKind,
+	ResearchConstraintOrigin,
+	ResearchConstraintRecord,
 	ResearchCoordinatorNextMove,
 	ResearchCoordinatorNextMovePriority,
 	ResearchCoordinatorReportRecord,
 	ResearchEvidenceBoardEntry,
 	ResearchEvidenceClassification,
 	ResearchFocus,
+	ResearchObligationRecord,
+	ResearchObligationStatus,
 	ResearchPath,
 	ResearchPathStatus,
+	ResearchPivotRecord,
 	ResearchPlanRecord,
 	ResearchPlanStatus,
 	ResearchPlanTaskKind,
 	ResearchPlanTaskRecord,
 	ResearchPlanTaskStatus,
+	ResearchTaskProgressKind,
+	ResearchTaskReviewOutcome,
 	ResearchWorkstreamIncrementalReportRecord,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamReportStatus,
@@ -59,6 +69,10 @@ import type {
 	ReviewRoundRecord,
 	RoleRunExecutionMode,
 	RoleRunRecord,
+	TheoremApplicabilityCheckRecord,
+	TheoremApplicabilityStatus,
+	TheoremHypothesisCheck,
+	TheoremHypothesisStatus,
 	Warning,
 	WarningSeverity,
 	WorkingPaperSection,
@@ -91,6 +105,10 @@ type LegacyProjectState = Omit<
 	| "researchBatches"
 	| "researchPlans"
 	| "researchPlanTasks"
+	| "researchObligations"
+	| "researchConstraints"
+	| "theoremApplicabilityChecks"
+	| "researchPivots"
 	| "literatureSources"
 	| "literatureSearches"
 	| "literatureClaimSupports"
@@ -122,6 +140,10 @@ type LegacyProjectState = Omit<
 				| "researchBatches"
 				| "researchPlans"
 				| "researchPlanTasks"
+				| "researchObligations"
+				| "researchConstraints"
+				| "theoremApplicabilityChecks"
+				| "researchPivots"
 				| "literatureSources"
 				| "literatureSearches"
 				| "literatureClaimSupports"
@@ -376,6 +398,7 @@ export interface AddResearchEvidenceBoardEntryInput {
 	computationalArtifactIds?: readonly string[];
 	claim: string;
 	classification: ResearchEvidenceClassification;
+	claimCategory?: ResearchClaimCategory;
 	rationale: string;
 	parentEntryId?: string;
 	revisionKind?: ConjectureRevisionKind;
@@ -530,10 +553,95 @@ export interface UpdateResearchPlanTaskInput {
 	addClaimSupportIds?: readonly string[];
 	addComputationalArtifactIds?: readonly string[];
 	addEvidenceEntryIds?: readonly string[];
+	progressKind?: ResearchTaskProgressKind;
+	reviewOutcome?: ResearchTaskReviewOutcome;
 	blockedReason?: string;
 	failureReason?: string;
 	startedAt?: string;
 	completedAt?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchObligationInput {
+	id?: string;
+	statement: string;
+	assumptions?: readonly string[];
+	parentObligationId?: string;
+	evidenceEntryIds?: readonly string[];
+	computationalArtifactIds?: readonly string[];
+	refutationEvidenceEntryIds?: readonly string[];
+	gaps?: readonly string[];
+	status?: Exclude<ResearchObligationStatus, "established">;
+	statusReason?: string;
+	taskId?: string;
+	reportId?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface UpdateResearchObligationInput {
+	obligationId: string;
+	status?: ResearchObligationStatus;
+	statusReason?: string;
+	addAssumptions?: readonly string[];
+	addEvidenceEntryIds?: readonly string[];
+	addComputationalArtifactIds?: readonly string[];
+	addRefutationEvidenceEntryIds?: readonly string[];
+	addGaps?: readonly string[];
+	clearGaps?: boolean;
+	reviewedCleanAt?: string;
+	taskId?: string;
+	reportId?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface ResearchObligationEstablishmentGate {
+	ok: boolean;
+	reasons: string[];
+}
+
+export interface AddResearchConstraintInput {
+	id?: string;
+	text: string;
+	kind?: ResearchConstraintKind;
+	origin?: ResearchConstraintOrigin;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface RetireResearchConstraintInput {
+	constraintId: string;
+	reason: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddTheoremApplicabilityCheckInput {
+	id?: string;
+	theorem: string;
+	targetObject: string;
+	hypotheses?: readonly TheoremHypothesisCheck[];
+	status: TheoremApplicabilityStatus;
+	consequence?: string;
+	pathId?: string;
+	reportId?: string;
+	taskId?: string;
+	sourceIds?: readonly string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddResearchPivotInput {
+	id?: string;
+	fromRoute: string;
+	toRoute: string;
+	reason: string;
+	pathId?: string;
+	taskId?: string;
+	reportId?: string;
+	applicabilityCheckId?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -744,6 +852,10 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		researchBatches: [],
 		researchPlans: [],
 		researchPlanTasks: [],
+		researchObligations: [],
+		researchConstraints: [],
+		theoremApplicabilityChecks: [],
+		researchPivots: [],
 		literatureSources: [],
 		literatureSearches: [],
 		literatureClaimSupports: [],
@@ -1578,6 +1690,7 @@ export function addResearchEvidenceBoardEntry(
 		computationalArtifactIds,
 		claim,
 		classification: input.classification,
+		...(input.claimCategory ? { claimCategory: input.claimCategory } : {}),
 		rationale,
 		...(parentExists ? { parentEntryId } : {}),
 		...(parentExists && input.revisionKind ? { revisionKind: input.revisionKind } : {}),
@@ -2099,6 +2212,8 @@ export function updateResearchPlanTask(
 								...candidate.evidenceEntryIds,
 								...(input.addEvidenceEntryIds ?? []),
 							]),
+							...(input.progressKind ? { progressKind: input.progressKind } : {}),
+							...(input.reviewOutcome ? { reviewOutcome: input.reviewOutcome } : {}),
 							...(input.blockedReason?.trim() ? { blockedReason: input.blockedReason.trim() } : {}),
 							...(input.failureReason?.trim() ? { failureReason: input.failureReason.trim() } : {}),
 							...(input.startedAt ? { startedAt: input.startedAt } : {}),
@@ -2151,6 +2266,416 @@ export function getNextRunnableResearchPlanTask(
 		return undefined;
 	}
 	return tasks.find((task) => task.status === "pending");
+}
+
+export function addResearchObligation(
+	state: CoMathProjectState,
+	input: AddResearchObligationInput,
+): CoMathProjectState {
+	const statement = input.statement.replace(/\s+/g, " ").trim();
+	if (!statement) {
+		throw new Error("Research obligation requires a statement.");
+	}
+	const id = input.id?.trim() || `obligation-${state.researchObligations.length + 1}`;
+	if (state.researchObligations.some((obligation) => obligation.id === id)) {
+		throw new Error(`Duplicate research obligation id: ${id}`);
+	}
+	// A dangling parent id drops the subclaim link but keeps the obligation.
+	const parentObligationId = input.parentObligationId?.trim();
+	const parentExists =
+		!!parentObligationId && state.researchObligations.some((obligation) => obligation.id === parentObligationId);
+	const obligation: ResearchObligationRecord = {
+		id,
+		statement,
+		assumptions: sanitizeStringArray(input.assumptions ?? []),
+		...(parentExists ? { parentObligationId } : {}),
+		evidenceEntryIds: uniqueStrings(input.evidenceEntryIds ?? []),
+		computationalArtifactIds: uniqueStrings(input.computationalArtifactIds ?? []),
+		refutationEvidenceEntryIds: uniqueStrings(input.refutationEvidenceEntryIds ?? []),
+		gaps: sanitizeStringArray(input.gaps ?? []),
+		status: input.status ?? "open",
+		...(input.statusReason?.trim() ? { statusReason: input.statusReason.trim() } : {}),
+		...(input.taskId?.trim() ? { taskId: input.taskId.trim() } : {}),
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchObligations: [...state.researchObligations, obligation],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_obligation_recorded",
+			actor: input.actor,
+			summary: `Added research obligation ${id}: ${statement}`,
+			subjectId: id,
+			relatedIds: uniqueStrings([
+				...(obligation.parentObligationId ? [obligation.parentObligationId] : []),
+				...obligation.evidenceEntryIds,
+				...(obligation.taskId ? [obligation.taskId] : []),
+				...(obligation.reportId ? [obligation.reportId] : []),
+			]),
+			now: input.now,
+		},
+	);
+}
+
+/**
+ * Update an obligation. Array fields are merged, never replaced. Setting the status to
+ * "established" is gated: the update throws unless the merged record passes
+ * {@link describeObligationEstablishmentGate}, so no code path can promote an obligation past its
+ * unresolved gaps, unsettled subclaims, or a missing independent review.
+ */
+export function updateResearchObligation(
+	state: CoMathProjectState,
+	input: UpdateResearchObligationInput,
+): CoMathProjectState {
+	const existing = state.researchObligations.find((candidate) => candidate.id === input.obligationId);
+	if (!existing) {
+		return state;
+	}
+	const merged: ResearchObligationRecord = {
+		...existing,
+		assumptions: sanitizeStringArray([...existing.assumptions, ...(input.addAssumptions ?? [])]),
+		evidenceEntryIds: uniqueStrings([...existing.evidenceEntryIds, ...(input.addEvidenceEntryIds ?? [])]),
+		computationalArtifactIds: uniqueStrings([
+			...existing.computationalArtifactIds,
+			...(input.addComputationalArtifactIds ?? []),
+		]),
+		refutationEvidenceEntryIds: uniqueStrings([
+			...existing.refutationEvidenceEntryIds,
+			...(input.addRefutationEvidenceEntryIds ?? []),
+		]),
+		gaps: input.clearGaps ? [] : sanitizeStringArray([...existing.gaps, ...(input.addGaps ?? [])]),
+		...(input.status ? { status: input.status } : {}),
+		...(input.statusReason?.trim() ? { statusReason: input.statusReason.trim() } : {}),
+		...(input.reviewedCleanAt ? { reviewedCleanAt: input.reviewedCleanAt } : {}),
+		...(input.taskId?.trim() ? { taskId: input.taskId.trim() } : {}),
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		updatedAt: input.now,
+	};
+	if (input.status === "established") {
+		const gate = describeGateForObligationRecord(state, merged);
+		if (!gate.ok) {
+			throw new Error(`Research obligation ${input.obligationId} cannot be established: ${gate.reasons.join(" ")}`);
+		}
+	}
+	return appendEvent(
+		{
+			...state,
+			researchObligations: state.researchObligations.map((candidate) =>
+				candidate.id === input.obligationId ? merged : candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_obligation_recorded",
+			actor: input.actor,
+			summary: `Updated research obligation ${input.obligationId}${input.status ? ` to ${input.status}` : ""}`,
+			subjectId: input.obligationId,
+			relatedIds: uniqueStrings(
+				[existing.parentObligationId, input.taskId, input.reportId].filter((id): id is string => !!id?.trim()),
+			),
+			now: input.now,
+		},
+	);
+}
+
+/**
+ * The deterministic establishment gate: whether an obligation may be presented as established.
+ * Kept as a pure description so callers (skeptic, synthesis, eval) can explain a refusal instead
+ * of silently ignoring it. Verifier-backed evidence can later strengthen this gate without
+ * changing its shape.
+ */
+export function describeObligationEstablishmentGate(
+	state: CoMathProjectState,
+	obligationId: string,
+): ResearchObligationEstablishmentGate {
+	const obligation = state.researchObligations.find((candidate) => candidate.id === obligationId);
+	if (!obligation) {
+		return { ok: false, reasons: ["The obligation does not exist."] };
+	}
+	return describeGateForObligationRecord(state, obligation);
+}
+
+function describeGateForObligationRecord(
+	state: CoMathProjectState,
+	obligation: ResearchObligationRecord,
+): ResearchObligationEstablishmentGate {
+	const reasons: string[] = [];
+	if (obligation.status === "refuted") {
+		reasons.push("The obligation is refuted.");
+	}
+	if (obligation.status === "retired") {
+		reasons.push("The obligation was retired.");
+	}
+	if (obligation.evidenceEntryIds.length === 0) {
+		reasons.push("There is no supporting evidence.");
+	}
+	if (obligation.gaps.length > 0) {
+		reasons.push(`There are ${obligation.gaps.length} open gap${obligation.gaps.length === 1 ? "" : "s"}.`);
+	}
+	if (!obligation.reviewedCleanAt) {
+		reasons.push("No independent review has passed cleanly.");
+	}
+	const unsettledChildren = state.researchObligations.filter(
+		(candidate) =>
+			candidate.parentObligationId === obligation.id &&
+			candidate.status !== "established" &&
+			candidate.status !== "retired",
+	);
+	if (unsettledChildren.length > 0) {
+		reasons.push(
+			`${unsettledChildren.length} required subclaim${unsettledChildren.length === 1 ? " is" : "s are"} not settled.`,
+		);
+	}
+	return { ok: reasons.length === 0, reasons };
+}
+
+export function getResearchObligation(
+	state: CoMathProjectState,
+	obligationId: string,
+): ResearchObligationRecord | undefined {
+	return state.researchObligations.find((obligation) => obligation.id === obligationId);
+}
+
+/**
+ * The project's main obligation: the latest top-level one that has not been retired (a conjecture
+ * revision retires the old root and opens a replacement). Falls back to the last top-level
+ * obligation when all are retired.
+ */
+export function getRootResearchObligation(state: CoMathProjectState): ResearchObligationRecord | undefined {
+	const roots = state.researchObligations.filter((obligation) => !obligation.parentObligationId);
+	return [...roots].reverse().find((obligation) => obligation.status !== "retired") ?? roots.at(-1);
+}
+
+export function getResearchObligationChildren(
+	state: CoMathProjectState,
+	obligationId: string,
+): ResearchObligationRecord[] {
+	return state.researchObligations.filter((obligation) => obligation.parentObligationId === obligationId);
+}
+
+/**
+ * Record a standing research constraint. Duplicates of an active constraint are ignored, including
+ * paraphrases: several roles typically restate the same rule in one run ("Do not infer one-variable
+ * infinitude from multivariable results" in three phrasings), and each would otherwise become its
+ * own durable record riding along in every later prompt.
+ */
+export function addResearchConstraint(
+	state: CoMathProjectState,
+	input: AddResearchConstraintInput,
+): CoMathProjectState {
+	const text = input.text.replace(/\s+/g, " ").trim();
+	if (!text) {
+		throw new Error("Research constraint requires text.");
+	}
+	const duplicate = state.researchConstraints.some(
+		(constraint) => constraint.status === "active" && textsNearlyMatch(constraint.text, text),
+	);
+	if (duplicate) {
+		return state;
+	}
+	const id = input.id?.trim() || `constraint-${state.researchConstraints.length + 1}`;
+	if (state.researchConstraints.some((constraint) => constraint.id === id)) {
+		throw new Error(`Duplicate research constraint id: ${id}`);
+	}
+	const constraint: ResearchConstraintRecord = {
+		id,
+		text,
+		kind: input.kind ?? "avoid",
+		status: "active",
+		origin: input.origin ?? "human",
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchConstraints: [...state.researchConstraints, constraint],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_constraint_recorded",
+			actor: input.actor,
+			summary: `Added research constraint ${id}: ${text}`,
+			subjectId: id,
+			now: input.now,
+		},
+	);
+}
+
+export function retireResearchConstraint(
+	state: CoMathProjectState,
+	input: RetireResearchConstraintInput,
+): CoMathProjectState {
+	const constraint = state.researchConstraints.find((candidate) => candidate.id === input.constraintId);
+	if (!constraint || constraint.status === "retired") {
+		return state;
+	}
+	return appendEvent(
+		{
+			...state,
+			researchConstraints: state.researchConstraints.map((candidate) =>
+				candidate.id === input.constraintId
+					? {
+							...candidate,
+							status: "retired" as const,
+							retiredReason: input.reason.trim(),
+							updatedAt: input.now,
+						}
+					: candidate,
+			),
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_constraint_recorded",
+			actor: input.actor,
+			summary: `Retired research constraint ${input.constraintId}`,
+			subjectId: input.constraintId,
+			now: input.now,
+		},
+	);
+}
+
+export function getActiveResearchConstraints(state: CoMathProjectState): ResearchConstraintRecord[] {
+	return state.researchConstraints.filter((constraint) => constraint.status === "active");
+}
+
+/**
+ * Record an explicit theorem applicability check against the current object. A check that names
+ * the same theorem (up to source labels and parentheticals) with the same verdict as an existing
+ * record is ignored: re-deriving "Friedlander–Iwaniec is rejected as a direct route" in a later
+ * run is confirmation, not a new check. A *different* verdict for the same theorem is recorded,
+ * since a status can legitimately move (needs-verification → applies).
+ */
+export function addTheoremApplicabilityCheck(
+	state: CoMathProjectState,
+	input: AddTheoremApplicabilityCheckInput,
+): CoMathProjectState {
+	const theorem = input.theorem.replace(/\s+/g, " ").trim();
+	const targetObject = input.targetObject.replace(/\s+/g, " ").trim();
+	if (!theorem) {
+		throw new Error("Theorem applicability check requires a theorem.");
+	}
+	if (!targetObject) {
+		throw new Error("Theorem applicability check requires a target object.");
+	}
+	const theoremKey = normalizeTheoremKey(theorem);
+	const duplicate =
+		theoremKey.length > 0 &&
+		state.theoremApplicabilityChecks.some(
+			(check) => check.status === input.status && normalizeTheoremKey(check.theorem) === theoremKey,
+		);
+	if (duplicate) {
+		return state;
+	}
+	const id = input.id?.trim() || `theorem-check-${state.theoremApplicabilityChecks.length + 1}`;
+	if (state.theoremApplicabilityChecks.some((check) => check.id === id)) {
+		throw new Error(`Duplicate theorem applicability check id: ${id}`);
+	}
+	const check: TheoremApplicabilityCheckRecord = {
+		id,
+		theorem,
+		targetObject,
+		hypotheses: (input.hypotheses ?? [])
+			.map((hypothesis) => ({
+				hypothesis: hypothesis.hypothesis.replace(/\s+/g, " ").trim(),
+				status: hypothesis.status,
+				...(hypothesis.note?.trim() ? { note: hypothesis.note.trim() } : {}),
+			}))
+			.filter((hypothesis) => hypothesis.hypothesis.length > 0),
+		status: input.status,
+		...(input.consequence?.trim() ? { consequence: input.consequence.trim() } : {}),
+		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		...(input.taskId?.trim() ? { taskId: input.taskId.trim() } : {}),
+		sourceIds: uniqueStrings(input.sourceIds ?? []),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			theoremApplicabilityChecks: [...state.theoremApplicabilityChecks, check],
+			updatedAt: input.now,
+		},
+		{
+			kind: "theorem_applicability_check_recorded",
+			actor: input.actor,
+			summary: `Recorded theorem applicability check ${id}: ${theorem} (${input.status})`,
+			subjectId: id,
+			relatedIds: uniqueStrings(
+				[check.pathId, check.reportId, check.taskId, ...check.sourceIds].filter(
+					(value): value is string => !!value,
+				),
+			),
+			now: input.now,
+		},
+	);
+}
+
+export function getTheoremApplicabilityChecksForPath(
+	state: CoMathProjectState,
+	pathId: string,
+): TheoremApplicabilityCheckRecord[] {
+	return state.theoremApplicabilityChecks.filter((check) => check.pathId === pathId);
+}
+
+/** Record a route pivot. A pivot restating an existing one's from/to (paraphrases included) is ignored. */
+export function addResearchPivot(state: CoMathProjectState, input: AddResearchPivotInput): CoMathProjectState {
+	const fromRoute = input.fromRoute.replace(/\s+/g, " ").trim();
+	const toRoute = input.toRoute.replace(/\s+/g, " ").trim();
+	const reason = input.reason.replace(/\s+/g, " ").trim();
+	if (!fromRoute || !toRoute) {
+		throw new Error("Research pivot requires both routes.");
+	}
+	if (!reason) {
+		throw new Error("Research pivot requires a reason.");
+	}
+	const duplicate = state.researchPivots.some(
+		(pivot) => textsNearlyMatch(pivot.fromRoute, fromRoute) && textsNearlyMatch(pivot.toRoute, toRoute),
+	);
+	if (duplicate) {
+		return state;
+	}
+	const id = input.id?.trim() || `pivot-${state.researchPivots.length + 1}`;
+	if (state.researchPivots.some((pivot) => pivot.id === id)) {
+		throw new Error(`Duplicate research pivot id: ${id}`);
+	}
+	const pivot: ResearchPivotRecord = {
+		id,
+		fromRoute,
+		toRoute,
+		reason,
+		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
+		...(input.taskId?.trim() ? { taskId: input.taskId.trim() } : {}),
+		...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+		...(input.applicabilityCheckId?.trim() ? { applicabilityCheckId: input.applicabilityCheckId.trim() } : {}),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			researchPivots: [...state.researchPivots, pivot],
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_pivot_recorded",
+			actor: input.actor,
+			summary: `Recorded research pivot ${id}: ${fromRoute} -> ${toRoute}`,
+			subjectId: id,
+			relatedIds: uniqueStrings(
+				[pivot.pathId, pivot.taskId, pivot.reportId, pivot.applicabilityCheckId].filter(
+					(value): value is string => !!value,
+				),
+			),
+			now: input.now,
+		},
+	);
 }
 
 export function addResearchWorkstreamIncrementalReport(
@@ -2812,7 +3337,6 @@ export function upsertWorkingPaperSectionByTitle(
 			actor: input.actor,
 		});
 	}
-	const nextBody = existing.body.includes(body) ? existing.body : `${existing.body}\n\n${body}`;
 	return appendEvent(
 		{
 			...state,
@@ -2820,7 +3344,7 @@ export function upsertWorkingPaperSectionByTitle(
 				section.id === existing.id
 					? {
 							...section,
-							body: nextBody,
+							body,
 							status: input.status ?? section.status,
 							updatedAt: input.now,
 						}
@@ -3056,6 +3580,18 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		),
 		researchPlanTasks: getArrayField(value, "researchPlanTasks").map((record, index) =>
 			normalizeResearchPlanTask(record, updatedAt, index),
+		),
+		researchObligations: getArrayField(value, "researchObligations").map((record, index) =>
+			normalizeResearchObligation(record, updatedAt, index),
+		),
+		researchConstraints: getArrayField(value, "researchConstraints").map((record, index) =>
+			normalizeResearchConstraint(record, updatedAt, index),
+		),
+		theoremApplicabilityChecks: getArrayField(value, "theoremApplicabilityChecks").map((record, index) =>
+			normalizeTheoremApplicabilityCheck(record, updatedAt, index),
+		),
+		researchPivots: getArrayField(value, "researchPivots").map((record, index) =>
+			normalizeResearchPivot(record, updatedAt, index),
 		),
 		literatureSources: getArrayField(value, "literatureSources").map((record, index) =>
 			normalizeLiteratureSourceArtifact(record, updatedAt, index),
@@ -3502,6 +4038,9 @@ function normalizeResearchEvidenceBoardEntry(
 		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
 		claim: getStringField(value, "claim", ""),
 		classification: normalizeResearchEvidenceClassification(value.classification),
+		...(normalizeResearchClaimCategory(value.claimCategory)
+			? { claimCategory: normalizeResearchClaimCategory(value.claimCategory) }
+			: {}),
 		rationale: getStringField(value, "rationale", ""),
 		...(getOptionalStringField(value, "parentEntryId")
 			? { parentEntryId: getOptionalStringField(value, "parentEntryId") }
@@ -3742,6 +4281,12 @@ function normalizeResearchPlanTask(
 		claimSupportIds: getStringArrayField(value, "claimSupportIds"),
 		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
 		evidenceEntryIds: getStringArrayField(value, "evidenceEntryIds"),
+		...(normalizeResearchTaskProgressKind(value.progressKind)
+			? { progressKind: normalizeResearchTaskProgressKind(value.progressKind) }
+			: {}),
+		...(normalizeResearchTaskReviewOutcome(value.reviewOutcome)
+			? { reviewOutcome: normalizeResearchTaskReviewOutcome(value.reviewOutcome) }
+			: {}),
 		...(getOptionalStringField(value, "blockedReason")
 			? { blockedReason: getOptionalStringField(value, "blockedReason") }
 			: {}),
@@ -3784,6 +4329,20 @@ function normalizeResearchPlanTaskStatus(value: unknown): ResearchPlanTaskStatus
 	return "pending";
 }
 
+function normalizeResearchTaskReviewOutcome(value: unknown): ResearchTaskReviewOutcome | undefined {
+	if (value === "accepted" || value === "completed-with-concerns" || value === "rejected") {
+		return value;
+	}
+	return undefined;
+}
+
+function normalizeResearchTaskProgressKind(value: unknown): ResearchTaskProgressKind | undefined {
+	if (value === "mathematical" || value === "obstruction" || value === "status") {
+		return value;
+	}
+	return undefined;
+}
+
 function normalizeResearchPlanTaskKind(value: unknown): ResearchPlanTaskKind {
 	if (
 		value === "literature-search" ||
@@ -3799,6 +4358,167 @@ function normalizeResearchPlanTaskKind(value: unknown): ResearchPlanTaskKind {
 		return value;
 	}
 	return "synthesis";
+}
+
+function normalizeResearchObligation(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchObligationRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `obligation-${index + 1}`),
+		statement: getStringField(value, "statement", "Unstated research obligation"),
+		assumptions: getStringArrayField(value, "assumptions"),
+		...(getOptionalStringField(value, "parentObligationId")
+			? { parentObligationId: getOptionalStringField(value, "parentObligationId") }
+			: {}),
+		evidenceEntryIds: getStringArrayField(value, "evidenceEntryIds"),
+		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
+		refutationEvidenceEntryIds: getStringArrayField(value, "refutationEvidenceEntryIds"),
+		gaps: getStringArrayField(value, "gaps"),
+		status: normalizeResearchObligationStatus(value.status),
+		...(getOptionalStringField(value, "statusReason")
+			? { statusReason: getOptionalStringField(value, "statusReason") }
+			: {}),
+		...(getOptionalStringField(value, "reviewedCleanAt")
+			? { reviewedCleanAt: getOptionalStringField(value, "reviewedCleanAt") }
+			: {}),
+		...(getOptionalStringField(value, "taskId") ? { taskId: getOptionalStringField(value, "taskId") } : {}),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeResearchConstraint(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchConstraintRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `constraint-${index + 1}`),
+		text: getStringField(value, "text", "Unstated research constraint"),
+		kind: normalizeResearchConstraintKind(value.kind),
+		status: value.status === "retired" ? "retired" : "active",
+		origin: normalizeResearchConstraintOrigin(value.origin),
+		...(getOptionalStringField(value, "retiredReason")
+			? { retiredReason: getOptionalStringField(value, "retiredReason") }
+			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeResearchConstraintKind(value: unknown): ResearchConstraintKind {
+	if (value === "avoid" || value === "convention" || value === "scope") {
+		return value;
+	}
+	return "avoid";
+}
+
+function normalizeResearchConstraintOrigin(value: unknown): ResearchConstraintOrigin {
+	if (value === "human" || value === "director" || value === "reviewer") {
+		return value;
+	}
+	return "human";
+}
+
+function normalizeTheoremApplicabilityCheck(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): TheoremApplicabilityCheckRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	const hypotheses = Array.isArray(value.hypotheses) ? value.hypotheses : [];
+	return {
+		id: getStringField(value, "id", `theorem-check-${index + 1}`),
+		theorem: getStringField(value, "theorem", "Unnamed theorem"),
+		targetObject: getStringField(value, "targetObject", "the current object"),
+		hypotheses: hypotheses
+			.filter((raw): raw is Record<string, unknown> => typeof raw === "object" && raw !== null)
+			.map((raw) => ({
+				hypothesis: getStringField(raw, "hypothesis", ""),
+				status: normalizeTheoremHypothesisStatus(raw.status),
+				...(getOptionalStringField(raw, "note") ? { note: getOptionalStringField(raw, "note") } : {}),
+			}))
+			.filter((hypothesis) => hypothesis.hypothesis.length > 0),
+		status: normalizeTheoremApplicabilityStatus(value.status),
+		...(getOptionalStringField(value, "consequence")
+			? { consequence: getOptionalStringField(value, "consequence") }
+			: {}),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		...(getOptionalStringField(value, "taskId") ? { taskId: getOptionalStringField(value, "taskId") } : {}),
+		sourceIds: getStringArrayField(value, "sourceIds"),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeTheoremHypothesisStatus(value: unknown): TheoremHypothesisStatus {
+	if (value === "satisfied" || value === "failed" || value === "unknown") {
+		return value;
+	}
+	return "unknown";
+}
+
+function normalizeTheoremApplicabilityStatus(value: unknown): TheoremApplicabilityStatus {
+	if (value === "applies" || value === "rejected-as-direct-route" || value === "needs-verification") {
+		return value;
+	}
+	return "needs-verification";
+}
+
+function normalizeResearchPivot(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchPivotRecord {
+	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	return {
+		id: getStringField(value, "id", `pivot-${index + 1}`),
+		fromRoute: getStringField(value, "fromRoute", "an earlier route"),
+		toRoute: getStringField(value, "toRoute", "a replacement route"),
+		reason: getStringField(value, "reason", "The earlier route did not work."),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		...(getOptionalStringField(value, "taskId") ? { taskId: getOptionalStringField(value, "taskId") } : {}),
+		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
+		...(getOptionalStringField(value, "applicabilityCheckId")
+			? { applicabilityCheckId: getOptionalStringField(value, "applicabilityCheckId") }
+			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+export function normalizeResearchClaimCategory(value: unknown): ResearchClaimCategory | undefined {
+	if (
+		value === "verified-fact" ||
+		value === "source-backed-theorem" ||
+		value === "computed-anchor-result" ||
+		value === "convention-dependent-claim" ||
+		value === "plausible-interpretation" ||
+		value === "failed-route" ||
+		value === "open-caveat"
+	) {
+		return value;
+	}
+	return undefined;
+}
+
+function normalizeResearchObligationStatus(value: unknown): ResearchObligationStatus {
+	if (
+		value === "open" ||
+		value === "supported" ||
+		value === "established" ||
+		value === "refuted" ||
+		value === "retired"
+	) {
+		return value;
+	}
+	return "open";
 }
 
 function normalizeResearchWorkstreamIncrementalReport(

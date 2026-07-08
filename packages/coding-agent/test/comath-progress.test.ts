@@ -385,9 +385,9 @@ describe("co-math product messages", () => {
 		expect(full).toContain("Specialist attempt");
 		expect(full).toContain("Critic review");
 		expect(full).toContain("Synthesis");
-		// Detailed report surfaces a human-attention section when the report records gaps.
+		// Detailed report surfaces an open-gaps section when the report records gaps.
 		expect(report.gaps.length).toBeGreaterThan(0);
-		expect(full).toContain("Needs human attention");
+		expect(full).toContain("Open gaps");
 		expect(full).toContain(report.gaps[0] ?? "");
 		expect(full).toContain("Next");
 		expectProductCopy(full);
@@ -724,7 +724,8 @@ describe("co-math product messages", () => {
 				"Conjectural implications must be separated from unconditional results.",
 			],
 			humanHelpUseful: ["Provide references or a source file for the relevant theorem targets."],
-			suggestedNextMove: "Provide a reference or ask the coordinator what to try next: what should we try next?",
+			suggestedNextMove:
+				"Work the problem directly next: run bounded computations on small cases and target a weaker or special-case statement while sources are unavailable.",
 			workingPaperSectionTitle: "Literature/theorem targets",
 			sourceIds: [],
 			claimSupportIds: ["claim-support-1"],
@@ -747,7 +748,7 @@ describe("co-math product messages", () => {
 		const completed = formatResearchWorkstreamCompleted({ state, report });
 		expect(completed).toContain("No source was available");
 		expect(completed).toContain("A source-backed literature check is needed");
-		expect(completed).toContain("what should we try next?");
+		expect(completed).toContain("Work the problem directly next");
 		expectProductCopy(completed);
 	});
 
@@ -768,7 +769,7 @@ describe("co-math product messages", () => {
 			criticisms: ["Do not treat the original infinitude claim as proved."],
 			gaps: ["No source here proves infinitely many primes of the form n^2 + 1."],
 			humanHelpUseful: [],
-			suggestedNextMove: "Ask the coordinator what to try next.",
+			suggestedNextMove: "Run residue obstruction computations and target a weaker special-case statement.",
 			workingPaperSectionTitle: "Literature/theorem targets",
 			sourceIds: ["source-1"],
 			claimSupportIds: ["claim-support-1", "claim-support-2"],
@@ -811,7 +812,7 @@ describe("co-math product messages", () => {
 		const completed = formatResearchWorkstreamCompleted({ state, report });
 		expect(completed).toContain("Source-backed context was reviewed");
 		expect(completed).toContain("No source here proves infinitely many primes");
-		expect(completed).toContain("what should we try next?");
+		expect(completed).toContain("Run residue obstruction computations and target a weaker special-case statement.");
 		expectProductCopy(completed);
 	});
 
@@ -979,7 +980,7 @@ describe("co-math product messages", () => {
 		expect(text).toContain("Current roadblocks");
 		expect(text).toContain("Recommended next moves");
 		expect(text).toContain("1. Continue Path 1: Small examples and counterexamples");
-		expect(text).toContain("Human help useful");
+		expect(text).not.toContain("Human help useful");
 		expect(text).toContain("Suggested next step\ncontinue path 2");
 		expect(text).not.toContain("research-report-1");
 		expect(text).not.toContain("computation-artifact-1");

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+	extractCoMathJsonObject,
+	filterCoMathProductLines,
 	firstCoMathMarkdownSectionItem,
 	getCoMathMarkdownSectionItems,
 	parseCoMathMarkdown,
 	stripCoMathBulletMarker,
+	stripCoMathJsonObjects,
 } from "../src/modes/comath/comath-markdown.ts";
 
 describe("co-math markdown parser", () => {
@@ -107,5 +110,25 @@ describe("co-math markdown parser", () => {
 		expect(stripCoMathBulletMarker("1. numbered")).toBe("numbered");
 		expect(stripCoMathBulletMarker("2) paren")).toBe("paren");
 		expect(stripCoMathBulletMarker("plain text")).toBe("plain text");
+	});
+
+	it("extracts and strips only co-math action JSON objects", () => {
+		const text = [
+			"I need to craft a tool call.",
+			'{"action":"record_claim","claim":"Finite checks found {2, 5}.","classification":"computation","rationale":"bounded"}',
+			"## Findings",
+			"- Keep the ordinary set {2, 5} in the report.",
+		].join("\n");
+
+		expect(extractCoMathJsonObject(text)).toMatchObject({
+			action: "record_claim",
+			claim: "Finite checks found {2, 5}.",
+		});
+		expect(stripCoMathJsonObjects(text)).toContain("Keep the ordinary set {2, 5} in the report.");
+		expect(stripCoMathJsonObjects(text)).not.toContain('"action"');
+		expect(filterCoMathProductLines(text.split("\n"))).toEqual([
+			"## Findings",
+			"- Keep the ordinary set {2, 5} in the report.",
+		]);
 	});
 });

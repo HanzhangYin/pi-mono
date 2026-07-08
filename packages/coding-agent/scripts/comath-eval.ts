@@ -31,7 +31,12 @@ import { CoMathHarness } from "../src/modes/comath/comath-harness.ts";
 import { RESEARCH_ROLE_SYSTEM_PROMPT } from "../src/modes/comath/comath-research-model-executor.ts";
 import type { ResearchWorkstreamModelExecutor } from "../src/modes/comath/comath-research-model-workstream.ts";
 import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
-import { createEmptyProjectState, loadProjectState, saveProjectState } from "../src/modes/comath/storage.ts";
+import {
+	createEmptyProjectState,
+	getRootResearchObligation,
+	loadProjectState,
+	saveProjectState,
+} from "../src/modes/comath/storage.ts";
 
 interface EvalCase {
 	tier: 1 | 2 | 3;
@@ -96,6 +101,12 @@ interface EvalScore {
 	counterexampleSurfaced: boolean | undefined;
 	/** Tier 3 only: whether a revised statement with lineage was recorded after the refutation. */
 	conjectureRevised: boolean | undefined;
+	/** Status of the main mathematical obligation in durable state ("none" when never recorded). */
+	rootObligationStatus: string;
+	/** Whether any obligation carries refutation evidence or ended refuted (durable-state check). */
+	obligationRefuted: boolean;
+	/** Whether any obligation was marked established (must never happen without model-backed review). */
+	anyObligationEstablished: boolean;
 	resumedCleanly: boolean;
 }
 
@@ -223,6 +234,13 @@ async function evaluateCase(evalCase: EvalCase, options: EvalOptions): Promise<E
 			conjectureRevised: evalCase.counterexampleSignal
 				? (state?.researchEvidenceBoard.some((entry) => entry.parentEntryId !== undefined) ?? false)
 				: undefined,
+			rootObligationStatus: state ? (getRootResearchObligation(state)?.status ?? "none") : "none",
+			obligationRefuted:
+				state?.researchObligations.some(
+					(obligation) => obligation.status === "refuted" || obligation.refutationEvidenceEntryIds.length > 0,
+				) ?? false,
+			anyObligationEstablished:
+				state?.researchObligations.some((obligation) => obligation.status === "established") ?? false,
 			resumedCleanly,
 		};
 	} finally {
@@ -318,6 +336,31 @@ for (const score of scores) {
 				: "statement not revised (informational without a model)",
 		);
 	}
+	// Durable-state rules: the obligation ledger, not the copy, is the ground truth.
+	if (!modelExecutor && score.anyObligationEstablished) {
+		problems.push("obligation established without model-backed review (must be impossible)");
+		hardFailure = true;
+	}
+	if (score.tier === 2 && score.anyObligationEstablished) {
+		problems.push("open problem marked established in durable state");
+		hardFailure = true;
+	}
+	if (score.tier === 3 && !score.obligationRefuted) {
+		if (modelExecutor) {
+			problems.push("no refuted obligation recorded for a false statement (hard expectation in model mode)");
+			hardFailure = true;
+		} else {
+			problems.push("no refuted obligation recorded (informational without a model)");
+		}
+	}
+	if (
+		score.tier === 1 &&
+		modelExecutor &&
+		score.rootObligationStatus !== "supported" &&
+		score.rootObligationStatus !== "established"
+	) {
+		problems.push(`provable case ended ${score.rootObligationStatus} (soft expectation in model mode)`);
+	}
 	if (hardFailure) {
 		failures += 1;
 	}
@@ -326,6 +369,7 @@ for (const score of scores) {
 			`- ${score.name} (tier ${score.tier}):`,
 			`plan ${score.planCompleted ? "completed" : "incomplete"},`,
 			`${score.stepsRun} research steps,`,
+			`root claim ${score.rootObligationStatus},`,
 			problems.length > 0 ? problems.join("; ") : "clean",
 			"\n",
 		].join(" "),
