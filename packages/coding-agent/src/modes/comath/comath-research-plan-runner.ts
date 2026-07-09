@@ -447,7 +447,10 @@ export class CoMathResearchPlanRunner {
 				modelBacked: this.researchModelExecutor !== undefined,
 				newEvidenceEntryIds: evidenceEntryIds,
 				...(skeptic
-					? { skeptic: { concerns: skeptic.concerns, counterexampleFound: skeptic.counterexampleFound } }
+					? {
+							skeptic: { concerns: skeptic.concerns, counterexampleFound: skeptic.counterexampleFound },
+							reviewEvidenceEntryIds: skeptic.evidenceEntryIds,
+						}
 					: {}),
 				now: new Date().toISOString(),
 			});

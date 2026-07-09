@@ -453,6 +453,45 @@ describe("co-math research skeptic", () => {
 		).toBe(true);
 	});
 
+	it("filters heading fragments and non-deficiency remarks out of concerns", async () => {
+		const state = stateWithReport();
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor } = staticExecutor(
+			[
+				"## Verdict",
+				"needs-revision",
+				"## Concerns",
+				"- Named theorem audit:",
+				"- The finite/infinite separation is handled honestly; no serious overclaim is made.",
+				"- The set S must be defined as a finite set of distinct primes before the density formula is used.",
+			].join("\n"),
+		);
+
+		const result = await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		// Only the actual deficiency survives; the heading fragment and the praise line never
+		// become concerns, margin notes, or evidence entries.
+		expect(result.concerns).toEqual([
+			"The set S must be defined as a finite set of distinct primes before the density formula is used.",
+		]);
+		expect(result.state.marginNotes.some((note) => note.message.includes("Named theorem audit"))).toBe(false);
+		expect(result.state.marginNotes.some((note) => note.message.includes("handled honestly"))).toBe(false);
+		expect(result.state.researchEvidenceBoard.some((entry) => entry.claim.includes("Named theorem audit"))).toBe(
+			false,
+		);
+	});
+
 	it("degrades to no concerns when the skeptic model fails", async () => {
 		const state = stateWithReport();
 		const task = getResearchPlanTasks(state, "research-plan-1")[0];

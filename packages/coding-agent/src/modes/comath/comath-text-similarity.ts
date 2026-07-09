@@ -80,7 +80,7 @@ export function squashForFormulaComparison(text: string): string {
  * durable records keep their original wording.
  */
 const CLAIM_WRAPPER_LABEL =
-	/^(?:unsupported by (?:the )?supplied sources|conflicting with (?:the )?supplied sources|independent review|reviewer note|margin note|open (?:gap|question)|gap|concern|warning|note|claim|finding|observation|limitation)\s*[:\-–—]\s*/i;
+	/^(?:(?:unsupported|conflicting) (?:by|from|with|per) (?:the )?supplied sources|independent review|reviewer note|margin note|target statement|source context|open (?:gap|question)|gap|concern|warning|note|claim|finding|observation|limitation)\s*[:\-–—]\s*/i;
 
 /**
  * Normalize away presentation noise that makes the same mathematical statement look different:
@@ -105,10 +105,18 @@ export function stripMathDecorations(text: string): string {
 }
 
 /**
+ * Generic short texts ("Computation output") match almost anything under min-set containment, so
+ * near-match merging needs this many significant tokens on the smaller side; below it, only exact
+ * normalized equality counts as the same claim.
+ */
+const MIN_TOKENS_FOR_NEAR_MATCH = 5;
+
+/**
  * Whether two evidence claims state essentially the same thing. Stricter than
  * {@link textsNearlyMatch}: decorations and wrapper labels are normalized first, claims naming
- * different math expressions are never merged, and the containment threshold is higher, because a
- * false merge of theorem-level claims is worse than keeping a duplicate.
+ * different math expressions are never merged, short generic texts only match exactly, and the
+ * containment threshold is higher, because a false merge of theorem-level claims is worse than
+ * keeping a duplicate.
  */
 export function mathClaimsNearlyMatch(a: string, b: string): boolean {
 	const strippedA = stripMathDecorations(a);
@@ -120,6 +128,13 @@ export function mathClaimsNearlyMatch(a: string, b: string): boolean {
 		return true;
 	}
 	if (namesDifferentMathExpressions(strippedA, strippedB)) {
+		return false;
+	}
+	const smallerTokenCount = Math.min(
+		significantContentTokens(strippedA).size,
+		significantContentTokens(strippedB).size,
+	);
+	if (smallerTokenCount < MIN_TOKENS_FOR_NEAR_MATCH) {
 		return false;
 	}
 	return textsNearlyMatch(strippedA, strippedB, 0.85);
@@ -177,12 +192,19 @@ export function normalizeTheoremKey(theorem: string): string {
 }
 
 /**
- * Whether a claim is commentary about a bibliography entry ("[source-5] claims a proof of ...")
- * rather than a mathematical statement in its own right. Source commentary belongs on the evidence
- * board, never in the obligation ledger: what a preprint asserts is not support for the claim.
+ * Whether a claim is commentary about a bibliography entry rather than a mathematical statement in
+ * its own right: either it opens with a source label ("[source-5] claims a proof of ...") or it
+ * reports what a publication asserts ("the only directly relevant source is X's preprint, which
+ * claims a spectral-method proof ..."). Source commentary belongs on the evidence board, never in
+ * the obligation ledger: what a preprint asserts is not support for the claim.
  */
 export function isSourceCommentaryClaim(claim: string): boolean {
-	return /^[\s"'*]*\[?source[\s-]?\d+\]?\b/i.test(claim);
+	if (/^[\s"'*]*\[?source[\s-]?\d+\]?\b/i.test(claim)) {
+		return true;
+	}
+	return /\b(?:preprints?|papers?|articles?|manuscripts?|surveys?|sources?)\b[^.;]{0,60}\b(?:claims?|proposes?|asserts?|purports?|announces?|advertises?)\b/i.test(
+		claim,
+	);
 }
 
 /**

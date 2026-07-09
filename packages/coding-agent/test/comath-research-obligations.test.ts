@@ -253,6 +253,47 @@ describe("co-math obligation ledger", () => {
 		expect(getResearchObligationChildren(next, root?.id ?? "")).toEqual([]);
 	});
 
+	it("keeps the review's own entries from supporting the root while letting them refute", () => {
+		const base = withPlanTask(createEulerState());
+		// The skeptic's "found nothing wrong" check is scrutiny, not evidence for the statement.
+		const check = withEvidence(
+			base.state,
+			"An independent bounded check did not find a counterexample in the searched range.",
+			"computation",
+		);
+		const next = applyCompletedTaskToObligations(check.state, {
+			task: base.task,
+			reportId: "research-report-1",
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [check.entryId],
+			reviewEvidenceEntryIds: [check.entryId],
+			skeptic: { concerns: [], counterexampleFound: false },
+			now: NOW,
+		});
+		const root = getRootResearchObligation(next);
+		expect(root?.status).toBe("open");
+		expect(root?.evidenceEntryIds).toEqual([]);
+
+		// A counterexample the review found must still refute the statement.
+		const counter = withEvidence(
+			base.state,
+			"n = 40 gives 41^2, which is composite, refuting the statement.",
+			"conflicting",
+		);
+		const refuted = applyCompletedTaskToObligations(counter.state, {
+			task: base.task,
+			reportId: "research-report-1",
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [counter.entryId],
+			reviewEvidenceEntryIds: [counter.entryId],
+			skeptic: { concerns: [], counterexampleFound: true },
+			now: NOW,
+		});
+		expect(getRootResearchObligation(refuted)?.status).toBe("refuted");
+	});
+
 	it("retires the refuted root and opens the revised statement as the new root", () => {
 		const base = withPlanTask(createEulerState());
 		const refutation = withEvidence(base.state, "n = 40 gives 41^2, composite.", "conflicting");

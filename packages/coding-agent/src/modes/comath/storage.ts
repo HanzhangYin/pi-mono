@@ -2541,11 +2541,13 @@ export function addResearchConstraint(
 	}
 	// Compare with decorations stripped so a rule restated with examples, source labels, or LaTeX
 	// wrappers ("Do not infer X from Y (e.g. [source-2]'s $X^2+Y^4$)") is subsumed by the plain
-	// version already on record rather than accumulating alongside it.
+	// version already on record rather than accumulating alongside it. The threshold is slightly
+	// looser than the default because constraint restatements often swap the verb ("do not cite X
+	// as proving Y" vs "do not infer Y from X") while keeping the same content words.
 	const duplicate = state.researchConstraints.some(
 		(constraint) =>
 			constraint.status === "active" &&
-			textsNearlyMatch(stripMathDecorations(constraint.text), stripMathDecorations(text)),
+			textsNearlyMatch(stripMathDecorations(constraint.text), stripMathDecorations(text), 0.65),
 	);
 	if (duplicate) {
 		return state;
@@ -2711,9 +2713,23 @@ function theoremChecksLikelyDuplicate(
 	if (!keysEqual && !textsNearlyMatch(existingKey, candidateKey, 0.8)) {
 		return false;
 	}
+	if (namesDifferentMathExpressions(existing.targetObject, candidate.targetObject)) {
+		return false;
+	}
+	const targetsMatch = textsNearlyMatch(existing.targetObject, candidate.targetObject);
+	// Consequences compare with decorations stripped; when the theorem and target already agree,
+	// the bar for "same consequence" is lower, since rewordings of the same verdict ("gives a
+	// related theorem, not the root statement" vs "gives related infinitude, not the target")
+	// share fewer tokens than a real disagreement would remove.
 	const candidateConsequence = candidate.input.consequence?.trim();
 	const consequencesAgree =
-		!!existing.consequence && !!candidateConsequence && textsNearlyMatch(existing.consequence, candidateConsequence);
+		!!existing.consequence &&
+		!!candidateConsequence &&
+		textsNearlyMatch(
+			stripMathDecorations(existing.consequence),
+			stripMathDecorations(candidateConsequence),
+			targetsMatch ? 0.6 : 0.75,
+		);
 	if (existing.consequence && candidateConsequence && !consequencesAgree) {
 		return false;
 	}
@@ -2731,13 +2747,10 @@ function theoremChecksLikelyDuplicate(
 	) {
 		return false;
 	}
-	if (namesDifferentMathExpressions(existing.targetObject, candidate.targetObject)) {
-		return false;
-	}
 	if (keysEqual) {
 		return true;
 	}
-	return textsNearlyMatch(existing.targetObject, candidate.targetObject) || consequencesAgree;
+	return targetsMatch || consequencesAgree;
 }
 
 export function getTheoremApplicabilityChecksForPath(
@@ -3493,6 +3506,20 @@ export function addMarginNote(state: CoMathProjectState, input: AddMarginNoteInp
 	}
 	if (!message) {
 		throw new Error("Margin note requires a message.");
+	}
+	// Repeated review rounds restate the same finding; one open note per finding and kind is
+	// enough. Provenance prefixes ("Independent review: ...") are stripped for comparison only.
+	// Dedupe is same-kind on purpose: a scrutiny note deliberately mirrors a top gap so the human
+	// sees what to check, and that cross-kind surfacing must survive.
+	const duplicate = state.marginNotes.some(
+		(note) =>
+			note.status === "open" &&
+			note.kind === input.kind &&
+			note.subjectId === subjectId &&
+			mathClaimsNearlyMatch(note.message, message),
+	);
+	if (duplicate) {
+		return state;
 	}
 	const note: MarginNote = {
 		id: input.id,

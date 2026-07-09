@@ -102,7 +102,7 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 	const parsed = parseCoMathMarkdown(responseText);
 	const knownGaps = new Set([...report.gaps, ...report.criticisms].map(normalizeConcern));
 	const concerns = getCoMathMarkdownSectionItems(parsed, "concern")
-		.map((concern) => concern.trim())
+		.map((concern) => normalizeUsableConcern(concern))
 		.filter((concern) => concern.length > 0 && !isNoConcernLine(concern) && !knownGaps.has(normalizeConcern(concern)))
 		.slice(0, MAX_SKEPTIC_CONCERNS);
 
@@ -338,6 +338,28 @@ function normalizeConcern(text: string): string {
 function isNoConcernLine(text: string): boolean {
 	const normalized = normalizeConcern(text).replace(/[.!?]+$/g, "");
 	return /^(?:none|no concerns|no new concerns|nothing|n\/a|not applicable)(?:\.|$|\s)/i.test(normalized);
+}
+
+// A remark that explicitly says nothing is wrong is review commentary, not a deficiency; it must
+// not become an obligation gap, a scrutiny note, and an "unsupported claim" all at once.
+const NON_DEFICIENCY_CONCERN =
+	/\b(?:is|are|was|were)\s+handled\s+(?:honestly|correctly|properly|appropriately|well)\b|\bno\s+(?:serious|major|real)?\s*overclaims?\b|\blooks\s+(?:correct|sound|fine)\b/i;
+
+/**
+ * Normalize one concern bullet: a heading fragment ("Named theorem audit:") is trimmed back to its
+ * complete sentences (usually leaving nothing), and non-deficiency remarks are dropped, so every
+ * surviving concern is an actual problem a later task could address. Returns "" when nothing
+ * usable remains.
+ */
+function normalizeUsableConcern(text: string): string {
+	let normalized = text.replace(/\s+/g, " ").trim();
+	if (/[:;,]$/.test(normalized)) {
+		normalized = normalized.replace(/[^.!?]*$/, "").trim();
+	}
+	if (normalized.length < 12 || NON_DEFICIENCY_CONCERN.test(normalized)) {
+		return "";
+	}
+	return normalized;
 }
 
 function extractPythonScript(text: string): string | undefined {

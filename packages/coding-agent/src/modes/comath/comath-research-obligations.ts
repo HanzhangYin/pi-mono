@@ -38,6 +38,12 @@ export interface ApplyCompletedTaskToObligationsInput {
 	modelBacked: boolean;
 	/** Evidence entries this task produced (specialist claims, skeptic findings, staged evidence). */
 	newEvidenceEntryIds: readonly string[];
+	/**
+	 * Entries the independent review itself created. They never *support* the claim or spawn
+	 * subclaims — a review's absence-of-refutation is not evidence for the statement — but a review
+	 * counterexample still refutes.
+	 */
+	reviewEvidenceEntryIds?: readonly string[];
 	skeptic?: SkepticReviewOutcome;
 	now: string;
 }
@@ -80,16 +86,21 @@ export function applyCompletedTaskToObligations(
 	// mathematics, so it never supports, refutes, or spawns an obligation. Theorem-classified
 	// entries additionally have to be *about* the root statement: a survey's report of a related
 	// result (a different polynomial's infinitude, say) is evidence-board material, not support for
-	// the root claim.
+	// the root claim. The review's own entries are excluded from support and subclaims (they may
+	// still refute): "an independent check found nothing wrong" is scrutiny, not evidence.
+	const reviewEntryIds = new Set(input.reviewEvidenceEntryIds ?? []);
 	const mathematical = entries.filter((entry) => !isSourceCommentaryClaim(entry.claim));
 	const supporting = mathematical.filter(
 		(entry) =>
-			entry.classification === "computation" ||
-			(entry.classification === "theorem" && claimTargetsStatement(entry.claim, root.statement)),
+			!reviewEntryIds.has(entry.id) &&
+			(entry.classification === "computation" ||
+				(entry.classification === "theorem" && claimTargetsStatement(entry.claim, root.statement))),
 	);
 	const refuting = mathematical.filter((entry) => entry.classification === "conflicting");
 	const subclaims = mathematical.filter(
-		(entry) => entry.classification === "conjecture" || entry.classification === "heuristic",
+		(entry) =>
+			!reviewEntryIds.has(entry.id) &&
+			(entry.classification === "conjecture" || entry.classification === "heuristic"),
 	);
 
 	// Specialist-recorded conjectures become required subclaims of the root, deduplicated by

@@ -1,0 +1,6 @@
+tested_moduli_up_to: 300
+bad_moduli: []
+prime_set: [2, 5, 13, 17, 29]
+allowed_residues: 13365
+expected_allowed_residues: 13365
+counterexample_found: false

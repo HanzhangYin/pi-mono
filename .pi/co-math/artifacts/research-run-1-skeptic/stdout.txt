@@ -1,0 +1,5 @@
+actual_count: 34
+reported_count: 34
+missing_from_report: []
+extra_in_report: []
+counterexample_found: false

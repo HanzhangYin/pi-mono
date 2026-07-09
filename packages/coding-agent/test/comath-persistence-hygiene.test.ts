@@ -5,9 +5,14 @@ import {
 	normalizeSuggestedNextMoveItem,
 	pickSuggestedNextMove,
 } from "../src/modes/comath/comath-research-discipline.ts";
-import { mathClaimsNearlyMatch, stripMathDecorations } from "../src/modes/comath/comath-text-similarity.ts";
+import {
+	isSourceCommentaryClaim,
+	mathClaimsNearlyMatch,
+	stripMathDecorations,
+} from "../src/modes/comath/comath-text-similarity.ts";
 import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
+	addMarginNote,
 	addResearchConstraint,
 	addResearchEvidenceBoardEntry,
 	addResearchPlan,
@@ -53,6 +58,36 @@ describe("co-math claim comparison", () => {
 			),
 		).toBe(false);
 	});
+
+	it("never lets a short generic text swallow a specific claim that contains its words", () => {
+		expect(
+			mathClaimsNearlyMatch(
+				"Computation output",
+				"Specialist computation output: Check moduli m<=5000 for a complete local obstruction",
+			),
+		).toBe(false);
+	});
+
+	it("normalizes wrapper variants so the same statement matches across labels", () => {
+		expect(
+			mathClaimsNearlyMatch(
+				"Target statement: There are infinitely many primes of the form x^2+1.",
+				"Unsupported from supplied sources: “There are infinitely many primes of the form x^2+1.”",
+			),
+		).toBe(true);
+	});
+
+	it("recognizes prose bibliographic commentary, not just leading source labels", () => {
+		expect(
+			isSourceCommentaryClaim(
+				"The only directly relevant source is Carella's preprint, which claims/proposes a rigorous spectral-method proof for infinitely many primes.",
+			),
+		).toBe(true);
+		expect(isSourceCommentaryClaim("[source-5] claims a proof of the statement.")).toBe(true);
+		expect(isSourceCommentaryClaim("The polynomial takes infinitely many prime values for even indices.")).toBe(
+			false,
+		);
+	});
 });
 
 describe("co-math evidence board dedupe", () => {
@@ -83,6 +118,31 @@ describe("co-math evidence board dedupe", () => {
 		expect(state.researchEvidenceBoard).toHaveLength(1);
 		// The newcomer's links folded into the surviving entry: no provenance was lost.
 		expect(state.researchEvidenceBoard[0]?.sourceIds).toEqual(["source-1", "source-2"]);
+		expect(state.researchEvidenceBoard[0]?.computationalArtifactIds).toEqual(["computation-1"]);
+	});
+
+	it("keeps distinct computations separate even when a generic title shares their words", () => {
+		let state = createState();
+		const generic = upsertResearchEvidenceBoardEntry(state, {
+			claim: "Computation output",
+			classification: "computation",
+			rationale: "Finite experiment output.",
+			computationalArtifactIds: ["computation-1"],
+			now: NOW,
+			actor: "synthesizer",
+		});
+		state = generic.state;
+		const specific = upsertResearchEvidenceBoardEntry(state, {
+			claim: "Specialist computation output: Check moduli m<=5000 for a complete local obstruction",
+			classification: "computation",
+			rationale: "No complete local obstruction exists below the bound.",
+			computationalArtifactIds: ["computation-2"],
+			now: NOW,
+			actor: "synthesizer",
+		});
+		state = specific.state;
+		expect(specific.merged).toBe(false);
+		expect(state.researchEvidenceBoard).toHaveLength(2);
 		expect(state.researchEvidenceBoard[0]?.computationalArtifactIds).toEqual(["computation-1"]);
 	});
 
@@ -148,6 +208,28 @@ describe("co-math theorem check dedupe", () => {
 		});
 		expect(state.theoremApplicabilityChecks).toHaveLength(2);
 	});
+
+	it("merges checks whose consequences paraphrase the same verdict about the same target", () => {
+		let state = createState();
+		state = addTheoremApplicabilityCheck(state, {
+			theorem: "Friedlander–Iwaniec, primes \\(X^2+Y^4\\).",
+			targetObject: "\\(n^2+1\\).",
+			status: "rejected-as-direct-route",
+			consequence: "gives a related polynomial-prime theorem, not the root statement [source-1].",
+			now: NOW,
+			actor: "workstream",
+		});
+		state = addTheoremApplicabilityCheck(state, {
+			theorem: "Friedlander–Iwaniec, primes of the form \\(X^2+Y^4\\)",
+			targetObject: "\\(n^2+1\\)",
+			status: "rejected-as-direct-route",
+			consequence: "gives related polynomial-prime infinitude, not primes \\(n^2+1\\) [source-2].",
+			hypotheses: [{ hypothesis: "two variables \\(X,Y\\) vary", status: "failed" }],
+			now: NOW,
+			actor: "reviewer",
+		});
+		expect(state.theoremApplicabilityChecks).toHaveLength(1);
+	});
 });
 
 describe("co-math constraint dedupe", () => {
@@ -173,6 +255,64 @@ describe("co-math constraint dedupe", () => {
 			actor: "reviewer",
 		});
 		expect(state.researchConstraints).toHaveLength(2);
+	});
+
+	it("subsumes the same rule restated with a swapped verb, but keeps different rules", () => {
+		let state = createState();
+		state = addResearchConstraint(state, {
+			text: "Do not infer fixed one-variable prime infinitude from multivariable polynomial-prime theorems.",
+			origin: "reviewer",
+			now: NOW,
+			actor: "reviewer",
+		});
+		state = addResearchConstraint(state, {
+			text: "Do not cite multivariable polynomial-prime theorems as proving the one-variable statement.",
+			origin: "reviewer",
+			now: NOW,
+			actor: "reviewer",
+		});
+		expect(state.researchConstraints).toHaveLength(1);
+		state = addResearchConstraint(state, {
+			text: "Do not infer prime infinitude from local admissibility.",
+			origin: "reviewer",
+			now: NOW,
+			actor: "reviewer",
+		});
+		expect(state.researchConstraints).toHaveLength(2);
+	});
+});
+
+describe("co-math margin note dedupe", () => {
+	it("keeps one open note per finding and kind, while deliberate cross-kind mirroring survives", () => {
+		let state = createState();
+		state = addMarginNote(state, {
+			id: "margin-note-1",
+			kind: "scrutiny",
+			subjectId: "path-1",
+			message: "Independent review: The set S must be defined as a finite set of distinct primes.",
+			now: NOW,
+			actor: "reviewer",
+		});
+		// A later review round restating the same finding (without the provenance prefix) is a repeat.
+		state = addMarginNote(state, {
+			id: "margin-note-2",
+			kind: "scrutiny",
+			subjectId: "path-1",
+			message: "The set S must be defined as a finite set of distinct primes.",
+			now: NOW,
+			actor: "reviewer",
+		});
+		expect(state.marginNotes).toHaveLength(1);
+		// A gap note deliberately mirroring the finding for human attention is not a duplicate.
+		state = addMarginNote(state, {
+			id: "margin-note-2",
+			kind: "gap",
+			subjectId: "path-1",
+			message: "The set S must be defined as a finite set of distinct primes.",
+			now: NOW,
+			actor: "reviewer",
+		});
+		expect(state.marginNotes).toHaveLength(2);
 	});
 });
 

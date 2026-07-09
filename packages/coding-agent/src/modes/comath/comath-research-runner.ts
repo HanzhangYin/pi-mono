@@ -32,6 +32,7 @@ import {
 } from "./comath-research-model-workstream.ts";
 import type { SpecialistComputationRecord, SpecialistRecordedClaim } from "./comath-research-specialist-loop.ts";
 import { type ResearchWorkstreamReport, runResearchWorkstream } from "./comath-research-workstream.ts";
+import { significantContentTokens } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
 	LiteratureClaimSupport,
@@ -1188,18 +1189,27 @@ function addEvidenceBoardEntriesForReport(
 		if (!artifact || artifact.kind === "script" || artifact.kind === "stderr") {
 			continue;
 		}
+		// A generic title ("Computation output") is not a claim: it says nothing about what was
+		// computed, and identical generic titles from different runs would merge distinct
+		// computations into one entry. Enrich it with the output summary so the claim states the
+		// actual result.
+		const summary = summarizeEvidenceText(artifact.summary);
+		const claim =
+			significantContentTokens(artifact.title).size >= 5 || summary.length === 0
+				? artifact.title
+				: `${artifact.title}: ${summary}`;
 		nextState = addResearchEvidenceBoardEntry(nextState, {
 			pathId: report.pathId,
 			reportId: report.id,
 			computationalArtifactIds: [artifact.id],
-			claim: artifact.title,
+			claim,
 			classification: "computation",
-			rationale: summarizeEvidenceText(artifact.summary),
+			rationale: summary || artifact.title,
 			now,
 			actor: "synthesizer",
 		});
 	}
-	for (const gap of report.gaps.slice(0, 3)) {
+	for (const gap of report.gaps.filter((candidate) => isEvidenceWorthyGap(candidate)).slice(0, 3)) {
 		nextState = addResearchEvidenceBoardEntry(nextState, {
 			pathId: report.pathId,
 			reportId: report.id,
@@ -1223,6 +1233,19 @@ function addEvidenceBoardEntriesForReport(
 		});
 	}
 	return nextState;
+}
+
+/**
+ * Whether a report gap belongs on the evidence board as an unsupported claim. Imperative rules
+ * ("Do not cite X as proving Y") are constraints and already persist as constraint records; label
+ * fragments ("Named theorem audit:") are not claims at all.
+ */
+function isEvidenceWorthyGap(gap: string): boolean {
+	const normalized = gap.replace(/\s+/g, " ").trim();
+	if (normalized.length < 12 || /[:;,]$/.test(normalized)) {
+		return false;
+	}
+	return !/^(?:do not|don't|never|avoid)\b/i.test(normalized);
 }
 
 function classifyLiteratureSupport(support: LiteratureClaimSupport): ResearchEvidenceClassification {

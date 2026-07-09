@@ -1,0 +1,89 @@
+Finite experiment for n^2 + 1 with checked range 1 <= n <= 200
+Finite output is evidence for pattern-finding only; it is not proof of any infinite statement.
+
+Prime-producing n: 34 out of 200
+n -> n^2 + 1
+  1 -> 2
+  2 -> 5
+  4 -> 17
+  6 -> 37
+ 10 -> 101
+ 14 -> 197
+ 16 -> 257
+ 20 -> 401
+ 24 -> 577
+ 26 -> 677
+ 36 -> 1297
+ 40 -> 1601
+ 54 -> 2917
+ 56 -> 3137
+ 66 -> 4357
+ 74 -> 5477
+ 84 -> 7057
+ 90 -> 8101
+ 94 -> 8837
+110 -> 12101
+116 -> 13457
+120 -> 14401
+124 -> 15377
+126 -> 15877
+130 -> 16901
+134 -> 17957
+146 -> 21317
+150 -> 22501
+156 -> 24337
+160 -> 25601
+170 -> 28901
+176 -> 30977
+180 -> 32401
+184 -> 33857
+
+Parity obstruction: every odd n > 1 gives even n^2+1 > 2, hence composite.
+Eligible n count, using only n=1 or even n: 101
+Prime rate among all n: 34/200 = 0.170
+Prime rate among eligible n: 34/101 = 0.337
+
+First composite examples, factored:
+  3 -> 10      = 2 * 5
+  5 -> 26      = 2 * 13
+  7 -> 50      = 2 * 5^2
+  8 -> 65      = 5 * 13
+  9 -> 82      = 2 * 41
+ 11 -> 122     = 2 * 61
+ 12 -> 145     = 5 * 29
+ 13 -> 170     = 2 * 5 * 17
+ 15 -> 226     = 2 * 113
+ 17 -> 290     = 2 * 5 * 29
+ 18 -> 325     = 5^2 * 13
+ 19 -> 362     = 2 * 181
+ 21 -> 442     = 2 * 13 * 17
+ 22 -> 485     = 5 * 97
+ 23 -> 530     = 2 * 5 * 53
+ 25 -> 626     = 2 * 313
+ 27 -> 730     = 2 * 5 * 73
+ 28 -> 785     = 5 * 157
+
+Most common smallest prime divisors among composites:
+  2: 99
+  5: 39
+ 13: 10
+ 17: 5
+ 29: 3
+ 41: 3
+ 53: 2
+ 37: 2
+ 73: 1
+ 89: 1
+
+Visible congruence patterns: residues r with p | r^2+1
+mod   5: r in [2, 3]
+mod  13: r in [5, 8]
+mod  17: r in [4, 13]
+mod  29: r in [12, 17]
+mod  37: r in [6, 31]
+mod  41: r in [9, 32]
+mod  53: r in [23, 30]
+mod  61: r in [11, 50]
+mod  73: r in [27, 46]
+mod  89: r in [34, 55]
+mod  97: r in [22, 75]
