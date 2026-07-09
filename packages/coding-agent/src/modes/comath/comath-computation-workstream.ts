@@ -21,6 +21,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
+import { researchCompletionTimestamp } from "./comath-time.ts";
 import type { ComputationalArtifactKind, ComputationalArtifactStatus, ResearchPath } from "./schema.ts";
 
 export interface ComputationalArtifactDraft {
@@ -261,7 +262,7 @@ function buildReport(input: {
 		pathId: path.id,
 		pathTitle: path.title,
 		startedAt: now,
-		completedAt: now,
+		completedAt: researchCompletionTimestamp(now),
 		status: execution.exitCode === 0 ? "completed" : "blocked",
 		coordinatorBrief: input.coordinatorBrief,
 		steps,

@@ -41,6 +41,7 @@ describe("co-math research workstream", () => {
 		expect(report.steps.map((step) => step.role)).toEqual(["coordinator", "specialist", "critic", "synthesizer"]);
 		expect(report.status).toBe("completed");
 		expect(report.coordinatorBrief).toContain("direct proof path");
+		expect(Date.parse(report.completedAt)).toBeGreaterThan(Date.parse(report.startedAt));
 		const specialist = report.steps.find((step) => step.role === "specialist");
 		expect(specialist?.details.join("\n")).toContain("Euclid-style argument is not immediate");
 	});

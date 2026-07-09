@@ -1,5 +1,6 @@
 import type { ResearchPivotDraft, TheoremApplicabilityCheckDraft } from "./comath-research-discipline.ts";
 import { type ResearchRoundResult, runResearchPathRound } from "./comath-research-execution.ts";
+import { researchCompletionTimestamp } from "./comath-time.ts";
 import type { ResearchPath, ResearchWorkstreamReportStatus, ResearchWorkstreamStepRecord } from "./schema.ts";
 
 export type ResearchWorkstreamStep = ResearchWorkstreamStepRecord;
@@ -98,7 +99,7 @@ export function runResearchWorkstream(input: RunResearchWorkstreamInput): Resear
 		pathId: round.pathId,
 		pathTitle: round.pathTitle,
 		startedAt: input.now,
-		completedAt: input.now,
+		completedAt: researchCompletionTimestamp(input.now),
 		status: "completed",
 		coordinatorBrief,
 		steps,

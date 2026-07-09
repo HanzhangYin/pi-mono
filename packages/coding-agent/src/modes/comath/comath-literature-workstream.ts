@@ -34,6 +34,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
+import { researchCompletionTimestamp } from "./comath-time.ts";
 import type { LiteratureClaimSupportStatus, ResearchConstraintRecord, ResearchPath } from "./schema.ts";
 
 export interface LiteratureClaimSupportDraft {
@@ -299,7 +300,7 @@ export async function runLiteratureResearchWorkstreamStaged(
 			pathId: path.id,
 			pathTitle: path.title,
 			startedAt: input.now,
-			completedAt: input.now,
+			completedAt: researchCompletionTimestamp(input.now),
 			status: "completed",
 			coordinatorBrief,
 			steps,
@@ -380,7 +381,7 @@ function buildNoSourceResult(
 			pathId: input.path.id,
 			pathTitle: input.path.title,
 			startedAt: input.now,
-			completedAt: input.now,
+			completedAt: researchCompletionTimestamp(input.now),
 			status: "blocked",
 			coordinatorBrief,
 			steps,

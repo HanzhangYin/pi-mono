@@ -56,6 +56,17 @@ I regularly publish my own `pi-mono` work sessions here:
 
 For Slack/chat automation and workflows see [earendil-works/pi-chat](https://github.com/earendil-works/pi-chat).
 
+## CoMath
+
+Start a durable mathematical research workspace with `pi comath`. A fresh question runs 3 bounded research steps by default. Use `--comath-steps <n>` to customize the autonomous first-run budget:
+
+```bash
+pi comath --comath-steps 8
+pi comath --comath-steps=8
+```
+
+The startup value is clamped to 1–10. It affects only the initial autonomous run; interactive requests such as `work the plan for 5 steps` choose a separate budget and are capped at 5 steps per request. See the [CoMath guide](packages/coding-agent/examples/extensions/co-math/README.md) for the research workflow and state model.
+
 ## Permissions & Containerization
 
 Pi does not include a built-in permission system for restricting filesystem, process, network, or credential access. By default, it runs with the permissions of the user and process that launched it.

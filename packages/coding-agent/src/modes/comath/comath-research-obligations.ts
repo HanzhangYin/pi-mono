@@ -13,7 +13,7 @@
  * All functions are pure state transforms; callers persist.
  */
 
-import { claimTargetsStatement, isSourceCommentaryClaim } from "./comath-text-similarity.ts";
+import { isSourceCommentaryClaim, mathClaimsNearlyMatch } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
 	ResearchEvidenceBoardEntry,
@@ -66,7 +66,7 @@ export function applyCompletedTaskToObligations(
 	input: ApplyCompletedTaskToObligationsInput,
 ): CoMathProjectState {
 	const { state: withRoot, root } = ensureRootObligation(state, input.task, input.now);
-	let nextState = withRoot;
+	let nextState = reopenObligationsWithoutDirectSupport(withRoot, input.now);
 	const entries = resolveEvidenceEntries(nextState, input.newEvidenceEntryIds);
 	const degraded = !input.modelBacked || input.runUsedFallback;
 
@@ -83,18 +83,16 @@ export function applyCompletedTaskToObligations(
 	}
 
 	// Source commentary ("[source-5] claims a proof of ...") describes the literature, not the
-	// mathematics, so it never supports, refutes, or spawns an obligation. Theorem-classified
-	// entries additionally have to be *about* the root statement: a survey's report of a related
-	// result (a different polynomial's infinitude, say) is evidence-board material, not support for
-	// the root claim. The review's own entries are excluded from support and subclaims (they may
-	// still refute): "an independent check found nothing wrong" is scrutiny, not evidence.
+	// mathematics, so it never supports, refutes, or spawns an obligation. Only theorem-classified
+	// evidence that states substantially the root statement itself supports the root. A computation,
+	// a local lemma about the same object, or a theorem about a related object remains useful on the
+	// evidence board but cannot promote an unbounded proof obligation. The review's own entries are
+	// excluded from support and subclaims (they may still refute): "an independent check found
+	// nothing wrong" is scrutiny, not evidence.
 	const reviewEntryIds = new Set(input.reviewEvidenceEntryIds ?? []);
 	const mathematical = entries.filter((entry) => !isSourceCommentaryClaim(entry.claim));
 	const supporting = mathematical.filter(
-		(entry) =>
-			!reviewEntryIds.has(entry.id) &&
-			(entry.classification === "computation" ||
-				(entry.classification === "theorem" && claimTargetsStatement(entry.claim, root.statement))),
+		(entry) => !reviewEntryIds.has(entry.id) && isDirectSupportForStatement(entry, root.statement),
 	);
 	const refuting = mathematical.filter((entry) => entry.classification === "conflicting");
 	const subclaims = mathematical.filter(
@@ -127,7 +125,6 @@ export function applyCompletedTaskToObligations(
 			parentObligationId: root.id,
 			evidenceEntryIds: [entry.id],
 			computationalArtifactIds: entry.computationalArtifactIds,
-			status: "supported",
 			taskId: input.task.id,
 			...(input.reportId ? { reportId: input.reportId } : {}),
 			now: input.now,
@@ -139,7 +136,10 @@ export function applyCompletedTaskToObligations(
 		input.skeptic !== undefined && input.skeptic.concerns.length === 0 && !input.skeptic.counterexampleFound;
 	const refuted = refuting.length > 0 || input.skeptic?.counterexampleFound === true;
 	const current = nextState.researchObligations.find((obligation) => obligation.id === root.id) ?? root;
-	const hasSupport = current.evidenceEntryIds.length > 0 || supporting.length > 0;
+	const hasSupport =
+		resolveEvidenceEntries(nextState, current.evidenceEntryIds).some((entry) =>
+			isDirectSupportForStatement(entry, root.statement),
+		) || supporting.length > 0;
 	nextState = updateResearchObligation(nextState, {
 		obligationId: root.id,
 		...(supporting.length > 0 ? { addEvidenceEntryIds: supporting.map((entry) => entry.id) } : {}),
@@ -163,6 +163,35 @@ export function applyCompletedTaskToObligations(
 		actor: "system",
 	});
 	return nextState;
+}
+
+/** Reconcile legacy `supported` records created from computations, heuristics, or local lemmas. */
+function reopenObligationsWithoutDirectSupport(state: CoMathProjectState, now: string): CoMathProjectState {
+	let nextState = state;
+	for (const obligation of state.researchObligations) {
+		if (obligation.status !== "supported") {
+			continue;
+		}
+		const evidence = resolveEvidenceEntries(state, obligation.evidenceEntryIds);
+		if (evidence.some((entry) => isDirectSupportForStatement(entry, obligation.statement))) {
+			continue;
+		}
+		nextState = updateResearchObligation(nextState, {
+			obligationId: obligation.id,
+			status: "open",
+			now,
+			actor: "system",
+		});
+	}
+	return nextState;
+}
+
+function isDirectSupportForStatement(entry: ResearchEvidenceBoardEntry, statement: string): boolean {
+	return (
+		entry.classification === "theorem" &&
+		!isSourceCommentaryClaim(entry.claim) &&
+		mathClaimsNearlyMatch(entry.claim, statement)
+	);
 }
 
 /**

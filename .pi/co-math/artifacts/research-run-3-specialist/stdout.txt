@@ -1,8 +1,0 @@
-B 10000
-relevant_prime_count_including_2 610
-largest_relevant_prime 9973
-uncovered_density_float 0.083474284154028
-uncovered_density_positive_for_finite_set True
-N 200000 survivor_count 16572
-first_20_survivors [110, 116, 120, 124, 126, 130, 134, 146, 150, 156, 160, 170, 176, 180, 184, 204, 206, 210, 224, 230]
-first_10_values_n2_plus_1 [(110, 12101), (116, 13457), (120, 14401), (124, 15377), (126, 15877), (130, 16901), (134, 17957), (146, 21317), (150, 22501), (156, 24337)]

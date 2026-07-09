@@ -24,6 +24,7 @@ import {
 	type ResearchWorkstreamReport,
 	type ResearchWorkstreamStep,
 } from "./comath-research-workstream.ts";
+import { researchCompletionTimestamp } from "./comath-time.ts";
 import type {
 	ResearchConstraintRecord,
 	ResearchPath,
@@ -296,7 +297,7 @@ export async function runModelBackedResearchWorkstreamStaged(
 		pathId: path.id,
 		pathTitle: path.title,
 		startedAt: input.now,
-		completedAt: input.now,
+		completedAt: researchCompletionTimestamp(input.now),
 		status: "completed",
 		coordinatorBrief,
 		steps,

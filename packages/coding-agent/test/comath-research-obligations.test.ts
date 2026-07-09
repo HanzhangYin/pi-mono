@@ -18,6 +18,7 @@ import type {
 } from "../src/modes/comath/schema.ts";
 import {
 	addResearchEvidenceBoardEntry,
+	addResearchObligation,
 	addResearchPath,
 	addResearchPlan,
 	addResearchPlanTask,
@@ -96,7 +97,7 @@ function withEvidence(
 }
 
 describe("co-math obligation ledger", () => {
-	it("attaches model-backed supporting evidence and records a clean review on the root", () => {
+	it("keeps finite computation from supporting an unbounded root obligation", () => {
 		const base = withPlanTask(createEulerState());
 		const { state, entryId } = withEvidence(
 			base.state,
@@ -117,14 +118,14 @@ describe("co-math obligation ledger", () => {
 		const root = getRootResearchObligation(next);
 		expect(root).toMatchObject({
 			statement: "Is n^2 + n + 41 prime for every non-negative integer n?",
-			status: "supported",
-			evidenceEntryIds: [entryId],
+			status: "open",
+			evidenceEntryIds: [],
 			gaps: [],
 			reviewedCleanAt: NOW,
 		});
-		expect(describeObligationEstablishmentGate(next, root?.id ?? "").ok).toBe(true);
-		// Nothing auto-establishes: establishment stays an explicit, gated transition.
-		expect(root?.status).not.toBe("established");
+		expect(describeObligationEstablishmentGate(next, root?.id ?? "").reasons).toContain(
+			"There is no supporting evidence.",
+		);
 	});
 
 	it("records a gap instead of support when the run degraded to the deterministic fallback", () => {
@@ -206,7 +207,7 @@ describe("co-math obligation ledger", () => {
 		expect(children).toHaveLength(1);
 		expect(children[0]).toMatchObject({
 			statement: "Every composite value of the polynomial is divisible by a prime at most 41.",
-			status: "supported",
+			status: "open",
 			evidenceEntryIds: [entryId],
 		});
 		// An unsettled subclaim blocks establishing the root.
@@ -230,10 +231,16 @@ describe("co-math obligation ledger", () => {
 			"[source-5] claims or proposes a proof that the polynomial takes infinitely many prime values.",
 			"heuristic",
 		);
-		// A theorem statement about the root's own object still attaches.
-		const onTarget = withEvidence(
+		// A local theorem about the root's object is not support for the root conclusion.
+		const localTheorem = withEvidence(
 			commentary.state,
 			"For n^2 + n + 41, every prime divisor of a value is a quadratic residue pattern prime.",
+			"theorem",
+		);
+		// A theorem-classified statement of the root conclusion itself does attach.
+		const onTarget = withEvidence(
+			localTheorem.state,
+			"n^2 + n + 41 is prime for every non-negative integer n.",
 			"theorem",
 		);
 
@@ -242,7 +249,7 @@ describe("co-math obligation ledger", () => {
 			reportId: "research-report-1",
 			runUsedFallback: false,
 			modelBacked: true,
-			newEvidenceEntryIds: [offTarget.entryId, commentary.entryId, onTarget.entryId],
+			newEvidenceEntryIds: [offTarget.entryId, commentary.entryId, localTheorem.entryId, onTarget.entryId],
 			now: NOW,
 		});
 
@@ -292,6 +299,38 @@ describe("co-math obligation ledger", () => {
 			now: NOW,
 		});
 		expect(getRootResearchObligation(refuted)?.status).toBe("refuted");
+	});
+
+	it("reopens legacy obligations that were supported only by computation or heuristic evidence", () => {
+		const base = withPlanTask(createEulerState());
+		const computation = withEvidence(base.state, "A finite computation found no counterexample.", "computation");
+		const heuristic = withEvidence(computation.state, "A heuristic predicts the statement.", "heuristic");
+		let state = addResearchObligation(heuristic.state, {
+			statement: heuristic.state.rootQuestion,
+			evidenceEntryIds: [computation.entryId],
+			status: "supported",
+			now: NOW,
+			actor: "system",
+		});
+		state = addResearchObligation(state, {
+			statement: "A heuristic predicts the statement.",
+			parentObligationId: "obligation-1",
+			evidenceEntryIds: [heuristic.entryId],
+			status: "supported",
+			now: NOW,
+			actor: "system",
+		});
+
+		const next = applyCompletedTaskToObligations(state, {
+			task: base.task,
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [],
+			now: "2026-06-05T12:01:00.000Z",
+		});
+
+		expect(next.researchObligations.map((obligation) => obligation.status)).toEqual(["open", "open"]);
+		expect(next.researchObligations[0]?.evidenceEntryIds).toEqual([computation.entryId]);
 	});
 
 	it("retires the refuted root and opens the revised statement as the new root", () => {
@@ -356,7 +395,7 @@ describe("co-math obligation ledger", () => {
 });
 
 describe("co-math obligation harness flow", () => {
-	it("supports the root obligation after a clean model-backed step and a clean review", async () => {
+	it("keeps the root open after a clean bounded computation and review", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "comath-obligations-clean-"));
 		const statePath = join(dir, ".pi", "co-math", "state.json");
 		try {
@@ -458,17 +497,17 @@ describe("co-math obligation harness flow", () => {
 			const root = getRootResearchObligation(state);
 			expect(root).toMatchObject({
 				statement: "Is n^2 + n + 41 prime for every non-negative integer n?",
-				status: "supported",
+				status: "open",
 			});
-			expect(root?.evidenceEntryIds.length).toBeGreaterThan(0);
+			expect(root?.evidenceEntryIds).toEqual([]);
 			expect(root?.reviewedCleanAt).toBeDefined();
-			expect(describeObligationEstablishmentGate(state, root?.id ?? "").ok).toBe(true);
+			expect(describeObligationEstablishmentGate(state, root?.id ?? "").ok).toBe(false);
 
 			const before = notices.length;
 			await harness.handlePrompt("show obligations");
 			const visible = notices.slice(before).join("\n");
 			expect(visible).toContain("What the research owes and where it stands");
-			expect(visible).toContain("supported (evidence recorded, not established yet)");
+			expect(visible).toContain("open");
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });

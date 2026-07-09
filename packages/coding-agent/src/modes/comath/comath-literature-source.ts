@@ -1,3 +1,4 @@
+import { extractMathExpressions, significantContentTokens } from "./comath-text-similarity.ts";
 import type {
 	LiteratureSearchProviderRecord,
 	LiteratureSourceArtifact,
@@ -9,6 +10,28 @@ import type {
 const DEFAULT_PROVIDER_LIMIT = 5;
 const DEFAULT_PROVIDER_TIMEOUT_MS = 8_000;
 const DEFAULT_REVIEW_LIMIT = 8;
+const MAX_PROVIDER_QUERIES = 2;
+
+const GENERIC_RELEVANCE_TOKENS = new Set([
+	"conjecture",
+	"compact",
+	"context",
+	"infinitely",
+	"known",
+	"literature",
+	"many",
+	"open",
+	"paper",
+	"prime",
+	"problem",
+	"proof",
+	"question",
+	"related",
+	"result",
+	"source",
+	"space",
+	"theorem",
+]);
 
 export interface LiteratureSourceQuery {
 	rootQuestion: string;
@@ -70,7 +93,8 @@ export function createWorkspaceLiteratureSourceLookup(input: {
 		search: async (query) => {
 			const registered = input.sources.map(literatureSourceArtifactToResult);
 			const fallback = normalizeLiteratureSourceLookupResult(await input.fallback.search(query));
-			const sources = uniqueLiteratureSources([...registered, ...fallback.sources]).slice(0, query.maxSources);
+			const rankedFallback = rankLiteratureSources(fallback.sources, query);
+			const sources = uniqueLiteratureSources([...registered, ...rankedFallback]).slice(0, query.maxSources);
 			const workspaceProvider: LiteratureSearchProviderRecord =
 				registered.length > 0
 					? {
@@ -147,14 +171,18 @@ export function formatLiteratureSourceForPrompt(source: LiteratureSourceResult, 
 class CompositeLiteratureSourceLookup implements LiteratureSourceLookup {
 	async search(query: LiteratureSourceQuery): Promise<LiteratureSourceSearchResponse> {
 		const queries = buildLiteratureSearchQueries(query);
-		const primaryQuery = queries[0] ?? normalizeQuery(query.rootQuestion);
+		const providerQueries = selectProviderQueries(queries, query.rootQuestion);
 		const limit = Math.max(
 			1,
 			Math.min(DEFAULT_PROVIDER_LIMIT, query.maxResultsPerProvider ?? DEFAULT_PROVIDER_LIMIT),
 		);
 		const timeoutMs = Math.max(1_000, query.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS);
 		const providers = createProviderAdapters();
-		const providerOutputs = await Promise.all(providers.map((provider) => provider(primaryQuery, limit, timeoutMs)));
+		const providerOutputs = await Promise.all(
+			providerQueries.flatMap((providerQuery) =>
+				providers.map((provider) => provider(providerQuery, limit, timeoutMs)),
+			),
+		);
 		const providerRecords: LiteratureSearchProviderRecord[] = providerOutputs.map((output) => ({
 			provider: output.provider,
 			query: output.query,
@@ -164,7 +192,7 @@ class CompositeLiteratureSourceLookup implements LiteratureSourceLookup {
 		}));
 		const candidateSources = providerOutputs.flatMap((output) => output.sources);
 		return {
-			sources: uniqueLiteratureSources(candidateSources).slice(
+			sources: rankLiteratureSources(uniqueLiteratureSources(candidateSources), query).slice(
 				0,
 				Math.max(1, query.maxSources || DEFAULT_REVIEW_LIMIT),
 			),
@@ -173,6 +201,101 @@ class CompositeLiteratureSourceLookup implements LiteratureSourceLookup {
 			candidateCount: candidateSources.length,
 		};
 	}
+}
+
+/**
+ * Remove obviously off-topic search results and rank the remainder before any source reaches the
+ * literature model. The filter is deliberately lexical and conservative: formulas, multiple
+ * shared topic terms, or one distinctive title term are required. Manually registered workspace
+ * sources bypass this filter in {@link createWorkspaceLiteratureSourceLookup}.
+ */
+export function rankLiteratureSources(
+	sources: readonly LiteratureSourceResult[],
+	query: LiteratureSourceQuery,
+): LiteratureSourceResult[] {
+	const keywordTerms = extractMathKeywords([query.rootQuestion, query.pathTitle, query.pathObjective].join(" ")).join(
+		" ",
+	);
+	const topicText = `${query.rootQuestion} ${query.pathTitle} ${query.pathObjective} ${inferKnownContextQuery(
+		query.rootQuestion,
+		keywordTerms,
+	)} ${inferFormulaVocabulary(query.rootQuestion)}`;
+	const topicTokens = relevantTokens(topicText);
+	const topicExpressions = extractMathExpressions(topicText);
+	return sources
+		.map((source, index) => scoreLiteratureSource(source, topicTokens, topicExpressions, index))
+		.filter((candidate) => candidate.relevant)
+		.sort((left, right) => right.score - left.score || left.index - right.index)
+		.map((candidate) => candidate.source);
+}
+
+function selectProviderQueries(queries: readonly string[], rootQuestion: string): string[] {
+	const candidates = [queries[0], queries.at(-1), normalizeQuery(rootQuestion)].filter(
+		(value): value is string => !!value?.trim(),
+	);
+	return uniqueStrings(candidates).slice(0, MAX_PROVIDER_QUERIES);
+}
+
+function scoreLiteratureSource(
+	source: LiteratureSourceResult,
+	topicTokens: ReadonlySet<string>,
+	topicExpressions: readonly string[],
+	index: number,
+): { source: LiteratureSourceResult; score: number; relevant: boolean; index: number } {
+	const titleTokens = relevantTokens(source.title);
+	const sourceText = `${source.title} ${source.summary} ${source.extractedText ?? ""}`;
+	const sourceTokens = relevantTokens(sourceText);
+	const sharedTitleTokens = sharedTokens(topicTokens, titleTokens);
+	const sharedSourceTokens = sharedTokens(topicTokens, sourceTokens);
+	const sourceExpressions = extractMathExpressions(sourceText);
+	const formulaMatch = topicExpressions.some((topicExpression) =>
+		sourceExpressions.some(
+			(sourceExpression) => topicExpression.includes(sourceExpression) || sourceExpression.includes(topicExpression),
+		),
+	);
+	const distinctiveTitleMatch = sharedTitleTokens.some(
+		(token) => token.length >= 6 && !GENERIC_RELEVANCE_TOKENS.has(token),
+	);
+	const relevant = formulaMatch || distinctiveTitleMatch || sharedSourceTokens.length >= 2;
+	const sourceTypeScore =
+		source.sourceType === "journal" || source.sourceType === "book"
+			? 4
+			: source.sourceType === "conference"
+				? 3
+				: source.sourceType === "preprint"
+					? 1
+					: 0;
+	const citationScore = source.citationCount ? Math.min(4, Math.log10(source.citationCount + 1)) : 0;
+	return {
+		source,
+		index,
+		relevant,
+		score:
+			(formulaMatch ? 100 : 0) +
+			sharedTitleTokens.length * 12 +
+			sharedSourceTokens.length * 3 +
+			sourceTypeScore +
+			citationScore,
+	};
+}
+
+function relevantTokens(text: string): Set<string> {
+	return new Set([...significantContentTokens(text)].filter((token) => !GENERIC_RELEVANCE_TOKENS.has(token)));
+}
+
+function sharedTokens(left: ReadonlySet<string>, right: ReadonlySet<string>): string[] {
+	return [...left].filter((token) => right.has(token));
+}
+
+function inferFormulaVocabulary(text: string): string {
+	const terms: string[] = [];
+	if (/\^[{]?2[}]?|²/.test(text)) {
+		terms.push("quadratic polynomial");
+	}
+	if (/\^[{]?3[}]?|³/.test(text)) {
+		terms.push("cubic polynomial");
+	}
+	return terms.join(" ");
 }
 
 function createProviderAdapters(): Array<

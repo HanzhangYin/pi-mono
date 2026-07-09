@@ -282,14 +282,12 @@ describe("literature research workstream", () => {
 				}),
 			);
 
-			expect(fetchMock).toHaveBeenCalledTimes(3);
-			expect(result.candidateCount).toBe(3);
+			expect(fetchMock).toHaveBeenCalledTimes(6);
+			expect(result.candidateCount).toBe(6);
 			expect(result.sources).toHaveLength(2);
-			expect(result.providers).toMatchObject([
-				{ provider: "arxiv", status: "completed", candidateCount: 1 },
-				{ provider: "semantic-scholar", status: "completed", candidateCount: 1 },
-				{ provider: "crossref", status: "completed", candidateCount: 1 },
-			]);
+			expect(result.providers).toHaveLength(6);
+			expect(new Set(result.providers.map((provider) => provider.query)).size).toBe(2);
+			expect(result.providers.every((provider) => provider.status === "completed")).toBe(true);
 			expect(result.sources.map((source) => source.title)).toEqual([
 				"Prime values of quadratic polynomials",
 				"Landau fourth problem survey",
