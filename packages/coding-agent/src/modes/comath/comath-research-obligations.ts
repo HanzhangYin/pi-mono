@@ -6,14 +6,15 @@
  * single choke point through which completed plan tasks update that ledger: evidence attaches as
  * support only when it came from a real model-backed research step (a deterministic fallback run
  * records a gap instead of support, so degraded research can never silently look like progress),
- * refutation evidence flips the obligation to refuted, and the skeptic's verdict either records
- * gaps or a clean review. Establishment is never automatic here; it goes through the storage-level
- * gate, which a future verifier-backed evidence source can strengthen without changing shape.
+ * refutation evidence flips the obligation to refuted, and the skeptic's verdict records either
+ * explicitly root-scoped gaps or a clean review. Establishment is never automatic here; it goes
+ * through the storage-level gate, which a future verifier-backed evidence source can strengthen
+ * without changing shape.
  *
  * All functions are pure state transforms; callers persist.
  */
 
-import { isSourceCommentaryClaim, mathClaimsNearlyMatch } from "./comath-text-similarity.ts";
+import { isSourceCommentaryClaim, mathClaimsNearlyMatch, stripMathDecorations } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
 	ResearchEvidenceBoardEntry,
@@ -24,8 +25,17 @@ import { addResearchObligation, getRootResearchObligation, updateResearchObligat
 
 export const DEGRADED_RESEARCH_GAP = "This step ran without model-backed research.";
 
+export interface RootObligationConcern {
+	/** Exact obligation statement to which the concern applies. */
+	obligationStatement: string;
+	concern: string;
+}
+
 export interface SkepticReviewOutcome {
+	/** Task/report-level review concerns. These do not become mathematical-obligation gaps. */
 	concerns: readonly string[];
+	/** Explicit mathematical attachments; only an exact root-statement match is accepted. */
+	rootObligationConcerns?: readonly RootObligationConcern[];
 	counterexampleFound: boolean;
 }
 
@@ -41,7 +51,7 @@ export interface ApplyCompletedTaskToObligationsInput {
 	/**
 	 * Entries the independent review itself created. They never *support* the claim or spawn
 	 * subclaims — a review's absence-of-refutation is not evidence for the statement — but a review
-	 * counterexample still refutes.
+	 * counterexample may refute only the exact obligation it explicitly targets.
 	 */
 	reviewEvidenceEntryIds?: readonly string[];
 	skeptic?: SkepticReviewOutcome;
@@ -94,7 +104,9 @@ export function applyCompletedTaskToObligations(
 	const supporting = mathematical.filter(
 		(entry) => !reviewEntryIds.has(entry.id) && isDirectSupportForStatement(entry, root.statement),
 	);
-	const refuting = mathematical.filter((entry) => entry.classification === "conflicting");
+	const refuting = mathematical.filter(
+		(entry) => entry.classification === "conflicting" && evidenceDirectlyRefutesStatement(entry, root.statement),
+	);
 	const subclaims = mathematical.filter(
 		(entry) =>
 			!reviewEntryIds.has(entry.id) &&
@@ -133,8 +145,12 @@ export function applyCompletedTaskToObligations(
 	}
 
 	const skepticClean =
-		input.skeptic !== undefined && input.skeptic.concerns.length === 0 && !input.skeptic.counterexampleFound;
-	const refuted = refuting.length > 0 || input.skeptic?.counterexampleFound === true;
+		input.skeptic !== undefined &&
+		input.skeptic.concerns.length === 0 &&
+		(input.skeptic.rootObligationConcerns?.length ?? 0) === 0 &&
+		!input.skeptic.counterexampleFound;
+	const rootGaps = resolveRootObligationGaps(input.skeptic, root.statement);
+	const refuted = refuting.length > 0;
 	const current = nextState.researchObligations.find((obligation) => obligation.id === root.id) ?? root;
 	const hasSupport =
 		resolveEvidenceEntries(nextState, current.evidenceEntryIds).some((entry) =>
@@ -147,7 +163,7 @@ export function applyCompletedTaskToObligations(
 			? { addComputationalArtifactIds: supporting.flatMap((entry) => entry.computationalArtifactIds) }
 			: {}),
 		...(refuting.length > 0 ? { addRefutationEvidenceEntryIds: refuting.map((entry) => entry.id) } : {}),
-		...(input.skeptic && input.skeptic.concerns.length > 0 ? { addGaps: [...input.skeptic.concerns] } : {}),
+		...(rootGaps.length > 0 ? { addGaps: rootGaps } : {}),
 		...(skepticClean ? { reviewedCleanAt: input.now } : {}),
 		...(refuted
 			? {
@@ -192,6 +208,29 @@ function isDirectSupportForStatement(entry: ResearchEvidenceBoardEntry, statemen
 		!isSourceCommentaryClaim(entry.claim) &&
 		mathClaimsNearlyMatch(entry.claim, statement)
 	);
+}
+
+export function evidenceDirectlyRefutesStatement(entry: ResearchEvidenceBoardEntry, statement: string): boolean {
+	const prefix = "An independent bounded check found a counterexample to the report claim:";
+	const target = entry.claim.startsWith(prefix) ? entry.claim.slice(prefix.length).trim() : entry.claim;
+	return normalizeStatementIdentity(target) === normalizeStatementIdentity(statement);
+}
+
+function normalizeStatementIdentity(statement: string): string {
+	return stripMathDecorations(statement)
+		.replace(/[.!?]+$/g, "")
+		.toLowerCase();
+}
+
+function resolveRootObligationGaps(skeptic: SkepticReviewOutcome | undefined, rootStatement: string): string[] {
+	if (!skeptic) {
+		return [];
+	}
+	const rootIdentity = normalizeStatementIdentity(rootStatement);
+	return (skeptic.rootObligationConcerns ?? [])
+		.filter((attachment) => normalizeStatementIdentity(attachment.obligationStatement) === rootIdentity)
+		.map((attachment) => attachment.concern.trim())
+		.filter((concern) => concern.length > 0);
 }
 
 /**

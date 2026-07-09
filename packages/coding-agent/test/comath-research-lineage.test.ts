@@ -268,7 +268,7 @@ describe("co-math twin-track harness flow", () => {
 							return {
 								text: JSON.stringify({
 									action: "record_claim",
-									claim: "n = 40 gives 41^2 = 1681, which is composite.",
+									claim: "An independent bounded check found a counterexample to the report claim: Is n^2 + n + 41 prime for every non-negative integer n?",
 									classification: "conflicting",
 									rationale: "Direct factorization: 40^2 + 40 + 41 = 41^2.",
 								}),
@@ -401,7 +401,8 @@ describe("co-math twin-track harness flow", () => {
 			);
 			// The refuting claim landed on the evidence board, linked to the refutation task.
 			const conflicting = state.researchEvidenceBoard.find((entry) => entry.classification === "conflicting");
-			expect(conflicting?.claim).toContain("n = 40");
+			expect(conflicting?.claim).toContain("counterexample to the report claim");
+			expect(conflicting?.rationale).toContain("40^2 + 40 + 41 = 41^2");
 			const refutationTask = state.researchPlanTasks[0];
 			expect(refutationTask?.evidenceEntryIds).toContain(conflicting?.id);
 			// The revision recorded the original statement as the lineage root and the repair as its child.

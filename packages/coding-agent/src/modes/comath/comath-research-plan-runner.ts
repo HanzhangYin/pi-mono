@@ -33,6 +33,7 @@ import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-wo
 import {
 	applyCompletedTaskToObligations,
 	applyConjectureRevisionToObligations,
+	evidenceDirectlyRefutesStatement,
 } from "./comath-research-obligations.ts";
 import { chooseResearchPathForPlanTaskKind } from "./comath-research-planner.ts";
 import { runConjectureRevisionTask } from "./comath-research-revision.ts";
@@ -439,7 +440,7 @@ export class CoMathResearchPlanRunner {
 			const evidenceEntryIds = report
 				? latest.researchEvidenceBoard.filter((entry) => entry.reportId === report.id).map((entry) => entry.id)
 				: [];
-			await this.maybeAnnounceRefutation(latest, task, evidenceEntryIds, skeptic?.counterexampleFound ?? false);
+			await this.maybeAnnounceRefutation(latest, task, evidenceEntryIds);
 			const withObligations = applyCompletedTaskToObligations(latest, {
 				task,
 				...(report ? { reportId: report.id } : {}),
@@ -586,21 +587,23 @@ export class CoMathResearchPlanRunner {
 	}
 
 	/**
-	 * Announce when a completed task's evidence points against the statement as written: a skeptic
-	 * counterexample or a conflicting evidence entry from this task. Detection is data-driven, so it
-	 * works the same whether the evidence came from the specialist loop or the skeptic gate.
+	 * Announce only when a completed task's evidence explicitly refutes the root statement. A local
+	 * counterexample remains visible in the task review but must not be presented as a refutation of
+	 * the project conjecture.
 	 */
 	private async maybeAnnounceRefutation(
 		state: CoMathProjectState,
 		task: ResearchPlanTaskRecord,
 		evidenceEntryIds: readonly string[],
-		counterexampleFound: boolean,
 	): Promise<void> {
 		const entryIds = new Set(evidenceEntryIds);
 		const conflicting = state.researchEvidenceBoard.find(
-			(entry) => entryIds.has(entry.id) && entry.classification === "conflicting",
+			(entry) =>
+				entryIds.has(entry.id) &&
+				entry.classification === "conflicting" &&
+				evidenceDirectlyRefutesStatement(entry, state.rootQuestion),
 		);
-		if (!conflicting && !counterexampleFound) {
+		if (!conflicting) {
 			return;
 		}
 		const revisionPlanned = getResearchPlanTasks(state, task.planId).some(

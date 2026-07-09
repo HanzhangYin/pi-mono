@@ -154,11 +154,11 @@ describe("co-math obligation ledger", () => {
 		}
 	});
 
-	it("refutes the root on conflicting evidence and records skeptic concerns as gaps", () => {
+	it("refutes the root on precisely targeted conflicting evidence without promoting local review concerns", () => {
 		const base = withPlanTask(createEulerState());
 		const { state, entryId } = withEvidence(
 			base.state,
-			"n = 40 gives 41^2 = 1681, which is composite.",
+			"An independent bounded check found a counterexample to the report claim: Is n^2 + n + 41 prime for every non-negative integer n?",
 			"conflicting",
 		);
 
@@ -175,12 +175,77 @@ describe("co-math obligation ledger", () => {
 		const root = getRootResearchObligation(next);
 		expect(root).toMatchObject({
 			status: "refuted",
-			statusReason: "n = 40 gives 41^2 = 1681, which is composite.",
+			statusReason:
+				"An independent bounded check found a counterexample to the report claim: Is n^2 + n + 41 prime for every non-negative integer n?",
 			refutationEvidenceEntryIds: [entryId],
-			gaps: ["The verified range is small."],
+			gaps: [],
 		});
 		expect(root?.reviewedCleanAt).toBeUndefined();
 		expect(describeObligationEstablishmentGate(next, root?.id ?? "").reasons).toContain("The obligation is refuted.");
+	});
+
+	it("keeps task-local skeptic concerns out of the root obligation", () => {
+		const base = withPlanTask(createEulerState());
+		const reviewConcern = withEvidence(
+			base.state,
+			"The report omits the factorization table needed to inspect its bounded computation.",
+			"unsupported",
+		);
+		const concerns = [
+			"The report omits the factorization table.",
+			"The residue-class wording needs qualification.",
+			"The computation is not reproducible from the report alone.",
+		];
+
+		const next = applyCompletedTaskToObligations(reviewConcern.state, {
+			task: base.task,
+			reportId: "research-report-1",
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [reviewConcern.entryId],
+			reviewEvidenceEntryIds: [reviewConcern.entryId],
+			skeptic: { concerns, counterexampleFound: false },
+			now: NOW,
+		});
+
+		expect(getRootResearchObligation(next)).toMatchObject({ status: "open", gaps: [] });
+		expect(getRootResearchObligation(next)?.reviewedCleanAt).toBeUndefined();
+		expect(next.researchEvidenceBoard).toContainEqual(
+			expect.objectContaining({ id: reviewConcern.entryId, classification: "unsupported" }),
+		);
+	});
+
+	it("adds a root gap only from an explicit exact obligation attachment", () => {
+		const base = withPlanTask(createEulerState());
+		const rootConcern = "The universal quantifier has not been established.";
+		const next = applyCompletedTaskToObligations(base.state, {
+			task: base.task,
+			reportId: "research-report-1",
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [],
+			skeptic: {
+				concerns: [rootConcern, "The report should include its table."],
+				rootObligationConcerns: [
+					{
+						obligationStatement: "Is n^2 + n + 41 prime for every non-negative integer n?",
+						concern: rootConcern,
+					},
+					{
+						obligationStatement: "The residue observation is valid for every prime divisor.",
+						concern: "The residue argument assumes primality.",
+					},
+				],
+				counterexampleFound: false,
+			},
+			now: NOW,
+		});
+
+		expect(getRootResearchObligation(next)).toMatchObject({
+			status: "open",
+			gaps: [rootConcern],
+		});
+		expect(getRootResearchObligation(next)?.reviewedCleanAt).toBeUndefined();
 	});
 
 	it("turns specialist conjectures into subclaims without duplicating them across runs", () => {
@@ -260,7 +325,7 @@ describe("co-math obligation ledger", () => {
 		expect(getResearchObligationChildren(next, root?.id ?? "")).toEqual([]);
 	});
 
-	it("keeps the review's own entries from supporting the root while letting them refute", () => {
+	it("keeps the review's own entries from supporting the root while allowing root-targeted refutation", () => {
 		const base = withPlanTask(createEulerState());
 		// The skeptic's "found nothing wrong" check is scrutiny, not evidence for the statement.
 		const check = withEvidence(
@@ -285,7 +350,7 @@ describe("co-math obligation ledger", () => {
 		// A counterexample the review found must still refute the statement.
 		const counter = withEvidence(
 			base.state,
-			"n = 40 gives 41^2, which is composite, refuting the statement.",
+			"An independent bounded check found a counterexample to the report claim: Is n^2 + n + 41 prime for every non-negative integer n?",
 			"conflicting",
 		);
 		const refuted = applyCompletedTaskToObligations(counter.state, {
@@ -299,6 +364,30 @@ describe("co-math obligation ledger", () => {
 			now: NOW,
 		});
 		expect(getRootResearchObligation(refuted)?.status).toBe("refuted");
+	});
+
+	it("keeps a counterexample to a local report claim from refuting the root", () => {
+		const base = withPlanTask(createEulerState());
+		const localCounterexample = withEvidence(
+			base.state,
+			"An independent bounded check found a counterexample to the report claim: Every divisor p of n^2 + n + 41 makes the value composite.",
+			"conflicting",
+		);
+		const next = applyCompletedTaskToObligations(localCounterexample.state, {
+			task: base.task,
+			reportId: "research-report-1",
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [localCounterexample.entryId],
+			reviewEvidenceEntryIds: [localCounterexample.entryId],
+			skeptic: { concerns: [], counterexampleFound: true },
+			now: NOW,
+		});
+
+		expect(getRootResearchObligation(next)).toMatchObject({
+			status: "open",
+			refutationEvidenceEntryIds: [],
+		});
 	});
 
 	it("reopens legacy obligations that were supported only by computation or heuristic evidence", () => {
@@ -335,7 +424,11 @@ describe("co-math obligation ledger", () => {
 
 	it("retires the refuted root and opens the revised statement as the new root", () => {
 		const base = withPlanTask(createEulerState());
-		const refutation = withEvidence(base.state, "n = 40 gives 41^2, composite.", "conflicting");
+		const refutation = withEvidence(
+			base.state,
+			"An independent bounded check found a counterexample to the report claim: Is n^2 + n + 41 prime for every non-negative integer n?",
+			"conflicting",
+		);
 		let state = applyCompletedTaskToObligations(refutation.state, {
 			task: base.task,
 			reportId: "research-report-1",
@@ -364,7 +457,11 @@ describe("co-math obligation ledger", () => {
 
 	it("formats the obligation ledger and context pack without internal ids", () => {
 		const base = withPlanTask(createEulerState());
-		const { state, entryId } = withEvidence(base.state, "n = 40 gives 41^2, composite.", "conflicting");
+		const { state, entryId } = withEvidence(
+			base.state,
+			"An independent bounded check found a counterexample to the report claim: Is n^2 + n + 41 prime for every non-negative integer n?",
+			"conflicting",
+		);
 		const next = applyCompletedTaskToObligations(state, {
 			task: base.task,
 			runUsedFallback: false,
@@ -377,8 +474,8 @@ describe("co-math obligation ledger", () => {
 		const summary = formatResearchObligationsSummary(next);
 		expect(summary).toContain("What the research owes and where it stands");
 		expect(summary).toContain("Is n^2 + n + 41 prime for every non-negative integer n? — refuted");
-		expect(summary).toContain("Why: n = 40 gives 41^2, composite.");
-		expect(summary).toContain("Gap: The verified range is small.");
+		expect(summary).toContain("Why: An independent bounded check found a counterexample");
+		expect(summary).not.toContain("Gap: The verified range is small.");
 		expect(summary).not.toContain("obligation-");
 		expect(summary).not.toContain("evidence-board");
 		expectProductCopy(summary);
@@ -389,7 +486,7 @@ describe("co-math obligation ledger", () => {
 		const pack = buildResearchContextPack(next);
 		expect(pack).toContain("Obligations (claims the project must establish or refute):");
 		expect(pack).toContain("[refuted] Is n^2 + n + 41 prime for every non-negative integer n?");
-		expect(pack).toContain("gaps: 1");
+		expect(pack).not.toContain("gaps:");
 		expect(pack).toContain("refutations: 1");
 	});
 });

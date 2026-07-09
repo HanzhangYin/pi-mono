@@ -345,9 +345,13 @@ describe("co-math specialist tool loop through the harness", () => {
 			const script = finalState.computationalArtifacts.find((record) => record.kind === "script");
 			expect(script).toMatchObject({
 				pathId: "path-2",
+				reportId: "research-report-1",
 				runId: "research-run-1",
 				filePath: ".pi/co-math/artifacts/research-run-1-specialist/specialist-check-1.py",
 			});
+			expect(finalState.computationalArtifacts.every((record) => record.reportId === "research-report-1")).toBe(
+				true,
+			);
 			// Records fold into the report and from there into the plan task.
 			expect(finalState.researchReports[0]?.computationalArtifactIds).toEqual(
 				finalState.computationalArtifacts.map((record) => record.id),
@@ -433,10 +437,10 @@ describe("co-math specialist tool loop through the harness", () => {
 				search: async () => [
 					{
 						kind: "paper",
-						title: "A note on the question",
+						title: "Prime values of quadratic polynomials",
 						url: "https://example.test/note",
-						summary: "Discusses the question.",
-						extractedText: "The question remains open.",
+						summary: "A number-theory paper on prime values of integer quadratic polynomials.",
+						extractedText: "The n^2 + 1 prime-value question remains open.",
 					},
 				],
 			};

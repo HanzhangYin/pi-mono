@@ -33,6 +33,32 @@ const GENERIC_RELEVANCE_TOKENS = new Set([
 	"theorem",
 ]);
 
+const NUMBER_THEORY_PRIMARY_TOKENS = new Set([
+	"congruence",
+	"diophantine",
+	"divisor",
+	"factorization",
+	"integer",
+	"prime",
+	"residue",
+	"sieve",
+]);
+
+const NUMBER_THEORY_SUPPORT_TOKENS = new Set([
+	"arithmetic",
+	"asymptotic",
+	"binary",
+	"counting",
+	"distribution",
+	"form",
+	"gap",
+	"modulo",
+	"polynomial",
+	"quadratic",
+	"sequence",
+	"value",
+]);
+
 export interface LiteratureSourceQuery {
 	rootQuestion: string;
 	pathTitle: string;
@@ -222,8 +248,13 @@ export function rankLiteratureSources(
 	)} ${inferFormulaVocabulary(query.rootQuestion)}`;
 	const topicTokens = relevantTokens(topicText);
 	const topicExpressions = extractMathExpressions(topicText);
+	const requiresNumberTheoryAlignment = isNumberTheoryTopic(
+		`${query.rootQuestion} ${query.pathTitle} ${query.pathObjective}`,
+	);
 	return sources
-		.map((source, index) => scoreLiteratureSource(source, topicTokens, topicExpressions, index))
+		.map((source, index) =>
+			scoreLiteratureSource(source, topicTokens, topicExpressions, requiresNumberTheoryAlignment, index),
+		)
 		.filter((candidate) => candidate.relevant)
 		.sort((left, right) => right.score - left.score || left.index - right.index)
 		.map((candidate) => candidate.source);
@@ -240,6 +271,7 @@ function scoreLiteratureSource(
 	source: LiteratureSourceResult,
 	topicTokens: ReadonlySet<string>,
 	topicExpressions: readonly string[],
+	requiresNumberTheoryAlignment: boolean,
 	index: number,
 ): { source: LiteratureSourceResult; score: number; relevant: boolean; index: number } {
 	const titleTokens = relevantTokens(source.title);
@@ -256,7 +288,9 @@ function scoreLiteratureSource(
 	const distinctiveTitleMatch = sharedTitleTokens.some(
 		(token) => token.length >= 6 && !GENERIC_RELEVANCE_TOKENS.has(token),
 	);
-	const relevant = formulaMatch || distinctiveTitleMatch || sharedSourceTokens.length >= 2;
+	const topicMatch = formulaMatch || distinctiveTitleMatch || sharedSourceTokens.length >= 2;
+	const domainAligned = !requiresNumberTheoryAlignment || formulaMatch || hasNumberTheoryAlignment(sourceText);
+	const relevant = topicMatch && domainAligned;
 	const sourceTypeScore =
 		source.sourceType === "journal" || source.sourceType === "book"
 			? 4
@@ -277,6 +311,28 @@ function scoreLiteratureSource(
 			sourceTypeScore +
 			citationScore,
 	};
+}
+
+function isNumberTheoryTopic(text: string): boolean {
+	if (/\b(?:number theory|number-theoretic|diophantine|congruences?|divisors?|factorizations?|sieve)\b/i.test(text)) {
+		return true;
+	}
+	return (
+		/\bprimes?\b/i.test(text) &&
+		(/\b(?:arithmetic|integer|quadratic|residue|values?)\b/i.test(text) ||
+			/\bprimes?\s+(?:of|in|between)\b/i.test(text) ||
+			extractMathExpressions(text).length > 0)
+	);
+}
+
+function hasNumberTheoryAlignment(text: string): boolean {
+	if (/\b(?:number theory|number-theoretic)\b/i.test(text)) {
+		return true;
+	}
+	const tokens = significantContentTokens(text);
+	const primaryCount = sharedTokens(NUMBER_THEORY_PRIMARY_TOKENS, tokens).length;
+	const supportCount = sharedTokens(NUMBER_THEORY_SUPPORT_TOKENS, tokens).length;
+	return primaryCount >= 2 || (primaryCount >= 1 && supportCount >= 1);
 }
 
 function relevantTokens(text: string): Set<string> {

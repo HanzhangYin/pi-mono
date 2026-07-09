@@ -5,6 +5,7 @@ import {
 	normalizeSuggestedNextMoveItem,
 	pickSuggestedNextMove,
 } from "../src/modes/comath/comath-research-discipline.ts";
+import { classifyLiteratureSupport } from "../src/modes/comath/comath-research-runner.ts";
 import {
 	isSourceCommentaryClaim,
 	mathClaimsNearlyMatch,
@@ -174,6 +175,36 @@ describe("co-math evidence board dedupe", () => {
 			actor: "coordinator",
 		});
 		expect(state.researchEvidenceBoard).toHaveLength(3);
+	});
+});
+
+describe("co-math literature evidence classification", () => {
+	it("keeps unvalidated preprint proof claims out of theorem evidence", () => {
+		expect(
+			classifyLiteratureSupport({
+				id: "claim-support-1",
+				claim: "[source-5] is a preprint claiming a proof of the root statement.",
+				sourceIds: ["source-5"],
+				status: "supported",
+				note: "It should not be treated as accepted literature without independent validation.",
+				createdAt: NOW,
+				updatedAt: NOW,
+			}),
+		).toBe("survey-context");
+	});
+
+	it("preserves a genuine source-backed theorem statement", () => {
+		expect(
+			classifyLiteratureSupport({
+				id: "claim-support-2",
+				claim: "Dirichlet's theorem gives infinitely many primes in every coprime arithmetic progression.",
+				sourceIds: ["source-1"],
+				status: "supported",
+				note: "The cited source states the theorem and its coprimality condition.",
+				createdAt: NOW,
+				updatedAt: NOW,
+			}),
+		).toBe("theorem");
 	});
 });
 

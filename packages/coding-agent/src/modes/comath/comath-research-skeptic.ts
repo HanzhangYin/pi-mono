@@ -32,10 +32,14 @@ import {
 	addMarginNote,
 	addResearchConstraint,
 	addTheoremApplicabilityCheck,
+	getComputationalArtifactsForReport,
 	upsertResearchEvidenceBoardEntry,
 } from "./storage.ts";
 
 const MAX_SKEPTIC_CONCERNS = 3;
+const MAX_SKEPTIC_ARTIFACT_SUMMARIES = 6;
+const MAX_SKEPTIC_ARTIFACT_SUMMARY_CHARS = 700;
+const MAX_SKEPTIC_ARTIFACT_CONTEXT_CHARS = 3_600;
 const SKEPTIC_SCRIPT_MAX_RUNTIME_MS = 10_000;
 const COUNTEREXAMPLE_SIGNAL = /counterexample[_\s-]*found\s*[:=]?\s*(?:true|yes|1)\b|^\s*COUNTEREXAMPLE\b/im;
 
@@ -160,10 +164,14 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 		evidenceEntryIds.push(upserted.entryId);
 	}
 
+	const counterexampleTarget = resolveCounterexampleTarget(
+		firstCoMathMarkdownSectionItem(parsed, "counterexample target"),
+		report,
+	);
 	const script = extractPythonScript(responseText);
 	const computationalArtifactIds: string[] = [];
 	let counterexampleFound = false;
-	if (script && input.computationalExecutor) {
+	if (script && counterexampleTarget && input.computationalExecutor) {
 		try {
 			const execution = await input.computationalExecutor.runScript(
 				{
@@ -180,7 +188,8 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 					maxRuntimeMs: SKEPTIC_SCRIPT_MAX_RUNTIME_MS,
 				},
 			);
-			counterexampleFound = COUNTEREXAMPLE_SIGNAL.test(execution.stdout);
+			const checkCompleted = execution.exitCode === 0;
+			counterexampleFound = checkCompleted && COUNTEREXAMPLE_SIGNAL.test(execution.stdout);
 			nextState = addComputationalArtifact(nextState, {
 				pathId: report.pathId,
 				reportId: report.id,
@@ -219,10 +228,12 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 				pathId: report.pathId,
 				reportId: report.id,
 				computationalArtifactIds,
-				claim: counterexampleFound
-					? "An independent bounded check found a counterexample to this step's central claim."
-					: "An independent bounded check did not find a counterexample in the searched range.",
-				classification: counterexampleFound ? "conflicting" : "computation",
+				claim: !checkCompleted
+					? `An independent bounded check was inconclusive for the report claim: ${counterexampleTarget}`
+					: counterexampleFound
+						? `An independent bounded check found a counterexample to the report claim: ${counterexampleTarget}`
+						: `An independent bounded check did not find a counterexample to the report claim in the searched range: ${counterexampleTarget}`,
+				classification: !checkCompleted ? "unsupported" : counterexampleFound ? "conflicting" : "computation",
 				rationale: summarizeOutput(execution.stdout, execution.stderr),
 				now: input.now,
 				actor: "reviewer",
@@ -235,8 +246,7 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 					kind: "warning",
 					subjectId: report.pathId,
 					...(report.workingPaperSectionId ? { sectionId: report.workingPaperSectionId } : {}),
-					message:
-						"Independent review found a counterexample to this step's central claim. Re-examine before building on it.",
+					message: `Independent review found a counterexample to this report claim: ${counterexampleTarget}`,
 					now: input.now,
 					actor: "reviewer",
 				});
@@ -257,16 +267,20 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 }
 
 /**
- * Map the free-text verdict onto the three durable outcomes. Conservative: "rejected" needs the
- * skeptic to say so explicitly; unclear verdicts with concerns read as needs-revision, and only a
- * clean, concern-free review reads as accepted.
+ * Map the free-text verdict onto the three durable outcomes. A surviving direct statement that
+ * the report is mathematically false overrides a stale softer verdict so the plan runner blocks
+ * the step. Once heading fragments and affirmative remarks have been removed, a concern-free
+ * review is accepted even if its prose verdict was stale or inconsistent.
  */
 function normalizeSkepticVerdict(value: string | undefined, concerns: readonly string[]): SkepticVerdict {
 	const normalized = (value ?? "").trim().toLowerCase();
+	if (concerns.some(isDirectFactualContradiction)) {
+		return "rejected";
+	}
 	if (/\breject|not accepted|fails? (?:the |its )?acceptance/.test(normalized)) {
 		return "rejected";
 	}
-	if (concerns.length === 0 && (normalized.length === 0 || /\b(?:sound|accept|approve|pass|clean)/.test(normalized))) {
+	if (concerns.length === 0) {
 		return "accepted";
 	}
 	return "needs-revision";
@@ -290,23 +304,40 @@ export function buildSkepticPrompt(
 		"The step's report:",
 		formatReportForSkeptic(report),
 		"",
-		buildResearchContextPack(state),
+		...formatComputationalEvidenceForSkeptic(state, report),
+		"",
+		buildResearchContextPack(stateForSkepticContext(state, report)),
 		"",
 		"Rules:",
 		`- Raise at most ${MAX_SKEPTIC_CONCERNS} NEW concerns not already listed as gaps in the report. If the report is honest about its limits, say so with an empty concerns list.`,
 		"- If the report builds on a named theorem, verify its applicability against the actual object and add a `## Theorem check` section (bullets: `Theorem:`, `Object:`, one `Hypothesis: <text> - satisfied|failed|unknown` per hypothesis, `Status: applies | rejected-as-direct-route | needs-verification`, `Consequence:`).",
 		'- If your review reveals a standing rule future steps must respect (e.g. "Do not treat proposed or heuristic preprints as settled proofs."), add a `## Negative constraints` section with one imperative bullet per rule.',
-		"- If the step's central mathematical claim can be tested by a small bounded computation, provide ONE short Python script (standard library only, no imports of os/subprocess/network, no file access, prints its verdict) that searches for a counterexample.",
+		"- If one mathematical claim in `Findings` or `Claimed strategy` can be tested by a small bounded computation, copy that exact claim into `## Counterexample target` and provide ONE short Python script (standard library only, no imports of os/subprocess/network, no file access, prints its verdict) that tests only that claim.",
+		"- If no precise report claim is suitable, write `none` under `## Counterexample target` and do not provide a script.",
 		"- The script must print `counterexample_found: true` or `counterexample_found: false` as its last line.",
 		"- Do not fabricate citations. Write user-facing notes only.",
 		"",
 		'- In `## Verdict`, answer with exactly one of: accepted | needs-revision | rejected. Say "rejected" only when the step fails its stated acceptance criteria or its central claim is wrong; a rejected step is not treated as completed.',
+		"- If a mathematical claim in the report is false, incorrect, or wrong as written, identify it under `## Concerns` and return `rejected`.",
 		"",
 		"Return markdown with these headings:",
 		"## Verdict",
 		"## Concerns",
+		"## Counterexample target",
 		"## Counterexample script",
 	].join("\n");
+}
+
+function resolveCounterexampleTarget(
+	requestedTarget: string | undefined,
+	report: ResearchWorkstreamReportRecord,
+): string | undefined {
+	const normalized = requestedTarget?.replace(/\s+/g, " ").trim();
+	if (!normalized || /^(?:none|n\/a|not applicable)\.?$/i.test(normalized)) {
+		return undefined;
+	}
+	const testableClaims = [...report.findings, ...report.promisingStrategy];
+	return testableClaims.find((claim) => normalizeConcern(claim) === normalizeConcern(normalized));
 }
 
 function formatReportForSkeptic(report: ResearchWorkstreamReportRecord): string {
@@ -327,8 +358,84 @@ function bullets(items: readonly string[]): string[] {
 	return items.length > 0 ? items.map((item) => `- ${item}`) : ["- (none)"];
 }
 
+function formatComputationalEvidenceForSkeptic(
+	state: CoMathProjectState,
+	report: ResearchWorkstreamReportRecord,
+): string[] {
+	const linkedArtifacts = getComputationalArtifactsForReport(state, report.id);
+	const outputArtifacts = linkedArtifacts
+		.filter((artifact) => artifact.kind !== "script")
+		.sort((left, right) => artifactSummaryPriority(left.kind) - artifactSummaryPriority(right.kind))
+		.slice(0, MAX_SKEPTIC_ARTIFACT_SUMMARIES);
+	if (outputArtifacts.length === 0) {
+		return linkedArtifacts.length === 0
+			? ["Linked computational evidence: (none)"]
+			: ["Linked computational evidence: no durable output summary is available; raw script text is omitted."];
+	}
+
+	const lines = [
+		"Linked computational evidence (bounded durable output summaries; do not call a result missing merely because the report body omits its full table):",
+	];
+	let remainingChars = MAX_SKEPTIC_ARTIFACT_CONTEXT_CHARS;
+	for (const artifact of outputArtifacts) {
+		const exitCode = artifact.exitCode === undefined ? "" : `, exit ${artifact.exitCode}`;
+		const prefix = `- ${artifact.title} [${artifact.kind}, ${artifact.status}${exitCode}]: `;
+		const summary = artifact.summary.replace(/\s+/g, " ").trim();
+		const availableSummaryChars = Math.min(MAX_SKEPTIC_ARTIFACT_SUMMARY_CHARS, remainingChars - prefix.length);
+		if (availableSummaryChars < 40) {
+			break;
+		}
+		const boundedSummary =
+			summary.length <= availableSummaryChars
+				? summary
+				: `${summary.slice(0, Math.max(0, availableSummaryChars - 3))}...`;
+		const line = `${prefix}${boundedSummary}`;
+		lines.push(line);
+		remainingChars -= line.length;
+	}
+	const omittedCount = linkedArtifacts.filter((artifact) => artifact.kind !== "script").length - (lines.length - 1);
+	if (omittedCount > 0) {
+		lines.push(`- (${omittedCount} additional output record${omittedCount === 1 ? "" : "s"} omitted)`);
+	}
+	return lines;
+}
+
+function stateForSkepticContext(state: CoMathProjectState, report: ResearchWorkstreamReportRecord): CoMathProjectState {
+	const linkedIds = new Set(report.computationalArtifactIds);
+	return {
+		...state,
+		computationalArtifacts: state.computationalArtifacts.filter(
+			(artifact) => artifact.kind !== "script" && artifact.reportId !== report.id && !linkedIds.has(artifact.id),
+		),
+	};
+}
+
+function artifactSummaryPriority(kind: "script" | "stdout" | "stderr" | "table" | "summary"): number {
+	switch (kind) {
+		case "table":
+			return 0;
+		case "stdout":
+			return 1;
+		case "summary":
+			return 2;
+		case "stderr":
+			return 3;
+		case "script":
+			return 4;
+	}
+}
+
 function classifyConcern(concern: string): ResearchEvidenceClassification {
-	return /\b(?:conflict|contradict|inconsistent|counterexample)\b/i.test(concern) ? "conflicting" : "unsupported";
+	return isDirectFactualContradiction(concern) ||
+		/\b(?:conflicts?|contradicts?|inconsistent|counterexamples?)\b/i.test(concern)
+		? "conflicting"
+		: "unsupported";
+}
+
+function isDirectFactualContradiction(concern: string): boolean {
+	return /\b(?:is|are|was|were)\s+(?:(?:mathematically|factually)\s+)?(?:false|incorrect|wrong)(?:\s+as\s+written)?\b/i.test(
+		concern,
+	);
 }
 
 function normalizeConcern(text: string): string {
@@ -343,7 +450,8 @@ function isNoConcernLine(text: string): boolean {
 // A remark that explicitly says nothing is wrong is review commentary, not a deficiency; it must
 // not become an obligation gap, a scrutiny note, and an "unsupported claim" all at once.
 const NON_DEFICIENCY_CONCERN =
-	/\b(?:is|are|was|were)\s+handled\s+(?:honestly|correctly|properly|appropriately|well)\b|\bno\s+(?:serious|major|real)?\s*overclaims?\b|\blooks\s+(?:correct|sound|fine)\b/i;
+	/\b(?:is|are|was|were)\s+handled\s+(?:honestly|correctly|properly|appropriately|well)\b|\bno\s+(?:(?:new|serious|major|real|substantive)\s*)*concerns?\b|\bno\s+(?:serious|major|real)?\s*overclaims?\b|\blooks\s+(?:correct|sound|fine)\b|\b(?:report|step|argument|analysis)\s+(?:explicitly\s+)?(?:acknowledges|states|notes)\s+(?:this|the)\s+(?:limitation|caveat)\b|\b(?:is|are)\s+careful\s+not\s+to\b|\bcorrectly\s+(?:separates?|distinguishes?|states?|notes?)\b/i;
+const CONCERN_CLAUSE_BOUNDARY = /(?:[.!?;,]\s*|\s+)(?:however|but|yet|nevertheless)\b[:,]?\s*|[.!?;]+\s+/i;
 
 /**
  * Normalize one concern bullet: a heading fragment ("Named theorem audit:") is trimmed back to its
@@ -356,7 +464,14 @@ function normalizeUsableConcern(text: string): string {
 	if (/[:;,]$/.test(normalized)) {
 		normalized = normalized.replace(/[^.!?]*$/, "").trim();
 	}
-	if (normalized.length < 12 || NON_DEFICIENCY_CONCERN.test(normalized)) {
+	if (NON_DEFICIENCY_CONCERN.test(normalized)) {
+		normalized = normalized
+			.split(CONCERN_CLAUSE_BOUNDARY)
+			.map((clause) => clause.trim())
+			.filter((clause) => clause.length > 0 && !isNoConcernLine(clause) && !NON_DEFICIENCY_CONCERN.test(clause))
+			.join(" ");
+	}
+	if (normalized.length < 12) {
 		return "";
 	}
 	return normalized;

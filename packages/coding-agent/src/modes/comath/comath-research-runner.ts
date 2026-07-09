@@ -625,6 +625,16 @@ export class CoMathResearchRunner {
 		const now = new Date().toISOString();
 		let nextState = persistResearchWorkstreamReport(state, path, report, now);
 		const finalReportId = nextState.researchReports.at(-1)?.id;
+		if (finalReportId) {
+			for (const artifactId of report.computationalArtifactIds ?? []) {
+				nextState = updateComputationalArtifact(nextState, {
+					artifactId,
+					reportId: finalReportId,
+					now,
+					actor: "system",
+				});
+			}
+		}
 		nextState = this.persistDisciplineRecords(nextState, report, path.id, finalReportId, now);
 		nextState = updateResearchWorkstreamRun(nextState, {
 			runId,
@@ -1209,6 +1219,23 @@ function addEvidenceBoardEntriesForReport(
 			actor: "synthesizer",
 		});
 	}
+	for (const finding of report.findings) {
+		const theoremClaim = explicitlyProvedFinding(finding);
+		if (!theoremClaim) {
+			continue;
+		}
+		nextState = addResearchEvidenceBoardEntry(nextState, {
+			pathId: report.pathId,
+			reportId: report.id,
+			claim: theoremClaim,
+			classification: "theorem",
+			claimCategory: "verified-fact",
+			rationale:
+				"The final report explicitly labels this result proved; it is durable theorem-level progress, not support for the root unless it states the root claim.",
+			now,
+			actor: "synthesizer",
+		});
+	}
 	for (const gap of report.gaps.filter((candidate) => isEvidenceWorthyGap(candidate)).slice(0, 3)) {
 		nextState = addResearchEvidenceBoardEntry(nextState, {
 			pathId: report.pathId,
@@ -1235,6 +1262,14 @@ function addEvidenceBoardEntriesForReport(
 	return nextState;
 }
 
+/** Only an explicit final `Proved:` finding becomes theorem-level durable evidence. */
+function explicitlyProvedFinding(finding: string): string | undefined {
+	const normalized = finding.replace(/\s+/g, " ").trim();
+	const match = /^(?:\*\*)?proved\s*:(?:\*\*)?\s*(.+)$/i.exec(normalized);
+	const claim = match?.[1]?.trim();
+	return claim && claim.length > 0 ? claim : undefined;
+}
+
 /**
  * Whether a report gap belongs on the evidence board as an unsupported claim. Imperative rules
  * ("Do not cite X as proving Y") are constraints and already persist as constraint records; label
@@ -1248,7 +1283,7 @@ function isEvidenceWorthyGap(gap: string): boolean {
 	return !/^(?:do not|don't|never|avoid)\b/i.test(normalized);
 }
 
-function classifyLiteratureSupport(support: LiteratureClaimSupport): ResearchEvidenceClassification {
+export function classifyLiteratureSupport(support: LiteratureClaimSupport): ResearchEvidenceClassification {
 	if (support.status === "conflicting") {
 		return "conflicting";
 	}
@@ -1256,6 +1291,16 @@ function classifyLiteratureSupport(support: LiteratureClaimSupport): ResearchEvi
 		return "unsupported";
 	}
 	const text = `${support.claim} ${support.note ?? ""}`.toLowerCase();
+	if (
+		/\b(?:preprint|manuscript|paper|source)\b/.test(text) &&
+		/\b(?:claim|claims|claimed|claiming|propose|proposes|proposed|purport|purports|purported)\b/.test(text) &&
+		/\b(?:proof|theorem|result)\b/.test(text) &&
+		/\b(?:not accepted|not peer[- ]reviewed|unreviewed|unverified|not independently (?:verified|validated)|without independent (?:verification|validation)|needs? independent (?:verification|validation)|requires? independent (?:verification|validation)|awaiting (?:verification|validation))\b/.test(
+			text,
+		)
+	) {
+		return "survey-context";
+	}
 	if (/\b(?:conjecture|conjectural|hypothesis|open|unresolved)\b/.test(text)) {
 		return "conjecture";
 	}

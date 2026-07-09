@@ -958,7 +958,7 @@ describe("co-math review gating and task-kind execution", () => {
 						"## Promising strategy",
 						"- Globalize the local vanishing.",
 						"## Findings",
-						"- Local non-obstruction holds on the cover.",
+						"- **Proved:** Local non-obstruction holds on the cover.",
 						"## Gap",
 						"- Globalization is open.",
 						"## Next",
@@ -1055,7 +1055,16 @@ describe("co-math review gating and task-kind execution", () => {
 				kind: "proof-attempt",
 				status: "completed",
 				reviewOutcome: "accepted",
+				progressKind: "mathematical",
 			});
+			expect(state?.researchEvidenceBoard).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						claim: "Local non-obstruction holds on the cover.",
+						classification: "theorem",
+					}),
+				]),
+			);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -1205,6 +1214,8 @@ describe("co-math review gating and task-kind execution", () => {
 				"needs-revision",
 				"## Concerns",
 				"- The globalization step is asserted without an argument.",
+				"## Counterexample target",
+				"**Proved:** Local non-obstruction holds on the cover.",
 				"## Counterexample script",
 				"```python",
 				"print('counterexample_found: false')",
@@ -1225,9 +1236,9 @@ describe("co-math review gating and task-kind execution", () => {
 			const task = state?.researchPlanTasks[0];
 			expect(task).toMatchObject({ status: "completed", reviewOutcome: "completed-with-concerns" });
 			// The skeptic's own script and evidence stay linked to the task but never count as the
-			// step's mathematical output.
+			// step's mathematical output; the report's proved local lemma does.
 			expect(task?.computationalArtifactIds.length).toBeGreaterThan(0);
-			expect(task?.progressKind).toBe("status");
+			expect(task?.progressKind).toBe("mathematical");
 			expect(notices.join("\n")).toContain(
 				"The independent review raised concerns; they are recorded with the step.",
 			);

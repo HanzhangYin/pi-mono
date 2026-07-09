@@ -21,6 +21,7 @@ import type {
 import { runSkepticGate } from "../src/modes/comath/comath-research-skeptic.ts";
 import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
+	addComputationalArtifact,
 	addResearchPath,
 	addResearchPlan,
 	addResearchPlanTask,
@@ -368,7 +369,11 @@ describe("co-math research skeptic", () => {
 		return state;
 	}
 
-	function fakeComputationalExecutor(stdout: string): {
+	function fakeComputationalExecutor(
+		stdout: string,
+		exitCode = 0,
+		stderr = "",
+	): {
 		computationalExecutor: ComputationalExecutor;
 		drafts: ComputationalScriptDraft[];
 	} {
@@ -380,9 +385,9 @@ describe("co-math research skeptic", () => {
 					drafts.push(draft);
 					return {
 						command: "python3 skeptic-check.py",
-						exitCode: 0,
+						exitCode,
 						stdout,
-						stderr: "",
+						stderr,
 						durationMs: 4,
 						scriptFileName: "skeptic-check.py",
 						stdoutFileName: "stdout.txt",
@@ -405,6 +410,8 @@ describe("co-math research skeptic", () => {
 				"## Concerns",
 				"- The claimed 6k ± 1 form silently assumes both members are greater than 3.",
 				"- The pattern is not yet proved for all pairs.",
+				"## Counterexample target",
+				"Checked the 6k ± 1 pattern for pairs below 100.",
 				"## Counterexample script",
 				"```python",
 				"pairs = [(3, 5)]",
@@ -453,6 +460,118 @@ describe("co-math research skeptic", () => {
 		).toBe(true);
 	});
 
+	it("gives the skeptic bounded output summaries for linked computations without raw scripts", async () => {
+		let state = stateWithReport();
+		state = addComputationalArtifact(state, {
+			pathId: "path-2",
+			reportId: "research-report-1",
+			kind: "script",
+			status: "completed",
+			title: "Factorization search script",
+			summary: "SECRET_RAW_SCRIPT = True\nraise SystemExit(1)",
+			now: NOW,
+		});
+		state = addComputationalArtifact(state, {
+			pathId: "path-2",
+			reportId: "research-report-1",
+			kind: "stdout",
+			status: "completed",
+			title: "Factorization search output",
+			exitCode: 0,
+			summary: `checked_n: 200\nprime_values: 34\n${"factorization_row ".repeat(120)}`,
+			now: NOW,
+		});
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor, prompts } = staticExecutor("## Verdict\naccepted\n## Concerns\n- None.");
+
+		await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		const prompt = prompts[0] ?? "";
+		expect(prompt).toContain("Linked computational evidence");
+		expect(prompt).toContain("Factorization search output [stdout, completed, exit 0]");
+		expect(prompt).toContain("checked_n: 200 prime_values: 34");
+		expect(prompt).not.toContain("SECRET_RAW_SCRIPT");
+		const artifactContext = prompt.slice(
+			prompt.indexOf("Linked computational evidence"),
+			prompt.indexOf("Root question:"),
+		);
+		expect(artifactContext.length).toBeLessThan(4_000);
+	});
+
+	it.each(["false", "incorrect", "wrong as written"])(
+		"classifies a claim called %s as conflicting and rejects the step",
+		async (description) => {
+			const state = stateWithReport();
+			const task = getResearchPlanTasks(state, "research-plan-1")[0];
+			if (!task) {
+				throw new Error("Expected a plan task.");
+			}
+			const concern = `The quadratic-residue claim is ${description} because q was not assumed prime.`;
+			const { executor } = staticExecutor(
+				["## Verdict", "needs-revision", "## Concerns", `- ${concern}`].join("\n"),
+			);
+
+			const result = await runSkepticGate({
+				state,
+				task,
+				reportId: "research-report-1",
+				executor,
+				artifactDirectory: ".pi/co-math/artifacts/x",
+				workingDirectory: "/tmp/unused",
+				now: NOW,
+			});
+
+			expect(result).toMatchObject({ verdict: "rejected", concerns: [concern] });
+			expect(result.state.researchEvidenceBoard.at(-1)).toMatchObject({
+				claim: concern,
+				classification: "conflicting",
+			});
+		},
+	);
+
+	it.each(["; however", ", but"])("preserves a substantive concern after the contrast marker %s", async (contrast) => {
+		const state = stateWithReport();
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor } = staticExecutor(
+			[
+				"## Verdict",
+				"needs-revision",
+				"## Concerns",
+				`- No new concerns${contrast} the acceptance criterion is unmet because the universal case remains unproved.`,
+			].join("\n"),
+		);
+
+		const result = await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		expect(result).toMatchObject({
+			verdict: "needs-revision",
+			concerns: ["the acceptance criterion is unmet because the universal case remains unproved."],
+		});
+		expect(result.state.researchEvidenceBoard.at(-1)).toMatchObject({ classification: "unsupported" });
+	});
+
 	it("filters heading fragments and non-deficiency remarks out of concerns", async () => {
 		const state = stateWithReport();
 		const task = getResearchPlanTasks(state, "research-plan-1")[0];
@@ -490,6 +609,119 @@ describe("co-math research skeptic", () => {
 		expect(result.state.researchEvidenceBoard.some((entry) => entry.claim.includes("Named theorem audit"))).toBe(
 			false,
 		);
+	});
+
+	it("accepts a review whose only remarks affirm the report's stated limits", async () => {
+		const state = stateWithReport();
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor } = staticExecutor(
+			[
+				"## Verdict",
+				"needs-revision",
+				"## Concerns",
+				"- No new substantive concerns. The report is careful not to infer infinitude from the bounded check.",
+				"- The report explicitly acknowledges this limitation.",
+			].join("\n"),
+		);
+
+		const result = await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		expect(result).toMatchObject({ verdict: "accepted", concerns: [] });
+		expect(result.state.marginNotes).toEqual([]);
+		expect(result.state.researchEvidenceBoard).toEqual([]);
+	});
+
+	it("records a failed bounded check as inconclusive instead of a clean result", async () => {
+		const state = stateWithReport();
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor } = staticExecutor(
+			[
+				"## Verdict",
+				"accepted",
+				"## Concerns",
+				"- None.",
+				"## Counterexample target",
+				"Checked the 6k ± 1 pattern for pairs below 100.",
+				"## Counterexample script",
+				"```python",
+				"print('counterexample_found: false')",
+				"```",
+			].join("\n"),
+		);
+		const { computationalExecutor } = fakeComputationalExecutor("", 124, "Timed out after 10000ms.");
+
+		const result = await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			computationalExecutor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		expect(result.counterexampleFound).toBe(false);
+		expect(result.state.computationalArtifacts).toEqual(
+			expect.arrayContaining([expect.objectContaining({ status: "failed", exitCode: 124 })]),
+		);
+		const check = result.state.researchEvidenceBoard.at(-1);
+		expect(check).toMatchObject({ classification: "unsupported" });
+		expect(check?.claim).toContain("was inconclusive");
+		expect(check?.claim).not.toContain("did not find a counterexample");
+	});
+
+	it("does not run a counterexample script whose target is not a report claim", async () => {
+		const state = stateWithReport();
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor } = staticExecutor(
+			[
+				"## Verdict",
+				"needs-revision",
+				"## Concerns",
+				"- The local argument needs a separate exception check.",
+				"## Counterexample target",
+				"Are there infinitely many twin primes?",
+				"## Counterexample script",
+				"```python",
+				"print('counterexample_found: true')",
+				"```",
+			].join("\n"),
+		);
+		const { computationalExecutor, drafts } = fakeComputationalExecutor("counterexample_found: true\n");
+
+		const result = await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			computationalExecutor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		expect(drafts).toEqual([]);
+		expect(result.counterexampleFound).toBe(false);
+		expect(result.computationalArtifactIds).toEqual([]);
+		expect(result.state.researchEvidenceBoard.some((entry) => entry.classification === "conflicting")).toBe(false);
 	});
 
 	it("degrades to no concerns when the skeptic model fails", async () => {
@@ -610,6 +842,8 @@ describe("co-math director-driven harness flow", () => {
 							"needs-revision",
 							"## Concerns",
 							"- The pair (3, 5) is excluded without justification in one step.",
+							"## Counterexample target",
+							"The 6k ± 1 pattern holds below the checked bound.",
 							"## Counterexample script",
 							"```python",
 							"print('counterexample_found: false')",
