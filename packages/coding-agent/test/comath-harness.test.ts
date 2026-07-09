@@ -144,15 +144,17 @@ const TWIN_PRIME_LITERATURE_SOURCES: LiteratureSourceResult[] = [
 		kind: "paper",
 		title: "Twin prime conjecture status note",
 		url: "https://example.test/twin-prime-status",
-		summary: "The twin-prime conjecture remains open.",
-		extractedText: "The twin-prime conjecture remains open.",
+		summary: "A number-theory sieve survey of known reductions states that the twin-prime conjecture remains open.",
+		extractedText:
+			"This number-theory survey reviews sieve reductions for twin primes. The twin-prime conjecture remains open.",
 	},
 	{
 		kind: "paper",
 		title: "Bounded gaps between primes",
 		url: "https://example.test/bounded-gaps",
-		summary: "Bounded prime gaps are weaker than twin-prime infinitude.",
-		extractedText: "A bounded gap need not be exactly 2.",
+		summary:
+			"A number-theory comparison of known reductions explains that bounded prime gaps are weaker than twin-prime infinitude.",
+		extractedText: "The sieve comparison concerns twin primes, but a bounded prime gap need not be exactly 2.",
 	},
 ];
 
