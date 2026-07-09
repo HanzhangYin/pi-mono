@@ -11,7 +11,12 @@
  */
 
 import { extractCoMathJsonObject } from "./comath-markdown.ts";
-import { deriveResearchAgenda, describeAgendaProvenance, violatesRejectedRoute } from "./comath-research-agenda.ts";
+import {
+	deriveResearchAgenda,
+	describeAgendaProvenance,
+	repeatsPlannedResearchTask,
+	violatesRejectedRoute,
+} from "./comath-research-agenda.ts";
 import { buildResearchContextPack } from "./comath-research-context.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import {
@@ -453,6 +458,11 @@ function validateTaskDraft(state: CoMathProjectState, raw: Record<string, unknow
 				.slice(0, MAX_ACCEPTANCE_CRITERIA)
 				.map((item) => truncate(item.trim(), 200))
 		: [];
+	// A task that restates already-planned or already-completed work is repetition, not progress,
+	// unless it sharpens the target with an acceptance criterion the earlier task did not have.
+	if (repeatsPlannedResearchTask(state, { kind, title, description, acceptanceCriteria })) {
+		return undefined;
+	}
 	const needsPath =
 		kind === "literature-search" ||
 		kind === "source-refresh" ||

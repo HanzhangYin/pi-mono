@@ -10,6 +10,7 @@ import {
 	getCoMathMarkdownSectionItems as sectionItems,
 	stripCoMathBulletMarker as stripBulletMarker,
 } from "./comath-markdown.ts";
+import { pickSuggestedNextMove } from "./comath-research-discipline.ts";
 import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
@@ -668,22 +669,6 @@ function defaultGaps(execution: ComputationalExecutionResult): string[] {
 	return execution.exitCode === 0
 		? ["The checked finite range does not bridge to a theorem-level infinite statement."]
 		: ["The computational experiment needs repair before it can inform this path."];
-}
-
-function pickSuggestedNextMove(items: string[]): string | undefined {
-	const substantive = items
-		.map((item) =>
-			item
-				.trim()
-				.replace(
-					/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:\s*/i,
-					"",
-				)
-				.replace(/^next\s*:\s*/i, "")
-				.trim(),
-		)
-		.filter((item) => item.length > 0 && !/^[-\w\s]+:$/.test(item));
-	return substantive.length > 0 ? substantive.slice(0, 3).join(" ") : undefined;
 }
 
 function buildComputationContext(selection: ScriptSelection, execution: ComputationalExecutionResult): string {

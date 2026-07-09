@@ -130,6 +130,61 @@ describe("co-math research director", () => {
 		expect(result.plan.objective).toBe("Pin down the parity structure before attempting a proof.");
 	});
 
+	it("drops a proposed task that restates completed work without a sharper acceptance criterion", async () => {
+		let state = createTwinPrimeState();
+		state = addResearchPlan(state, { title: "Earlier plan", objective: "Progress.", now: NOW, actor: "human" });
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "computation",
+			title: "Count twin primes in a bounded range",
+			description: "Bounded count of twin primes to observe density.",
+			acceptanceCriteria: ["A count for the bounded range is recorded."],
+			pathId: "path-1",
+			now: NOW,
+			actor: "human",
+		});
+		state = updateResearchPlanTask(state, {
+			taskId: getResearchPlanTasks(state, "research-plan-1")[0]?.id ?? "",
+			status: "completed",
+			completedAt: NOW,
+			now: NOW,
+		});
+		const { executor } = staticExecutor(
+			JSON.stringify({
+				objective: "Continue from what was counted.",
+				tasks: [
+					{
+						kind: "computation",
+						title: "Count twin primes in a bounded range",
+						description: "Bounded count of the twin primes to observe density.",
+						goal: "Collect density evidence.",
+						acceptanceCriteria: ["A count for the bounded range is recorded."],
+						pathNumber: 1,
+					},
+					{
+						kind: "computation",
+						title: "Count twin primes in a bounded range",
+						description: "Bounded count of twin primes to observe density.",
+						goal: "Collect finer density evidence.",
+						acceptanceCriteria: ["Counts extend to 10^7 with gaps between consecutive twin pairs recorded."],
+						pathNumber: 1,
+					},
+					{ kind: "synthesis", title: "Summarize", description: "Fold into working paper." },
+				],
+			}),
+		);
+
+		const result = await proposeResearchPlan(state, { executor, now: NOW, actor: "human" });
+
+		expect(result.source).toBe("model");
+		const tasks = getResearchPlanTasks(result.state, result.plan.id);
+		// The verbatim repeat is gone; the refinement that names a new bound and statistic survives.
+		expect(tasks.map((task) => task.kind)).toEqual(["computation", "synthesis"]);
+		expect(tasks[0]?.acceptanceCriteria).toEqual([
+			"Counts extend to 10^7 with gaps between consecutive twin pairs recorded.",
+		]);
+	});
+
 	it("falls back to the deterministic planner when the model output is unusable", async () => {
 		const state = createTwinPrimeState();
 		const { executor } = staticExecutor("I think we should try several things, in no particular order.");

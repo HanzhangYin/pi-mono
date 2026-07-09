@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import { normalizeTheoremKey, textsNearlyMatch } from "./comath-text-similarity.ts";
+import {
+	mathClaimsNearlyMatch,
+	namesDifferentMathExpressions,
+	normalizeTheoremKey,
+	stripMathDecorations,
+	textsNearlyMatch,
+} from "./comath-text-similarity.ts";
 import type {
 	ArtifactKind,
 	ArtifactRecord,
@@ -1650,6 +1656,29 @@ export function addResearchEvidenceBoardEntry(
 	state: CoMathProjectState,
 	input: AddResearchEvidenceBoardEntryInput,
 ): CoMathProjectState {
+	return upsertResearchEvidenceBoardEntry(state, input).state;
+}
+
+export interface UpsertResearchEvidenceBoardEntryResult {
+	state: CoMathProjectState;
+	/** The id of the entry now carrying this claim: the new entry, or the duplicate it merged into. */
+	entryId: string;
+	/** True when the claim restated an existing entry and was merged instead of appended. */
+	merged: boolean;
+}
+
+/**
+ * Record an evidence-board entry, merging restatements instead of appending them. The same
+ * gap/limitation/claim routinely arrives from several origins (report gaps, margin notes, reviewer
+ * concerns, claim supports) in slightly different wording; those merge into the first entry —
+ * keeping its text and rationale — with the newcomer's source and computation links folded in so
+ * no provenance is lost. Claims that name different mathematics are never merged, and lineage
+ * records (statement revisions) always append: a revised statement is deliberately a new entry.
+ */
+export function upsertResearchEvidenceBoardEntry(
+	state: CoMathProjectState,
+	input: AddResearchEvidenceBoardEntryInput,
+): UpsertResearchEvidenceBoardEntryResult {
 	const claim = input.claim.trim();
 	const rationale = input.rationale.trim();
 	if (!claim) {
@@ -1660,15 +1689,52 @@ export function addResearchEvidenceBoardEntry(
 	}
 	const sourceIds = uniqueStrings(input.sourceIds ?? []);
 	const computationalArtifactIds = uniqueStrings(input.computationalArtifactIds ?? []);
-	const duplicate = state.researchEvidenceBoard.find(
-		(entry) =>
-			entry.reportId === input.reportId &&
-			entry.claimSupportId === input.claimSupportId &&
-			entry.marginNoteId === input.marginNoteId &&
-			entry.claim.trim().toLowerCase() === claim.toLowerCase(),
-	);
+	const isLineageRecord = !!input.parentEntryId?.trim();
+	const duplicate = isLineageRecord
+		? undefined
+		: state.researchEvidenceBoard.find(
+				(entry) =>
+					entry.classification === input.classification &&
+					entry.parentEntryId === undefined &&
+					mathClaimsNearlyMatch(entry.claim, claim),
+			);
 	if (duplicate) {
-		return state;
+		const mergedSourceIds = uniqueStrings([...duplicate.sourceIds, ...sourceIds]);
+		const mergedComputationalArtifactIds = uniqueStrings([
+			...duplicate.computationalArtifactIds,
+			...computationalArtifactIds,
+		]);
+		const linksChanged =
+			mergedSourceIds.length !== duplicate.sourceIds.length ||
+			mergedComputationalArtifactIds.length !== duplicate.computationalArtifactIds.length;
+		if (!linksChanged) {
+			return { state, entryId: duplicate.id, merged: true };
+		}
+		const nextState = appendEvent(
+			{
+				...state,
+				researchEvidenceBoard: state.researchEvidenceBoard.map((entry) =>
+					entry.id === duplicate.id
+						? {
+								...entry,
+								sourceIds: mergedSourceIds,
+								computationalArtifactIds: mergedComputationalArtifactIds,
+								updatedAt: input.now,
+							}
+						: entry,
+				),
+				updatedAt: input.now,
+			},
+			{
+				kind: "research_evidence_board_entry_recorded",
+				actor: input.actor,
+				summary: `Merged a restated claim into evidence board entry ${duplicate.id}`,
+				subjectId: duplicate.id,
+				relatedIds: uniqueStrings([...sourceIds, ...computationalArtifactIds]),
+				now: input.now,
+			},
+		);
+		return { state: nextState, entryId: duplicate.id, merged: true };
 	}
 	const id = input.id?.trim() || `evidence-board-${state.researchEvidenceBoard.length + 1}`;
 	if (state.researchEvidenceBoard.some((entry) => entry.id === id)) {
@@ -1698,7 +1764,7 @@ export function addResearchEvidenceBoardEntry(
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
-	return appendEvent(
+	const nextState = appendEvent(
 		{
 			...state,
 			researchEvidenceBoard: [...state.researchEvidenceBoard, entry],
@@ -1720,6 +1786,7 @@ export function addResearchEvidenceBoardEntry(
 			now: input.now,
 		},
 	);
+	return { state: nextState, entryId: id, merged: false };
 }
 
 /**
@@ -2472,8 +2539,13 @@ export function addResearchConstraint(
 	if (!text) {
 		throw new Error("Research constraint requires text.");
 	}
+	// Compare with decorations stripped so a rule restated with examples, source labels, or LaTeX
+	// wrappers ("Do not infer X from Y (e.g. [source-2]'s $X^2+Y^4$)") is subsumed by the plain
+	// version already on record rather than accumulating alongside it.
 	const duplicate = state.researchConstraints.some(
-		(constraint) => constraint.status === "active" && textsNearlyMatch(constraint.text, text),
+		(constraint) =>
+			constraint.status === "active" &&
+			textsNearlyMatch(stripMathDecorations(constraint.text), stripMathDecorations(text)),
 	);
 	if (duplicate) {
 		return state;
@@ -2546,10 +2618,11 @@ export function getActiveResearchConstraints(state: CoMathProjectState): Researc
 
 /**
  * Record an explicit theorem applicability check against the current object. A check that names
- * the same theorem (up to source labels and parentheticals) with the same verdict as an existing
- * record is ignored: re-deriving "Friedlander–Iwaniec is rejected as a direct route" in a later
- * run is confirmation, not a new check. A *different* verdict for the same theorem is recorded,
- * since a status can legitimately move (needs-verification → applies).
+ * the same theorem (up to source labels, parentheticals, and naming variants) with the same
+ * verdict as an existing record is ignored: re-deriving "this theorem is rejected as a direct
+ * route" in a later run is confirmation, not a new check. Checks are still recorded when they are
+ * materially different — a different verdict, a consequence that disagrees, hypotheses with no
+ * overlap, or a target naming different mathematics — since those are genuinely new findings.
  */
 export function addTheoremApplicabilityCheck(
 	state: CoMathProjectState,
@@ -2563,12 +2636,9 @@ export function addTheoremApplicabilityCheck(
 	if (!targetObject) {
 		throw new Error("Theorem applicability check requires a target object.");
 	}
-	const theoremKey = normalizeTheoremKey(theorem);
-	const duplicate =
-		theoremKey.length > 0 &&
-		state.theoremApplicabilityChecks.some(
-			(check) => check.status === input.status && normalizeTheoremKey(check.theorem) === theoremKey,
-		);
+	const duplicate = state.theoremApplicabilityChecks.some((check) =>
+		theoremChecksLikelyDuplicate(check, { theorem, targetObject, input }),
+	);
 	if (duplicate) {
 		return state;
 	}
@@ -2615,6 +2685,59 @@ export function addTheoremApplicabilityCheck(
 			now: input.now,
 		},
 	);
+}
+
+/**
+ * Whether a new check is a restatement of an existing one. Same verdict plus the same canonical
+ * theorem name is a duplicate unless the content differs materially (disagreeing consequences,
+ * hypothesis sets with no overlap, or targets naming different mathematics). Variant theorem names
+ * ("Euler's criterion" vs "Euler/quadratic-residue criterion") additionally need positive overlap
+ * in target or consequence before they count as the same check — a shared surname alone is not
+ * enough to merge two different results.
+ */
+function theoremChecksLikelyDuplicate(
+	existing: TheoremApplicabilityCheckRecord,
+	candidate: { theorem: string; targetObject: string; input: AddTheoremApplicabilityCheckInput },
+): boolean {
+	if (existing.status !== candidate.input.status) {
+		return false;
+	}
+	const existingKey = normalizeTheoremKey(existing.theorem);
+	const candidateKey = normalizeTheoremKey(candidate.theorem);
+	if (existingKey.length === 0 || candidateKey.length === 0) {
+		return false;
+	}
+	const keysEqual = existingKey === candidateKey;
+	if (!keysEqual && !textsNearlyMatch(existingKey, candidateKey, 0.8)) {
+		return false;
+	}
+	const candidateConsequence = candidate.input.consequence?.trim();
+	const consequencesAgree =
+		!!existing.consequence && !!candidateConsequence && textsNearlyMatch(existing.consequence, candidateConsequence);
+	if (existing.consequence && candidateConsequence && !consequencesAgree) {
+		return false;
+	}
+	const candidateHypotheses = (candidate.input.hypotheses ?? [])
+		.map((hypothesis) => hypothesis.hypothesis.trim())
+		.filter((hypothesis) => hypothesis.length > 0);
+	if (
+		existing.hypotheses.length > 0 &&
+		candidateHypotheses.length > 0 &&
+		!existing.hypotheses.some((hypothesis) =>
+			candidateHypotheses.some((candidateHypothesis) =>
+				textsNearlyMatch(hypothesis.hypothesis, candidateHypothesis),
+			),
+		)
+	) {
+		return false;
+	}
+	if (namesDifferentMathExpressions(existing.targetObject, candidate.targetObject)) {
+		return false;
+	}
+	if (keysEqual) {
+		return true;
+	}
+	return textsNearlyMatch(existing.targetObject, candidate.targetObject) || consequencesAgree;
 }
 
 export function getTheoremApplicabilityChecksForPath(

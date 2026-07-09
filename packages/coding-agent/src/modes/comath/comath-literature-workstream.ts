@@ -21,6 +21,7 @@ import {
 	parseNegativeConstraints,
 	parseRoutePivots,
 	parseTheoremApplicabilityChecks,
+	pickSuggestedNextMove,
 	splitHumanHelpItems,
 } from "./comath-research-discipline.ts";
 import type {
@@ -572,36 +573,6 @@ function pickItems(...candidates: string[][]): string[] {
 		if (candidate.length > 0) return candidate;
 	}
 	return [];
-}
-
-function pickSuggestedNextMove(...candidates: string[][]): string | undefined {
-	for (const candidate of candidates) {
-		const items = candidate.map(normalizeNextStepItem).filter((item) => item.length > 0);
-		if (items.length > 0) {
-			return items.slice(0, 3).join(" ");
-		}
-	}
-	return undefined;
-}
-
-function normalizeNextStepItem(item: string): string {
-	const normalized = item
-		.trim()
-		.replace(/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:\s*/i, "")
-		.replace(/^next\s*:\s*/i, "")
-		.trim();
-	if (!normalized || isHeadingLikeNextStep(normalized)) {
-		return "";
-	}
-	return normalized;
-}
-
-function isHeadingLikeNextStep(item: string): boolean {
-	return (
-		/^(?:concrete\s+)?(?:replacement\s+)?route\s*:$/i.test(item) ||
-		/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:$/i.test(item) ||
-		(/^[-\w\s]+:$/.test(item) && item.split(/\s+/).length <= 6)
-	);
 }
 
 function buildClaimSupports(input: {

@@ -31,8 +31,8 @@ import {
 	addComputationalArtifact,
 	addMarginNote,
 	addResearchConstraint,
-	addResearchEvidenceBoardEntry,
 	addTheoremApplicabilityCheck,
+	upsertResearchEvidenceBoardEntry,
 } from "./storage.ts";
 
 const MAX_SKEPTIC_CONCERNS = 3;
@@ -145,7 +145,9 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 			now: input.now,
 			actor: "reviewer",
 		});
-		nextState = addResearchEvidenceBoardEntry(nextState, {
+		// The upsert merges a concern that restates an already-recorded one, so repeated review
+		// rounds do not multiply the same complaint; the surviving entry id keeps the linkage exact.
+		const upserted = upsertResearchEvidenceBoardEntry(nextState, {
 			pathId: report.pathId,
 			reportId: report.id,
 			claim: concern,
@@ -154,10 +156,8 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 			now: input.now,
 			actor: "reviewer",
 		});
-		const entryId = nextState.researchEvidenceBoard.at(-1)?.id;
-		if (entryId) {
-			evidenceEntryIds.push(entryId);
-		}
+		nextState = upserted.state;
+		evidenceEntryIds.push(upserted.entryId);
 	}
 
 	const script = extractPythonScript(responseText);
@@ -215,7 +215,7 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 					computationalArtifactIds.push(artifactId);
 				}
 			}
-			nextState = addResearchEvidenceBoardEntry(nextState, {
+			const checkUpserted = upsertResearchEvidenceBoardEntry(nextState, {
 				pathId: report.pathId,
 				reportId: report.id,
 				computationalArtifactIds,
@@ -227,10 +227,8 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 				now: input.now,
 				actor: "reviewer",
 			});
-			const checkEntryId = nextState.researchEvidenceBoard.at(-1)?.id;
-			if (checkEntryId) {
-				evidenceEntryIds.push(checkEntryId);
-			}
+			nextState = checkUpserted.state;
+			evidenceEntryIds.push(checkUpserted.entryId);
 			if (counterexampleFound) {
 				nextState = addMarginNote(nextState, {
 					id: `margin-note-${nextState.marginNotes.length + 1}`,

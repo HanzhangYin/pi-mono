@@ -265,16 +265,76 @@ export function buildDisciplineGuidance(): string[] {
 	];
 }
 
+// Section labels and label-only lines that must never survive as next-move text.
+const NEXT_MOVE_LABEL_PREFIX =
+	/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*[:\-–—]\s*/i;
+const NEXT_MOVE_SECTION_FRAGMENT =
+	/^(?:route\s+change|concrete\s+replacement\s+route|replacement\s+route|theorem\s+check|negative\s+constraints?|pivot|from|to|reason)\b\s*[:\-–—]?\s*$/i;
+const NEXT_MOVE_EMBEDDED_ROUTE_CHANGE = /\broute\s+change\b[\s:]*\bfrom\b/i;
+
 /**
- * Make a suggested next move concrete after a rejected route: when the raw suggestion is vague and
- * a pivot (or a rejected theorem check with a consequence) was recorded, the replacement route is
- * the next move.
+ * Normalize one candidate next-move line: strip markdown and heading labels, drop section
+ * fragments the discipline parser owns ("Route change From ..."), and reject dangling fragments
+ * that end mid-thought ("... marking separately:"). Returns "" when nothing executable survives.
+ * This is the single normalizer for every workstream's `## Next` handling, so the hygiene rules
+ * cannot drift between the generic, literature, and computation paths.
+ */
+export function normalizeSuggestedNextMoveItem(item: string): string {
+	let text = stripCoMathBulletMarker(item)
+		.replace(/\*\*|__|`/g, "")
+		.replace(/^#+\s*/, "")
+		.replace(/\s+/g, " ")
+		.trim();
+	text = text
+		.replace(NEXT_MOVE_LABEL_PREFIX, "")
+		.replace(/^next\s*:\s*/i, "")
+		.trim();
+	if (text.length === 0 || NEXT_MOVE_SECTION_FRAGMENT.test(text)) {
+		return "";
+	}
+	// A short "Some label:" line is a heading, not a move.
+	if (/^[-\w\s]+:$/.test(text) && text.split(/\s+/).length <= 6) {
+		return "";
+	}
+	// Structured route-change content belongs to the pivot parser; leaking it here would persist
+	// fragments like "Route change From literature search to ..." as the plan's next move.
+	if (NEXT_MOVE_EMBEDDED_ROUTE_CHANGE.test(text)) {
+		return "";
+	}
+	// A dangling fragment ends mid-thought; keep the complete sentences before it, if any.
+	if (/[:;,]$/.test(text)) {
+		const completeSentences = text.replace(/[^.!?]*$/, "").trim();
+		text = completeSentences;
+	}
+	return text.length >= 8 ? text : "";
+}
+
+/**
+ * First usable next move from prioritized candidate lists (typically synthesizer first, then
+ * specialist). Items are normalized via {@link normalizeSuggestedNextMoveItem}; up to three
+ * surviving items join into one move.
+ */
+export function pickSuggestedNextMove(...candidates: readonly (readonly string[])[]): string | undefined {
+	for (const candidate of candidates) {
+		const items = candidate.map(normalizeSuggestedNextMoveItem).filter((item) => item.length > 0);
+		if (items.length > 0) {
+			return items.slice(0, 3).join(" ");
+		}
+	}
+	return undefined;
+}
+
+/**
+ * Make a suggested next move concrete after a rejected route: the raw suggestion is normalized
+ * first, and when it is vague, malformed, or empty and a pivot (or a rejected theorem check with a
+ * consequence) was recorded, the replacement route becomes the next move.
  */
 export function applyPivotsToSuggestedNextMove(
 	suggestedNextMove: string | undefined,
 	pivots: readonly ResearchPivotDraft[],
 	checks: readonly TheoremApplicabilityCheckDraft[],
 ): string | undefined {
+	const cleaned = suggestedNextMove ? normalizeSuggestedNextMoveItem(suggestedNextMove) : "";
 	const replacement =
 		[...pivots].reverse().find((pivot) => isActionableRouteText(pivot.toRoute))?.toRoute ??
 		[...checks]
@@ -286,12 +346,12 @@ export function applyPivotsToSuggestedNextMove(
 					isActionableRouteText(check.consequence),
 			)?.consequence;
 	if (!replacement) {
-		return suggestedNextMove;
+		return cleaned || undefined;
 	}
-	if (!suggestedNextMove || VAGUE_NEXT_MOVE.test(suggestedNextMove)) {
+	if (!cleaned || VAGUE_NEXT_MOVE.test(cleaned)) {
 		return `Pursue the replacement route: ${replacement}.`;
 	}
-	return suggestedNextMove;
+	return cleaned;
 }
 
 /**

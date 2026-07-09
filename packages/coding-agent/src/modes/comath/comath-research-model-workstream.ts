@@ -15,6 +15,7 @@ import {
 	parseNegativeConstraints,
 	parseRoutePivots,
 	parseTheoremApplicabilityChecks,
+	pickSuggestedNextMove,
 	splitHumanHelpItems,
 } from "./comath-research-discipline.ts";
 import { runSpecialistToolLoop, type SpecialistToolLoopResult } from "./comath-research-specialist-loop.ts";
@@ -504,36 +505,6 @@ function pickItems(...candidates: string[][]): string[] {
 		}
 	}
 	return [];
-}
-
-function pickSuggestedNextMove(...candidates: string[][]): string | undefined {
-	for (const candidate of candidates) {
-		const nextSteps = candidate.map(normalizeNextStepItem).filter((item) => item.length > 0);
-		if (nextSteps.length > 0) {
-			return nextSteps.slice(0, 3).join(" ");
-		}
-	}
-	return undefined;
-}
-
-function normalizeNextStepItem(item: string): string {
-	const normalized = item
-		.trim()
-		.replace(/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:\s*/i, "")
-		.replace(/^next\s*:\s*/i, "")
-		.trim();
-	if (!normalized || isHeadingLikeNextStep(item)) {
-		return "";
-	}
-	return normalized;
-}
-
-function isHeadingLikeNextStep(item: string): boolean {
-	const normalized = item.trim();
-	return (
-		/^(?:possible\s+)?(?:next|future)\s+(?:steps?|investigations?|directions?|moves?|work)\s*:$/i.test(normalized) ||
-		(/^[-\w\s]+:$/.test(normalized) && normalized.split(/\s+/).length <= 6)
-	);
 }
 
 interface WorkingPaperSummaryInput {

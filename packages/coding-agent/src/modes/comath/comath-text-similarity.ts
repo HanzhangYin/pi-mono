@@ -75,6 +75,69 @@ export function squashForFormulaComparison(text: string): string {
 }
 
 /**
+ * Leading provenance/wrapper labels that different roles prepend to the same underlying statement
+ * ("Unsupported by supplied sources: …", "Independent review: …"). Stripped for comparison only —
+ * durable records keep their original wording.
+ */
+const CLAIM_WRAPPER_LABEL =
+	/^(?:unsupported by (?:the )?supplied sources|conflicting with (?:the )?supplied sources|independent review|reviewer note|margin note|open (?:gap|question)|gap|concern|warning|note|claim|finding|observation|limitation)\s*[:\-–—]\s*/i;
+
+/**
+ * Normalize away presentation noise that makes the same mathematical statement look different:
+ * markdown emphasis, LaTeX delimiters, `[source-N]` labels, "e.g./i.e." parentheticals, and
+ * stacked wrapper labels. Comparison helper only; never applied to stored text.
+ */
+export function stripMathDecorations(text: string): string {
+	let result = text
+		.replace(/\*\*|__|`/g, "")
+		.replace(/\\\(|\\\)|\\\[|\\\]|\$\$?/g, " ")
+		.replace(/\[?\bsource[\s-]?\d+\]?/gi, " ")
+		.replace(/\((?:e\.?g\.?|i\.?e\.?)[^)]*\)/gi, " ")
+		.trim();
+	for (;;) {
+		const next = result.replace(CLAIM_WRAPPER_LABEL, "").trimStart();
+		if (next === result) {
+			break;
+		}
+		result = next;
+	}
+	return result.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Whether two evidence claims state essentially the same thing. Stricter than
+ * {@link textsNearlyMatch}: decorations and wrapper labels are normalized first, claims naming
+ * different math expressions are never merged, and the containment threshold is higher, because a
+ * false merge of theorem-level claims is worse than keeping a duplicate.
+ */
+export function mathClaimsNearlyMatch(a: string, b: string): boolean {
+	const strippedA = stripMathDecorations(a);
+	const strippedB = stripMathDecorations(b);
+	if (strippedA.length === 0 || strippedB.length === 0) {
+		return false;
+	}
+	if (strippedA.toLowerCase() === strippedB.toLowerCase()) {
+		return true;
+	}
+	if (namesDifferentMathExpressions(strippedA, strippedB)) {
+		return false;
+	}
+	return textsNearlyMatch(strippedA, strippedB, 0.85);
+}
+
+/** Both texts name concrete math expressions and none of them is shared (even as a fragment). */
+export function namesDifferentMathExpressions(a: string, b: string): boolean {
+	const expressionsA = extractMathExpressions(a);
+	const expressionsB = extractMathExpressions(b);
+	if (expressionsA.length === 0 || expressionsB.length === 0) {
+		return false;
+	}
+	return !expressionsA.some((expressionA) =>
+		expressionsB.some((expressionB) => expressionA.includes(expressionB) || expressionB.includes(expressionA)),
+	);
+}
+
+/**
  * Math expressions like `n^2+1` from the whitespace-squashed text; short fragments are ignored.
  * Squashing glues trailing prose onto an expression ("n^2 + 41 prime for" → "n^2+41primefor"), and
  * hyphenated words read as subtraction ("non-negative"), so trailing word runs (three or more

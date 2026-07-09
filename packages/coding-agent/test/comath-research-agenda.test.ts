@@ -385,8 +385,11 @@ describe("co-math continuation harness flow", () => {
 			expect(continuation[0]?.kind).toBe("computation");
 			expect(continuation.some((task) => /vinogradov/i.test(`${task.title} ${task.description}`))).toBe(false);
 			expect(continuation.some((task) => task.title === "Check the literature for known results")).toBe(false);
+			// The generic computation fallback is suppressed as a repeat: the first plan already ran a
+			// bounded computation and this restatement names no new bound or methodology. The pivot
+			// task above carries the computational direction instead.
 			expect(continuation.some((task) => task.title === "Build direct evidence with bounded computations")).toBe(
-				true,
+				false,
 			);
 			expect(continuation.at(-1)?.kind).toBe("synthesis");
 		} finally {

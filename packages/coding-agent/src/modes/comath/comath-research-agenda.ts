@@ -15,6 +15,7 @@
  */
 
 import { DEGRADED_RESEARCH_GAP } from "./comath-research-obligations.ts";
+import { textsNearlyMatch } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
 	ResearchObligationRecord,
@@ -59,7 +60,7 @@ export function deriveResearchAgenda(state: CoMathProjectState): ResearchAgendaI
 		if (violatesRejectedRoute(state, `${item.title} ${item.description}`)) {
 			return false;
 		}
-		if (taskAlreadyPlanned(state, item.title)) {
+		if (taskAlreadyPlanned(state, item.title) || repeatsPlannedResearchTask(state, item)) {
 			return false;
 		}
 		const key = normalizeAgendaText(item.title);
@@ -135,6 +136,55 @@ export function violatesRejectedRoute(
 		const theorem = normalizeAgendaText(check.theorem);
 		return theorem.length >= 6 && normalizedText.includes(theorem);
 	});
+}
+
+/** Task kinds where repetition means wasted budget. Wrap-up kinds legitimately recur every plan. */
+const ANTI_REPEAT_TASK_KINDS = new Set<ResearchPlanTaskKind>([
+	"literature-search",
+	"source-refresh",
+	"computation",
+	"proof-attempt",
+	"refutation-attempt",
+]);
+
+export interface ResearchTaskRepeatCandidate {
+	kind: ResearchPlanTaskKind;
+	title: string;
+	description: string;
+	acceptanceCriteria?: readonly string[];
+}
+
+/**
+ * True when a proposed task restates work the plan already contains — pending, running, or
+ * completed — without sharpening it. Paraphrased wording counts as a repeat; a near-duplicate is
+ * allowed only when it carries at least one acceptance criterion the earlier task did not have, so
+ * "compute more data" must name a new bound, statistic, or corrected methodology before it runs
+ * again, and a repeated literature pass must name what to look for that the last one missed.
+ * Wrap-up kinds (synthesis, export, review, revision) are exempt: they recur by design.
+ */
+export function repeatsPlannedResearchTask(
+	state: Pick<CoMathProjectState, "researchPlanTasks">,
+	candidate: ResearchTaskRepeatCandidate,
+): boolean {
+	if (!ANTI_REPEAT_TASK_KINDS.has(candidate.kind)) {
+		return false;
+	}
+	const candidateText = `${candidate.title} ${candidate.description}`;
+	for (const task of state.researchPlanTasks) {
+		if (task.status !== "pending" && task.status !== "running" && task.status !== "completed") {
+			continue;
+		}
+		if (!textsNearlyMatch(`${task.title} ${task.description}`, candidateText, 0.8)) {
+			continue;
+		}
+		const sharpened = (candidate.acceptanceCriteria ?? []).some(
+			(criterion) => !task.acceptanceCriteria.some((existing) => textsNearlyMatch(existing, criterion)),
+		);
+		if (!sharpened) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /** A refuted statement with no repair scheduled yet comes first: everything else builds on it. */
