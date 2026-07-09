@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Added the `max` model thinking level after `xhigh`.
+
 ## [0.80.5] - 2026-07-09
 
 ## [0.80.4] - 2026-07-09
