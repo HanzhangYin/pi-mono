@@ -3,7 +3,7 @@
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { ImageContent, Model } from "@earendil-works/pi-ai";
+import type { ImageContent, Model, ProviderHeaders } from "@earendil-works/pi-ai";
 import type { KeyId } from "@earendil-works/pi-tui";
 import { type Theme, theme } from "../../modes/interactive/theme/theme.ts";
 import type { ResourceDiagnostic } from "../diagnostics.ts";
@@ -14,11 +14,13 @@ import type { BuildSystemPromptOptions } from "../system-prompt.ts";
 import type {
 	BeforeAgentStartEvent,
 	BeforeAgentStartEventResult,
+	BeforeProviderHeadersEvent,
 	BeforeProviderRequestEvent,
 	CompactOptions,
 	ContextEvent,
 	ContextEventResult,
 	ContextUsage,
+	EntryRenderer,
 	Extension,
 	ExtensionActions,
 	ExtensionCommandContext,
@@ -35,9 +37,13 @@ import type {
 	InputEvent,
 	InputEventResult,
 	InputSource,
+	LoadExtensionsResult,
 	MessageEndEvent,
 	MessageEndEventResult,
 	MessageRenderer,
+	ProjectTrustContext,
+	ProjectTrustEvent,
+	ProjectTrustEventResult,
 	ProviderConfig,
 	RegisteredCommand,
 	RegisteredTool,
@@ -116,10 +122,12 @@ interface BeforeAgentStartCombinedResult {
 type RunnerEmitEvent = Exclude<
 	ExtensionEvent,
 	| ToolCallEvent
+	| ProjectTrustEvent
 	| ToolResultEvent
 	| UserBashEvent
 	| ContextEvent
 	| BeforeProviderRequestEvent
+	| BeforeProviderHeadersEvent
 	| BeforeAgentStartEvent
 	| MessageEndEvent
 	| ResourcesDiscoverEvent
@@ -189,6 +197,38 @@ export async function emitSessionShutdownEvent(
 	return false;
 }
 
+export async function emitProjectTrustEvent(
+	extensionsResult: LoadExtensionsResult,
+	event: ProjectTrustEvent,
+	ctx: ProjectTrustContext,
+): Promise<{ result?: ProjectTrustEventResult; errors: ExtensionError[] }> {
+	const errors: ExtensionError[] = [];
+	for (const ext of extensionsResult.extensions) {
+		// A single extension may register multiple handlers for the same event.
+		// The first project_trust handler that returns yes/no wins; undecided falls through.
+		const handlers = ext.handlers.get("project_trust");
+		if (!handlers || handlers.length === 0) continue;
+
+		for (const handler of handlers) {
+			try {
+				const handlerResult = (await handler(event, ctx)) as ProjectTrustEventResult;
+				if (handlerResult.trusted === "undecided") {
+					continue;
+				}
+				return { result: handlerResult, errors };
+			} catch (error) {
+				errors.push({
+					extensionPath: ext.path,
+					event: event.type,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+				});
+			}
+		}
+	}
+	return { errors };
+}
+
 const noOpUIContext: ExtensionUIContext = {
 	select: async () => undefined,
 	confirm: async () => false,
@@ -233,6 +273,7 @@ export class ExtensionRunner {
 	private errorListeners: Set<ExtensionErrorListener> = new Set();
 	private getModel: () => Model<any> | undefined = () => undefined;
 	private isIdleFn: () => boolean = () => true;
+	private isProjectTrustedFn: () => boolean = () => true;
 	private getSignalFn: () => AbortSignal | undefined = () => undefined;
 	private waitForIdleFn: () => Promise<void> = async () => {};
 	private abortFn: () => void = () => {};
@@ -293,6 +334,7 @@ export class ExtensionRunner {
 		// Context actions (required)
 		this.getModel = contextActions.getModel;
 		this.isIdleFn = contextActions.isIdle;
+		this.isProjectTrustedFn = contextActions.isProjectTrusted;
 		this.getSignalFn = contextActions.getSignal;
 		this.abortFn = contextActions.abort;
 		this.hasPendingMessagesFn = contextActions.hasPendingMessages;
@@ -514,6 +556,16 @@ export class ExtensionRunner {
 		return undefined;
 	}
 
+	getEntryRenderer(customType: string): EntryRenderer | undefined {
+		for (const ext of this.extensions) {
+			const renderer = ext.entryRenderers?.get(customType);
+			if (renderer) {
+				return renderer;
+			}
+		}
+		return undefined;
+	}
+
 	private resolveRegisteredCommands(): ResolvedCommand[] {
 		const commands: RegisteredCommand[] = [];
 		const counts = new Map<string, number>();
@@ -610,6 +662,10 @@ export class ExtensionRunner {
 			isIdle: () => {
 				runner.assertActive();
 				return runner.isIdleFn();
+			},
+			isProjectTrusted: () => {
+				runner.assertActive();
+				return runner.isProjectTrustedFn();
 			},
 			get signal() {
 				runner.assertActive();
@@ -932,6 +988,37 @@ export class ExtensionRunner {
 		}
 
 		return currentPayload;
+	}
+
+	async emitBeforeProviderHeaders(headers: ProviderHeaders): Promise<ProviderHeaders> {
+		const ctx = this.createContext();
+
+		for (const ext of this.extensions) {
+			const handlers = ext.handlers.get("before_provider_headers");
+			if (!handlers || handlers.length === 0) continue;
+
+			for (const handler of handlers) {
+				try {
+					// Handlers mutate `headers` in place; the return value is ignored.
+					const event: BeforeProviderHeadersEvent = {
+						type: "before_provider_headers",
+						headers,
+					};
+					await handler(event, ctx);
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					const stack = err instanceof Error ? err.stack : undefined;
+					this.emitError({
+						extensionPath: ext.path,
+						event: "before_provider_headers",
+						error: message,
+						stack,
+					});
+				}
+			}
+		}
+
+		return headers;
 	}
 
 	async emitBeforeAgentStart(
