@@ -2,7 +2,7 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { ClaimStatus, CoMathProjectState } from "../src/modes/comath/schema.ts";
+import type { ClaimStatus, CoMathEventKind, CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
 	addArtifact,
 	addClaim,
@@ -738,6 +738,136 @@ describe("co-math project state", () => {
 		expect(getActiveResearchWorkstreamRun(state)).toBeUndefined();
 	});
 
+	it("persists task linkage and model-call provenance on research workstream runs", async () => {
+		let state = addResearchPath(createProject(), {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Look for a congruence obstruction.",
+			priority: 1,
+			now: FIXED_NOW,
+			actor: "human",
+		});
+		state = addResearchWorkstreamRun(state, {
+			pathId: "path-1",
+			pathTitle: "Direct proof attempt",
+			taskId: "plan-task-3",
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = updateResearchWorkstreamRun(state, {
+			runId: "research-run-1",
+			currentStage: "specialist",
+			appendModelCalls: [
+				{
+					stage: "specialist",
+					at: FIXED_NOW,
+					model: "mock-model",
+					provider: "openai",
+					thinkingLevel: "high",
+					inputTokens: 120,
+					outputTokens: 40,
+					cacheReadTokens: 5,
+					cacheWriteTokens: 6,
+					totalTokens: 171,
+					costUsd: 0.0123,
+					stopReason: "stop",
+				},
+			],
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		state = updateResearchWorkstreamRun(state, {
+			runId: "research-run-1",
+			currentStage: "critic",
+			appendModelCalls: [{ stage: "critic", at: FIXED_NOW, model: "mock-model" }],
+			now: FIXED_NOW,
+			actor: "system",
+		});
+		expect(state.researchWorkstreamRuns[0]?.taskId).toBe("plan-task-3");
+		expect(state.researchWorkstreamRuns[0]?.modelCalls?.map((call) => call.stage)).toEqual(["specialist", "critic"]);
+
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-run-provenance-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			await saveProjectState(statePath, state);
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.researchWorkstreamRuns[0]?.taskId).toBe("plan-task-3");
+			expect(loaded?.researchWorkstreamRuns[0]?.modelCalls).toEqual([
+				{
+					stage: "specialist",
+					at: FIXED_NOW,
+					model: "mock-model",
+					provider: "openai",
+					thinkingLevel: "high",
+					inputTokens: 120,
+					outputTokens: 40,
+					cacheReadTokens: 5,
+					cacheWriteTokens: 6,
+					totalTokens: 171,
+					costUsd: 0.0123,
+					stopReason: "stop",
+				},
+				{ stage: "critic", at: FIXED_NOW, model: "mock-model" },
+			]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("normalizes legacy runs without provenance fields and drops malformed model calls", async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-run-provenance-legacy-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			const legacy = createProject() as unknown as Record<string, unknown>;
+			legacy.researchWorkstreamRuns = [
+				{
+					id: "research-run-1",
+					pathId: "path-1",
+					pathTitle: "Direct proof attempt",
+					status: "completed",
+					currentStage: "synthesizer",
+					startedAt: FIXED_NOW,
+					updatedAt: FIXED_NOW,
+					incrementalReports: [],
+				},
+				{
+					id: "research-run-2",
+					pathId: "path-1",
+					pathTitle: "Direct proof attempt",
+					status: "completed",
+					currentStage: "synthesizer",
+					startedAt: FIXED_NOW,
+					updatedAt: FIXED_NOW,
+					incrementalReports: [],
+					taskId: "plan-task-9",
+					modelCalls: [
+						{ stage: "specialist", at: FIXED_NOW, model: "m", inputTokens: 10, costUsd: null, totalTokens: "12" },
+						{ at: FIXED_NOW, model: "no-stage" },
+						"garbage",
+						{ stage: "critic" },
+					],
+				},
+			];
+			await saveProjectState(statePath, legacy as unknown as CoMathProjectState);
+
+			const loaded = await loadProjectState(statePath);
+			const first = loaded?.researchWorkstreamRuns[0];
+			expect(first?.taskId).toBeUndefined();
+			expect(first?.modelCalls).toBeUndefined();
+			const second = loaded?.researchWorkstreamRuns[1];
+			expect(second?.taskId).toBe("plan-task-9");
+			// The entry without a stage and the non-object entry are dropped; non-finite or
+			// non-number token/cost values are dropped field-wise; a missing `at` falls back to
+			// the run's start time.
+			expect(second?.modelCalls).toEqual([
+				{ stage: "specialist", at: FIXED_NOW, model: "m", inputTokens: 10 },
+				{ stage: "critic", at: FIXED_NOW },
+			]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("marks stale queued and running research workstream runs failed without touching live or completed runs", () => {
 		let state = addResearchPath(createProject(), {
 			title: "Direct proof attempt",
@@ -1173,6 +1303,80 @@ describe("co-math project state", () => {
 				refutationEvidenceEntryIds: [],
 				gaps: [],
 			});
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("round-trips every current event kind through save and reload unchanged", async () => {
+		// A `true` per union member: adding a kind to CoMathEventKind without covering it here is a
+		// compile error, and a kind missing from the reload allowlist fails the round-trip below.
+		const eventKindCoverage: Record<CoMathEventKind, true> = {
+			project_initialized: true,
+			goal_added: true,
+			goal_status_changed: true,
+			workstream_added: true,
+			role_report_saved: true,
+			claim_proposed: true,
+			evidence_added: true,
+			warning_added: true,
+			warning_resolved: true,
+			review_requested: true,
+			review_decision_recorded: true,
+			claim_status_changed: true,
+			synthesis_generated: true,
+			artifact_recorded: true,
+			role_run_queued: true,
+			role_run_started: true,
+			role_run_completed: true,
+			role_run_blocked: true,
+			role_run_failed: true,
+			role_run_aborted: true,
+			role_run_cancelled: true,
+			workstream_status_changed: true,
+			human_intervention_recorded: true,
+			review_round_recorded: true,
+			report_review_round_recorded: true,
+			claim_revised: true,
+			working_paper_section_recorded: true,
+			margin_note_recorded: true,
+			margin_note_resolved: true,
+			working_paper_exported: true,
+			research_workstream_recorded: true,
+			research_workstream_run_recorded: true,
+			research_batch_recorded: true,
+			research_plan_recorded: true,
+			research_plan_task_recorded: true,
+			research_obligation_recorded: true,
+			research_constraint_recorded: true,
+			theorem_applicability_check_recorded: true,
+			research_pivot_recorded: true,
+			literature_source_recorded: true,
+			literature_search_recorded: true,
+			literature_claim_support_recorded: true,
+			research_evidence_board_entry_recorded: true,
+			computational_artifact_recorded: true,
+			research_coordinator_report_recorded: true,
+		};
+		const kinds = Object.keys(eventKindCoverage) as CoMathEventKind[];
+		const base = createProject();
+		const state: CoMathProjectState = {
+			...base,
+			events: kinds.map((kind, index) => ({
+				id: `event-${index + 1}`,
+				kind,
+				actor: "system",
+				summary: `Recorded a ${kind} event.`,
+				relatedIds: [],
+				createdAt: FIXED_NOW,
+			})),
+		};
+		const dir = await mkdtemp(path.join(tmpdir(), "comath-event-kind-roundtrip-"));
+		const statePath = path.join(dir, "state.json");
+		try {
+			await saveProjectState(statePath, state);
+			const loaded = await loadProjectState(statePath);
+			expect(loaded?.events.map((event) => event.kind)).toEqual(kinds);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

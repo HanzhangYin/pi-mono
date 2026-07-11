@@ -14,6 +14,7 @@ import type { ResearchWorkstreamModelExecutor } from "../src/modes/comath/comath
 import { DEGRADED_RESEARCH_GAP } from "../src/modes/comath/comath-research-obligations.ts";
 import {
 	buildResearchPlanTaskBlueprints,
+	chooseResearchPathForPlanTaskKind,
 	createResearchPlanFromState,
 } from "../src/modes/comath/comath-research-planner.ts";
 import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
@@ -103,6 +104,82 @@ describe("co-math research agenda", () => {
 			"refutation-attempt",
 			"synthesis",
 		]);
+	});
+
+	it("lands the twin-track default tasks on different suitable paths when two exist", () => {
+		const state = addResearchPath(createResearchState(), {
+			title: "Weaker special cases",
+			objective: "Identify tractable weaker statements, special cases, or finite checks.",
+			suggestedNextMove: "Pick a weaker statement to test.",
+			priority: 4,
+			now: NOW,
+			actor: "human",
+		});
+
+		const blueprints = buildResearchPlanTaskBlueprints(state);
+		const pathByKind = new Map(blueprints.map((blueprint) => [blueprint.kind, blueprint.pathId]));
+		expect(pathByKind.get("computation")).toBe("path-1");
+		expect(pathByKind.get("proof-attempt")).toBe("path-2");
+		// The refutation attempt spreads to the untouched computational path instead of stacking
+		// onto the path the computation task already claimed.
+		expect(pathByKind.get("refutation-attempt")).toBe("path-4");
+		// Rebuilding from the same state chooses identically: selection is deterministic.
+		expect(buildResearchPlanTaskBlueprints(state)).toEqual(blueprints);
+	});
+
+	it("prefers the least-worked suitable path with a stable tie-break by path order", () => {
+		let state = addResearchPath(createResearchState(), {
+			title: "Weaker special cases",
+			objective: "Identify tractable weaker statements, special cases, or finite checks.",
+			suggestedNextMove: "Pick a weaker statement to test.",
+			priority: 4,
+			now: NOW,
+			actor: "human",
+		});
+		// Both computational paths are untouched: the earlier path wins the tie.
+		expect(chooseResearchPathForPlanTaskKind(state, "computation")?.id).toBe("path-1");
+
+		// Recorded work on the first path moves selection to the untouched one.
+		state = addResearchEvidenceBoardEntry(state, {
+			pathId: "path-1",
+			claim: "Small cases support the statement.",
+			classification: "computation",
+			rationale: "Recorded for the coverage test.",
+			now: NOW,
+			actor: "workstream",
+		});
+		expect(chooseResearchPathForPlanTaskKind(state, "computation")?.id).toBe("path-4");
+
+		// Paths claimed while building the same plan count as work; a fresh tie falls back to path order.
+		expect(chooseResearchPathForPlanTaskKind(state, "computation", { plannedPathIds: ["path-4"] })?.id).toBe(
+			"path-1",
+		);
+	});
+
+	it("keeps twin-track tasks on the single suitable path when only one exists", () => {
+		let state = createEmptyProjectState({
+			projectId: "proj-test",
+			title: "Is every even integer greater than 2 the sum of two primes?",
+			rootQuestion: "Is every even integer greater than 2 the sum of two primes?",
+			now: NOW,
+		});
+		state = addResearchPath(state, {
+			title: "Direct proof attempt",
+			objective: "Try a direct proof.",
+			suggestedNextMove: "Check whether simple arguments apply.",
+			priority: 1,
+			now: NOW,
+			actor: "human",
+		});
+
+		const blueprints = buildResearchPlanTaskBlueprints(state);
+		expect(blueprints.map((blueprint) => blueprint.kind)).toEqual([
+			"proof-attempt",
+			"refutation-attempt",
+			"synthesis",
+		]);
+		expect(blueprints[0]?.pathId).toBe("path-1");
+		expect(blueprints[1]?.pathId).toBe("path-1");
 	});
 
 	it("puts repairing a refuted statement first and skips it when a revision is already planned", () => {

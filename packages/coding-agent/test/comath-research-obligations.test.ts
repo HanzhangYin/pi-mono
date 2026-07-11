@@ -128,6 +128,35 @@ describe("co-math obligation ledger", () => {
 		);
 	});
 
+	it("blocks the clean-review stamp when the independent check was inconclusive", () => {
+		const base = withPlanTask(createEulerState());
+
+		const inconclusive = applyCompletedTaskToObligations(base.state, {
+			task: base.task,
+			reportId: "research-report-1",
+			runUsedFallback: false,
+			modelBacked: true,
+			newEvidenceEntryIds: [],
+			skeptic: { concerns: [], counterexampleFound: false, independentCheckStatus: "inconclusive" },
+			now: NOW,
+		});
+		expect(getRootResearchObligation(inconclusive)?.reviewedCleanAt).toBeUndefined();
+
+		// A completed check and a review without a check attempt both keep the clean semantics.
+		for (const independentCheckStatus of ["completed", "not-run"] as const) {
+			const next = applyCompletedTaskToObligations(base.state, {
+				task: base.task,
+				reportId: "research-report-1",
+				runUsedFallback: false,
+				modelBacked: true,
+				newEvidenceEntryIds: [],
+				skeptic: { concerns: [], counterexampleFound: false, independentCheckStatus },
+				now: NOW,
+			});
+			expect(getRootResearchObligation(next)?.reviewedCleanAt).toBe(NOW);
+		}
+	});
+
 	it("records a gap instead of support when the run degraded to the deterministic fallback", () => {
 		const base = withPlanTask(createEulerState());
 		const { state, entryId } = withEvidence(base.state, "A finite check that must not count.", "computation");

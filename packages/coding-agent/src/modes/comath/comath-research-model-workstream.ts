@@ -18,7 +18,11 @@ import {
 	pickSuggestedNextMove,
 	splitHumanHelpItems,
 } from "./comath-research-discipline.ts";
-import { runSpecialistToolLoop, type SpecialistToolLoopResult } from "./comath-research-specialist-loop.ts";
+import {
+	type PriorComputationSummary,
+	runSpecialistToolLoop,
+	type SpecialistToolLoopResult,
+} from "./comath-research-specialist-loop.ts";
 import {
 	buildCoordinatorBrief,
 	type ResearchWorkstreamReport,
@@ -27,10 +31,13 @@ import {
 import { researchCompletionTimestamp } from "./comath-time.ts";
 import type {
 	ResearchConstraintRecord,
+	ResearchModelCallProvenance,
 	ResearchPath,
 	ResearchPlanTaskKind,
 	ResearchWorkstreamRunStage,
 } from "./schema.ts";
+
+export type { ResearchModelCallProvenance } from "./schema.ts";
 
 export type ResearchWorkstreamModelRole = "specialist" | "critic" | "synthesizer";
 
@@ -48,6 +55,8 @@ export interface ResearchWorkstreamModelRequest {
 
 export interface ResearchWorkstreamModelResponse {
 	text: string;
+	/** Execution provenance for this call, when the executor can supply it. */
+	provenance?: ResearchModelCallProvenance;
 }
 
 export interface ResearchWorkstreamModelExecutor {
@@ -81,6 +90,8 @@ export interface RunModelBackedResearchWorkstreamInput {
 		computationalExecutor?: ComputationalExecutor;
 		workingDirectory?: string;
 		maxToolActions?: number;
+		/** Computations earlier steps already ran, so the specialist does not re-run them. */
+		priorComputations?: readonly PriorComputationSummary[];
 		onFinished?: (result: SpecialistToolLoopResult) => Promise<void> | void;
 	};
 }
@@ -91,6 +102,8 @@ export interface ResearchWorkstreamStageResult {
 	summary: string;
 	details: string[];
 	rawText?: string;
+	/** Provenance of the model calls this stage made (multiple for the specialist tool loop). */
+	provenance?: ResearchModelCallProvenance[];
 }
 
 export interface ResearchWorkstreamStageCallbacks {
@@ -116,7 +129,26 @@ export async function runModelBackedResearchWorkstreamStaged(
 	callbacks: ResearchWorkstreamStageCallbacks,
 ): Promise<ResearchWorkstreamReport> {
 	const rootQuestion = input.rootQuestion.trim();
-	const { path, allPaths, executor } = input;
+	const { path, allPaths } = input;
+	// Record per-call provenance without touching the executor or the specialist loop: every call
+	// (including the loop's tool-cycle calls) goes through this wrapper, and each stage boundary
+	// drains what accumulated since the previous one.
+	const pendingProvenance: ResearchModelCallProvenance[] = [];
+	const executor: ResearchWorkstreamModelExecutor = {
+		run: async (request) => {
+			const response = await input.executor.run(request);
+			if (response.provenance) {
+				pendingProvenance.push(response.provenance);
+			}
+			return response;
+		},
+	};
+	const drainProvenance = (): { provenance: ResearchModelCallProvenance[] } | Record<string, never> => {
+		if (pendingProvenance.length === 0) {
+			return {};
+		}
+		return { provenance: pendingProvenance.splice(0, pendingProvenance.length) };
+	};
 	const priorFindings = path.latestFindings;
 	const coordinatorBrief = buildCoordinatorBrief(path);
 	await callbacks.onStageStarted?.("coordinator", "Framing the research path.");
@@ -149,6 +181,9 @@ export async function runModelBackedResearchWorkstreamStaged(
 			...(input.specialistToolLoop.maxToolActions !== undefined
 				? { maxToolActions: input.specialistToolLoop.maxToolActions }
 				: {}),
+			...(input.specialistToolLoop.priorComputations
+				? { priorComputations: input.specialistToolLoop.priorComputations }
+				: {}),
 		});
 		await input.specialistToolLoop.onFinished?.(loop);
 		specialistText = loop.finalText;
@@ -178,6 +213,7 @@ export async function runModelBackedResearchWorkstreamStaged(
 		summary: "Specialist attempt completed.",
 		details: [...specialistNotes, ...renderRoleDetails(specialist)],
 		rawText: specialistText,
+		...drainProvenance(),
 	});
 
 	await callbacks.onStageStarted?.("critic", "Critic review is running.");
@@ -197,6 +233,7 @@ export async function runModelBackedResearchWorkstreamStaged(
 		summary: "Critic review completed.",
 		details: renderRoleDetails(critic),
 		rawText: criticText,
+		...drainProvenance(),
 	});
 
 	await callbacks.onStageStarted?.("synthesizer", "Synthesis is running.");
@@ -216,6 +253,7 @@ export async function runModelBackedResearchWorkstreamStaged(
 		summary: "Synthesis completed.",
 		details: renderRoleDetails(synthesizer),
 		rawText: synthesizerText,
+		...drainProvenance(),
 	});
 
 	const promisingStrategy = pickItems(sectionItems(synthesizer, "promising"), sectionItems(specialist, "promising"));

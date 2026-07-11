@@ -927,6 +927,9 @@ export async function main(args: string[], options?: MainOptions) {
 				onResearchWorkstreamActivityEnd: (input) => coMathActivityBridge?.end(input),
 				onResearchPhaseActivity: (signal) => coMathActivityBridge?.phase(signal),
 				...(parsed.comathInitialSteps !== undefined ? { initialResearchStepCount: parsed.comathInitialSteps } : {}),
+				// Interactive real runs default to two independent research tasks at once; the harness
+				// clamps to 1–3. Library/eval constructions keep the sequential default of 1.
+				maxParallelResearchTasks: parsed.comathParallel ?? 2,
 			}),
 		);
 		await sendCoMathNotice(formatCoMathWelcome(source));

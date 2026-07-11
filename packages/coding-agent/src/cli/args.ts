@@ -27,6 +27,8 @@ export interface Args {
 	comathSource?: string;
 	/** Step budget for the autonomous first run a fresh co-math question starts. */
 	comathInitialSteps?: number;
+	/** Max independent co-math research tasks to run at once (harness clamps to 1–3). */
+	comathParallel?: number;
 	conversationMode?: ConversationMode;
 	name?: string;
 	noSession?: boolean;
@@ -216,6 +218,26 @@ export function parseArgs(args: string[]): Args {
 					message: "--comath-steps requires a positive whole number (e.g. --comath-steps 5).",
 				});
 			}
+		} else if (arg === "--comath-parallel" || arg.startsWith("--comath-parallel=")) {
+			let raw: string | undefined;
+			if (arg.startsWith("--comath-parallel=")) {
+				raw = arg.slice("--comath-parallel=".length);
+			} else {
+				const next = parseInput[i + 1];
+				if (next !== undefined && !next.startsWith("-")) {
+					raw = next;
+					i++;
+				}
+			}
+			const value = raw !== undefined ? Number.parseInt(raw, 10) : Number.NaN;
+			if (raw !== undefined && Number.isInteger(value) && value >= 1 && String(value) === raw.trim()) {
+				result.comathParallel = value;
+			} else {
+				result.diagnostics.push({
+					type: "error",
+					message: "--comath-parallel requires a positive whole number (e.g. --comath-parallel 2).",
+				});
+			}
 		} else if (arg.startsWith("@")) {
 			result.fileArgs.push(arg.slice(1)); // Remove @ prefix
 		} else if (arg.startsWith("--")) {
@@ -289,6 +311,8 @@ ${chalk.bold("Options:")}
   --comath                       Co-math conversation mode for ordinary prompts
   --comath-steps <n>             Step budget for the autonomous first run on a fresh co-math question
                                  (default 3, capped at 10; each step is a bounded run plus review)
+  --comath-parallel <n>          Max independent co-math research tasks to run at once
+                                 (default 2, capped at 3; durable updates stay serialized)
   --print, -p                    Non-interactive mode: process prompt and exit
   --continue, -c                 Continue previous session
   --resume, -r                   Select a session to resume

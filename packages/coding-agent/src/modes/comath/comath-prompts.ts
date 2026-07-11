@@ -157,6 +157,16 @@ export function parseResearchConstraintPrompt(prompt: string): ParsedResearchCon
 	return undefined;
 }
 
+/**
+ * `show the state of the problem`, `state of the problem`, `what do we know`, `where do we stand`,
+ * and polite variants: requests for the canonical "state of the problem" document.
+ */
+export function isShowProblemStatePrompt(prompt: string): boolean {
+	return /^(?:(?:show (?:me )?)?(?:the )?(?:current )?state of the problem|what do we (?:actually |really )?know(?: so far| about (?:this|the) problem)?\??|where do we stand\??)$/i.test(
+		normalizeCoMathPrompt(prompt),
+	);
+}
+
 /** `show obligations`, `show the claims`, `what is proved`, and polite variants. */
 export function isShowObligationsPrompt(prompt: string): boolean {
 	return /^(?:show (?:me )?(?:the )?(?:obligations?|claims? ledger|open claims?)|what (?:is|has been) (?:proved|established)\??)$/i.test(

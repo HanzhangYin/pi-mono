@@ -43,6 +43,7 @@ import {
 	formatResearchWorkstreamStageStarted,
 	formatResearchWorkstreamStarted,
 	formatSetupStep,
+	formatStateOfProblemUpdated,
 	formatSteeringNoted,
 	formatUserProvidedLiteratureSourceRegistered,
 	formatWaitingForContext,
@@ -1013,6 +1014,13 @@ describe("co-math product messages", () => {
 		expectProductCopy(formatLatestResearchCoordinatorReportMissing());
 	});
 
+	it("announces the refreshed state-of-problem summary with clean product copy", () => {
+		const text = formatStateOfProblemUpdated();
+		expect(text).toContain('"State of the problem"');
+		expect(text).toContain('Say "show the state of the problem" to read it.');
+		expectProductCopy(text);
+	});
+
 	it("formats failed research workstream warnings without raw run ids", () => {
 		const path = createResearchPath();
 		const run: ResearchWorkstreamRunRecord = {
@@ -1089,6 +1097,51 @@ describe("co-math product messages", () => {
 		expect(completed).toContain("Research steps completed");
 		expect(paused).toContain("Research paused");
 		expect(paused).toContain("resume research");
+	});
+
+	it("tells the user about remaining plan tasks or exhausted lines of work when a bounded run ends", () => {
+		const path = createResearchPath();
+		const batch: ResearchBatchRecord = {
+			id: "research-batch-1",
+			status: "completed",
+			requestedStepCount: 3,
+			completedStepCount: 3,
+			runIds: ["research-run-1"],
+			createdAt: "2026-06-05T12:00:00.000Z",
+			startedAt: "2026-06-05T12:00:00.000Z",
+			updatedAt: "2026-06-05T12:05:00.000Z",
+		};
+
+		const withRemaining = formatResearchBatchCompleted({
+			state: { researchPaths: [path] },
+			batch,
+			remainingPlanTaskCount: 2,
+		});
+		const withOneRemaining = formatResearchBatchCompleted({
+			state: { researchPaths: [path] },
+			batch,
+			remainingPlanTaskCount: 1,
+		});
+		const exhausted = formatResearchBatchCompleted({
+			state: { researchPaths: [path] },
+			batch,
+			linesOfWorkExhausted: true,
+		});
+		const plain = formatResearchBatchCompleted({ state: { researchPaths: [path] }, batch });
+
+		expect(withRemaining).toContain("Research steps completed");
+		expect(withRemaining).toContain("The step budget ran out with 2 plan tasks still waiting.");
+		expect(withRemaining).toContain('Say "continue the plan" to work the remaining tasks');
+		expect(withOneRemaining).toContain("The step budget ran out with 1 plan task still waiting.");
+		expect(exhausted).toContain("The plan is complete and the current lines of work are exhausted");
+		expect(exhausted).toContain('Say "show latest report" for the latest durable report.');
+		expect(plain).not.toContain("still waiting");
+		expect(plain).not.toContain("exhausted");
+		for (const text of [withRemaining, withOneRemaining, exhausted, plain]) {
+			expect(text).not.toContain("research-batch-1");
+			expect(text).not.toContain("research-run-");
+			expectProductCopy(text);
+		}
 	});
 
 	it("formats research plan lifecycle copy without internal ids", () => {

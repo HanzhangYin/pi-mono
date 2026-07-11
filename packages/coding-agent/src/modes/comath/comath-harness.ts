@@ -68,6 +68,7 @@ import {
 	isShowLatestCoordinatorReportPrompt,
 	isShowLatestReportPrompt,
 	isShowObligationsPrompt,
+	isShowProblemStatePrompt,
 	isShowProgressPrompt,
 	isShowReportForPathPrompt,
 	isShowResearchPlanPrompt,
@@ -87,6 +88,7 @@ import { CoMathResearchBatchRunner } from "./comath-research-batches.ts";
 import { proposeResearchPlan } from "./comath-research-director.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import { CoMathResearchPlanRunner, resumeResearchPlan } from "./comath-research-plan-runner.ts";
+import { buildStateOfProblemDocument } from "./comath-research-product.ts";
 import {
 	type CoMathResearchPhaseActivityNotify,
 	type CoMathResearchPhaseActivitySignal,
@@ -99,6 +101,7 @@ import {
 	type CoMathResearchWorkstreamActivityUpdateInput,
 } from "./comath-research-runner.ts";
 import type { CoMathSource } from "./comath-source.ts";
+import { CoMathStateLock } from "./comath-state-lock.ts";
 import type {
 	CoMathProjectState,
 	LiteratureSourceArtifact,
@@ -187,6 +190,14 @@ export interface CoMathHarnessOptions {
 	 * unprompted model spend even with a misconfigured value.
 	 */
 	initialResearchStepCount?: number;
+	/**
+	 * How many independent plan tasks (different research paths, workstream-backed kinds) one
+	 * bounded step may run at once. Clamped to 1–3 and DEFAULT 1: parallel completion order is
+	 * nondeterministic, so sequential execution stays the library/eval default and callers opt in
+	 * explicitly. Durable state commits remain strictly serialized regardless of this value, and
+	 * deterministic (no-model) runs are always forced back to 1.
+	 */
+	maxParallelResearchTasks?: number;
 }
 
 export class CoMathHarness {
@@ -215,12 +226,16 @@ export class CoMathHarness {
 		this.researchModelExecutor = options.researchModelExecutor;
 		this.researchDirectorExecutor = options.researchDirectorExecutor;
 		const computationalExecutor = options.computationalExecutor ?? createDefaultComputationalExecutor();
+		// One shared commit lock across the runner, plan runner, and batch runner: research work may
+		// overlap, but every durable load→mutate→persist section runs alone.
+		const stateLock = new CoMathStateLock();
 		this.researchRunner = new CoMathResearchRunner({
 			statePath: this.statePath,
 			notify: this.notify,
 			researchModelExecutor: this.researchModelExecutor,
 			literatureSourceLookup: options.literatureSourceLookup ?? createDefaultLiteratureSourceLookup(),
 			computationalExecutor,
+			stateLock,
 			onResearchWorkstreamActivityStart: options.onResearchWorkstreamActivityStart,
 			onResearchWorkstreamActivityUpdate: options.onResearchWorkstreamActivityUpdate,
 			onResearchWorkstreamActivityEnd: options.onResearchWorkstreamActivityEnd,
@@ -234,6 +249,7 @@ export class CoMathHarness {
 			...(this.researchModelExecutor ? { researchModelExecutor: this.researchModelExecutor } : {}),
 			...(this.researchDirectorExecutor ? { researchDirectorExecutor: this.researchDirectorExecutor } : {}),
 			computationalExecutor,
+			stateLock,
 			...(options.onResearchPhaseActivity ? { onResearchPhaseActivity: options.onResearchPhaseActivity } : {}),
 		});
 		this.researchBatchRunner = new CoMathResearchBatchRunner({
@@ -241,6 +257,8 @@ export class CoMathHarness {
 			notify: this.notify,
 			researchRunner: this.researchRunner,
 			planRunner: this.researchPlanRunner,
+			stateLock,
+			maxParallelResearchTasks: clampMaxParallelResearchTasks(options.maxParallelResearchTasks),
 			...(options.onResearchPhaseActivity ? { onResearchPhaseActivity: options.onResearchPhaseActivity } : {}),
 		});
 	}
@@ -334,7 +352,8 @@ export class CoMathHarness {
 			parseResearchPlanExecutionPrompt(problem) !== undefined ||
 			isShowEvidencePrompt(problem) ||
 			isShowConjectureLineagePrompt(problem) ||
-			isShowObligationsPrompt(problem)
+			isShowObligationsPrompt(problem) ||
+			isShowProblemStatePrompt(problem)
 		) {
 			await this.notify(
 				'Start by asking a math question, for example: "Are there infinitely many primes of the form n^2 + 1?"',
@@ -696,6 +715,11 @@ export class CoMathHarness {
 		const planExecution = parseResearchPlanExecutionPrompt(prompt);
 		if (planExecution) {
 			await this.handleResearchPlanExecutionPrompt(state, planExecution);
+			return;
+		}
+		if (isShowProblemStatePrompt(prompt)) {
+			// Built fresh from current durable state on every request; nothing is cached.
+			await this.notify(buildStateOfProblemDocument(state));
 			return;
 		}
 		if (isShowEvidencePrompt(prompt)) {
@@ -1557,6 +1581,22 @@ function clampInitialResearchStepCount(requested: number | undefined): number {
 		return INITIAL_RESEARCH_BATCH_STEPS;
 	}
 	return Math.min(MAX_INITIAL_RESEARCH_BATCH_STEPS, Math.max(1, Math.round(requested)));
+}
+
+/**
+ * Default and cap for concurrent plan tasks in one bounded step. The default stays 1 — sequential
+ * execution is deterministic, and the eval and library callers rely on that — while the cap bounds
+ * concurrent model spend even with a misconfigured value. Interactive sessions opt into 2 (or the
+ * `--comath-parallel` flag's value) in main.
+ */
+const DEFAULT_MAX_PARALLEL_RESEARCH_TASKS = 1;
+const MAX_MAX_PARALLEL_RESEARCH_TASKS = 3;
+
+export function clampMaxParallelResearchTasks(requested: number | undefined): number {
+	if (requested === undefined || !Number.isFinite(requested)) {
+		return DEFAULT_MAX_PARALLEL_RESEARCH_TASKS;
+	}
+	return Math.min(MAX_MAX_PARALLEL_RESEARCH_TASKS, Math.max(1, Math.round(requested)));
 }
 
 const RESEARCH_PATH_ORDINALS: Record<string, number> = {

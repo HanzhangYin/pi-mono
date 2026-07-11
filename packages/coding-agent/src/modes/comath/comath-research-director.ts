@@ -281,6 +281,8 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 		"- When evidence has refuted the current statement, plan a revise-conjecture task to repair it before more proof attempts.",
 		"- Plan from what is actually known: pursue counterexamples found, prove lemmas already supported by evidence, do not repeat settled work.",
 		"- Never plan to 'prove' a famous open problem outright; plan reductions, weaker targets, or evidence.",
+		"- Weigh path coverage: the 'Path coverage' lines in the state below show recorded work per path and flag untouched paths. Spread suitable tasks so active paths do not stay untouched while one path absorbs everything.",
+		"- You may still assign a task to a path that already has completed work, but while other suitable active paths are untouched, say in that task's goal why the worked path deserves more.",
 		...(agenda.length > 0
 			? [
 					"",
@@ -327,6 +329,7 @@ export function buildDirectorAmendmentPrompt(
 		`- Task kinds: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}. Added tasks need title, description, goal, acceptanceCriteria, and pathNumber for path-backed kinds.`,
 		`- Pending tasks must stay at or below ${MAX_RESEARCH_PLAN_TASKS}.`,
 		"- Reallocate toward the productive side: when refuting evidence dominates, add a revise-conjecture task and cancel pending proof-attempt tasks aimed at the refuted statement; when supporting evidence dominates, cancel stale refutation work.",
+		"- Weigh path coverage: the 'Path coverage' lines in the state below show recorded work per path and flag untouched paths. Before adding another task to a path that already has completed work while suitable active paths remain untouched, give the reason in the new task's goal.",
 		"",
 		"Pending tasks:",
 		...(pending.length > 0

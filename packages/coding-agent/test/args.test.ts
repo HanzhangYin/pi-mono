@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseArgs } from "../src/cli/args.ts";
+import { parseArgs, printHelp } from "../src/cli/args.ts";
 
 describe("parseArgs", () => {
 	describe("--version flag", () => {
@@ -362,6 +362,44 @@ describe("parseArgs", () => {
 
 			expect(parseArgs(["comath", "--comath-steps", "0"]).comathInitialSteps).toBeUndefined();
 			expect(parseArgs(["comath", "--comath-steps", "2.5"]).comathInitialSteps).toBeUndefined();
+		});
+	});
+
+	describe("--comath-parallel flag", () => {
+		test("parses a parallel task limit in both flag forms", () => {
+			expect(parseArgs(["comath", "--comath-parallel", "2"]).comathParallel).toBe(2);
+			expect(parseArgs(["comath", "--comath-parallel=3"]).comathParallel).toBe(3);
+			expect(parseArgs(["comath", "--comath-parallel", "2"]).diagnostics).toEqual([]);
+		});
+
+		test("rejects missing or non-numeric values without consuming other flags", () => {
+			const missing = parseArgs(["comath", "--comath-parallel", "--approve"]);
+			expect(missing.comathParallel).toBeUndefined();
+			expect(missing.projectTrustOverride).toBe(true);
+			expect(missing.diagnostics.some((diagnostic) => diagnostic.message.includes("--comath-parallel"))).toBe(true);
+
+			const invalid = parseArgs(["comath", "--comath-parallel", "several"]);
+			expect(invalid.comathParallel).toBeUndefined();
+			expect(invalid.diagnostics.some((diagnostic) => diagnostic.type === "error")).toBe(true);
+
+			expect(parseArgs(["comath", "--comath-parallel", "0"]).comathParallel).toBeUndefined();
+			expect(parseArgs(["comath", "--comath-parallel", "1.5"]).comathParallel).toBeUndefined();
+		});
+
+		test("mentions the flag in help output", () => {
+			const lines: string[] = [];
+			const original = console.log;
+			console.log = (...args: unknown[]) => {
+				lines.push(args.map(String).join(" "));
+			};
+			try {
+				printHelp();
+			} finally {
+				console.log = original;
+			}
+			const help = lines.join("\n");
+			expect(help).toContain("--comath-parallel <n>");
+			expect(help).toContain("Max independent co-math research tasks");
 		});
 	});
 

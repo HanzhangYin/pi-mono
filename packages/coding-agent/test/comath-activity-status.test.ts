@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	formatCoMathActivityElapsed,
+	formatCoMathResearchParallelStepActivityStatus,
 	formatCoMathResearchPhaseActivityStatus,
 	formatCoMathResearchStepActivityStatus,
 } from "../src/modes/comath/comath-foreground-progress.ts";
@@ -28,6 +29,7 @@ describe("co-math activity status formatting", () => {
 			"co-math: updating the plan with what was learned",
 		);
 		expect(formatCoMathResearchStepActivityStatus(2, 3)).toBe("co-math: research step 2 of 3");
+		expect(formatCoMathResearchParallelStepActivityStatus(2, 3)).toBe("co-math: research step 2 of 3 (in parallel)");
 	});
 
 	it("formats elapsed time compactly", () => {

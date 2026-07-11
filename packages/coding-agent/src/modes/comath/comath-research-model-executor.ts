@@ -6,8 +6,12 @@ import type {
 	Context,
 	Model,
 	SimpleStreamOptions,
+	Usage,
 } from "@earendil-works/pi-ai";
-import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
+import type {
+	ResearchModelCallProvenance,
+	ResearchWorkstreamModelExecutor,
+} from "./comath-research-model-workstream.ts";
 
 export interface CreateDefaultResearchModelExecutorOptions {
 	getModel: () => Model<Api> | undefined;
@@ -46,8 +50,9 @@ export function createDefaultResearchModelExecutor(
 					},
 				],
 			};
+			const streamOptions = options.streamOptions?.();
 			const stream = await options.streamFn(model, context, {
-				...options.streamOptions?.(),
+				...streamOptions,
 				signal: options.signal,
 				timeoutMs,
 			});
@@ -61,7 +66,7 @@ export function createDefaultResearchModelExecutor(
 			if (text.trim().length === 0) {
 				throw new Error("Model-backed research call produced no output.");
 			}
-			return { text };
+			return { text, provenance: buildModelCallProvenance(model, message, streamOptions?.reasoning) };
 		},
 	};
 }
@@ -77,6 +82,36 @@ export const RESEARCH_ROLE_SYSTEM_PROMPT = [
 	"Keep the output concise, mathematical, and directly useful to the user.",
 	"Preserve uncertainty and separate finite evidence from proof.",
 ].join("\n");
+
+/**
+ * Build provenance for one research model call from the streamed assistant message, falling back
+ * to the configured model for identity when the message omits fields (e.g. minimal test fakes).
+ * Usage is treated as possibly absent so a message without it still yields model identity.
+ */
+function buildModelCallProvenance(
+	model: Model<Api>,
+	message: AssistantMessage,
+	thinkingLevel: string | undefined,
+): ResearchModelCallProvenance {
+	const usage: Partial<Usage> | undefined = message.usage;
+	const cost = usage?.cost;
+	return {
+		model: message.model || model.id,
+		provider: message.provider || model.provider,
+		...(thinkingLevel ? { thinkingLevel } : {}),
+		...(usage && isFiniteNumber(usage.input) ? { inputTokens: usage.input } : {}),
+		...(usage && isFiniteNumber(usage.output) ? { outputTokens: usage.output } : {}),
+		...(usage && isFiniteNumber(usage.cacheRead) ? { cacheReadTokens: usage.cacheRead } : {}),
+		...(usage && isFiniteNumber(usage.cacheWrite) ? { cacheWriteTokens: usage.cacheWrite } : {}),
+		...(usage && isFiniteNumber(usage.totalTokens) ? { totalTokens: usage.totalTokens } : {}),
+		...(cost && isFiniteNumber(cost.total) ? { costUsd: cost.total } : {}),
+		...(typeof message.stopReason === "string" ? { stopReason: message.stopReason } : {}),
+	};
+}
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value);
+}
 
 function getAssistantText(message: AssistantMessage): string {
 	return message.content

@@ -7,6 +7,7 @@
  */
 
 import { buildCoordinatorContext } from "./comath-coordinator-synthesis.ts";
+import { summarizeResearchPathCoverage } from "./comath-research-planner.ts";
 import type {
 	CoMathProjectState,
 	ResearchObligationRecord,
@@ -34,9 +35,28 @@ export function buildResearchContextPack(state: CoMathProjectState): string {
 		"Research plan:",
 		...formatPlanForContext(state),
 		"",
+		"Path coverage (recorded work per active path; untouched paths have received no work yet):",
+		...formatPathCoverageForContext(state),
+		"",
 		"Obligations (claims the project must establish or refute):",
 		...formatObligationsForContext(state),
 	].join("\n");
+}
+
+/**
+ * One compact line per active path: task counts by status, evidence entries, and computations —
+ * enough for the director to see coverage imbalance without a transcript dump.
+ */
+function formatPathCoverageForContext(state: CoMathProjectState): string[] {
+	const coverage = summarizeResearchPathCoverage(state);
+	if (coverage.length === 0) {
+		return ["- (no active research paths)"];
+	}
+	return coverage.map((entry) =>
+		entry.untouched
+			? `- Path ${entry.pathNumber}: ${entry.path.title} — untouched (no tasks, evidence, or computations yet)`
+			: `- Path ${entry.pathNumber}: ${entry.path.title} — tasks: ${entry.pendingTaskCount} pending, ${entry.runningTaskCount} running, ${entry.completedTaskCount} completed; evidence entries: ${entry.evidenceCount}; computations: ${entry.computationCount}`,
+	);
 }
 
 function formatObligationsForContext(state: CoMathProjectState): string[] {

@@ -11,14 +11,19 @@ import {
 	type CoMathBackendCommandResult,
 	CoMathHarness,
 	type CoMathHarnessOptions,
+	type CoMathResearchPhaseActivitySignal,
+	clampMaxParallelResearchTasks,
 } from "../src/modes/comath/comath-harness.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "../src/modes/comath/comath-literature-source.ts";
 import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
-import { STALE_RESEARCH_PLAN_TASK_REASON } from "../src/modes/comath/comath-research-plan-runner.ts";
-import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
+import {
+	STALE_RESEARCH_PLAN_TASK_REASON,
+	selectParallelResearchTaskGroup,
+} from "../src/modes/comath/comath-research-plan-runner.ts";
+import type { CoMathProjectState, ResearchPlanRecord, ResearchPlanTaskKind } from "../src/modes/comath/schema.ts";
 import {
 	addComputationalArtifact,
 	addLiteratureClaimSupport,
@@ -3561,8 +3566,9 @@ describe("co-math harness", () => {
 			expect(state.researchPlanTasks[0]?.pathId).toBe("path-1");
 			expect(state.researchPlanTasks[1]?.pathId).toBe("path-2");
 			expect(state.researchPlanTasks[2]?.pathId).toBe("path-5");
-			// The refutation attempt prefers the computational path.
-			expect(state.researchPlanTasks[3]?.pathId).toBe("path-1");
+			// The refutation attempt prefers a computational path, and coverage-aware selection sends
+			// it to the untouched one (weaker special cases) instead of stacking onto path 1.
+			expect(state.researchPlanTasks[3]?.pathId).toBe("path-4");
 
 			// A repeated "make a plan" reuses the existing plan instead of stacking a duplicate.
 			await harness.handlePrompt("create a research plan");
@@ -3655,6 +3661,80 @@ describe("co-math harness", () => {
 			expect(visible).toContain("Research steps completed");
 			expect(visible).toContain("Research plan completed");
 			expect(visible).not.toContain("research-plan");
+			expectProductCopy(visible);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("replies to state-of-problem prompts with the canonical document built from current state", async () => {
+		const { dir, harness, notices } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			const before = notices.length;
+			await harness.handlePrompt("show the state of the problem");
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("State of the problem");
+			expect(visible).toContain("The question");
+			expect(visible).toContain("Are there infinitely many primes of the form n^2 + 1?");
+			expect(visible).toContain("Verdict: the question remains open.");
+			expect(visible).toContain("Established facts");
+			expect(visible).toContain("Sources consulted");
+			expect(visible).not.toMatch(/evidence-board-\d|obligation-\d|research-plan-task-/);
+			expectProductCopy(visible);
+
+			// The short phrasings route to the same document.
+			const whatBefore = notices.length;
+			await harness.handlePrompt("what do we know?");
+			expect(notices.slice(whatBefore).join("\n")).toContain("State of the problem");
+			const stateBefore = notices.length;
+			await harness.handlePrompt("state of the problem");
+			expect(notices.slice(stateBefore).join("\n")).toContain("Verdict:");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("asks to start exploration before state-of-problem prompts in an empty workspace", async () => {
+		const { commands, dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("show the state of the problem");
+
+			expect(commands).toEqual([]);
+			expect(await loadProjectState(statePath)).toBeUndefined();
+			expect(notices.join("\n")).toContain("Start by asking a math question");
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("persists the state-of-problem working-paper section when the synthesis task runs", async () => {
+		const { dir, harness, notices, statePath } = await createResearchHarnessFixture();
+		try {
+			await harness.handlePrompt("Explore this problem: Are there infinitely many primes of the form n^2 + 1?");
+			await harness.handlePrompt("work for 5 steps");
+			await waitForProjectState(statePath, "completed research plan including synthesis", (state) =>
+				Boolean(state?.researchPlans[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			const section = state.workingPaperSections.find((candidate) => candidate.title === "State of the problem");
+			expect(section).toBeDefined();
+			expect(section?.body).toContain("The question");
+			expect(section?.body).toContain("Verdict: the question remains open.");
+			// The coordinator's "what next" advisory stays alongside the canonical document.
+			expect(
+				state.workingPaperSections.some((candidate) => candidate.title === "Project coordinator synthesis"),
+			).toBe(true);
+			expect(notices.join("\n")).toContain('The "State of the problem" summary is up to date.');
+			expectProductCopy(notices.join("\n"));
+
+			const before = notices.length;
+			await harness.handlePrompt("show the state of the problem");
+			const visible = notices.slice(before).join("\n");
+			expect(visible).toContain("Verdict: the question remains open.");
+			expect(visible).not.toMatch(/evidence-board-\d|obligation-\d|research-plan-task-/);
 			expectProductCopy(visible);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
@@ -3940,6 +4020,451 @@ describe("co-math harness", () => {
 
 			expect(commands.at(-2)).toBe("queue workstream workstream-extract-question-3-definitions");
 			expect(commands.at(-1)).toBe("dispatch-next --background");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("clampMaxParallelResearchTasks", () => {
+	it("defaults to sequential and clamps out-of-range values to 1-3", () => {
+		expect(clampMaxParallelResearchTasks(undefined)).toBe(1);
+		expect(clampMaxParallelResearchTasks(Number.NaN)).toBe(1);
+		expect(clampMaxParallelResearchTasks(0)).toBe(1);
+		expect(clampMaxParallelResearchTasks(-4)).toBe(1);
+		expect(clampMaxParallelResearchTasks(1)).toBe(1);
+		expect(clampMaxParallelResearchTasks(2)).toBe(2);
+		expect(clampMaxParallelResearchTasks(2.4)).toBe(2);
+		expect(clampMaxParallelResearchTasks(3)).toBe(3);
+		expect(clampMaxParallelResearchTasks(99)).toBe(3);
+	});
+});
+
+describe("selectParallelResearchTaskGroup", () => {
+	const NOW = "2026-06-05T12:00:00.000Z";
+
+	function createGroupSelectionState(tasks: ReadonlyArray<{ kind: ResearchPlanTaskKind; pathId?: string }>): {
+		state: CoMathProjectState;
+		plan: ResearchPlanRecord;
+	} {
+		let state = createTwinPrimeResearchState();
+		state = addResearchPath(state, {
+			title: "Reformulation",
+			objective: "Connect to known frameworks.",
+			suggestedNextMove: "Compare against known reductions.",
+			priority: 3,
+			now: NOW,
+			actor: "human",
+		});
+		state = addResearchPlan(state, {
+			title: "Group selection plan",
+			objective: "Exercise the independence rule.",
+			now: NOW,
+			actor: "human",
+		});
+		for (const [index, task] of tasks.entries()) {
+			state = addResearchPlanTask(state, {
+				planId: "research-plan-1",
+				kind: task.kind,
+				title: `Task ${index + 1}`,
+				description: `Planned task ${index + 1}.`,
+				...(task.pathId ? { pathId: task.pathId } : {}),
+				now: NOW,
+				actor: "human",
+			});
+		}
+		const plan = state.researchPlans[0];
+		if (!plan) {
+			throw new Error("Expected the seeded research plan to exist.");
+		}
+		return { state, plan };
+	}
+
+	it("groups workstream-backed tasks on distinct paths in plan order, up to the limit", () => {
+		const { state, plan } = createGroupSelectionState([
+			{ kind: "proof-attempt", pathId: "path-1" },
+			{ kind: "computation", pathId: "path-2" },
+			{ kind: "refutation-attempt", pathId: "path-3" },
+		]);
+		const groupOfThree = selectParallelResearchTaskGroup(state, plan, 3);
+		expect(groupOfThree.map((task) => task.id)).toEqual([
+			"research-plan-task-1",
+			"research-plan-task-2",
+			"research-plan-task-3",
+		]);
+		const groupOfTwo = selectParallelResearchTaskGroup(state, plan, 2);
+		expect(groupOfTwo.map((task) => task.id)).toEqual(["research-plan-task-1", "research-plan-task-2"]);
+		const groupOfOne = selectParallelResearchTaskGroup(state, plan, 1);
+		expect(groupOfOne.map((task) => task.id)).toEqual(["research-plan-task-1"]);
+	});
+
+	it("never groups two tasks on the same path", () => {
+		const { state, plan } = createGroupSelectionState([
+			{ kind: "proof-attempt", pathId: "path-1" },
+			{ kind: "literature-search", pathId: "path-1" },
+			{ kind: "computation", pathId: "path-2" },
+		]);
+		const group = selectParallelResearchTaskGroup(state, plan, 3);
+		expect(group.map((task) => task.id)).toEqual(["research-plan-task-1", "research-plan-task-3"]);
+	});
+
+	it("never groups synthesis or other cross-path kinds, as head or as candidate", () => {
+		const headSynthesis = createGroupSelectionState([
+			{ kind: "synthesis" },
+			{ kind: "proof-attempt", pathId: "path-1" },
+			{ kind: "computation", pathId: "path-2" },
+		]);
+		expect(
+			selectParallelResearchTaskGroup(headSynthesis.state, headSynthesis.plan, 3).map((task) => task.id),
+		).toEqual(["research-plan-task-1"]);
+		const midSynthesis = createGroupSelectionState([
+			{ kind: "proof-attempt", pathId: "path-1" },
+			{ kind: "synthesis" },
+			{ kind: "critic" },
+			{ kind: "revise-conjecture" },
+			{ kind: "computation", pathId: "path-2" },
+		]);
+		expect(selectParallelResearchTaskGroup(midSynthesis.state, midSynthesis.plan, 3).map((task) => task.id)).toEqual([
+			"research-plan-task-1",
+			"research-plan-task-5",
+		]);
+	});
+
+	it("requires a defined pathId on every grouped task", () => {
+		const headless = createGroupSelectionState([
+			{ kind: "proof-attempt" },
+			{ kind: "computation", pathId: "path-2" },
+		]);
+		expect(selectParallelResearchTaskGroup(headless.state, headless.plan, 3).map((task) => task.id)).toEqual([
+			"research-plan-task-1",
+		]);
+		const candidateWithoutPath = createGroupSelectionState([
+			{ kind: "proof-attempt", pathId: "path-1" },
+			{ kind: "computation" },
+			{ kind: "refutation-attempt", pathId: "path-2" },
+		]);
+		expect(
+			selectParallelResearchTaskGroup(candidateWithoutPath.state, candidateWithoutPath.plan, 3).map(
+				(task) => task.id,
+			),
+		).toEqual(["research-plan-task-1", "research-plan-task-3"]);
+	});
+
+	it("skips blocked and review-rejected tasks and returns nothing while a task runs", () => {
+		const { state, plan } = createGroupSelectionState([
+			{ kind: "proof-attempt", pathId: "path-1" },
+			{ kind: "computation", pathId: "path-2" },
+			{ kind: "refutation-attempt", pathId: "path-3" },
+		]);
+		const withRejected = updateResearchPlanTask(state, {
+			taskId: "research-plan-task-1",
+			status: "blocked",
+			blockedReason: "The independent review did not accept this step as completed.",
+			reviewOutcome: "rejected",
+			now: NOW,
+			actor: "system",
+		});
+		expect(selectParallelResearchTaskGroup(withRejected, plan, 3).map((task) => task.id)).toEqual([
+			"research-plan-task-2",
+			"research-plan-task-3",
+		]);
+		const withRunning = updateResearchPlanTask(state, {
+			taskId: "research-plan-task-1",
+			status: "running",
+			now: NOW,
+			actor: "system",
+		});
+		expect(selectParallelResearchTaskGroup(withRunning, plan, 3)).toEqual([]);
+	});
+});
+
+describe("co-math parallel research tasks", () => {
+	const NOW = "2026-06-05T12:00:00.000Z";
+
+	function createTwoPathPlanState(): CoMathProjectState {
+		let state = createTwinPrimeResearchState();
+		state = addResearchPlan(state, {
+			title: "Two-front plan",
+			objective: "Work the examples path and the direct-proof path.",
+			now: NOW,
+			actor: "human",
+		});
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "proof-attempt",
+			title: "Work the examples path",
+			description: "Attempt a bounded step on the examples path.",
+			pathId: "path-1",
+			now: NOW,
+			actor: "human",
+		});
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "proof-attempt",
+			title: "Work the direct-proof path",
+			description: "Attempt a bounded step on the direct-proof path.",
+			pathId: "path-2",
+			now: NOW,
+			actor: "human",
+		});
+		return state;
+	}
+
+	// Distinct mathematics per path: identical claims from two reports would merge into one
+	// evidence entry, so each path must state its own findings and gaps for exact linkage checks.
+	const PARALLEL_PATH_RESPONSES: Record<string, Record<"specialist" | "critic" | "synthesizer", string>> = {
+		"path-1": {
+			specialist: [
+				"## Findings",
+				"- Twin prime pairs up to 200 were tabulated, starting (3, 5), (5, 7), (11, 13).",
+				"## Gaps",
+				"- A finite table of twin prime pairs cannot certify an infinite family.",
+				"## Next",
+				"- Extend the table and look for density patterns.",
+			].join("\n"),
+			critic: [
+				"## Review",
+				"- The tabulation is honest about its finite range.",
+				"## Gaps",
+				"- The table alone proves nothing about infinitude.",
+			].join("\n"),
+			synthesizer: [
+				"## Promising strategy",
+				"- Use the tabulated pairs to guide a density heuristic.",
+				"## Findings",
+				"- Twin prime pairs up to 200 were tabulated, starting (3, 5), (5, 7), (11, 13).",
+				"## Gap",
+				"- A finite table of twin prime pairs cannot certify an infinite family.",
+				"## Next",
+				"- Extend the table and look for density patterns.",
+				"## Working paper summary",
+				"- The examples path tabulated twin prime pairs up to 200; infinitude remains open.",
+			].join("\n"),
+		},
+		"path-2": {
+			specialist: [
+				"## Findings",
+				"- A parity-based direct argument reduces the question to a sieve density estimate.",
+				"## Gaps",
+				"- No sieve bound in this attempt forces a nonvanishing count of pairs at distance 2.",
+				"## Next",
+				"- Compare the reduction against known sieve limitations.",
+			].join("\n"),
+			critic: [
+				"## Review",
+				"- The reduction is stated but its density estimate is unproven.",
+				"## Gaps",
+				"- The sieve density estimate remains an assumption, not a theorem.",
+			].join("\n"),
+			synthesizer: [
+				"## Promising strategy",
+				"- Sharpen the parity reduction before attempting any density bound.",
+				"## Findings",
+				"- A parity-based direct argument reduces the question to a sieve density estimate.",
+				"## Gap",
+				"- No sieve bound in this attempt forces a nonvanishing count of pairs at distance 2.",
+				"## Next",
+				"- Compare the reduction against known sieve limitations.",
+				"## Working paper summary",
+				"- The direct-proof path reduced the question to an unproven sieve density estimate.",
+			].join("\n"),
+		},
+	};
+
+	function createOverlapTrackingExecutor(delayMs: number): {
+		executor: ResearchWorkstreamModelExecutor;
+		peakInFlight: () => number;
+	} {
+		let inFlight = 0;
+		let peak = 0;
+		const executor: ResearchWorkstreamModelExecutor = {
+			run: async (request) => {
+				inFlight += 1;
+				peak = Math.max(peak, inFlight);
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, delayMs);
+				});
+				inFlight -= 1;
+				const responses = PARALLEL_PATH_RESPONSES[request.path.id] ?? TWIN_PRIME_MODEL_RESPONSES;
+				return { text: responses[request.role] };
+			},
+		};
+		return { executor, peakInFlight: () => peak };
+	}
+
+	async function createParallelPlanHarnessFixture(input: {
+		executor: ResearchWorkstreamModelExecutor;
+		directorExecutor?: ResearchWorkstreamModelExecutor;
+		maxParallelResearchTasks?: number;
+	}): Promise<{
+		dir: string;
+		harness: CoMathHarness;
+		notices: string[];
+		signals: CoMathResearchPhaseActivitySignal[];
+		statePath: string;
+	}> {
+		const dir = await mkdtemp(join(tmpdir(), "comath-parallel-harness-"));
+		const statePath = join(dir, ".pi", "co-math", "state.json");
+		const notices: string[] = [];
+		const signals: CoMathResearchPhaseActivitySignal[] = [];
+		const { computationalExecutor } = createFakeComputationalExecutor();
+		const harness = new CoMathHarness({
+			statePath,
+			startFirstRun: false,
+			notify: (message) => {
+				notices.push(message);
+			},
+			runBackendCommand: async () => OK,
+			researchModelExecutor: input.executor,
+			...(input.directorExecutor ? { researchDirectorExecutor: input.directorExecutor } : {}),
+			computationalExecutor,
+			onResearchPhaseActivity: (signal) => {
+				signals.push(signal);
+			},
+			...(input.maxParallelResearchTasks !== undefined
+				? { maxParallelResearchTasks: input.maxParallelResearchTasks }
+				: {}),
+		});
+		return { dir, harness, notices, signals, statePath };
+	}
+
+	it("runs two independent plan tasks concurrently with serialized durable commits", async () => {
+		const { executor, peakInFlight } = createOverlapTrackingExecutor(25);
+		const { dir, harness, notices, signals, statePath } = await createParallelPlanHarnessFixture({
+			executor,
+			maxParallelResearchTasks: 2,
+		});
+		try {
+			await saveProjectState(statePath, createTwoPathPlanState());
+
+			await harness.handlePrompt("work the plan for 2 steps");
+			await waitForProjectState(statePath, "completed parallel research batch", (candidate) =>
+				Boolean(candidate?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			// The two executions actually overlapped: at least two model calls were in flight at once.
+			expect(peakInFlight()).toBeGreaterThanOrEqual(2);
+			// Both tasks completed and the budget counted both.
+			expect(state.researchPlanTasks.map((task) => task.status)).toEqual(["completed", "completed"]);
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 2,
+				completedStepCount: 2,
+			});
+			expect(state.researchPlans[0]?.status).toBe("completed");
+			// No lost updates: both runs, their reports, their stage records, their task linkage, and
+			// their evidence entries all survived the concurrent commits.
+			expect(new Set(state.researchBatches[0]?.runIds)).toEqual(new Set(["research-run-1", "research-run-2"]));
+			expect(state.researchWorkstreamRuns.map((run) => run.status)).toEqual(["completed", "completed"]);
+			for (const run of state.researchWorkstreamRuns) {
+				expect(run.incrementalReports.length).toBeGreaterThanOrEqual(3);
+			}
+			expect(state.researchReports).toHaveLength(2);
+			expect(new Set(state.researchReports.map((report) => report.pathId))).toEqual(new Set(["path-1", "path-2"]));
+			const taskRunIds = state.researchPlanTasks.map((task) => task.runId);
+			expect(new Set(taskRunIds)).toEqual(new Set(["research-run-1", "research-run-2"]));
+			for (const task of state.researchPlanTasks) {
+				expect(task.reportId).toBeDefined();
+				const reportEvidence = state.researchEvidenceBoard.filter((entry) => entry.reportId === task.reportId);
+				expect(reportEvidence.length).toBeGreaterThan(0);
+			}
+			// Each concurrent step held its own truthful footer status.
+			const startedStatuses = signals
+				.filter(
+					(signal): signal is Extract<CoMathResearchPhaseActivitySignal, { kind: "start" }> =>
+						signal.kind === "start",
+				)
+				.map((signal) => signal.status);
+			expect(startedStatuses).toContain("co-math: research step 1 of 2 (in parallel)");
+			expect(startedStatuses).toContain("co-math: research step 2 of 2 (in parallel)");
+			expectProductCopy(notices.join("\n"));
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps the default sequential: without the option the two tasks never overlap", async () => {
+		const { executor, peakInFlight } = createOverlapTrackingExecutor(5);
+		const { dir, harness, statePath } = await createParallelPlanHarnessFixture({ executor });
+		try {
+			await saveProjectState(statePath, createTwoPathPlanState());
+
+			await harness.handlePrompt("work the plan for 2 steps");
+			await waitForProjectState(statePath, "completed sequential research batch", (candidate) =>
+				Boolean(candidate?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(peakInFlight()).toBe(1);
+			expect(state.researchPlanTasks.map((task) => task.status)).toEqual(["completed", "completed"]);
+			expect(state.researchBatches[0]).toMatchObject({ status: "completed", completedStepCount: 2 });
+			expect(state.researchBatches[0]?.runIds).toEqual(["research-run-1", "research-run-2"]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("lets a sibling finish when the review rejects the other concurrent task", async () => {
+		// Path-2 model calls are slow, so the path-1 task is rejected while its sibling still runs:
+		// the rejection must block only itself, and the sibling must still complete.
+		const executor: ResearchWorkstreamModelExecutor = {
+			run: async (request) => {
+				if (request.path.id === "path-2") {
+					await new Promise<void>((resolve) => {
+						setTimeout(resolve, 40);
+					});
+				}
+				return { text: TWIN_PRIME_MODEL_RESPONSES[request.role] };
+			},
+		};
+		const directorExecutor: ResearchWorkstreamModelExecutor = {
+			run: async (request) => {
+				if (request.path.id === "path-1") {
+					return {
+						text: [
+							"## Verdict",
+							"rejected",
+							"## Concerns",
+							"- The step's central claim is mathematically false as written.",
+						].join("\n"),
+					};
+				}
+				return { text: "## Verdict\naccepted\n## Concerns\n- none" };
+			},
+		};
+		const { dir, harness, notices, statePath } = await createParallelPlanHarnessFixture({
+			executor,
+			directorExecutor,
+			maxParallelResearchTasks: 2,
+		});
+		try {
+			await saveProjectState(statePath, createTwoPathPlanState());
+
+			await harness.handlePrompt("work the plan for 2 steps");
+			await waitForProjectState(statePath, "completed batch after concurrent rejection", (candidate) =>
+				Boolean(candidate?.researchBatches[0]?.status === "completed"),
+			);
+
+			const state = await loadRequiredProjectState(statePath);
+			expect(state.researchPlanTasks[0]).toMatchObject({
+				status: "blocked",
+				reviewOutcome: "rejected",
+			});
+			expect(state.researchPlanTasks[1]).toMatchObject({
+				status: "completed",
+				reviewOutcome: "accepted",
+			});
+			// The rejection consumed its budget step and the sibling completed its own.
+			expect(state.researchBatches[0]).toMatchObject({
+				status: "completed",
+				requestedStepCount: 2,
+				completedStepCount: 2,
+			});
+			// A rejected task is terminal, so the plan finished once the sibling committed.
+			expect(state.researchPlans[0]?.status).toBe("completed");
+			expect(state.researchWorkstreamRuns.map((run) => run.status)).toEqual(["completed", "completed"]);
+			expectProductCopy(notices.join("\n"));
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

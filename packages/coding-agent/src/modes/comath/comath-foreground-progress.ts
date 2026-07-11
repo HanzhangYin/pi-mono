@@ -61,6 +61,14 @@ export function formatCoMathResearchStepActivityStatus(stepIndex: number, reques
 	return `co-math: research step ${stepIndex} of ${requestedStepCount}`;
 }
 
+/**
+ * Footer status for one bounded batch step running alongside independent siblings. Each concurrent
+ * step holds its own status, so the stacked activity display truthfully shows every step in flight.
+ */
+export function formatCoMathResearchParallelStepActivityStatus(stepIndex: number, requestedStepCount: number): string {
+	return `co-math: research step ${stepIndex} of ${requestedStepCount} (in parallel)`;
+}
+
 /** Compact elapsed-time suffix for the footer status ("42s", "3m 05s"). */
 export function formatCoMathActivityElapsed(elapsedMs: number): string {
 	const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));

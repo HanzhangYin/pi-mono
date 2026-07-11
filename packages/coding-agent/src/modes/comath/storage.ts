@@ -61,6 +61,7 @@ import type {
 	ResearchPlanTaskKind,
 	ResearchPlanTaskRecord,
 	ResearchPlanTaskStatus,
+	ResearchRunModelCallRecord,
 	ResearchTaskProgressKind,
 	ResearchTaskReviewOutcome,
 	ResearchWorkstreamIncrementalReportRecord,
@@ -449,6 +450,7 @@ export interface AddResearchWorkstreamRunInput {
 	currentStage?: ResearchWorkstreamRunStage;
 	batchId?: string;
 	batchStepIndex?: number;
+	taskId?: string;
 	now: string;
 	actor?: CoMathActor;
 	usedFallback?: boolean;
@@ -464,6 +466,8 @@ export interface UpdateResearchWorkstreamRunInput {
 	finalReportId?: string;
 	failureReason?: string;
 	usedFallback?: boolean;
+	/** Model calls to append to the run's provenance log (existing entries are kept). */
+	appendModelCalls?: readonly ResearchRunModelCallRecord[];
 	now: string;
 	actor?: CoMathActor;
 }
@@ -1960,6 +1964,7 @@ export function addResearchWorkstreamRun(
 		...(typeof input.batchStepIndex === "number" && Number.isFinite(input.batchStepIndex)
 			? { batchStepIndex: Math.max(1, Math.floor(input.batchStepIndex)) }
 			: {}),
+		...(input.taskId?.trim() ? { taskId: input.taskId.trim() } : {}),
 		startedAt: input.now,
 		updatedAt: input.now,
 		incrementalReports: [],
@@ -2006,6 +2011,9 @@ export function updateResearchWorkstreamRun(
 							...(input.finalReportId ? { finalReportId: input.finalReportId } : {}),
 							...(input.failureReason ? { failureReason: input.failureReason } : {}),
 							...(input.usedFallback !== undefined ? { usedFallback: input.usedFallback } : {}),
+							...(input.appendModelCalls && input.appendModelCalls.length > 0
+								? { modelCalls: [...(run.modelCalls ?? []), ...input.appendModelCalls] }
+								: {}),
 							updatedAt: input.now,
 						}
 					: run,
@@ -4304,6 +4312,7 @@ function normalizeResearchWorkstreamRun(
 		...(typeof value.batchStepIndex === "number" && Number.isFinite(value.batchStepIndex)
 			? { batchStepIndex: Math.max(1, Math.floor(value.batchStepIndex)) }
 			: {}),
+		...(getOptionalStringField(value, "taskId") ? { taskId: getOptionalStringField(value, "taskId") } : {}),
 		startedAt,
 		updatedAt: getStringField(value, "updatedAt", startedAt),
 		...(getOptionalStringField(value, "completedAt")
@@ -4312,6 +4321,13 @@ function normalizeResearchWorkstreamRun(
 		incrementalReports: getArrayField(value, "incrementalReports").map((report, reportIndex) =>
 			normalizeResearchWorkstreamIncrementalReport(report, startedAt, reportIndex),
 		),
+		...(Array.isArray(value.modelCalls)
+			? {
+					modelCalls: getArrayField(value, "modelCalls")
+						.map((call) => normalizeResearchRunModelCall(call, startedAt))
+						.filter((call): call is ResearchRunModelCallRecord => call !== undefined),
+				}
+			: {}),
 		...(getOptionalStringField(value, "finalReportId")
 			? { finalReportId: getOptionalStringField(value, "finalReportId") }
 			: {}),
@@ -4319,6 +4335,48 @@ function normalizeResearchWorkstreamRun(
 			? { failureReason: getOptionalStringField(value, "failureReason") }
 			: {}),
 		...(typeof value.usedFallback === "boolean" ? { usedFallback: value.usedFallback } : {}),
+	};
+}
+
+/**
+ * Normalize one persisted run model call. Entries without a stage are dropped; every provenance
+ * field is optional, malformed values are dropped field-wise, and numbers must be finite.
+ */
+function normalizeResearchRunModelCall(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+): ResearchRunModelCallRecord | undefined {
+	const stage = getOptionalStringField(value, "stage");
+	if (!stage) {
+		return undefined;
+	}
+	return {
+		stage,
+		at: getStringField(value, "at", fallbackTime),
+		...(getOptionalStringField(value, "model") ? { model: getOptionalStringField(value, "model") } : {}),
+		...(getOptionalStringField(value, "provider") ? { provider: getOptionalStringField(value, "provider") } : {}),
+		...(getOptionalStringField(value, "thinkingLevel")
+			? { thinkingLevel: getOptionalStringField(value, "thinkingLevel") }
+			: {}),
+		...(typeof value.inputTokens === "number" && Number.isFinite(value.inputTokens)
+			? { inputTokens: value.inputTokens }
+			: {}),
+		...(typeof value.outputTokens === "number" && Number.isFinite(value.outputTokens)
+			? { outputTokens: value.outputTokens }
+			: {}),
+		...(typeof value.cacheReadTokens === "number" && Number.isFinite(value.cacheReadTokens)
+			? { cacheReadTokens: value.cacheReadTokens }
+			: {}),
+		...(typeof value.cacheWriteTokens === "number" && Number.isFinite(value.cacheWriteTokens)
+			? { cacheWriteTokens: value.cacheWriteTokens }
+			: {}),
+		...(typeof value.totalTokens === "number" && Number.isFinite(value.totalTokens)
+			? { totalTokens: value.totalTokens }
+			: {}),
+		...(typeof value.costUsd === "number" && Number.isFinite(value.costUsd) ? { costUsd: value.costUsd } : {}),
+		...(getOptionalStringField(value, "stopReason")
+			? { stopReason: getOptionalStringField(value, "stopReason") }
+			: {}),
 	};
 }
 
@@ -5081,6 +5139,10 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "research_batch_recorded" ||
 		value === "research_plan_recorded" ||
 		value === "research_plan_task_recorded" ||
+		value === "research_obligation_recorded" ||
+		value === "research_constraint_recorded" ||
+		value === "theorem_applicability_check_recorded" ||
+		value === "research_pivot_recorded" ||
 		value === "literature_source_recorded" ||
 		value === "literature_search_recorded" ||
 		value === "literature_claim_support_recorded" ||

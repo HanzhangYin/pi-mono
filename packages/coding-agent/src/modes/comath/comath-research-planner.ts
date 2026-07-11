@@ -21,6 +21,25 @@ import { addResearchPlan, addResearchPlanTask } from "./storage.ts";
 
 export const MAX_RESEARCH_PLAN_TASKS = 5;
 
+/** The slice of durable state needed to measure how much work each research path has received. */
+export type ResearchPathCoverageState = Pick<
+	CoMathProjectState,
+	"researchPaths" | "researchPlanTasks" | "researchEvidenceBoard" | "computationalArtifacts"
+>;
+
+export interface ResearchPathCoverage {
+	/** 1-based position in the durable path list, matching the "Path N" numbering shown elsewhere. */
+	pathNumber: number;
+	path: ResearchPath;
+	pendingTaskCount: number;
+	runningTaskCount: number;
+	completedTaskCount: number;
+	evidenceCount: number;
+	computationCount: number;
+	/** True when the path has received no tasks, evidence, or computations at all. */
+	untouched: boolean;
+}
+
 export interface ResearchPlanTaskBlueprint {
 	kind: ResearchPlanTaskKind;
 	title: string;
@@ -53,11 +72,15 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 	const agenda = deriveResearchAgenda(state);
 	if (agenda.length > 0) {
 		const blueprints: ResearchPlanTaskBlueprint[] = [];
+		const plannedPathIds: string[] = [];
 		for (const item of agenda) {
-			const path = chooseResearchPathForPlanTaskKind(state, item.kind);
+			const path = chooseResearchPathForPlanTaskKind(state, item.kind, { plannedPathIds });
 			const needsPath = item.kind !== "revise-conjecture" && item.kind !== "synthesis" && item.kind !== "critic";
 			if (needsPath && !path) {
 				continue;
+			}
+			if (path) {
+				plannedPathIds.push(path.id);
 			}
 			blueprints.push({
 				kind: item.kind,
@@ -82,10 +105,20 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 }
 
 function buildFreshWorkspaceBlueprints(state: CoMathProjectState): ResearchPlanTaskBlueprint[] {
-	const literaturePath = chooseResearchPathForPlanTaskKind(state, "literature-search");
-	const computationPath = chooseResearchPathForPlanTaskKind(state, "computation");
-	const proofPath = chooseResearchPathForPlanTaskKind(state, "proof-attempt");
-	const refutationPath = chooseResearchPathForPlanTaskKind(state, "refutation-attempt");
+	// Paths are claimed in task order so the twin-track tasks (proof-attempt + refutation-attempt)
+	// spread across different suitable paths whenever at least two exist, instead of piling onto
+	// the first concrete match.
+	const plannedPathIds: string[] = [];
+	const claimPath = (path: ResearchPath | undefined): ResearchPath | undefined => {
+		if (path) {
+			plannedPathIds.push(path.id);
+		}
+		return path;
+	};
+	const computationPath = claimPath(chooseResearchPathForPlanTaskKind(state, "computation", { plannedPathIds }));
+	const proofPath = claimPath(chooseResearchPathForPlanTaskKind(state, "proof-attempt", { plannedPathIds }));
+	const literaturePath = claimPath(chooseResearchPathForPlanTaskKind(state, "literature-search", { plannedPathIds }));
+	const refutationPath = claimPath(chooseResearchPathForPlanTaskKind(state, "refutation-attempt", { plannedPathIds }));
 	// Concrete mathematics leads: anchor examples and a proof attempt come before the literature
 	// check, so the first steps work the problem instead of describing its status.
 	const blueprints: ResearchPlanTaskBlueprint[] = [
@@ -172,39 +205,132 @@ export function createResearchPlanFromState(
 	return { state: nextState, plan: persistedPlan };
 }
 
+export interface ChooseResearchPathOptions {
+	/**
+	 * Path ids already assigned earlier in the plan being built; each occurrence counts as one
+	 * extra unit of work, so tasks planned together spread across suitable paths.
+	 */
+	plannedPathIds?: readonly string[];
+}
+
 /**
  * Deterministic runtime resolution of the research path a plan task kind should execute against.
  * Used both when planning (to pin `pathId`) and when a task's pinned path was later abandoned.
+ * Among the paths whose theme fits the kind, the least-worked one wins (fewest recorded tasks,
+ * evidence entries, and computations), with ties broken by the candidate order below — so untouched
+ * paths get work before a path that already carries results absorbs yet another task.
  */
 export function chooseResearchPathForPlanTaskKind(
-	state: Pick<CoMathProjectState, "researchPaths">,
+	state: ResearchPathCoverageState,
 	kind: ResearchPlanTaskKind,
+	options?: ChooseResearchPathOptions,
 ): ResearchPath | undefined {
 	const usablePaths = state.researchPaths.filter((path) => path.status !== "abandoned");
 	if (kind === "literature-search" || kind === "source-refresh") {
-		return usablePaths.find((path) => isLiteratureResearchPath(path));
+		return chooseLeastWorkedPath(state, usablePaths.filter(isLiteratureResearchPath), options);
 	}
 	if (kind === "computation") {
-		return usablePaths.find((path) => isComputationalResearchPath(path));
+		return chooseLeastWorkedPath(state, usablePaths.filter(isComputationalResearchPath), options);
 	}
 	if (kind === "proof-attempt") {
-		return chooseProofAttemptPath(usablePaths);
+		return chooseLeastWorkedPath(state, proofAttemptCandidatePaths(usablePaths), options);
 	}
 	if (kind === "refutation-attempt") {
-		// Refutation prefers concrete computation over argument; fall back to the proof path.
-		return usablePaths.find((path) => isComputationalResearchPath(path)) ?? chooseProofAttemptPath(usablePaths);
+		// Refutation prefers concrete computation over argument; argument paths stay as fallback.
+		const computational = usablePaths.filter(isComputationalResearchPath);
+		return chooseLeastWorkedPath(
+			state,
+			dedupePaths([...computational, ...proofAttemptCandidatePaths(usablePaths)]),
+			options,
+		);
 	}
 	return undefined;
 }
 
-function chooseProofAttemptPath(paths: readonly ResearchPath[]): ResearchPath | undefined {
-	const proofTitled = paths.find((path) => /\bproofs?\b/i.test(`${path.title} ${path.objective}`));
-	if (proofTitled) {
-		return proofTitled;
-	}
-	return [...paths]
+/** Proof-suited candidates: explicitly proof-titled paths first, then argument paths by priority. */
+function proofAttemptCandidatePaths(paths: readonly ResearchPath[]): ResearchPath[] {
+	const proofTitled = paths.filter((path) => /\bproofs?\b/i.test(`${path.title} ${path.objective}`));
+	const argumentPaths = paths
 		.filter((path) => !isLiteratureResearchPath(path) && !isComputationalResearchPath(path))
-		.sort((a, b) => a.priority - b.priority)[0];
+		.sort((a, b) => a.priority - b.priority);
+	return dedupePaths([...proofTitled, ...argumentPaths]);
+}
+
+function dedupePaths(paths: readonly ResearchPath[]): ResearchPath[] {
+	const seen = new Set<string>();
+	return paths.filter((path) => {
+		if (seen.has(path.id)) {
+			return false;
+		}
+		seen.add(path.id);
+		return true;
+	});
+}
+
+/** Stable minimum: the first candidate with the lowest work score wins, so selection is deterministic. */
+function chooseLeastWorkedPath(
+	state: ResearchPathCoverageState,
+	candidates: readonly ResearchPath[],
+	options?: ChooseResearchPathOptions,
+): ResearchPath | undefined {
+	let best: ResearchPath | undefined;
+	let bestScore = Number.POSITIVE_INFINITY;
+	for (const candidate of candidates) {
+		const score = researchPathWorkScore(state, candidate.id, options?.plannedPathIds);
+		if (score < bestScore) {
+			best = candidate;
+			bestScore = score;
+		}
+	}
+	return best;
+}
+
+/** Work already recorded against a path: live plan tasks, evidence entries, computations, plus paths claimed while building the current plan. */
+function researchPathWorkScore(
+	state: ResearchPathCoverageState,
+	pathId: string,
+	plannedPathIds: readonly string[] | undefined,
+): number {
+	const taskCount = state.researchPlanTasks.filter(
+		(task) =>
+			task.pathId === pathId &&
+			(task.status === "pending" || task.status === "running" || task.status === "completed"),
+	).length;
+	const evidenceCount = state.researchEvidenceBoard.filter((entry) => entry.pathId === pathId).length;
+	const computationCount = state.computationalArtifacts.filter((record) => record.pathId === pathId).length;
+	const plannedCount = plannedPathIds?.filter((planned) => planned === pathId).length ?? 0;
+	return taskCount + evidenceCount + computationCount + plannedCount;
+}
+
+/**
+ * Per-path coverage summary over the non-abandoned paths, in durable path order. Rendered into the
+ * director-facing context so coverage imbalance (one path absorbing all work while others stay
+ * untouched) is visible when planning or amending.
+ */
+export function summarizeResearchPathCoverage(state: ResearchPathCoverageState): ResearchPathCoverage[] {
+	const coverage: ResearchPathCoverage[] = [];
+	state.researchPaths.forEach((path, index) => {
+		if (path.status === "abandoned") {
+			return;
+		}
+		const tasks = state.researchPlanTasks.filter((task) => task.pathId === path.id);
+		const pendingTaskCount = tasks.filter((task) => task.status === "pending").length;
+		const runningTaskCount = tasks.filter((task) => task.status === "running").length;
+		const completedTaskCount = tasks.filter((task) => task.status === "completed").length;
+		const evidenceCount = state.researchEvidenceBoard.filter((entry) => entry.pathId === path.id).length;
+		const computationCount = state.computationalArtifacts.filter((record) => record.pathId === path.id).length;
+		coverage.push({
+			pathNumber: index + 1,
+			path,
+			pendingTaskCount,
+			runningTaskCount,
+			completedTaskCount,
+			evidenceCount,
+			computationCount,
+			untouched: pendingTaskCount + runningTaskCount + completedTaskCount + evidenceCount + computationCount === 0,
+		});
+	});
+	return coverage;
 }
 
 function truncatePlanText(text: string, maxLength: number): string {

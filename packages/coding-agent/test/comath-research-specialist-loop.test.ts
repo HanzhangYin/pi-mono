@@ -12,8 +12,12 @@ import type {
 	ResearchWorkstreamModelExecutor,
 	ResearchWorkstreamModelRequest,
 } from "../src/modes/comath/comath-research-model-workstream.ts";
-import { runSpecialistToolLoop } from "../src/modes/comath/comath-research-specialist-loop.ts";
-import type { CoMathProjectState, ResearchPath } from "../src/modes/comath/schema.ts";
+import {
+	buildPriorComputationDigest,
+	type PriorComputationSummary,
+	runSpecialistToolLoop,
+} from "../src/modes/comath/comath-research-specialist-loop.ts";
+import type { CoMathProjectState, ComputationalArtifact, ResearchPath } from "../src/modes/comath/schema.ts";
 import {
 	addResearchPath,
 	createEmptyProjectState,
@@ -33,6 +37,13 @@ const FINAL_NOTE = [
 	"## Next",
 	"- Prove the restriction.",
 ].join("\n");
+
+const PRIOR_MOD6_CHECK: PriorComputationSummary = {
+	title: "Specialist computation: check the mod-6 pattern",
+	script: "print('checked: 100 pairs') print('violations: 0')",
+	outputSummary: "checked: 100 pairs violations: 0",
+	status: "completed",
+};
 
 function createPath(): ResearchPath {
 	return {
@@ -191,6 +202,119 @@ describe("co-math specialist tool loop", () => {
 		expect(result.finalText).toContain("spent its action budget");
 	});
 
+	it("shows prior computations in the prompt and tells the model not to repeat them", async () => {
+		const { executor, requests } = scriptedExecutor([FINAL_NOTE]);
+
+		const result = await runSpecialistToolLoop({
+			rootQuestion: "Are there infinitely many twin primes?",
+			path: createPath(),
+			allPaths: [createPath()],
+			priorFindings: [],
+			priorComputations: [PRIOR_MOD6_CHECK],
+			executor,
+		});
+
+		expect(requests).toHaveLength(1);
+		expect(requests[0]?.prompt).toContain("Computations already run earlier in this project:");
+		expect(requests[0]?.prompt).toContain(
+			"- Specialist computation: check the mod-6 pattern (completed): checked: 100 pairs violations: 0",
+		);
+		expect(requests[0]?.prompt).toContain("Do not re-run a computation that already produced this data");
+		expect(result.finalText).toBe(FINAL_NOTE);
+	});
+
+	it("reuses a completed prior result instead of re-running a nearly identical script", async () => {
+		const { executor, requests } = scriptedExecutor([
+			JSON.stringify({
+				action: "run_computation",
+				summary: "check the mod-6 pattern",
+				script: "print('checked: 100 pairs')\nprint('violations: 0')",
+			}),
+			FINAL_NOTE,
+		]);
+		const { computationalExecutor, drafts } = fakeComputationalExecutor("must never be produced\n");
+
+		const result = await runSpecialistToolLoop({
+			rootQuestion: "Are there infinitely many twin primes?",
+			path: createPath(),
+			allPaths: [createPath()],
+			priorFindings: [],
+			priorComputations: [PRIOR_MOD6_CHECK],
+			executor,
+			computationalExecutor,
+			workingDirectory: "/tmp/unused-in-fake",
+		});
+
+		expect(drafts).toHaveLength(0);
+		expect(requests).toHaveLength(2);
+		// The model sees the prior output as a completed action and continues from it.
+		expect(requests[1]?.prompt).toContain("an essentially identical computation already ran");
+		expect(requests[1]?.prompt).toContain("checked: 100 pairs violations: 0");
+		expect(result.computationRecords).toEqual([]);
+		expect(result.stageNotes.join("\n")).toContain("Reused a prior computation result instead of re-running it");
+		expect(result.finalText).toBe(FINAL_NOTE);
+	});
+
+	it("executes a materially different script even when prior computations exist", async () => {
+		const { executor } = scriptedExecutor([
+			JSON.stringify({
+				action: "run_computation",
+				summary: "count twin prime pairs below 500",
+				script: [
+					"count = 0",
+					"for n in range(5, 500):",
+					"    if all(n % d for d in range(2, n)) and all((n + 2) % d for d in range(2, n + 2)):",
+					"        count += 1",
+					"print('twin pairs found:', count)",
+				].join("\n"),
+			}),
+			FINAL_NOTE,
+		]);
+		const { computationalExecutor, drafts } = fakeComputationalExecutor("twin pairs found: 24\n");
+
+		const result = await runSpecialistToolLoop({
+			rootQuestion: "Are there infinitely many twin primes?",
+			path: createPath(),
+			allPaths: [createPath()],
+			priorFindings: [],
+			priorComputations: [PRIOR_MOD6_CHECK],
+			executor,
+			computationalExecutor,
+			workingDirectory: "/tmp/unused-in-fake",
+		});
+
+		expect(drafts).toHaveLength(1);
+		expect(result.computationRecords.map((record) => record.kind)).toEqual(["script", "stdout"]);
+		expect(result.stageNotes.join("\n")).toContain("Ran a bounded computation (exit 0)");
+	});
+
+	it("re-executes a nearly identical script when the prior computation failed", async () => {
+		const { executor } = scriptedExecutor([
+			JSON.stringify({
+				action: "run_computation",
+				summary: "check the mod-6 pattern",
+				script: "print('checked: 100 pairs')\nprint('violations: 0')",
+			}),
+			FINAL_NOTE,
+		]);
+		const { computationalExecutor, drafts } = fakeComputationalExecutor("checked: 100 pairs\nviolations: 0\n");
+
+		const result = await runSpecialistToolLoop({
+			rootQuestion: "Are there infinitely many twin primes?",
+			path: createPath(),
+			allPaths: [createPath()],
+			priorFindings: [],
+			priorComputations: [{ ...PRIOR_MOD6_CHECK, status: "failed" }],
+			executor,
+			computationalExecutor,
+			workingDirectory: "/tmp/unused-in-fake",
+		});
+
+		expect(drafts).toHaveLength(1);
+		expect(result.computationRecords.map((record) => record.kind)).toEqual(["script", "stdout"]);
+		expect(result.stageNotes.join("\n")).not.toContain("Reused a prior computation result");
+	});
+
 	it("reports an unavailable computation backend back to the model and continues", async () => {
 		const { executor, requests } = scriptedExecutor([
 			JSON.stringify({ action: "run_computation", summary: "a check", script: "print('x')" }),
@@ -211,6 +335,80 @@ describe("co-math specialist tool loop", () => {
 		expect(result.finalText).toBe(FINAL_NOTE);
 	});
 });
+
+describe("buildPriorComputationDigest", () => {
+	it("pairs script and output records, prefers the requested path, and never marks failed runs completed", () => {
+		const artifacts: ComputationalArtifact[] = [
+			createArtifact({
+				id: "record-1",
+				pathId: "path-1",
+				runId: "run-1",
+				kind: "script",
+				status: "completed",
+				title: "Computation script",
+				summary: "Tabulate residues for small moduli.",
+			}),
+			createArtifact({
+				id: "record-2",
+				pathId: "path-1",
+				runId: "run-1",
+				kind: "stdout",
+				status: "completed",
+				title: "Computation output",
+				summary: "residues tabulated for moduli up to 30",
+			}),
+			createArtifact({
+				id: "record-3",
+				pathId: "path-2",
+				runId: "run-2",
+				kind: "script",
+				status: "failed",
+				title: "Specialist computation: check the mod-6 pattern",
+				summary: "print('violations: 0')",
+			}),
+			createArtifact({
+				id: "record-4",
+				pathId: "path-2",
+				runId: "run-2",
+				kind: "stdout",
+				status: "failed",
+				title: "Specialist computation output: check the mod-6 pattern",
+				summary: "(no output)",
+			}),
+			// A script with no output record has nothing worth reusing.
+			createArtifact({
+				id: "record-5",
+				pathId: "path-2",
+				runId: "run-3",
+				kind: "script",
+				status: "completed",
+				title: "Specialist computation: count pairs",
+				summary: "print(1)",
+			}),
+		];
+
+		expect(buildPriorComputationDigest(artifacts, "path-2")).toEqual([
+			{
+				title: "Specialist computation: check the mod-6 pattern",
+				script: "print('violations: 0')",
+				outputSummary: "(no output)",
+				status: "failed",
+			},
+			{
+				title: "Computation script",
+				script: "Tabulate residues for small moduli.",
+				outputSummary: "residues tabulated for moduli up to 30",
+				status: "completed",
+			},
+		]);
+	});
+});
+
+function createArtifact(
+	input: Pick<ComputationalArtifact, "id" | "pathId" | "runId" | "kind" | "status" | "title" | "summary">,
+): ComputationalArtifact {
+	return { ...input, createdAt: NOW, updatedAt: NOW };
+}
 
 describe("co-math specialist tool loop through the harness", () => {
 	it("persists mid-attempt computations and claims with durable linkage to run, report, and task", async () => {

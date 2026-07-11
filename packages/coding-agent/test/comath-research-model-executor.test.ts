@@ -140,4 +140,68 @@ describe("default co-math research model executor", () => {
 		expect(observedTimeoutMs).toBe(3210);
 		expect(observedEvents).toEqual(["start", "text_start", "text_delta", "text_end", "done"]);
 	});
+
+	it("attaches model, thinking-level, usage, and cost provenance from the streamed message", async () => {
+		const message = createAssistantMessage("## Findings\n- Output.");
+		message.usage = {
+			input: 120,
+			output: 40,
+			cacheRead: 5,
+			cacheWrite: 6,
+			totalTokens: 171,
+			cost: { input: 0.01, output: 0.002, cacheRead: 0.0002, cacheWrite: 0.0001, total: 0.0123 },
+		};
+		const streamFn: StreamFn = () => {
+			const stream = createAssistantMessageEventStream();
+			stream.push({ type: "done", reason: "stop", message });
+			return stream;
+		};
+		const executor = createDefaultResearchModelExecutor({
+			getModel: createModel,
+			streamFn,
+			streamOptions: () => ({ reasoning: "high" }),
+		});
+
+		const result = await executor.run(createRequest("Try examples."));
+
+		expect(result.provenance).toEqual({
+			model: "mock-model",
+			provider: "openai",
+			thinkingLevel: "high",
+			inputTokens: 120,
+			outputTokens: 40,
+			cacheReadTokens: 5,
+			cacheWriteTokens: 6,
+			totalTokens: 171,
+			costUsd: 0.0123,
+			stopReason: "stop",
+		});
+	});
+
+	it("still reports model identity when the streamed message carries no usage", async () => {
+		const bare = {
+			role: "assistant",
+			content: [{ type: "text", text: "## Findings\n- Output without usage." }],
+			api: "openai-completions",
+			provider: "",
+			model: "",
+			stopReason: "stop",
+			timestamp: Date.now(),
+		} as unknown as AssistantMessage;
+		const streamFn: StreamFn = () => createAssistantMessageEventStream();
+		const executor = createDefaultResearchModelExecutor({
+			getModel: createModel,
+			streamFn,
+			streamAssistantMessage: async () => bare,
+		});
+
+		const result = await executor.run(createRequest("Try examples."));
+
+		expect(result.text).toBe("## Findings\n- Output without usage.");
+		expect(result.provenance).toEqual({
+			model: "mock-model",
+			provider: "openai",
+			stopReason: "stop",
+		});
+	});
 });

@@ -37,6 +37,9 @@ import {
 } from "./storage.ts";
 
 const MAX_SKEPTIC_CONCERNS = 3;
+// User-visible: an attempted check that did not finish must block a clean review, not pass silently.
+const INCONCLUSIVE_CHECK_CONCERN =
+	"The independent computational check for this step did not complete, so its result is inconclusive and this review cannot count as clean.";
 const MAX_SKEPTIC_ARTIFACT_SUMMARIES = 6;
 const MAX_SKEPTIC_ARTIFACT_SUMMARY_CHARS = 700;
 const MAX_SKEPTIC_ARTIFACT_CONTEXT_CHARS = 3_600;
@@ -59,34 +62,68 @@ export interface RunSkepticGateInput {
 
 export type SkepticVerdict = "accepted" | "needs-revision" | "rejected";
 
+/**
+ * Outcome of the independent counterexample check: "not-run" when no check was attempted,
+ * "completed" when the script finished cleanly, "inconclusive" when it was attempted but did not
+ * complete (timeout or non-zero exit), so its result proves nothing either way.
+ */
+export type SkepticIndependentCheckStatus = "not-run" | "completed" | "inconclusive";
+
 export interface RunSkepticGateResult {
 	state: CoMathProjectState;
 	/** The review's overall verdict; "rejected" means the step failed its acceptance criteria. */
 	verdict: SkepticVerdict;
 	concerns: string[];
 	counterexampleFound: boolean;
+	independentCheckStatus: SkepticIndependentCheckStatus;
 	/** Computation records created by the counterexample check, for task linkage. */
 	computationalArtifactIds: string[];
 	evidenceEntryIds: string[];
 }
 
+export interface PreparedSkepticGate {
+	/**
+	 * Pure fold of the finished review's durable records onto project state. The state passed here
+	 * may be fresher than the snapshot the review was prepared against: while the review's model
+	 * call and bounded check ran, other serialized commits may have landed, and folding onto the
+	 * fresh state (under the commit lock) is what keeps those sibling records intact.
+	 */
+	fold: (state: CoMathProjectState) => RunSkepticGateResult;
+}
+
+/** Outcome of the independent bounded script run, captured for the pure fold. */
+interface SkepticCheckExecution {
+	checkCompleted: boolean;
+	counterexampleFound: boolean;
+	command: string;
+	exitCode: number;
+	stdout: string;
+	stderr: string;
+	scriptFileName?: string;
+	stdoutFileName?: string;
+}
+
 /**
- * Run the skeptic over one completed task's report. Returns updated state (caller persists) plus
- * the ids to link into the task record. Any model or execution failure degrades to "no concerns"
- * rather than failing the task: verification must never be the reason durable progress is lost.
+ * Run the skeptic's external work — the adversarial model pass and the optional bounded
+ * counterexample script — against a state snapshot, and return a pure fold that records the
+ * review's durable output. Any model or execution failure degrades to "no concerns" rather than
+ * failing the task: verification must never be the reason durable progress is lost.
  */
-export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSkepticGateResult> {
-	const emptyResult: RunSkepticGateResult = {
-		state: input.state,
-		verdict: "accepted",
-		concerns: [],
-		counterexampleFound: false,
-		computationalArtifactIds: [],
-		evidenceEntryIds: [],
+export async function prepareSkepticGate(input: RunSkepticGateInput): Promise<PreparedSkepticGate> {
+	const emptyGate: PreparedSkepticGate = {
+		fold: (state) => ({
+			state,
+			verdict: "accepted",
+			concerns: [],
+			counterexampleFound: false,
+			independentCheckStatus: "not-run",
+			computationalArtifactIds: [],
+			evidenceEntryIds: [],
+		}),
 	};
 	const report = input.state.researchReports.find((candidate) => candidate.id === input.reportId);
 	if (!report) {
-		return emptyResult;
+		return emptyGate;
 	}
 	let responseText: string;
 	try {
@@ -101,7 +138,7 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 		});
 		responseText = typeof response.text === "string" ? response.text : "";
 	} catch {
-		return emptyResult;
+		return emptyGate;
 	}
 	const parsed = parseCoMathMarkdown(responseText);
 	const knownGaps = new Set([...report.gaps, ...report.criticisms].map(normalizeConcern));
@@ -109,68 +146,15 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 		.map((concern) => normalizeUsableConcern(concern))
 		.filter((concern) => concern.length > 0 && !isNoConcernLine(concern) && !knownGaps.has(normalizeConcern(concern)))
 		.slice(0, MAX_SKEPTIC_CONCERNS);
-
-	let nextState = input.state;
-	// Standing rules the skeptic derives ("Do not conflate general infinitude of primes with
-	// infinitude in the quadratic sequence.") become durable reviewer constraints.
-	for (const constraintText of parseNegativeConstraints(responseText)) {
-		nextState = addResearchConstraint(nextState, {
-			text: constraintText,
-			kind: /\bconvention\b/i.test(constraintText) ? "convention" : "avoid",
-			origin: "reviewer",
-			now: input.now,
-			actor: "reviewer",
-		});
-	}
-	// The skeptic's own theorem checks are durable: an applicability rejection recorded here is
-	// what later cautions any route that leans on the same theorem.
-	for (const check of parseTheoremApplicabilityChecks(responseText)) {
-		nextState = addTheoremApplicabilityCheck(nextState, {
-			theorem: check.theorem,
-			targetObject: check.targetObject,
-			hypotheses: check.hypotheses,
-			status: check.status,
-			...(check.consequence ? { consequence: check.consequence } : {}),
-			pathId: report.pathId,
-			reportId: report.id,
-			taskId: input.task.id,
-			now: input.now,
-			actor: "reviewer",
-		});
-	}
-	const evidenceEntryIds: string[] = [];
-	for (const concern of concerns) {
-		nextState = addMarginNote(nextState, {
-			id: `margin-note-${nextState.marginNotes.length + 1}`,
-			kind: "scrutiny",
-			subjectId: report.pathId,
-			...(report.workingPaperSectionId ? { sectionId: report.workingPaperSectionId } : {}),
-			message: `Independent review: ${concern}`,
-			now: input.now,
-			actor: "reviewer",
-		});
-		// The upsert merges a concern that restates an already-recorded one, so repeated review
-		// rounds do not multiply the same complaint; the surviving entry id keeps the linkage exact.
-		const upserted = upsertResearchEvidenceBoardEntry(nextState, {
-			pathId: report.pathId,
-			reportId: report.id,
-			claim: concern,
-			classification: classifyConcern(concern),
-			rationale: "Raised by an independent review of this step, separate from the original attempt.",
-			now: input.now,
-			actor: "reviewer",
-		});
-		nextState = upserted.state;
-		evidenceEntryIds.push(upserted.entryId);
-	}
+	const constraints = parseNegativeConstraints(responseText);
+	const theoremChecks = parseTheoremApplicabilityChecks(responseText);
 
 	const counterexampleTarget = resolveCounterexampleTarget(
 		firstCoMathMarkdownSectionItem(parsed, "counterexample target"),
 		report,
 	);
 	const script = extractPythonScript(responseText);
-	const computationalArtifactIds: string[] = [];
-	let counterexampleFound = false;
+	let checkExecution: SkepticCheckExecution | undefined;
 	if (script && counterexampleTarget && input.computationalExecutor) {
 		try {
 			const execution = await input.computationalExecutor.runScript(
@@ -189,81 +173,194 @@ export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSke
 				},
 			);
 			const checkCompleted = execution.exitCode === 0;
-			counterexampleFound = checkCompleted && COUNTEREXAMPLE_SIGNAL.test(execution.stdout);
-			nextState = addComputationalArtifact(nextState, {
-				pathId: report.pathId,
-				reportId: report.id,
-				...(input.runId ? { runId: input.runId } : {}),
-				kind: "script",
-				status: execution.exitCode === 0 ? "completed" : "failed",
-				title: "Independent counterexample check (script)",
-				...(execution.scriptFileName ? { filePath: `${input.artifactDirectory}/${execution.scriptFileName}` } : {}),
+			checkExecution = {
+				checkCompleted,
+				counterexampleFound: checkCompleted && COUNTEREXAMPLE_SIGNAL.test(execution.stdout),
 				command: execution.command,
 				exitCode: execution.exitCode,
-				summary: script.length > 900 ? `${script.slice(0, 897)}...` : script,
-				now: input.now,
-				actor: "reviewer",
-			});
-			const scriptArtifactId = nextState.computationalArtifacts.at(-1)?.id;
-			nextState = addComputationalArtifact(nextState, {
-				pathId: report.pathId,
-				reportId: report.id,
-				...(input.runId ? { runId: input.runId } : {}),
-				kind: "stdout",
-				status: execution.exitCode === 0 ? "completed" : "failed",
-				title: "Independent counterexample check (output)",
-				...(execution.stdoutFileName ? { filePath: `${input.artifactDirectory}/${execution.stdoutFileName}` } : {}),
-				exitCode: execution.exitCode,
-				summary: execution.stdout.trim() || execution.stderr.trim() || "(no output)",
-				now: input.now,
-				actor: "reviewer",
-			});
-			const stdoutArtifactId = nextState.computationalArtifacts.at(-1)?.id;
-			for (const artifactId of [scriptArtifactId, stdoutArtifactId]) {
-				if (artifactId) {
-					computationalArtifactIds.push(artifactId);
-				}
-			}
-			const checkUpserted = upsertResearchEvidenceBoardEntry(nextState, {
-				pathId: report.pathId,
-				reportId: report.id,
-				computationalArtifactIds,
-				claim: !checkCompleted
-					? `An independent bounded check was inconclusive for the report claim: ${counterexampleTarget}`
-					: counterexampleFound
-						? `An independent bounded check found a counterexample to the report claim: ${counterexampleTarget}`
-						: `An independent bounded check did not find a counterexample to the report claim in the searched range: ${counterexampleTarget}`,
-				classification: !checkCompleted ? "unsupported" : counterexampleFound ? "conflicting" : "computation",
-				rationale: summarizeOutput(execution.stdout, execution.stderr),
-				now: input.now,
-				actor: "reviewer",
-			});
-			nextState = checkUpserted.state;
-			evidenceEntryIds.push(checkUpserted.entryId);
-			if (counterexampleFound) {
-				nextState = addMarginNote(nextState, {
-					id: `margin-note-${nextState.marginNotes.length + 1}`,
-					kind: "warning",
-					subjectId: report.pathId,
-					...(report.workingPaperSectionId ? { sectionId: report.workingPaperSectionId } : {}),
-					message: `Independent review found a counterexample to this report claim: ${counterexampleTarget}`,
-					now: input.now,
-					actor: "reviewer",
-				});
-			}
+				stdout: execution.stdout,
+				stderr: execution.stderr,
+				...(execution.scriptFileName ? { scriptFileName: execution.scriptFileName } : {}),
+				...(execution.stdoutFileName ? { stdoutFileName: execution.stdoutFileName } : {}),
+			};
 		} catch {
 			// A failed check leaves no record; the concerns above still stand on their own.
 		}
 	}
+	const counterexampleFound = checkExecution?.counterexampleFound === true;
+	const independentCheckStatus: SkepticIndependentCheckStatus =
+		checkExecution === undefined ? "not-run" : checkExecution.checkCompleted ? "completed" : "inconclusive";
+	// An attempted check that did not finish proves nothing either way; the review must carry a
+	// concern so the step completes with concerns instead of reading as independently verified.
+	const inconclusiveConcern =
+		independentCheckStatus === "inconclusive" ? normalizeUsableConcern(INCONCLUSIVE_CHECK_CONCERN) : "";
+	const finalConcerns = [...concerns, ...(inconclusiveConcern.length > 0 ? [inconclusiveConcern] : [])];
+	const verdict = normalizeSkepticVerdict(firstCoMathMarkdownSectionItem(parsed, "verdict"), finalConcerns);
 
 	return {
-		state: nextState,
-		verdict: normalizeSkepticVerdict(firstCoMathMarkdownSectionItem(parsed, "verdict"), concerns),
-		concerns,
-		counterexampleFound,
-		computationalArtifactIds,
-		evidenceEntryIds,
+		fold: (state) => {
+			let nextState = state;
+			// Standing rules the skeptic derives ("Do not conflate general infinitude of primes with
+			// infinitude in the quadratic sequence.") become durable reviewer constraints.
+			for (const constraintText of constraints) {
+				nextState = addResearchConstraint(nextState, {
+					text: constraintText,
+					kind: /\bconvention\b/i.test(constraintText) ? "convention" : "avoid",
+					origin: "reviewer",
+					now: input.now,
+					actor: "reviewer",
+				});
+			}
+			// The skeptic's own theorem checks are durable: an applicability rejection recorded here
+			// is what later cautions any route that leans on the same theorem.
+			for (const check of theoremChecks) {
+				nextState = addTheoremApplicabilityCheck(nextState, {
+					theorem: check.theorem,
+					targetObject: check.targetObject,
+					hypotheses: check.hypotheses,
+					status: check.status,
+					...(check.consequence ? { consequence: check.consequence } : {}),
+					pathId: report.pathId,
+					reportId: report.id,
+					taskId: input.task.id,
+					now: input.now,
+					actor: "reviewer",
+				});
+			}
+			const evidenceEntryIds: string[] = [];
+			for (const concern of concerns) {
+				const recorded = recordSkepticConcern(nextState, report, concern, input.now);
+				nextState = recorded.state;
+				evidenceEntryIds.push(recorded.entryId);
+			}
+			const computationalArtifactIds: string[] = [];
+			if (checkExecution && counterexampleTarget && script) {
+				nextState = addComputationalArtifact(nextState, {
+					pathId: report.pathId,
+					reportId: report.id,
+					...(input.runId ? { runId: input.runId } : {}),
+					kind: "script",
+					status: checkExecution.exitCode === 0 ? "completed" : "failed",
+					title: "Independent counterexample check (script)",
+					...(checkExecution.scriptFileName
+						? { filePath: `${input.artifactDirectory}/${checkExecution.scriptFileName}` }
+						: {}),
+					command: checkExecution.command,
+					exitCode: checkExecution.exitCode,
+					summary: script.length > 900 ? `${script.slice(0, 897)}...` : script,
+					now: input.now,
+					actor: "reviewer",
+				});
+				const scriptArtifactId = nextState.computationalArtifacts.at(-1)?.id;
+				nextState = addComputationalArtifact(nextState, {
+					pathId: report.pathId,
+					reportId: report.id,
+					...(input.runId ? { runId: input.runId } : {}),
+					kind: "stdout",
+					status: checkExecution.exitCode === 0 ? "completed" : "failed",
+					title: "Independent counterexample check (output)",
+					...(checkExecution.stdoutFileName
+						? { filePath: `${input.artifactDirectory}/${checkExecution.stdoutFileName}` }
+						: {}),
+					exitCode: checkExecution.exitCode,
+					summary: checkExecution.stdout.trim() || checkExecution.stderr.trim() || "(no output)",
+					now: input.now,
+					actor: "reviewer",
+				});
+				const stdoutArtifactId = nextState.computationalArtifacts.at(-1)?.id;
+				for (const artifactId of [scriptArtifactId, stdoutArtifactId]) {
+					if (artifactId) {
+						computationalArtifactIds.push(artifactId);
+					}
+				}
+				const checkUpserted = upsertResearchEvidenceBoardEntry(nextState, {
+					pathId: report.pathId,
+					reportId: report.id,
+					computationalArtifactIds,
+					claim: !checkExecution.checkCompleted
+						? `An independent bounded check was inconclusive for the report claim: ${counterexampleTarget}`
+						: counterexampleFound
+							? `An independent bounded check found a counterexample to the report claim: ${counterexampleTarget}`
+							: `An independent bounded check did not find a counterexample to the report claim in the searched range: ${counterexampleTarget}`,
+					classification: !checkExecution.checkCompleted
+						? "unsupported"
+						: counterexampleFound
+							? "conflicting"
+							: "computation",
+					rationale: summarizeOutput(checkExecution.stdout, checkExecution.stderr),
+					now: input.now,
+					actor: "reviewer",
+				});
+				nextState = checkUpserted.state;
+				evidenceEntryIds.push(checkUpserted.entryId);
+				if (counterexampleFound) {
+					nextState = addMarginNote(nextState, {
+						id: `margin-note-${nextState.marginNotes.length + 1}`,
+						kind: "warning",
+						subjectId: report.pathId,
+						...(report.workingPaperSectionId ? { sectionId: report.workingPaperSectionId } : {}),
+						message: `Independent review found a counterexample to this report claim: ${counterexampleTarget}`,
+						now: input.now,
+						actor: "reviewer",
+					});
+				}
+			}
+			if (inconclusiveConcern.length > 0) {
+				const recorded = recordSkepticConcern(nextState, report, inconclusiveConcern, input.now);
+				nextState = recorded.state;
+				evidenceEntryIds.push(recorded.entryId);
+			}
+			return {
+				state: nextState,
+				verdict,
+				concerns: [...finalConcerns],
+				counterexampleFound,
+				independentCheckStatus,
+				computationalArtifactIds,
+				evidenceEntryIds,
+			};
+		},
 	};
+}
+
+/**
+ * Run the skeptic over one completed task's report. Returns updated state (caller persists) plus
+ * the ids to link into the task record. Callers whose commit may race other serialized commits
+ * should use {@link prepareSkepticGate} and fold onto fresh state under the commit lock instead.
+ */
+export async function runSkepticGate(input: RunSkepticGateInput): Promise<RunSkepticGateResult> {
+	return (await prepareSkepticGate(input)).fold(input.state);
+}
+
+/**
+ * Record one surviving concern durably: a scrutiny margin note plus an evidence-board entry. The
+ * upsert merges a concern that restates an already-recorded one, so repeated review rounds do not
+ * multiply the same complaint; the surviving entry id keeps the linkage exact.
+ */
+function recordSkepticConcern(
+	state: CoMathProjectState,
+	report: ResearchWorkstreamReportRecord,
+	concern: string,
+	now: string,
+): { state: CoMathProjectState; entryId: string } {
+	const withNote = addMarginNote(state, {
+		id: `margin-note-${state.marginNotes.length + 1}`,
+		kind: "scrutiny",
+		subjectId: report.pathId,
+		...(report.workingPaperSectionId ? { sectionId: report.workingPaperSectionId } : {}),
+		message: `Independent review: ${concern}`,
+		now,
+		actor: "reviewer",
+	});
+	return upsertResearchEvidenceBoardEntry(withNote, {
+		pathId: report.pathId,
+		reportId: report.id,
+		claim: concern,
+		classification: classifyConcern(concern),
+		rationale: "Raised by an independent review of this step, separate from the original attempt.",
+		now,
+		actor: "reviewer",
+	});
 }
 
 /**

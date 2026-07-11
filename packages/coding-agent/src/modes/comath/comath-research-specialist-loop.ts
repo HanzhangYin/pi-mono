@@ -22,7 +22,9 @@ import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import { extractCoMathJsonObject, stripCoMathJsonObjects } from "./comath-markdown.ts";
 import { buildProofTaskGuidance, buildStandingConstraintsBlock } from "./comath-research-discipline.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
+import { squashForFormulaComparison, textsNearlyMatch } from "./comath-text-similarity.ts";
 import type {
+	ComputationalArtifact,
 	ResearchClaimCategory,
 	ResearchConstraintRecord,
 	ResearchEvidenceClassification,
@@ -35,6 +37,13 @@ const DEFAULT_MAX_TOOL_ACTIONS = 3;
 const SCRIPT_MAX_RUNTIME_MS = 10_000;
 const TOOL_OUTPUT_CAP = 2_000;
 const MAX_RECORDED_CLAIMS = 5;
+const PRIOR_COMPUTATION_DIGEST_LIMIT = 8;
+const PRIOR_COMPUTATION_OUTPUT_CAP = 300;
+/**
+ * Minimum significant-token containment between the requested and prior script before a prior
+ * result may be reused. High on purpose: reusing the wrong output is worse than recomputing.
+ */
+const REUSE_SCRIPT_SIMILARITY_THRESHOLD = 0.9;
 
 const RECORDABLE_CLASSIFICATIONS: readonly ResearchEvidenceClassification[] = [
 	"conjecture",
@@ -62,6 +71,23 @@ export interface SpecialistComputationRecord {
 	summary: string;
 }
 
+/**
+ * A computation that already ran earlier in the project, in the cheap shape callers can provide.
+ * The loop shows these to the model so it does not repeat work, and reuses a prior output instead
+ * of re-executing when a requested script is essentially identical to a completed prior one.
+ */
+export interface PriorComputationSummary {
+	/** What the computation was, e.g. its durable record title. */
+	title: string;
+	/** Extra matching context when the record carries one beyond the title. */
+	description?: string;
+	/** The script text when the record preserved it; required for execution reuse. */
+	script?: string;
+	/** What the computation printed, truncated for the prompt. */
+	outputSummary: string;
+	status: "completed" | "failed";
+}
+
 export interface RunSpecialistToolLoopInput {
 	rootQuestion: string;
 	path: ResearchPath;
@@ -72,6 +98,8 @@ export interface RunSpecialistToolLoopInput {
 	standingConstraints?: readonly ResearchConstraintRecord[];
 	/** The plan-task kind this attempt executes; proof-level kinds get proof-first guidance. */
 	taskKind?: ResearchPlanTaskKind;
+	/** Computations earlier steps already ran, so the specialist does not re-run them. */
+	priorComputations?: readonly PriorComputationSummary[];
 	executor: ResearchWorkstreamModelExecutor;
 	computationalExecutor?: ComputationalExecutor;
 	/** Absolute directory the specialist's scripts run in (created by the executor). */
@@ -162,6 +190,17 @@ export async function runSpecialistToolLoop(input: RunSpecialistToolLoopInput): 
 			continue;
 		}
 		// run_computation
+		const reusablePrior = findReusablePriorComputation(action, input.priorComputations ?? []);
+		if (reusablePrior) {
+			stageNotes.push(
+				`Reused a prior computation result instead of re-running it: ${truncate(action.summary, 120)}`,
+			);
+			exchanges.push({
+				description: `Computation (${action.summary}) was not re-run: an essentially identical computation already ran (${reusablePrior.title}) and its output is reused. Output:`,
+				result: reusablePrior.outputSummary.trim() || "(no output was recorded)",
+			});
+			continue;
+		}
 		if (!input.computationalExecutor || !input.workingDirectory) {
 			exchanges.push({
 				description: `Requested computation: ${action.summary}`,
@@ -290,11 +329,12 @@ function normalizeRecordableClassification(value: unknown): ResearchEvidenceClas
 export function buildAgenticSpecialistPrompt(
 	input: Pick<
 		RunSpecialistToolLoopInput,
-		"rootQuestion" | "path" | "priorFindings" | "directive" | "standingConstraints" | "taskKind"
+		"rootQuestion" | "path" | "priorFindings" | "directive" | "standingConstraints" | "taskKind" | "priorComputations"
 	>,
 	exchanges: readonly ToolExchange[],
 	remainingActions: number,
 ): string {
+	const priorComputations = input.priorComputations ?? [];
 	return [
 		"You are the specialist for one research path in a co-mathematician workspace.",
 		`Root question: ${input.rootQuestion}`,
@@ -303,6 +343,16 @@ export function buildAgenticSpecialistPrompt(
 		"Existing findings:",
 		...(input.priorFindings.length > 0 ? input.priorFindings.map((finding) => `- ${finding}`) : ["- (none yet)"]),
 		...buildStandingConstraintsBlock(input.standingConstraints ?? []),
+		...(priorComputations.length > 0
+			? [
+					"",
+					"Computations already run earlier in this project:",
+					...priorComputations.map(
+						(prior) => `- ${prior.title} (${prior.status}): ${truncate(prior.outputSummary, 200)}`,
+					),
+					"Do not re-run a computation that already produced this data; build on it or compute something materially new (a different bound, statistic, or method).",
+				]
+			: []),
 		"",
 		"Task:",
 		...(input.directive?.trim() ? ["Task brief from the research plan:", input.directive.trim(), ""] : []),
@@ -336,6 +386,81 @@ export function buildAgenticSpecialistPrompt(
 		"Write user-facing notes only. Do not include scratchpad planning, self-talk, or drafting narration.",
 		"Keep the answer compact: short bullets.",
 	].join("\n");
+}
+
+/**
+ * A prior completed computation whose script and stated purpose both near-match the requested
+ * one. Deliberately conservative — a false reuse is worse than a recompute — so the scripts must
+ * be identical after squashing or share almost all significant tokens, AND the request summary
+ * must near-match the prior title/description. Failed priors are never reused: re-running them is
+ * the point.
+ */
+function findReusablePriorComputation(
+	action: { summary: string; script: string },
+	priorComputations: readonly PriorComputationSummary[],
+): PriorComputationSummary | undefined {
+	const squashedScript = squashForFormulaComparison(action.script);
+	return priorComputations.find((prior) => {
+		if (prior.status !== "completed") {
+			return false;
+		}
+		const priorScript = prior.script?.trim() ?? "";
+		if (priorScript.length === 0) {
+			return false;
+		}
+		const scriptsMatch =
+			(squashedScript.length > 0 && squashedScript === squashForFormulaComparison(priorScript)) ||
+			textsNearlyMatch(action.script, priorScript, REUSE_SCRIPT_SIMILARITY_THRESHOLD);
+		if (!scriptsMatch) {
+			return false;
+		}
+		const priorLabel = prior.description ? `${prior.title} ${prior.description}` : prior.title;
+		return textsNearlyMatch(action.summary, priorLabel);
+	});
+}
+
+/**
+ * Build the prior-computation digest for the specialist loop from durable computation records:
+ * each script record is paired with the first following output record of the same run. Records on
+ * the requesting path come first, then the rest, most recent first, capped at
+ * {@link PRIOR_COMPUTATION_DIGEST_LIMIT}. The specialist loop stores the script text as the script
+ * record's summary, so it doubles as the reuse-matching script; records whose summary is a prose
+ * description instead simply never match the reuse guard's high bar.
+ */
+export function buildPriorComputationDigest(
+	artifacts: readonly ComputationalArtifact[],
+	pathId: string,
+): PriorComputationSummary[] {
+	const collected: { summary: PriorComputationSummary; samePath: boolean }[] = [];
+	for (const [index, artifact] of artifacts.entries()) {
+		if (artifact.kind !== "script") {
+			continue;
+		}
+		const output = artifacts
+			.slice(index + 1)
+			.find(
+				(candidate) =>
+					candidate.kind === "stdout" &&
+					candidate.runId === artifact.runId &&
+					candidate.pathId === artifact.pathId,
+			);
+		if (!output) {
+			continue;
+		}
+		collected.push({
+			summary: {
+				title: artifact.title,
+				script: artifact.summary,
+				outputSummary: truncate(output.summary, PRIOR_COMPUTATION_OUTPUT_CAP),
+				status: artifact.status === "completed" && output.status === "completed" ? "completed" : "failed",
+			},
+			samePath: artifact.pathId === pathId,
+		});
+	}
+	collected.reverse();
+	// Stable sort: same-path records first, each group staying most recent first.
+	collected.sort((a, b) => Number(b.samePath) - Number(a.samePath));
+	return collected.slice(0, PRIOR_COMPUTATION_DIGEST_LIMIT).map((entry) => entry.summary);
 }
 
 function stripActionJson(text: string): string {

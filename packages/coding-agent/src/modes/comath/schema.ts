@@ -485,6 +485,30 @@ export interface ResearchWorkstreamIncrementalReportRecord {
 	createdAt: string;
 }
 
+/**
+ * Provenance for a single model call made during research execution: which model answered, at
+ * what thinking level, and what it consumed. Every field is optional so fake/test executors and
+ * providers that omit usage stay valid.
+ */
+export interface ResearchModelCallProvenance {
+	model?: string;
+	provider?: string;
+	thinkingLevel?: string;
+	inputTokens?: number;
+	outputTokens?: number;
+	cacheReadTokens?: number;
+	cacheWriteTokens?: number;
+	totalTokens?: number;
+	costUsd?: number;
+	stopReason?: string;
+}
+
+/** A model call recorded on a research workstream run, tagged with the stage that made it. */
+export interface ResearchRunModelCallRecord extends ResearchModelCallProvenance {
+	stage: string;
+	at: string;
+}
+
 export interface ResearchWorkstreamRunRecord {
 	id: string;
 	pathId: string;
@@ -493,10 +517,14 @@ export interface ResearchWorkstreamRunRecord {
 	currentStage: ResearchWorkstreamRunStage;
 	batchId?: string;
 	batchStepIndex?: number;
+	/** The research plan task this run executes, when the run is task-backed. */
+	taskId?: string;
 	startedAt: string;
 	updatedAt: string;
 	completedAt?: string;
 	incrementalReports: ResearchWorkstreamIncrementalReportRecord[];
+	/** Model calls this run made, appended at stage boundaries. */
+	modelCalls?: ResearchRunModelCallRecord[];
 	finalReportId?: string;
 	failureReason?: string;
 	usedFallback?: boolean;

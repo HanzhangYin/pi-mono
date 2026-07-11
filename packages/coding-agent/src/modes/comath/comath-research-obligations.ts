@@ -14,6 +14,7 @@
  * All functions are pure state transforms; callers persist.
  */
 
+import type { SkepticIndependentCheckStatus } from "./comath-research-skeptic.ts";
 import { isSourceCommentaryClaim, mathClaimsNearlyMatch, stripMathDecorations } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
@@ -37,6 +38,11 @@ export interface SkepticReviewOutcome {
 	/** Explicit mathematical attachments; only an exact root-statement match is accepted. */
 	rootObligationConcerns?: readonly RootObligationConcern[];
 	counterexampleFound: boolean;
+	/**
+	 * Outcome of the review's independent computational check. An "inconclusive" check (attempted
+	 * but did not complete) blocks a clean review; "not-run" and "completed" both allow it.
+	 */
+	independentCheckStatus?: SkepticIndependentCheckStatus;
 }
 
 export interface ApplyCompletedTaskToObligationsInput {
@@ -148,7 +154,8 @@ export function applyCompletedTaskToObligations(
 		input.skeptic !== undefined &&
 		input.skeptic.concerns.length === 0 &&
 		(input.skeptic.rootObligationConcerns?.length ?? 0) === 0 &&
-		!input.skeptic.counterexampleFound;
+		!input.skeptic.counterexampleFound &&
+		input.skeptic.independentCheckStatus !== "inconclusive";
 	const rootGaps = resolveRootObligationGaps(input.skeptic, root.statement);
 	const refuted = refuting.length > 0;
 	const current = nextState.researchObligations.find((obligation) => obligation.id === root.id) ?? root;

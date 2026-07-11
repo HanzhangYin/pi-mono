@@ -13,7 +13,21 @@ pi comath                  # fresh research workspace in the current directory
 pi comath paper.pdf        # pin a source document for validation work
 ```
 
-Typing a fresh math question starts a bounded autonomous run: the harness plans durable tasks, executes them one at a time through model-backed workstreams, and puts every finished step through an independent review before anything counts as progress.
+Typing a fresh math question starts a bounded autonomous run: the harness plans durable tasks, executes them through model-backed workstreams, and puts every finished step through an independent review before anything counts as progress.
+
+### Parallel independent research tasks
+
+Independent research tasks — tasks pinned to *different* research paths, of the workstream-backed kinds (literature search, source refresh, computation, proof attempt, refutation attempt) — can run in parallel within one bounded run. Interactive sessions run up to **2 tasks at once by default**; tune it with:
+
+```bash
+pi comath --comath-parallel 3       # 1–3 tasks at once (also accepts --comath-parallel=3)
+```
+
+- The value is clamped to 1–3; `--comath-parallel 1` restores strictly sequential execution.
+- Only the research work overlaps. Each task's sandboxed computations run in their own isolated working directory, and every durable state update stays strictly serialized, so records from parallel tasks never overwrite each other.
+- Synthesis, review, statement-revision, and export tasks always run alone, as do any two tasks on the same research path.
+- The step budget still counts every task: two tasks run in parallel consume two steps.
+- Deterministic runs (no research model configured) always execute sequentially so degraded results stay reproducible.
 
 ### First-run step budget
 

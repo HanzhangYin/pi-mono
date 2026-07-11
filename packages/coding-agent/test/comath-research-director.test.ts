@@ -11,6 +11,8 @@ import { CoMathHarness } from "../src/modes/comath/comath-harness.ts";
 import { buildResearchContextPack } from "../src/modes/comath/comath-research-context.ts";
 import {
 	amendResearchPlanAfterTask,
+	buildDirectorAmendmentPrompt,
+	buildDirectorPlanPrompt,
 	extractJsonObject,
 	proposeResearchPlan,
 } from "../src/modes/comath/comath-research-director.ts";
@@ -22,6 +24,7 @@ import { runSkepticGate } from "../src/modes/comath/comath-research-skeptic.ts";
 import type { CoMathProjectState } from "../src/modes/comath/schema.ts";
 import {
 	addComputationalArtifact,
+	addResearchEvidenceBoardEntry,
 	addResearchPath,
 	addResearchPlan,
 	addResearchPlanTask,
@@ -331,6 +334,62 @@ describe("co-math research director", () => {
 		expect(pack).toContain("Task 1 (proof-attempt, pending): Attempt the parity lemma");
 		expect(pack).toContain("goal: A rigorous parity lemma.");
 		expect(pack).toContain("done when: No unjustified steps.");
+	});
+
+	it("shows per-path coverage in the context pack and flags untouched paths", () => {
+		let state = createTwinPrimeState();
+		state = addResearchPlan(state, { title: "Plan", objective: "Progress.", now: NOW, actor: "human" });
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "computation",
+			title: "Count twin primes",
+			description: "Bounded count.",
+			pathId: "path-1",
+			now: NOW,
+			actor: "human",
+		});
+		state = addResearchEvidenceBoardEntry(state, {
+			pathId: "path-1",
+			claim: "Twin prime pairs persist up to the checked bound.",
+			classification: "computation",
+			rationale: "Recorded for the coverage test.",
+			now: NOW,
+			actor: "workstream",
+		});
+
+		const pack = buildResearchContextPack(state);
+
+		expect(pack).toContain("Path coverage");
+		expect(pack).toContain(
+			"- Path 1: Small examples and counterexamples — tasks: 1 pending, 0 running, 0 completed; evidence entries: 1; computations: 0",
+		);
+		expect(pack).toContain("- Path 2: Direct proof attempt — untouched (no tasks, evidence, or computations yet)");
+	});
+
+	it("tells the director to weigh untouched paths when planning and amending", () => {
+		let state = createTwinPrimeState();
+		const planPrompt = buildDirectorPlanPrompt(state);
+		expect(planPrompt).toContain("Weigh path coverage");
+		expect(planPrompt).toContain("untouched");
+		expect(planPrompt).toContain("Path coverage");
+
+		state = addResearchPlan(state, { title: "Plan", objective: "Progress.", now: NOW, actor: "human" });
+		state = addResearchPlanTask(state, {
+			planId: "research-plan-1",
+			kind: "computation",
+			title: "Count twin primes",
+			description: "Bounded count.",
+			pathId: "path-1",
+			now: NOW,
+			actor: "human",
+		});
+		const completedTask = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!completedTask) {
+			throw new Error("Expected a plan task.");
+		}
+		const amendmentPrompt = buildDirectorAmendmentPrompt(state, completedTask, []);
+		expect(amendmentPrompt).toContain("Weigh path coverage");
+		expect(amendmentPrompt).toContain("give the reason");
 	});
 });
 
@@ -642,7 +701,7 @@ describe("co-math research skeptic", () => {
 		expect(result.state.researchEvidenceBoard).toEqual([]);
 	});
 
-	it("records a failed bounded check as inconclusive instead of a clean result", async () => {
+	it("records a failed bounded check as inconclusive and refuses to accept the step", async () => {
 		const state = stateWithReport();
 		const task = getResearchPlanTasks(state, "research-plan-1")[0];
 		if (!task) {
@@ -676,13 +735,61 @@ describe("co-math research skeptic", () => {
 		});
 
 		expect(result.counterexampleFound).toBe(false);
+		expect(result.independentCheckStatus).toBe("inconclusive");
 		expect(result.state.computationalArtifacts).toEqual(
 			expect.arrayContaining([expect.objectContaining({ status: "failed", exitCode: 124 })]),
 		);
-		const check = result.state.researchEvidenceBoard.at(-1);
+		const check = result.state.researchEvidenceBoard.find((entry) => entry.claim.includes("was inconclusive"));
 		expect(check).toMatchObject({ classification: "unsupported" });
-		expect(check?.claim).toContain("was inconclusive");
 		expect(check?.claim).not.toContain("did not find a counterexample");
+		// The step must not read as independently verified: the inconclusive check is a concern.
+		expect(result.concerns.some((concern) => concern.includes("did not complete"))).toBe(true);
+		expect(result.verdict).toBe("needs-revision");
+		expect(
+			result.state.researchEvidenceBoard.some(
+				(entry) => entry.classification === "unsupported" && entry.claim.includes("did not complete"),
+			),
+		).toBe(true);
+	});
+
+	it("reports a clean-exit check as completed without an inconclusive concern", async () => {
+		const state = stateWithReport();
+		const task = getResearchPlanTasks(state, "research-plan-1")[0];
+		if (!task) {
+			throw new Error("Expected a plan task.");
+		}
+		const { executor } = staticExecutor(
+			[
+				"## Verdict",
+				"accepted",
+				"## Concerns",
+				"- None.",
+				"## Counterexample target",
+				"Checked the 6k ± 1 pattern for pairs below 100.",
+				"## Counterexample script",
+				"```python",
+				"print('counterexample_found: false')",
+				"```",
+			].join("\n"),
+		);
+		const { computationalExecutor } = fakeComputationalExecutor("checked_pairs: 8\ncounterexample_found: false\n");
+
+		const result = await runSkepticGate({
+			state,
+			task,
+			reportId: "research-report-1",
+			executor,
+			computationalExecutor,
+			artifactDirectory: ".pi/co-math/artifacts/x",
+			workingDirectory: "/tmp/unused",
+			now: NOW,
+		});
+
+		expect(result.independentCheckStatus).toBe("completed");
+		expect(result.counterexampleFound).toBe(false);
+		expect(result.verdict).toBe("accepted");
+		expect(result.concerns).toEqual([]);
+		expect(result.state.researchEvidenceBoard.some((entry) => entry.claim.includes("did not complete"))).toBe(false);
 	});
 
 	it("does not run a counterexample script whose target is not a report claim", async () => {
@@ -720,6 +827,7 @@ describe("co-math research skeptic", () => {
 
 		expect(drafts).toEqual([]);
 		expect(result.counterexampleFound).toBe(false);
+		expect(result.independentCheckStatus).toBe("not-run");
 		expect(result.computationalArtifactIds).toEqual([]);
 		expect(result.state.researchEvidenceBoard.some((entry) => entry.classification === "conflicting")).toBe(false);
 	});

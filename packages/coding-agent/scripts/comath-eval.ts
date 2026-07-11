@@ -26,7 +26,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Api, completeSimple, getModels, getProviders, type Model } from "@earendil-works/pi-ai";
+import type { Api, Model } from "@earendil-works/pi-ai";
+import { completeSimple, getModels, getProviders } from "@earendil-works/pi-ai/compat";
 import { CoMathHarness } from "../src/modes/comath/comath-harness.ts";
 import { RESEARCH_ROLE_SYSTEM_PROMPT } from "../src/modes/comath/comath-research-model-executor.ts";
 import type { ResearchWorkstreamModelExecutor } from "../src/modes/comath/comath-research-model-workstream.ts";

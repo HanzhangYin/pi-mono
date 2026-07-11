@@ -582,13 +582,31 @@ export function formatResearchBatchPaused(input: FormatResearchBatchInput): stri
 	].join("\n");
 }
 
-export function formatResearchBatchCompleted(input: FormatResearchBatchInput): string {
+export interface FormatResearchBatchCompletedInput extends FormatResearchBatchInput {
+	/** Plan tasks still pending or blocked when the step budget ran out. */
+	remainingPlanTaskCount?: number;
+	/** True when the plan is done and durable state offers no further runnable line of work. */
+	linesOfWorkExhausted?: boolean;
+}
+
+export function formatResearchBatchCompleted(input: FormatResearchBatchCompletedInput): string {
+	const remaining = input.remainingPlanTaskCount ?? 0;
 	return [
 		"Research steps completed",
 		"",
 		formatResearchBatchStepCount(input.batch),
 		"",
-		'Say "show latest report" for the latest durable report.',
+		...(remaining > 0
+			? [
+					`The step budget ran out with ${remaining === 1 ? "1 plan task" : `${remaining} plan tasks`} still waiting.`,
+					'Say "continue the plan" to work the remaining tasks, or "show plan" to review them first.',
+				]
+			: input.linesOfWorkExhausted
+				? [
+						"The plan is complete and the current lines of work are exhausted; new guidance or a sharper question would open new ones.",
+						'Say "show latest report" for the latest durable report.',
+					]
+				: ['Say "show latest report" for the latest durable report.']),
 	].join("\n");
 }
 
@@ -1083,6 +1101,11 @@ export function formatResearchCoordinatorReport(input: FormatResearchCoordinator
 
 export function formatLatestResearchCoordinatorReportMissing(): string {
 	return 'No project coordinator summary is available yet. Ask "what should we try next?" to create one.';
+}
+
+/** Announces that a synthesis step refreshed the canonical "State of the problem" summary. */
+export function formatStateOfProblemUpdated(): string {
+	return 'The "State of the problem" summary is up to date. Say "show the state of the problem" to read it.';
 }
 
 export function formatResearchModelFallbackNote(): string {
