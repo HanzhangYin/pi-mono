@@ -4,6 +4,7 @@ import {
 	buildStateOfProblemSectionBody,
 	describeRootQuestionVerdict,
 	STATE_OF_PROBLEM_SECTION_TITLE,
+	selectEstablishedFacts,
 } from "../src/modes/comath/comath-research-product.ts";
 import type { CoMathProjectState, ResearchEvidenceClassification } from "../src/modes/comath/schema.ts";
 import {
@@ -207,6 +208,70 @@ describe("state of the problem document", () => {
 		expect(describeRootQuestionVerdict(supported)).toContain("remains open");
 	});
 
+	it("does not trust a stale established status after a new required subclaim appears", () => {
+		let state = createEmptyProjectState({
+			projectId: "proj-test",
+			title: "Does the claimed theorem follow?",
+			rootQuestion: "Does the claimed theorem follow?",
+			now: NOW,
+		});
+		state = withEvidence(state, "The claimed theorem follows.", "theorem");
+		state = addResearchObligation(state, {
+			statement: state.rootQuestion,
+			evidenceEntryIds: ["evidence-board-1"],
+			now: NOW,
+			actor: "system",
+		});
+		state = updateResearchObligation(state, {
+			obligationId: "obligation-1",
+			status: "established",
+			reviewedCleanAt: NOW,
+			now: NOW,
+			actor: "system",
+		});
+		state = addResearchObligation(state, {
+			statement: "A newly discovered required lemma remains open.",
+			parentObligationId: "obligation-1",
+			now: NOW,
+			actor: "system",
+		});
+
+		expect(state.researchObligations[0]?.status).toBe("established");
+		expect(describeRootQuestionVerdict(state)).toContain("remains open");
+		expect(describeRootQuestionVerdict(state)).not.toContain("Verdict: answered —");
+	});
+
+	it("requires a current theorem check for the theorem named by the fact", () => {
+		let state = createState();
+		state = addTheoremApplicabilityCheck(state, {
+			theorem: "An unrelated theorem",
+			targetObject: "the same report object",
+			status: "applies",
+			reportId: "research-report-1",
+			now: NOW,
+			actor: "workstream",
+		});
+		state = withEvidence(state, "The target theorem proves the desired lemma.", "theorem", {
+			reportId: "research-report-1",
+		});
+		state = addTheoremApplicabilityCheck(state, {
+			theorem: "The target theorem",
+			targetObject: "the desired lemma",
+			status: "applies",
+			now: NOW,
+			actor: "workstream",
+		});
+		state = addTheoremApplicabilityCheck(state, {
+			theorem: "The target theorem",
+			targetObject: "the desired lemma",
+			status: "rejected-as-direct-route",
+			now: "2026-06-05T12:01:00.000Z",
+			actor: "reviewer",
+		});
+
+		expect(selectEstablishedFacts(state)).toEqual([]);
+	});
+
 	it("reports confirmed and inconclusive independent checks from their durable claim text", () => {
 		let state = createState();
 		state = withEvidence(state, "Primes of the form n^2 + 1 persist through n = 50000.", "computation", {
@@ -373,6 +438,26 @@ describe("state of the problem document", () => {
 		// The marker embedded in the claim stays as-is and resolves against the labeled source list.
 		expect(document).toContain("The survey confirms the problem is open as stated. [source-2]");
 		expectProductDocument(document);
+	});
+
+	it("keeps sources cited by displayed facts even when newer sources exceed the normal cap", () => {
+		let state = createState();
+		for (let index = 1; index <= 10; index += 1) {
+			state = addLiteratureSourceArtifact(state, {
+				kind: "paper",
+				title: `Source ${index}`,
+				summary: `Source ${index} summary.`,
+				now: NOW,
+				actor: "system",
+			});
+		}
+		state = withEvidence(state, "The first source establishes this lemma. [source-1]", "theorem", {
+			sourceIds: ["source-1"],
+		});
+
+		const document = buildStateOfProblemDocument(state);
+		expect(document).toContain("- [source-1] Source 1");
+		expect(document).toContain("- [source-10] Source 10");
 	});
 
 	it("is deterministic and offers a body without the title line for the working-paper section", () => {

@@ -10,7 +10,7 @@ import {
 } from "../src/modes/comath/comath-backend-output.ts";
 import { runResearchCoordinatorSynthesis } from "../src/modes/comath/comath-coordinator-synthesis.ts";
 import { CoMathHarness } from "../src/modes/comath/comath-harness.ts";
-import { formatProductProgress, formatResearchWorkstreamRunFailed } from "../src/modes/comath/comath-progress.ts";
+import { formatProductProgress } from "../src/modes/comath/comath-progress.ts";
 import {
 	isLikelyMathResearchQuestion,
 	isLikelyMathValidationPrompt,
@@ -18,12 +18,7 @@ import {
 	isResearchCoordinatorPrompt,
 	parseNaturalResearchQuestion,
 } from "../src/modes/comath/comath-prompts.ts";
-import type {
-	CoMathProjectState,
-	LiteratureClaimSupport,
-	ResearchPath,
-	ResearchWorkstreamRunRecord,
-} from "../src/modes/comath/schema.ts";
+import type { CoMathProjectState, LiteratureClaimSupport } from "../src/modes/comath/schema.ts";
 import {
 	addClaim,
 	addMarginNote,
@@ -32,7 +27,6 @@ import {
 	isClaimSynthesisEligible,
 	loadProjectState,
 	resolveMarginNote,
-	STALE_RESEARCH_WORKSTREAM_RUN_REASON,
 	saveProjectState,
 	startRoleRun,
 	upsertWorkingPaperSectionByTitle,
@@ -69,34 +63,6 @@ async function createCheckpointHarness(): Promise<{
 		},
 	});
 	return { commands, dir, harness, notices, statePath };
-}
-
-function createCheckpointResearchPath(): ResearchPath {
-	return {
-		id: "path-1",
-		title: "Direct proof attempt",
-		objective: "Try to prove the statement directly.",
-		status: "active",
-		latestFindings: [],
-		blockers: [],
-		suggestedNextMove: "Look for a congruence obstruction.",
-		priority: 1,
-		createdAt: NOW,
-		updatedAt: NOW,
-	};
-}
-
-function createRunningRun(path: ResearchPath): ResearchWorkstreamRunRecord {
-	return {
-		id: "research-run-1",
-		pathId: path.id,
-		pathTitle: path.title,
-		status: "running",
-		currentStage: "specialist",
-		startedAt: NOW,
-		updatedAt: NOW,
-		incrementalReports: [],
-	};
 }
 
 function buildCoordinatorStateWithClaims(): CoMathProjectState {
@@ -175,19 +141,7 @@ describe("co-math paper alignment checkpoint", () => {
 		expect(whatWeKnow).not.toContain("A direct proof of the twin prime conjecture");
 	});
 
-	it("tracks stale running state and proposes recovery output", async () => {
-		// Research-mode stale recovery output is explicit and executable.
-		const path = createCheckpointResearchPath();
-		const staleRun: ResearchWorkstreamRunRecord = {
-			...createRunningRun(path),
-			status: "interrupted",
-			failureReason: STALE_RESEARCH_WORKSTREAM_RUN_REASON,
-		};
-		const failed = formatResearchWorkstreamRunFailed({ state: { researchPaths: [path] }, run: staleRun });
-		expect(failed).toContain("interrupted");
-		expect(failed).toContain("Recovery");
-		expect(failed).toContain("continue path 1");
-
+	it("recovers stale validation role runs without reviving retired research execution", async () => {
 		// Validation-mode recover-run closes a stale running role run; run-status reflects the transition.
 		const cwd = await mkdtemp(join(tmpdir(), "comath-checkpoint-recover-"));
 		try {

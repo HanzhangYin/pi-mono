@@ -7,6 +7,7 @@
  * ("report that this theorem is false") is not turned into a command.
  */
 
+import { isLocalPath } from "../../utils/paths.ts";
 import { extractMathExpressions, squashForFormulaComparison } from "./comath-text-similarity.ts";
 
 const POLITE_PREFIX = /^(?:please|can you|could you|would you|will you|kindly|let'?s)\b[\s,]*/i;
@@ -34,6 +35,85 @@ export interface ParsedUserProvidedLiteratureSource {
 	url?: string;
 	path?: string;
 	text: string;
+}
+
+export interface ParsedCoMathSourceIntent {
+	pathInput: string;
+	remainingInstruction: string;
+	kindHint?: "file" | "directory";
+}
+
+/**
+ * Parse an explicit request to start from a local file or directory. This is intentionally narrower
+ * than a general path finder: mathematical prose such as `x/y` and report commands containing the
+ * word "path" must never become filesystem intake. Filesystem resolution and validation happen in
+ * `comath-source.ts` after this lexical routing step.
+ */
+export function parseCoMathSourceIntent(prompt: string): ParsedCoMathSourceIntent | undefined {
+	const stripped = stripCoMathPolitePrefix(prompt).trim();
+	const match =
+		/^(?:look\s+at|inspect|read|use|work\s+(?:from|with)|start\s+(?:from|with))\s+(?:the\s+)?(?:(directory|folder|repo|repository|file|source)\s*)?:?\s*(.+)$/is.exec(
+			stripped,
+		);
+	if (!match?.[2]) {
+		return undefined;
+	}
+
+	const kindToken = match[1]?.toLowerCase();
+	const parsedPath = parseLeadingLocalPath(match[2], kindToken !== undefined);
+	if (!parsedPath || !isLocalPath(parsedPath.pathInput)) {
+		return undefined;
+	}
+	return {
+		pathInput: parsedPath.pathInput,
+		remainingInstruction: parsedPath.remainingInstruction,
+		...(kindToken === "file"
+			? { kindHint: "file" as const }
+			: kindToken && kindToken !== "source"
+				? { kindHint: "directory" as const }
+				: {}),
+	};
+}
+
+function parseLeadingLocalPath(
+	text: string,
+	allowBareRelativePath: boolean,
+): { pathInput: string; remainingInstruction: string } | undefined {
+	const trimmed = text.trim();
+	const quote = trimmed[0];
+	if (quote === '"' || quote === "'" || quote === "`") {
+		const closingIndex = trimmed.indexOf(quote, 1);
+		if (closingIndex <= 1) {
+			return undefined;
+		}
+		return {
+			pathInput: trimmed.slice(1, closingIndex),
+			remainingInstruction: normalizeSourceRemainder(trimmed.slice(closingIndex + 1)),
+		};
+	}
+
+	const controlSuffix =
+		/\s+(?:and\s+)?(?:start|begin|continue|investigate|research|analy[sz]e|work)(?:\s|[.!?]|$)/i.exec(trimmed);
+	const pathEnd = controlSuffix?.index ?? trimmed.length;
+	const pathInput = trimmed.slice(0, pathEnd).trim();
+	const pathShaped =
+		/^(?:file:\/\/|~[\\/]|\.{1,2}[\\/]|[\\/]|[A-Za-z]:[\\/])/i.test(pathInput) ||
+		(allowBareRelativePath && /^[^\s]+$/.test(pathInput));
+	if (!pathShaped) {
+		return undefined;
+	}
+	return {
+		pathInput,
+		remainingInstruction: normalizeSourceRemainder(trimmed.slice(pathEnd)),
+	};
+}
+
+function normalizeSourceRemainder(value: string): string {
+	return value
+		.trim()
+		.replace(/^(?:,|;)?\s*(?:and\s+)?/i, "")
+		.replace(/[.!?]+$/, "")
+		.trim();
 }
 
 export interface ParsedResearchBatchPrompt {

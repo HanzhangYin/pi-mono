@@ -59,6 +59,17 @@ export interface WarningSettings {
 	anthropicExtraUsage?: boolean; // default: true
 }
 
+/** Optional fixed model references for co-math capabilities, in `provider/model-id` form. */
+export interface CoMathModelSettings {
+	coordination?: string;
+	research?: string;
+	computation?: string;
+}
+
+export interface CoMathSettings {
+	models?: CoMathModelSettings;
+}
+
 export type DefaultProjectTrust = "ask" | "always" | "never";
 
 export type TransportSetting = Transport;
@@ -122,6 +133,7 @@ export interface Settings {
 	showHardwareCursor?: boolean; // Show terminal cursor while still positioning it for IME
 	markdown?: MarkdownSettings;
 	warnings?: WarningSettings;
+	coMath?: CoMathSettings;
 	sessionDir?: string; // Custom session storage directory (same format as --session-dir CLI flag)
 	httpProxy?: string; // Proxy URL applied as HTTP_PROXY and HTTPS_PROXY for Pi-managed HTTP clients
 	httpIdleTimeoutMs?: number; // HTTP header/body idle timeout in milliseconds; 0 disables it
@@ -1224,6 +1236,10 @@ export class SettingsManager {
 
 	getWarnings(): WarningSettings {
 		return { ...(this.settings.warnings ?? {}) };
+	}
+
+	getCoMathModels(): CoMathModelSettings {
+		return { ...(this.settings.coMath?.models ?? {}) };
 	}
 
 	setWarnings(warnings: WarningSettings): void {

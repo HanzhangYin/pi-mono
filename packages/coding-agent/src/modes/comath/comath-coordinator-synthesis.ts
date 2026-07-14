@@ -1,10 +1,11 @@
+import { createHash } from "node:crypto";
 import {
 	getCoMathMarkdownSectionItems,
 	type CoMathParsedMarkdown as ParsedMarkdown,
 	parseCoMathMarkdown as parseMarkdown,
 } from "./comath-markdown.ts";
 import { formatDisciplineStateForContext } from "./comath-research-discipline.ts";
-import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
+import type { ResearchWorkstreamModelExecutor } from "./comath-task-model.ts";
 import type {
 	CoMathProjectState,
 	ComputationalArtifact,
@@ -36,11 +37,12 @@ export interface ResearchCoordinatorSynthesisResult {
 	report: ResearchCoordinatorReportDraft;
 }
 
-interface CoordinatorInputIds {
+export interface CoordinatorInputIds {
 	inputReportIds: string[];
 	inputPathIds: string[];
 	inputSourceIds: string[];
 	inputComputationalArtifactIds: string[];
+	inputReviewFingerprint: string;
 }
 
 const MAX_CONTEXT_ITEMS = 8;
@@ -54,10 +56,13 @@ export async function runResearchCoordinatorSynthesis(
 			const path = chooseCoordinatorPath(input.state, input.now);
 			const response = await input.executor.run({
 				role: "synthesizer",
+				purpose: "coordinator",
 				rootQuestion: input.state.rootQuestion,
 				path,
 				allPaths: input.state.researchPaths,
-				priorFindings: input.state.researchReports.flatMap((report) => report.findings).slice(-MAX_CONTEXT_ITEMS),
+				priorFindings: selectCoordinatorReports(input.state)
+					.flatMap((report) => report.findings)
+					.slice(-MAX_CONTEXT_ITEMS),
 				inputText: buildCoordinatorContext(input.state),
 				prompt: buildResearchCoordinatorPrompt(input.state),
 			});
@@ -74,17 +79,20 @@ export async function runResearchCoordinatorSynthesis(
 
 export function buildResearchCoordinatorPrompt(state: CoMathProjectState): string {
 	return [
-		"You are the project coordinator for a mathematical research workspace.",
+		"ROLE",
+		"Project coordinator for a mathematical research workspace.",
+		"TASK",
+		"Build a concise project-level synthesis from the supplied durable state.",
+		"ROLE-SPECIFIC RULES",
 		"Use only the durable project state below as evidence.",
-		"Distinguish finite computation from proof. A bounded computation can guide search, but cannot prove an infinite claim.",
-		"Distinguish source-backed facts from unsupported literature claims.",
-		"Do not claim the root question is solved unless a saved report explicitly gives a complete proof.",
 		"Respect the standing constraints in the state below, and never recommend a route a theorem check already rejected.",
 		"When a route was rejected or changed, recommend the recorded replacement route as a concrete next move.",
 		"Recommend concrete next moves with rationale (references to find, computations to run, weaker statements to prove).",
 		"",
+		"INPUT MATERIAL",
 		buildCoordinatorContext(state),
 		"",
+		"OUTPUT CONTRACT",
 		"Return markdown with these headings:",
 		"## What we know",
 		"## Roadblocks",
@@ -94,6 +102,11 @@ export function buildResearchCoordinatorPrompt(state: CoMathProjectState): strin
 }
 
 export function buildCoordinatorContext(state: CoMathProjectState): string {
+	const reports = selectCoordinatorReports(state);
+	const evidence = selectCoordinatorEvidence(state);
+	const supports = selectCoordinatorClaimSupports(state);
+	const sources = selectCoordinatorSources(state, reports, evidence, supports);
+	const computations = selectCoordinatorComputations(state, reports, evidence);
 	return [
 		"Durable project state",
 		`Root question: ${state.rootQuestion}`,
@@ -102,19 +115,19 @@ export function buildCoordinatorContext(state: CoMathProjectState): string {
 		...formatPathsForContext(state.researchPaths),
 		"",
 		"Research reports:",
-		...formatReportsForContext(state),
+		...formatReportsForContext(state, reports),
 		"",
 		"Source support:",
-		...formatClaimSupportsForContext(state.literatureClaimSupports),
+		...formatClaimSupportsForContext(supports),
 		"",
 		"Evidence board:",
-		...formatEvidenceBoardForContext(state.researchEvidenceBoard),
+		...formatEvidenceBoardForContext(evidence),
 		"",
 		"Literature sources:",
-		...formatSourcesForContext(state.literatureSources),
+		...formatSourcesForContext(sources),
 		"",
 		"Computation outputs:",
-		...formatComputationsForContext(state),
+		...formatComputationsForContext(state, computations),
 		"",
 		"Active, blocked, and failed runs:",
 		...formatRunsForContext(state),
@@ -127,8 +140,9 @@ export function buildCoordinatorContext(state: CoMathProjectState): string {
 
 function buildFallbackCoordinatorReport(state: CoMathProjectState): ResearchCoordinatorReportDraft {
 	const ids = collectCoordinatorInputIds(state);
+	const acceptedReports = selectCoordinatorReports(state);
 	const whatWeKnow = uniqueStrings([
-		...state.researchReports.flatMap((report) => report.findings).slice(-MAX_REPORT_ITEMS),
+		...acceptedReports.flatMap((report) => report.findings).slice(-MAX_REPORT_ITEMS),
 		...state.computationalArtifacts
 			.filter((artifact) => artifact.status === "completed")
 			.slice(-3)
@@ -149,8 +163,8 @@ function buildFallbackCoordinatorReport(state: CoMathProjectState): ResearchCoor
 			),
 	]);
 	const roadblocks = uniqueStrings([
-		...state.researchReports.flatMap((report) => report.gaps).slice(-MAX_REPORT_ITEMS),
-		...state.researchReports
+		...acceptedReports.flatMap((report) => report.gaps).slice(-MAX_REPORT_ITEMS),
+		...acceptedReports
 			.filter((report) => report.status === "blocked")
 			.map((report) => `${formatPathLabelForId(state, report.pathId, report.pathTitle)} is blocked.`),
 		...state.literatureClaimSupports
@@ -514,13 +528,106 @@ function isHeadingLikeFiller(item: string): boolean {
 	);
 }
 
-function collectCoordinatorInputIds(state: CoMathProjectState): CoordinatorInputIds {
+export function collectCoordinatorInputIds(state: CoMathProjectState): CoordinatorInputIds {
+	const reports = selectCoordinatorReports(state);
+	const evidence = selectCoordinatorEvidence(state);
+	const supports = selectCoordinatorClaimSupports(state);
 	return {
-		inputReportIds: state.researchReports.map((report) => report.id),
+		inputReportIds: reports.map((report) => report.id),
 		inputPathIds: state.researchPaths.map((path) => path.id),
-		inputSourceIds: state.literatureSources.map((source) => source.id),
-		inputComputationalArtifactIds: state.computationalArtifacts.map((artifact) => artifact.id),
+		inputSourceIds: selectCoordinatorSources(state, reports, evidence, supports).map((source) => source.id),
+		inputComputationalArtifactIds: selectCoordinatorComputations(state, reports, evidence).map(
+			(artifact) => artifact.id,
+		),
+		inputReviewFingerprint: coordinatorReviewFingerprint(state, reports),
 	};
+}
+
+export function coordinatorSynthesisInputsMatchState(
+	state: CoMathProjectState,
+	report: Pick<
+		ResearchCoordinatorReportDraft,
+		"inputReportIds" | "inputPathIds" | "inputSourceIds" | "inputComputationalArtifactIds" | "inputReviewFingerprint"
+	>,
+): boolean {
+	const current = collectCoordinatorInputIds(state);
+	return (
+		orderedIdsEqual(report.inputReportIds, current.inputReportIds) &&
+		orderedIdsEqual(report.inputPathIds, current.inputPathIds) &&
+		orderedIdsEqual(report.inputSourceIds, current.inputSourceIds) &&
+		orderedIdsEqual(report.inputComputationalArtifactIds, current.inputComputationalArtifactIds) &&
+		report.inputReviewFingerprint === current.inputReviewFingerprint
+	);
+}
+
+function orderedIdsEqual(left: readonly string[], right: readonly string[]): boolean {
+	return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+function selectCoordinatorReports(state: CoMathProjectState): ResearchWorkstreamReportRecord[] {
+	return state.researchReports
+		.filter((report) => report.acceptanceStatus === undefined || report.acceptanceStatus === "accepted")
+		.slice(-MAX_CONTEXT_ITEMS);
+}
+
+function coordinatorReviewFingerprint(
+	state: CoMathProjectState,
+	reports: readonly ResearchWorkstreamReportRecord[],
+): string {
+	const payload = {
+		reports: reports.map((report) => [report.id, report.updatedAt, report.acceptanceStatus]),
+		tasks: state.researchPlanTasks.map((task) => [task.id, task.status, task.reviewOutcome ?? "", task.updatedAt]),
+		evidence: state.researchEvidenceBoard.map((entry) => [entry.id, entry.classification, entry.updatedAt]),
+		constraints: state.researchConstraints.map((constraint) => [
+			constraint.id,
+			constraint.status,
+			constraint.updatedAt,
+		]),
+		marginNotes: state.marginNotes.map((note) => [note.id, note.status, note.updatedAt]),
+	};
+	return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
+function selectCoordinatorEvidence(state: CoMathProjectState): ResearchEvidenceBoardEntry[] {
+	return state.researchEvidenceBoard.slice(-MAX_CONTEXT_ITEMS);
+}
+
+function selectCoordinatorClaimSupports(state: CoMathProjectState): LiteratureClaimSupport[] {
+	return state.literatureClaimSupports.slice(-MAX_CONTEXT_ITEMS);
+}
+
+function selectCoordinatorSources(
+	state: CoMathProjectState,
+	reports: readonly ResearchWorkstreamReportRecord[],
+	evidence: readonly ResearchEvidenceBoardEntry[],
+	supports: readonly LiteratureClaimSupport[],
+): LiteratureSourceArtifact[] {
+	const requiredIds = new Set([
+		...reports.flatMap((report) => report.sourceIds),
+		...evidence.flatMap((entry) => entry.sourceIds),
+		...supports.flatMap((support) => support.sourceIds),
+	]);
+	return selectRequiredAndRecent(state.literatureSources, requiredIds);
+}
+
+function selectCoordinatorComputations(
+	state: CoMathProjectState,
+	reports: readonly ResearchWorkstreamReportRecord[],
+	evidence: readonly ResearchEvidenceBoardEntry[],
+): ComputationalArtifact[] {
+	const requiredIds = new Set([
+		...reports.flatMap((report) => report.computationalArtifactIds),
+		...evidence.flatMap((entry) => entry.computationalArtifactIds),
+	]);
+	return selectRequiredAndRecent(state.computationalArtifacts, requiredIds);
+}
+
+function selectRequiredAndRecent<T extends { id: string }>(items: readonly T[], requiredIds: ReadonlySet<string>): T[] {
+	const required = items.filter((item) => requiredIds.has(item.id));
+	const recent = items
+		.filter((item) => !requiredIds.has(item.id))
+		.slice(-Math.max(0, MAX_CONTEXT_ITEMS - required.length));
+	return [...required, ...recent];
 }
 
 function chooseCoordinatorPath(state: CoMathProjectState, now: string): ResearchPath {
@@ -647,102 +754,98 @@ function formatPathsForContext(paths: readonly ResearchPath[]): string[] {
 	);
 }
 
-function formatReportsForContext(state: CoMathProjectState): string[] {
-	if (state.researchReports.length === 0) {
+function formatReportsForContext(
+	state: CoMathProjectState,
+	reports: readonly ResearchWorkstreamReportRecord[],
+): string[] {
+	if (reports.length === 0) {
 		return ["- (none)"];
 	}
-	return state.researchReports
-		.slice(-MAX_CONTEXT_ITEMS)
-		.map((report) =>
-			[
-				`- ${report.id} on ${formatPathLabelForId(state, report.pathId, report.pathTitle)}: ${report.status}`,
-				...(report.findings.length > 0 ? [`  Findings: ${report.findings.slice(0, 3).join(" | ")}`] : []),
-				...(report.gaps.length > 0 ? [`  Gaps: ${report.gaps.slice(0, 3).join(" | ")}`] : []),
-				...(report.criticisms.length > 0 ? [`  Criticisms: ${report.criticisms.slice(0, 3).join(" | ")}`] : []),
-				...(report.sourceIds.length > 0 ? [`  Source ids: ${report.sourceIds.join(", ")}`] : []),
-				...(report.claimSupportIds.length > 0 ? [`  Claim support ids: ${report.claimSupportIds.join(", ")}`] : []),
-				...(report.computationalArtifactIds.length > 0
-					? [`  Computation output ids: ${report.computationalArtifactIds.join(", ")}`]
-					: []),
-				`  Suggested next move: ${report.suggestedNextMove}`,
-			].join("\n"),
-		);
+	return reports.map((report) =>
+		[
+			`- ${report.id} on ${formatPathLabelForId(state, report.pathId, report.pathTitle)}: ${report.status}`,
+			...(report.findings.length > 0 ? [`  Findings: ${report.findings.slice(0, 3).join(" | ")}`] : []),
+			...(report.gaps.length > 0 ? [`  Gaps: ${report.gaps.slice(0, 3).join(" | ")}`] : []),
+			...(report.criticisms.length > 0 ? [`  Criticisms: ${report.criticisms.slice(0, 3).join(" | ")}`] : []),
+			...(report.sourceIds.length > 0 ? [`  Source ids: ${report.sourceIds.join(", ")}`] : []),
+			...(report.claimSupportIds.length > 0 ? [`  Claim support ids: ${report.claimSupportIds.join(", ")}`] : []),
+			...(report.computationalArtifactIds.length > 0
+				? [`  Computation output ids: ${report.computationalArtifactIds.join(", ")}`]
+				: []),
+			`  Suggested next move: ${report.suggestedNextMove}`,
+		].join("\n"),
+	);
 }
 
 function formatClaimSupportsForContext(supports: readonly LiteratureClaimSupport[]): string[] {
 	if (supports.length === 0) {
 		return ["- (none)"];
 	}
-	return supports
-		.slice(-MAX_CONTEXT_ITEMS)
-		.map((support) =>
-			[
-				`- ${support.id}: ${support.status}`,
-				`  Claim: ${support.claim}`,
-				`  Sources: ${support.sourceIds.length > 0 ? support.sourceIds.join(", ") : "none"}`,
-				...(support.note ? [`  Note: ${support.note}`] : []),
-			].join("\n"),
-		);
+	return supports.map((support) =>
+		[
+			`- ${support.id}: ${support.status}`,
+			`  Claim: ${support.claim}`,
+			`  Sources: ${support.sourceIds.length > 0 ? support.sourceIds.join(", ") : "none"}`,
+			...(support.note ? [`  Note: ${support.note}`] : []),
+		].join("\n"),
+	);
 }
 
 function formatEvidenceBoardForContext(entries: readonly ResearchEvidenceBoardEntry[]): string[] {
 	if (entries.length === 0) {
 		return ["- (none)"];
 	}
-	return entries
-		.slice(-MAX_CONTEXT_ITEMS)
-		.map((entry) =>
-			[
-				`- ${entry.id}: ${entry.classification}`,
-				`  Claim: ${entry.claim}`,
-				...(entry.pathId ? [`  Path: ${entry.pathId}`] : []),
-				...(entry.reportId ? [`  Report: ${entry.reportId}`] : []),
-				...(entry.sourceIds.length > 0 ? [`  Sources: ${entry.sourceIds.join(", ")}`] : []),
-				...(entry.computationalArtifactIds.length > 0
-					? [`  Computations: ${entry.computationalArtifactIds.join(", ")}`]
-					: []),
-				`  Rationale: ${summarizeText(entry.rationale)}`,
-			].join("\n"),
-		);
+	return entries.map((entry) =>
+		[
+			`- ${entry.id}: ${entry.classification}`,
+			`  Claim: ${entry.claim}`,
+			...(entry.pathId ? [`  Path: ${entry.pathId}`] : []),
+			...(entry.reportId ? [`  Report: ${entry.reportId}`] : []),
+			...(entry.sourceIds.length > 0 ? [`  Sources: ${entry.sourceIds.join(", ")}`] : []),
+			...(entry.computationalArtifactIds.length > 0
+				? [`  Computations: ${entry.computationalArtifactIds.join(", ")}`]
+				: []),
+			`  Rationale: ${summarizeText(entry.rationale)}`,
+		].join("\n"),
+	);
 }
 
 function formatSourcesForContext(sources: readonly LiteratureSourceArtifact[]): string[] {
 	if (sources.length === 0) {
 		return ["- (none)"];
 	}
-	return sources
-		.slice(-MAX_CONTEXT_ITEMS)
-		.map((source) =>
-			[
-				`- ${source.id}: ${source.title}`,
-				`  Kind: ${source.kind}`,
-				...(source.sourceType ? [`  Source type: ${source.sourceType}`] : []),
-				...(source.venue ? [`  Venue: ${source.venue}`] : []),
-				...(source.doi ? [`  DOI: ${source.doi}`] : []),
-				...(source.externalId ? [`  External id: ${source.externalId}`] : []),
-				...(source.publishedAt ? [`  Published: ${source.publishedAt}`] : []),
-				...(source.citationCount !== undefined ? [`  Citations: ${source.citationCount}`] : []),
-				...(source.provider ? [`  Provider: ${source.provider}`] : []),
-				...((source.url ?? source.path) ? [`  Locator: ${source.url ?? source.path ?? ""}`] : []),
-				`  Summary: ${summarizeText(source.summary)}`,
-			].join("\n"),
-		);
+	return sources.map((source) =>
+		[
+			`- ${source.id}: ${source.title}`,
+			`  Kind: ${source.kind}`,
+			...(source.sourceType ? [`  Source type: ${source.sourceType}`] : []),
+			...(source.venue ? [`  Venue: ${source.venue}`] : []),
+			...(source.doi ? [`  DOI: ${source.doi}`] : []),
+			...(source.externalId ? [`  External id: ${source.externalId}`] : []),
+			...(source.publishedAt ? [`  Published: ${source.publishedAt}`] : []),
+			...(source.citationCount !== undefined ? [`  Citations: ${source.citationCount}`] : []),
+			...(source.provider ? [`  Provider: ${source.provider}`] : []),
+			...((source.url ?? source.path) ? [`  Locator: ${source.url ?? source.path ?? ""}`] : []),
+			`  Summary: ${summarizeText(source.summary)}`,
+		].join("\n"),
+	);
 }
 
-function formatComputationsForContext(state: CoMathProjectState): string[] {
-	if (state.computationalArtifacts.length === 0) {
+function formatComputationsForContext(
+	state: CoMathProjectState,
+	artifacts: readonly ComputationalArtifact[],
+): string[] {
+	if (artifacts.length === 0) {
 		return ["- (none)"];
 	}
-	return state.computationalArtifacts
-		.slice(-MAX_CONTEXT_ITEMS)
-		.map((artifact) =>
-			[
-				`- ${artifact.id} on ${formatPathLabelForId(state, artifact.pathId, artifact.pathId)}: ${artifact.kind} ${artifact.status}`,
-				...(artifact.exitCode !== undefined ? [`  Exit code: ${artifact.exitCode}`] : []),
-				...(artifact.filePath ? [`  File: ${artifact.filePath}`] : []),
-				`  Summary: ${summarizeText(artifact.summary)}`,
-			].join("\n"),
-		);
+	return artifacts.map((artifact) =>
+		[
+			`- ${artifact.id} on ${formatPathLabelForId(state, artifact.pathId, artifact.pathId)}: ${artifact.kind} ${artifact.status}`,
+			...(artifact.exitCode !== undefined ? [`  Exit code: ${artifact.exitCode}`] : []),
+			...(artifact.filePath ? [`  File: ${artifact.filePath}`] : []),
+			`  Summary: ${summarizeText(artifact.summary)}`,
+		].join("\n"),
+	);
 }
 
 function formatRunsForContext(state: CoMathProjectState): string[] {

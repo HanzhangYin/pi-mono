@@ -1,5 +1,7 @@
 import { extractMathExpressions, significantContentTokens } from "./comath-text-similarity.ts";
 import type {
+	CoMathSourceCitationEligibility,
+	CoMathWorkspaceSourceRole,
 	LiteratureSearchProviderRecord,
 	LiteratureSourceArtifact,
 	LiteratureSourceKind,
@@ -30,7 +32,9 @@ const GENERIC_RELEVANCE_TOKENS = new Set([
 	"result",
 	"source",
 	"space",
+	"task",
 	"theorem",
+	"work",
 ]);
 
 const NUMBER_THEORY_PRIMARY_TOKENS = new Set([
@@ -69,6 +73,8 @@ export interface LiteratureSourceQuery {
 }
 
 export interface LiteratureSourceResult {
+	/** Durable state id for a source already registered in the active run catalog. */
+	id?: string;
 	title: string;
 	url?: string;
 	path?: string;
@@ -84,10 +90,17 @@ export interface LiteratureSourceResult {
 	extractedText?: string;
 	authors?: string[];
 	year?: string;
+	workspaceRole?: CoMathWorkspaceSourceRole;
+	citationEligibility?: CoMathSourceCitationEligibility;
+	sourceIndexId?: string;
+	sourceRevisionId?: string;
+	sourceRelativePath?: string;
+	sourceFileSha256?: string;
 }
 
 export interface LiteratureSourceSearchResponse {
 	sources: LiteratureSourceResult[];
+	inventorySources?: LiteratureSourceResult[];
 	providers: LiteratureSearchProviderRecord[];
 	queries: string[];
 	candidateCount: number;
@@ -114,10 +127,21 @@ export function createDefaultLiteratureSourceLookup(): LiteratureSourceLookup {
 export function createWorkspaceLiteratureSourceLookup(input: {
 	sources: readonly LiteratureSourceArtifact[];
 	fallback: LiteratureSourceLookup;
+	sourceContexts?: ReadonlyMap<string, string>;
 }): LiteratureSourceLookup {
 	return {
 		search: async (query) => {
-			const registered = input.sources.map(literatureSourceArtifactToResult);
+			const inventorySources = input.sources
+				.filter((source) => citationEligibilityForWorkspaceRole(source.workspaceRole) === "inventory-only")
+				.map(literatureSourceArtifactToResult);
+			const registered = input.sources
+				.filter((source) => citationEligibilityForWorkspaceRole(source.workspaceRole) === "citable")
+				.map((source) => {
+					const result = literatureSourceArtifactToResult(source);
+					const extractedText = input.sourceContexts?.get(source.id);
+					return { ...result, ...(extractedText ? { extractedText } : {}) };
+				})
+				.sort(compareWorkspaceSourceResults);
 			const fallback = normalizeLiteratureSourceLookupResult(await input.fallback.search(query));
 			const rankedFallback = rankLiteratureSources(fallback.sources, query);
 			const sources = uniqueLiteratureSources([...registered, ...rankedFallback]).slice(0, query.maxSources);
@@ -137,6 +161,7 @@ export function createWorkspaceLiteratureSourceLookup(input: {
 						};
 			return {
 				sources,
+				...(inventorySources.length > 0 ? { inventorySources } : {}),
 				providers: [workspaceProvider, ...fallback.providers],
 				queries: fallback.queries.length > 0 ? fallback.queries : buildLiteratureSearchQueries(query),
 				candidateCount: registered.length + fallback.candidateCount,
@@ -161,7 +186,7 @@ export function normalizeLiteratureSourceLookupResult(
 }
 
 export function buildLiteratureSearchQueries(query: LiteratureSourceQuery): string[] {
-	const exactProblem = normalizeQuery(query.rootQuestion);
+	const exactProblem = compactLiteratureSearchSeed(query.rootQuestion);
 	const pathTerms = normalizeQuery([query.pathTitle, query.pathObjective].join(" "));
 	const keywordTerms = extractMathKeywords([query.rootQuestion, query.pathTitle, query.pathObjective].join(" ")).join(
 		" ",
@@ -174,8 +199,36 @@ export function buildLiteratureSearchQueries(query: LiteratureSourceQuery): stri
 	]).slice(0, 4);
 }
 
-export function formatLiteratureSourceForPrompt(source: LiteratureSourceResult, index: number): string {
-	const sourceId = `source-${index + 1}`;
+/** Extract bounded publication-title hints from already indexed bibliographic source context. */
+export function extractLiteratureSearchHints(contexts: readonly string[]): string[] {
+	const hints: string[] = [];
+	for (const context of contexts) {
+		for (const rawLine of context.split(/\r?\n/)) {
+			const line = rawLine.replace(/^\s*\d+:\s*/, "").trim();
+			const candidates = [
+				/<title>([^<]+)<\/title>/i.exec(line)?.[1],
+				/^[-*]?\s*(?:\*\*)?title(?:\*\*)?\s*:\s*(.+)$/i.exec(line)?.[1],
+				/\\title\s*\{([^{}]+)\}/i.exec(line)?.[1],
+				/^\s*title\s*=\s*[{"]([^}"]+)[}"]/i.exec(line)?.[1],
+			];
+			for (const candidate of candidates) {
+				if (!candidate) continue;
+				const normalized = decodeXmlEntities(candidate)
+					.replace(/[{}]/g, " ")
+					.replace(/\\[a-zA-Z]+/g, " ")
+					.replace(/\s+/g, " ")
+					.trim();
+				if (normalized.length >= 12 && normalized.length <= 240 && !/^arxiv\s+query\b/i.test(normalized)) {
+					hints.push(normalized);
+				}
+			}
+		}
+	}
+	return uniqueStrings(hints).slice(0, 4);
+}
+
+export function formatLiteratureSourceForPrompt(sourceId: string, source: LiteratureSourceResult): string {
+	const indexedContext = source.sourceRelativePath && source.extractedText ? source.extractedText : undefined;
 	return [
 		`[${sourceId}] ${source.title}`,
 		...(source.authors && source.authors.length > 0 ? [`Authors: ${source.authors.join(", ")}`] : []),
@@ -190,7 +243,7 @@ export function formatLiteratureSourceForPrompt(source: LiteratureSourceResult, 
 		...(source.url ? [`URL: ${source.url}`] : []),
 		...(source.path ? [`Path: ${source.path}`] : []),
 		`Summary: ${source.summary}`,
-		...(source.extractedText ? [`Extract: ${source.extractedText}`] : []),
+		...(indexedContext ? [indexedContext] : source.extractedText ? [`Extract: ${source.extractedText}`] : []),
 	].join("\n");
 }
 
@@ -610,6 +663,7 @@ function parseOpenAlexResponse(value: unknown): LiteratureSourceResult[] {
 
 function literatureSourceArtifactToResult(source: LiteratureSourceArtifact): LiteratureSourceResult {
 	return {
+		id: source.id,
 		title: source.title,
 		kind: source.kind,
 		...(source.url ? { url: source.url } : {}),
@@ -625,7 +679,34 @@ function literatureSourceArtifactToResult(source: LiteratureSourceArtifact): Lit
 		...(source.extractedText ? { extractedText: source.extractedText } : {}),
 		authors: source.authors,
 		...(source.year ? { year: source.year } : {}),
+		...(source.workspaceRole ? { workspaceRole: source.workspaceRole } : {}),
+		citationEligibility: citationEligibilityForWorkspaceRole(source.workspaceRole),
+		...(source.sourceIndexId ? { sourceIndexId: source.sourceIndexId } : {}),
+		...(source.sourceRevisionId ? { sourceRevisionId: source.sourceRevisionId } : {}),
+		...(source.sourceRelativePath ? { sourceRelativePath: source.sourceRelativePath } : {}),
+		...(source.sourceFileSha256 ? { sourceFileSha256: source.sourceFileSha256 } : {}),
 	};
+}
+
+export function citationEligibilityForWorkspaceRole(
+	role: CoMathWorkspaceSourceRole | undefined,
+): CoMathSourceCitationEligibility {
+	return role === "snapshot-metadata" || role === "compiled-binary" ? "inventory-only" : "citable";
+}
+
+function compareWorkspaceSourceResults(left: LiteratureSourceResult, right: LiteratureSourceResult): number {
+	return (
+		workspaceSourceRank(left.workspaceRole) - workspaceSourceRank(right.workspaceRole) ||
+		left.title.localeCompare(right.title)
+	);
+}
+
+function workspaceSourceRank(role: CoMathWorkspaceSourceRole | undefined): number {
+	if (role === "primary-text") return 0;
+	if (role === "curated-summary") return 1;
+	if (role === undefined) return 2;
+	if (role === "bibliographic-metadata") return 3;
+	return 4;
 }
 
 function uniqueLiteratureSources(sources: readonly LiteratureSourceResult[]): LiteratureSourceResult[] {
@@ -659,6 +740,33 @@ function extractMathKeywords(value: string): string[] {
 		.map((token) => token.trim())
 		.filter((token) => token.length > 2 && !stopwords.has(token));
 	return uniqueStrings(tokens).slice(0, 10);
+}
+
+function compactLiteratureSearchSeed(value: string): string {
+	const normalized = normalizeQuery(value);
+	if (normalized.length <= 240) return normalized;
+	const words = normalized
+		.toLowerCase()
+		.replace(/\\[a-zA-Z]+/g, " ")
+		.match(/[a-z][a-z0-9-]{3,}/g);
+	if (!words) return normalized.slice(0, 240).trim();
+	const counts = new Map<string, { count: number; first: number }>();
+	for (const [index, word] of words.entries()) {
+		if (GENERIC_RELEVANCE_TOKENS.has(word)) continue;
+		const existing = counts.get(word);
+		counts.set(word, existing ? { ...existing, count: existing.count + 1 } : { count: 1, first: index });
+	}
+	const selected = [...counts.entries()]
+		.sort(
+			([leftWord, left], [rightWord, right]) =>
+				right.count - left.count ||
+				Math.min(rightWord.length, 12) - Math.min(leftWord.length, 12) ||
+				left.first - right.first,
+		)
+		.slice(0, 10)
+		.sort(([, left], [, right]) => left.first - right.first)
+		.map(([word]) => word);
+	return selected.join(" ") || normalized.slice(0, 240).trim();
 }
 
 function inferKnownContextQuery(rootQuestion: string, keywordTerms: string): string {

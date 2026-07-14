@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import {
 	mathClaimsNearlyMatch,
@@ -15,9 +15,14 @@ import type {
 	ClaimRevisionRecord,
 	ClaimStatus,
 	CoMathActor,
+	CoMathCanonicalProjection,
 	CoMathEventKind,
 	CoMathProjectState,
 	CoMathRole,
+	CoMathSourceCitationEligibility,
+	CoMathSourceClaimScope,
+	CoMathSourceIndexRecord,
+	CoMathWorkspaceSourceRole,
 	ComputationalArtifact,
 	ComputationalArtifactKind,
 	ComputationalArtifactStatus,
@@ -25,6 +30,8 @@ import type {
 	Evidence,
 	EvidenceKind,
 	GoalStatus,
+	GroundingReferenceRecord,
+	GroundingValidationFailure,
 	LiteratureClaimSupport,
 	LiteratureClaimSupportStatus,
 	LiteratureSearchProviderRecord,
@@ -39,6 +46,7 @@ import type {
 	Report,
 	ReportReviewOutcome,
 	ReportReviewRoundRecord,
+	ResearchAttemptFailure,
 	ResearchBatchRecord,
 	ResearchBatchStatus,
 	ResearchClaimCategory,
@@ -50,6 +58,7 @@ import type {
 	ResearchCoordinatorReportRecord,
 	ResearchEvidenceBoardEntry,
 	ResearchEvidenceClassification,
+	ResearchExecutionRecord,
 	ResearchFocus,
 	ResearchObligationRecord,
 	ResearchObligationStatus,
@@ -60,11 +69,18 @@ import type {
 	ResearchPlanStatus,
 	ResearchPlanTaskKind,
 	ResearchPlanTaskRecord,
+	ResearchPlanTaskRequiredCapability,
 	ResearchPlanTaskStatus,
 	ResearchRunModelCallRecord,
+	ResearchTaskAttemptRecord,
+	ResearchTaskAttemptStageRecord,
+	ResearchTaskAttemptStatus,
+	ResearchTaskPipelineStage,
 	ResearchTaskProgressKind,
 	ResearchTaskReviewOutcome,
+	ResearchTaskSourceRequest,
 	ResearchWorkstreamIncrementalReportRecord,
+	ResearchWorkstreamReportAcceptanceStatus,
 	ResearchWorkstreamReportRecord,
 	ResearchWorkstreamReportStatus,
 	ResearchWorkstreamRunRecord,
@@ -112,6 +128,9 @@ type LegacyProjectState = Omit<
 	| "researchBatches"
 	| "researchPlans"
 	| "researchPlanTasks"
+	| "researchTaskAttempts"
+	| "researchExecutions"
+	| "canonicalProjection"
 	| "researchObligations"
 	| "researchConstraints"
 	| "theoremApplicabilityChecks"
@@ -119,8 +138,10 @@ type LegacyProjectState = Omit<
 	| "literatureSources"
 	| "literatureSearches"
 	| "literatureClaimSupports"
+	| "sourceIndexes"
 	| "researchEvidenceBoard"
 	| "computationalArtifacts"
+	| "groundingReferences"
 	| "researchCoordinatorReports"
 	| "researchFocus"
 > &
@@ -147,6 +168,9 @@ type LegacyProjectState = Omit<
 				| "researchBatches"
 				| "researchPlans"
 				| "researchPlanTasks"
+				| "researchTaskAttempts"
+				| "researchExecutions"
+				| "canonicalProjection"
 				| "researchObligations"
 				| "researchConstraints"
 				| "theoremApplicabilityChecks"
@@ -154,8 +178,10 @@ type LegacyProjectState = Omit<
 				| "literatureSources"
 				| "literatureSearches"
 				| "literatureClaimSupports"
+				| "sourceIndexes"
 				| "researchEvidenceBoard"
 				| "computationalArtifacts"
+				| "groundingReferences"
 				| "researchCoordinatorReports"
 				| "researchFocus"
 			>,
@@ -307,36 +333,13 @@ export interface SetResearchFocusInput {
 	actor?: CoMathActor;
 }
 
-export interface AddResearchWorkstreamReportInput {
-	id?: string;
-	pathId: string;
-	pathTitle: string;
-	status: ResearchWorkstreamReportStatus;
-	startedAt: string;
-	completedAt: string;
-	coordinatorBrief: string;
-	steps: ResearchWorkstreamStepRecord[];
-	promisingStrategy: string[];
-	findings: string[];
-	criticisms: string[];
-	gaps: string[];
-	humanHelpUseful: string[];
-	suggestedNextMove: string;
-	workingPaperSectionTitle: string;
-	workingPaperSectionId?: string;
-	sourceIds?: string[];
-	claimSupportIds?: string[];
-	computationalArtifactIds?: string[];
-	now: string;
-	actor?: CoMathActor;
-}
-
 export interface AddResearchCoordinatorReportInput {
 	id?: string;
 	inputReportIds?: string[];
 	inputPathIds?: string[];
 	inputSourceIds?: string[];
 	inputComputationalArtifactIds?: string[];
+	inputReviewFingerprint?: string;
 	whatWeKnow: string[];
 	roadblocks: string[];
 	recommendedNextMoves: ResearchCoordinatorNextMove[];
@@ -365,6 +368,12 @@ export interface AddLiteratureSourceArtifactInput {
 	year?: string;
 	summary: string;
 	extractedText?: string;
+	workspaceRole?: CoMathWorkspaceSourceRole;
+	citationEligibility?: CoMathSourceCitationEligibility;
+	sourceIndexId?: string;
+	sourceRevisionId?: string;
+	sourceRelativePath?: string;
+	sourceFileSha256?: string;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -391,6 +400,18 @@ export interface AddLiteratureClaimSupportInput {
 	sourceIds: string[];
 	status: LiteratureClaimSupportStatus;
 	note?: string;
+	groundingReferenceIds?: readonly string[];
+	groundingFailures?: readonly GroundingValidationFailure[];
+	sourceScope?: CoMathSourceClaimScope;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface UpdateLiteratureClaimGroundingInput {
+	claimSupportId: string;
+	groundingReferenceIds?: readonly string[];
+	groundingFailures?: readonly GroundingValidationFailure[];
+	sourceScope?: CoMathSourceClaimScope;
 	now: string;
 	actor?: CoMathActor;
 }
@@ -410,6 +431,51 @@ export interface AddResearchEvidenceBoardEntryInput {
 	parentEntryId?: string;
 	revisionKind?: ConjectureRevisionKind;
 	revisionNote?: string;
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddGroundingReferenceInput {
+	id?: string;
+	subject: GroundingReferenceRecord["subject"];
+	relation: GroundingReferenceRecord["relation"];
+	artifactId: string;
+	locator: GroundingReferenceRecord["locator"];
+	excerpt?: string;
+	excerptSha256?: string;
+	sourceIndexId?: string;
+	sourceRevisionId?: string;
+	sourceRelativePath?: string;
+	sourceFileSha256?: string;
+	regionKind?: GroundingReferenceRecord["regionKind"];
+	modelCallId?: string;
+	validationStatus: GroundingReferenceRecord["validationStatus"];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface AddCoMathSourceIndexInput {
+	id?: string;
+	sourceId: string;
+	sourceRevisionId: string;
+	sourceManifestSha256: string;
+	indexArtifactId: string;
+	indexPath: string;
+	indexSha256: string;
+	policyVersion: number;
+	status: CoMathSourceIndexRecord["status"];
+	fileCount: number;
+	documentCount: number;
+	warnings?: readonly string[];
+	now: string;
+	actor?: CoMathActor;
+}
+
+export interface LinkLiteratureSourcesToIndexInput {
+	sourceRevisionId: string;
+	sourceIndexId: string;
+	indexContext: string;
+	sourceFiles: readonly { relativePath: string; sha256: string }[];
 	now: string;
 	actor?: CoMathActor;
 }
@@ -442,81 +508,6 @@ export interface UpdateComputationalArtifactInput {
 	actor?: CoMathActor;
 }
 
-export interface AddResearchWorkstreamRunInput {
-	id?: string;
-	pathId: string;
-	pathTitle: string;
-	status?: ResearchWorkstreamRunStatus;
-	currentStage?: ResearchWorkstreamRunStage;
-	batchId?: string;
-	batchStepIndex?: number;
-	taskId?: string;
-	now: string;
-	actor?: CoMathActor;
-	usedFallback?: boolean;
-}
-
-export interface UpdateResearchWorkstreamRunInput {
-	runId: string;
-	status?: ResearchWorkstreamRunStatus;
-	currentStage?: ResearchWorkstreamRunStage;
-	batchId?: string;
-	batchStepIndex?: number;
-	completedAt?: string;
-	finalReportId?: string;
-	failureReason?: string;
-	usedFallback?: boolean;
-	/** Model calls to append to the run's provenance log (existing entries are kept). */
-	appendModelCalls?: readonly ResearchRunModelCallRecord[];
-	now: string;
-	actor?: CoMathActor;
-}
-
-export interface AddResearchWorkstreamIncrementalReportInput {
-	runId: string;
-	id?: string;
-	stage: ResearchWorkstreamRunStage;
-	status: ResearchWorkstreamIncrementalReportRecord["status"];
-	title: string;
-	summary: string;
-	details: string[];
-	now: string;
-	actor?: CoMathActor;
-}
-
-export interface FailStaleResearchWorkstreamRunsInput {
-	activeRunIds: readonly string[];
-	now: string;
-	actor?: CoMathActor;
-	reason?: string;
-}
-
-export interface AddResearchBatchInput {
-	id?: string;
-	requestedStepCount: number;
-	initialPathId?: string;
-	now: string;
-	actor?: CoMathActor;
-}
-
-export interface UpdateResearchBatchInput {
-	batchId: string;
-	status?: ResearchBatchStatus;
-	completedStepCount?: number;
-	addRunId?: string;
-	currentPathId?: string;
-	nextPathId?: string;
-	lastCompletedPathId?: string;
-	interruptedRunId?: string;
-	clearInterruptedRunId?: boolean;
-	failureReason?: string;
-	cancelReason?: string;
-	completedAt?: string;
-	cancelledAt?: string;
-	now: string;
-	actor?: CoMathActor;
-}
-
 export interface AddResearchPlanInput {
 	id?: string;
 	title: string;
@@ -534,6 +525,13 @@ export interface AddResearchPlanTaskInput {
 	description: string;
 	goal?: string;
 	acceptanceCriteria?: readonly string[];
+	/** Omit for the immediately preceding task; pass [] to declare independence. */
+	dependsOnTaskIds?: readonly string[];
+	requiredCapabilities?: readonly ResearchPlanTaskRequiredCapability[];
+	sourceRequests?: readonly ResearchTaskSourceRequest[];
+	repairOfTaskId?: string;
+	repairGeneration?: number;
+	supersededByTaskId?: string;
 	pathId?: string;
 	now: string;
 	actor?: CoMathActor;
@@ -567,10 +565,29 @@ export interface UpdateResearchPlanTaskInput {
 	reviewOutcome?: ResearchTaskReviewOutcome;
 	blockedReason?: string;
 	failureReason?: string;
+	clearBlockedReason?: boolean;
+	clearFailureReason?: boolean;
+	clearReviewOutcome?: boolean;
+	clearStartedAt?: boolean;
+	clearCompletedAt?: boolean;
 	startedAt?: string;
 	completedAt?: string;
 	now: string;
 	actor?: CoMathActor;
+}
+
+export interface InsertResearchPlanRepairTaskInput {
+	planId: string;
+	rejectedTaskId: string;
+	rejectionReason: string;
+	now: string;
+	actor: CoMathActor;
+}
+
+export interface InsertResearchPlanRepairTaskResult {
+	state: CoMathProjectState;
+	repairTask: ResearchPlanTaskRecord;
+	rewiredTaskIds: string[];
 }
 
 export interface AddResearchObligationInput {
@@ -795,6 +812,12 @@ export interface UpsertWorkingPaperSectionByTitleInput {
 	title: string;
 	body: string;
 	status?: WorkingPaperSectionStatus;
+	sourceClaimIds?: string[];
+	sourceEvidenceIds?: string[];
+	sourceWarningIds?: string[];
+	sourceArtifactIds?: string[];
+	sourceReviewRoundIds?: string[];
+	sourceRoleRunIds?: string[];
 	now: string;
 	actor: CoMathActor;
 }
@@ -838,7 +861,8 @@ const COMPUTATIONAL_ARTIFACT_SUMMARY_LIMIT = 1_000;
 
 export function createEmptyProjectState(input: CreateEmptyProjectStateInput): CoMathProjectState {
 	return {
-		version: 1,
+		version: 2,
+		revision: 0,
 		projectId: input.projectId,
 		title: input.title,
 		rootQuestion: input.rootQuestion,
@@ -862,6 +886,8 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		researchBatches: [],
 		researchPlans: [],
 		researchPlanTasks: [],
+		researchTaskAttempts: [],
+		researchExecutions: [],
 		researchObligations: [],
 		researchConstraints: [],
 		theoremApplicabilityChecks: [],
@@ -869,8 +895,10 @@ export function createEmptyProjectState(input: CreateEmptyProjectStateInput): Co
 		literatureSources: [],
 		literatureSearches: [],
 		literatureClaimSupports: [],
+		sourceIndexes: [],
 		researchEvidenceBoard: [],
 		computationalArtifacts: [],
+		groundingReferences: [],
 		researchCoordinatorReports: [],
 		events: [
 			{
@@ -1368,63 +1396,6 @@ export function setResearchFocus(state: CoMathProjectState, input: SetResearchFo
 	);
 }
 
-export function addResearchWorkstreamReport(
-	state: CoMathProjectState,
-	input: AddResearchWorkstreamReportInput,
-): CoMathProjectState {
-	const pathId = input.pathId.trim();
-	const pathTitle = input.pathTitle.trim();
-	if (!pathId) {
-		throw new Error("Research workstream report requires a path id.");
-	}
-	if (!pathTitle) {
-		throw new Error("Research workstream report requires a path title.");
-	}
-	const id = input.id?.trim() || `research-report-${state.researchReports.length + 1}`;
-	if (state.researchReports.some((report) => report.id === id)) {
-		throw new Error(`Duplicate research workstream report id: ${id}`);
-	}
-	const report: ResearchWorkstreamReportRecord = {
-		id,
-		kind: "research_workstream",
-		pathId,
-		pathTitle,
-		status: input.status,
-		startedAt: input.startedAt,
-		completedAt: input.completedAt,
-		coordinatorBrief: input.coordinatorBrief,
-		steps: input.steps.map((step) => ({ ...step, details: [...step.details] })),
-		promisingStrategy: [...input.promisingStrategy],
-		findings: [...input.findings],
-		criticisms: [...input.criticisms],
-		gaps: [...input.gaps],
-		humanHelpUseful: [...input.humanHelpUseful],
-		suggestedNextMove: input.suggestedNextMove,
-		workingPaperSectionTitle: input.workingPaperSectionTitle,
-		...(input.workingPaperSectionId ? { workingPaperSectionId: input.workingPaperSectionId } : {}),
-		sourceIds: uniqueStrings(input.sourceIds ?? []),
-		claimSupportIds: uniqueStrings(input.claimSupportIds ?? []),
-		computationalArtifactIds: uniqueStrings(input.computationalArtifactIds ?? []),
-		createdAt: input.now,
-		updatedAt: input.now,
-	};
-	return appendEvent(
-		{
-			...state,
-			researchReports: [...state.researchReports, report],
-			updatedAt: input.now,
-		},
-		{
-			kind: "research_workstream_recorded",
-			actor: input.actor,
-			summary: `Recorded research workstream report ${id} for ${pathTitle}`,
-			subjectId: id,
-			relatedIds: [pathId],
-			now: input.now,
-		},
-	);
-}
-
 export function getLatestResearchWorkstreamReport(
 	state: CoMathProjectState,
 ): ResearchWorkstreamReportRecord | undefined {
@@ -1455,6 +1426,7 @@ export function addResearchCoordinatorReport(
 		inputPathIds: sanitizeStringArray(input.inputPathIds ?? []),
 		inputSourceIds: sanitizeStringArray(input.inputSourceIds ?? []),
 		inputComputationalArtifactIds: sanitizeStringArray(input.inputComputationalArtifactIds ?? []),
+		...(input.inputReviewFingerprint?.trim() ? { inputReviewFingerprint: input.inputReviewFingerprint.trim() } : {}),
 		whatWeKnow: fallbackStringArray(input.whatWeKnow, "No durable findings have been recorded yet."),
 		roadblocks: fallbackStringArray(input.roadblocks, "No current roadblock was identified."),
 		recommendedNextMoves:
@@ -1552,6 +1524,12 @@ export function addLiteratureSourceArtifact(
 		...(input.year?.trim() ? { year: input.year.trim() } : {}),
 		summary,
 		...(input.extractedText?.trim() ? { extractedText: input.extractedText.trim() } : {}),
+		...(input.workspaceRole ? { workspaceRole: input.workspaceRole } : {}),
+		...(input.citationEligibility ? { citationEligibility: input.citationEligibility } : {}),
+		...(input.sourceIndexId?.trim() ? { sourceIndexId: input.sourceIndexId.trim() } : {}),
+		...(input.sourceRevisionId?.trim() ? { sourceRevisionId: input.sourceRevisionId.trim() } : {}),
+		...(input.sourceRelativePath?.trim() ? { sourceRelativePath: input.sourceRelativePath.trim() } : {}),
+		...(input.sourceFileSha256?.trim() ? { sourceFileSha256: input.sourceFileSha256.trim() } : {}),
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
@@ -1636,6 +1614,9 @@ export function addLiteratureClaimSupport(
 		sourceIds,
 		status: input.status,
 		...(input.note?.trim() ? { note: input.note.trim() } : {}),
+		groundingReferenceIds: uniqueStrings(input.groundingReferenceIds ?? []),
+		groundingFailures: normalizeGroundingValidationFailures(input.groundingFailures ?? []),
+		...(input.sourceScope ? { sourceScope: input.sourceScope } : {}),
 		createdAt: input.now,
 		updatedAt: input.now,
 	};
@@ -1656,11 +1637,152 @@ export function addLiteratureClaimSupport(
 	);
 }
 
+export function updateLiteratureClaimGrounding(
+	state: CoMathProjectState,
+	input: UpdateLiteratureClaimGroundingInput,
+): CoMathProjectState {
+	const support = state.literatureClaimSupports.find((candidate) => candidate.id === input.claimSupportId);
+	if (!support) return state;
+	const groundingReferenceIds = uniqueStrings([
+		...(support.groundingReferenceIds ?? []),
+		...(input.groundingReferenceIds ?? []),
+	]);
+	const groundingFailures = normalizeGroundingValidationFailures([
+		...(support.groundingFailures ?? []),
+		...(input.groundingFailures ?? []),
+	]);
+	return {
+		...state,
+		literatureClaimSupports: state.literatureClaimSupports.map((candidate) =>
+			candidate.id === input.claimSupportId
+				? {
+						...candidate,
+						groundingReferenceIds,
+						groundingFailures,
+						...(input.sourceScope ? { sourceScope: input.sourceScope } : {}),
+						updatedAt: input.now,
+					}
+				: candidate,
+		),
+		updatedAt: input.now,
+	};
+}
+
+export function addCoMathSourceIndex(state: CoMathProjectState, input: AddCoMathSourceIndexInput): CoMathProjectState {
+	const existing = state.sourceIndexes.find(
+		(index) => index.sourceRevisionId === input.sourceRevisionId && index.indexSha256 === input.indexSha256,
+	);
+	if (existing) return state;
+	const id = input.id?.trim() || `source-index-${state.sourceIndexes.length + 1}`;
+	if (state.sourceIndexes.some((index) => index.id === id)) throw new Error(`Duplicate source index id: ${id}`);
+	const record: CoMathSourceIndexRecord = {
+		id,
+		sourceId: input.sourceId.trim(),
+		sourceRevisionId: input.sourceRevisionId.trim(),
+		sourceManifestSha256: input.sourceManifestSha256.trim(),
+		indexArtifactId: input.indexArtifactId.trim(),
+		indexPath: input.indexPath.trim(),
+		indexSha256: input.indexSha256.trim(),
+		policyVersion: input.policyVersion,
+		status: input.status,
+		fileCount: Math.max(0, Math.floor(input.fileCount)),
+		documentCount: Math.max(0, Math.floor(input.documentCount)),
+		warnings: sanitizeStringArray(input.warnings ?? []),
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	return appendEvent(
+		{ ...state, sourceIndexes: [...state.sourceIndexes, record], updatedAt: input.now },
+		{
+			kind: "artifact_recorded",
+			actor: input.actor,
+			summary: `Recorded source index ${id} for ${record.sourceRevisionId}`,
+			subjectId: id,
+			relatedIds: [record.indexArtifactId],
+			now: input.now,
+		},
+	);
+}
+
+export function linkLiteratureSourcesToIndex(
+	state: CoMathProjectState,
+	input: LinkLiteratureSourcesToIndexInput,
+): CoMathProjectState {
+	const revision = input.sourceRevisionId.trim();
+	if (!revision) return state;
+	const filesByExternalId = new Map<string, { relativePath: string; sha256: string }>(
+		input.sourceFiles.map((file) => [`${revision}:${file.sha256}`, file] as const),
+	);
+	return {
+		...state,
+		literatureSources: state.literatureSources.map((source) => {
+			if (source.provider !== "workspace" || !source.externalId?.startsWith(revision)) return source;
+			const file = filesByExternalId.get(source.externalId);
+			return {
+				...source,
+				sourceIndexId: input.sourceIndexId,
+				sourceRevisionId: revision,
+				...(file ? { sourceRelativePath: file.relativePath, sourceFileSha256: file.sha256 } : {}),
+				...(source.externalId === revision ? { extractedText: input.indexContext } : {}),
+				updatedAt: input.now,
+			};
+		}),
+		updatedAt: input.now,
+	};
+}
+
 export function addResearchEvidenceBoardEntry(
 	state: CoMathProjectState,
 	input: AddResearchEvidenceBoardEntryInput,
 ): CoMathProjectState {
 	return upsertResearchEvidenceBoardEntry(state, input).state;
+}
+
+export function addGroundingReference(
+	state: CoMathProjectState,
+	input: AddGroundingReferenceInput,
+): CoMathProjectState {
+	const subjectId = input.subject.id.trim();
+	const artifactId = input.artifactId.trim();
+	if (!subjectId || !artifactId) {
+		throw new Error("Grounding references require a subject id and artifact id.");
+	}
+	const id = input.id?.trim() || `grounding-${(state.groundingReferences?.length ?? 0) + 1}`;
+	if ((state.groundingReferences ?? []).some((reference) => reference.id === id)) {
+		throw new Error(`Duplicate grounding reference id: ${id}`);
+	}
+	const reference: GroundingReferenceRecord = {
+		id,
+		subject: { kind: input.subject.kind, id: subjectId },
+		relation: input.relation,
+		artifactId,
+		locator: input.locator,
+		...(input.excerpt?.trim() ? { excerpt: input.excerpt.trim().slice(0, 1_000) } : {}),
+		...(input.excerptSha256?.trim() ? { excerptSha256: input.excerptSha256.trim() } : {}),
+		...(input.sourceIndexId?.trim() ? { sourceIndexId: input.sourceIndexId.trim() } : {}),
+		...(input.sourceRevisionId?.trim() ? { sourceRevisionId: input.sourceRevisionId.trim() } : {}),
+		...(input.sourceRelativePath?.trim() ? { sourceRelativePath: input.sourceRelativePath.trim() } : {}),
+		...(input.sourceFileSha256?.trim() ? { sourceFileSha256: input.sourceFileSha256.trim() } : {}),
+		...(input.regionKind ? { regionKind: input.regionKind } : {}),
+		...(input.modelCallId?.trim() ? { modelCallId: input.modelCallId.trim() } : {}),
+		validationStatus: input.validationStatus,
+		createdAt: input.now,
+	};
+	return appendEvent(
+		{
+			...state,
+			groundingReferences: [...(state.groundingReferences ?? []), reference],
+			updatedAt: input.now,
+		},
+		{
+			kind: "grounding_reference_recorded",
+			actor: input.actor,
+			summary: `Recorded ${reference.relation} grounding ${id} for ${subjectId}`,
+			subjectId: id,
+			relatedIds: [subjectId, artifactId],
+			now: input.now,
+		},
+	);
 }
 
 export interface UpsertResearchEvidenceBoardEntryResult {
@@ -1938,185 +2060,6 @@ export function getComputationalArtifactsForRun(state: CoMathProjectState, runId
 	return state.computationalArtifacts.filter((artifact) => artifact.runId === runId);
 }
 
-export function addResearchWorkstreamRun(
-	state: CoMathProjectState,
-	input: AddResearchWorkstreamRunInput,
-): CoMathProjectState {
-	const pathId = input.pathId.trim();
-	const pathTitle = input.pathTitle.trim();
-	if (!pathId) {
-		throw new Error("Research workstream run requires a path id.");
-	}
-	if (!pathTitle) {
-		throw new Error("Research workstream run requires a path title.");
-	}
-	const id = input.id?.trim() || `research-run-${state.researchWorkstreamRuns.length + 1}`;
-	if (state.researchWorkstreamRuns.some((run) => run.id === id)) {
-		throw new Error(`Duplicate research workstream run id: ${id}`);
-	}
-	const run: ResearchWorkstreamRunRecord = {
-		id,
-		pathId,
-		pathTitle,
-		status: input.status ?? "running",
-		currentStage: input.currentStage ?? "coordinator",
-		...(input.batchId?.trim() ? { batchId: input.batchId.trim() } : {}),
-		...(typeof input.batchStepIndex === "number" && Number.isFinite(input.batchStepIndex)
-			? { batchStepIndex: Math.max(1, Math.floor(input.batchStepIndex)) }
-			: {}),
-		...(input.taskId?.trim() ? { taskId: input.taskId.trim() } : {}),
-		startedAt: input.now,
-		updatedAt: input.now,
-		incrementalReports: [],
-		...(input.usedFallback !== undefined ? { usedFallback: input.usedFallback } : {}),
-	};
-	return appendEvent(
-		{
-			...state,
-			researchWorkstreamRuns: [...state.researchWorkstreamRuns, run],
-			updatedAt: input.now,
-		},
-		{
-			kind: "research_workstream_run_recorded",
-			actor: input.actor,
-			summary: `Started research workstream run for ${pathTitle}`,
-			subjectId: id,
-			relatedIds: [pathId],
-			now: input.now,
-		},
-	);
-}
-
-export function updateResearchWorkstreamRun(
-	state: CoMathProjectState,
-	input: UpdateResearchWorkstreamRunInput,
-): CoMathProjectState {
-	if (!state.researchWorkstreamRuns.some((run) => run.id === input.runId)) {
-		return state;
-	}
-	return appendEvent(
-		{
-			...state,
-			researchWorkstreamRuns: state.researchWorkstreamRuns.map((run) =>
-				run.id === input.runId
-					? {
-							...run,
-							...(input.status ? { status: input.status } : {}),
-							...(input.currentStage ? { currentStage: input.currentStage } : {}),
-							...(input.batchId?.trim() ? { batchId: input.batchId.trim() } : {}),
-							...(typeof input.batchStepIndex === "number" && Number.isFinite(input.batchStepIndex)
-								? { batchStepIndex: Math.max(1, Math.floor(input.batchStepIndex)) }
-								: {}),
-							...(input.completedAt ? { completedAt: input.completedAt } : {}),
-							...(input.finalReportId ? { finalReportId: input.finalReportId } : {}),
-							...(input.failureReason ? { failureReason: input.failureReason } : {}),
-							...(input.usedFallback !== undefined ? { usedFallback: input.usedFallback } : {}),
-							...(input.appendModelCalls && input.appendModelCalls.length > 0
-								? { modelCalls: [...(run.modelCalls ?? []), ...input.appendModelCalls] }
-								: {}),
-							updatedAt: input.now,
-						}
-					: run,
-			),
-			updatedAt: input.now,
-		},
-		{
-			kind: "research_workstream_run_recorded",
-			actor: input.actor,
-			summary: `Updated research workstream run ${input.runId}`,
-			subjectId: input.runId,
-			now: input.now,
-		},
-	);
-}
-
-export function addResearchBatch(state: CoMathProjectState, input: AddResearchBatchInput): CoMathProjectState {
-	const requestedStepCount = Math.min(5, Math.max(1, Math.floor(input.requestedStepCount)));
-	const id = input.id?.trim() || `research-batch-${state.researchBatches.length + 1}`;
-	if (state.researchBatches.some((batch) => batch.id === id)) {
-		throw new Error(`Duplicate research batch id: ${id}`);
-	}
-	const initialPathId = input.initialPathId?.trim();
-	const batch: ResearchBatchRecord = {
-		id,
-		status: "running",
-		requestedStepCount,
-		completedStepCount: 0,
-		runIds: [],
-		...(initialPathId ? { initialPathId, nextPathId: initialPathId } : {}),
-		createdAt: input.now,
-		startedAt: input.now,
-		updatedAt: input.now,
-	};
-	return appendEvent(
-		{
-			...state,
-			researchBatches: [...state.researchBatches, batch],
-			updatedAt: input.now,
-		},
-		{
-			kind: "research_batch_recorded",
-			actor: input.actor,
-			summary: `Started bounded research run for ${requestedStepCount} step${requestedStepCount === 1 ? "" : "s"}.`,
-			subjectId: id,
-			relatedIds: initialPathId ? [initialPathId] : [],
-			now: input.now,
-		},
-	);
-}
-
-export function updateResearchBatch(state: CoMathProjectState, input: UpdateResearchBatchInput): CoMathProjectState {
-	const batch = state.researchBatches.find((candidate) => candidate.id === input.batchId);
-	if (!batch) {
-		return state;
-	}
-	const runIds = input.addRunId?.trim()
-		? [...batch.runIds, input.addRunId.trim()].filter((runId, index, all) => all.indexOf(runId) === index)
-		: batch.runIds;
-	const completedStepCount =
-		typeof input.completedStepCount === "number" && Number.isFinite(input.completedStepCount)
-			? Math.min(batch.requestedStepCount, Math.max(0, Math.floor(input.completedStepCount)))
-			: batch.completedStepCount;
-	return appendEvent(
-		{
-			...state,
-			researchBatches: state.researchBatches.map((candidate) => {
-				if (candidate.id !== input.batchId) {
-					return candidate;
-				}
-				const updated: ResearchBatchRecord = {
-					...candidate,
-					...(input.status ? { status: input.status } : {}),
-					completedStepCount,
-					runIds,
-					...(input.currentPathId?.trim() ? { currentPathId: input.currentPathId.trim() } : {}),
-					...(input.nextPathId?.trim() ? { nextPathId: input.nextPathId.trim() } : {}),
-					...(input.lastCompletedPathId?.trim() ? { lastCompletedPathId: input.lastCompletedPathId.trim() } : {}),
-					...(input.interruptedRunId?.trim() ? { interruptedRunId: input.interruptedRunId.trim() } : {}),
-					...(input.failureReason?.trim() ? { failureReason: input.failureReason.trim() } : {}),
-					...(input.cancelReason?.trim() ? { cancelReason: input.cancelReason.trim() } : {}),
-					...(input.completedAt ? { completedAt: input.completedAt } : {}),
-					...(input.cancelledAt ? { cancelledAt: input.cancelledAt } : {}),
-					updatedAt: input.now,
-				};
-				if (input.clearInterruptedRunId) {
-					delete updated.interruptedRunId;
-				}
-				return updated;
-			}),
-			updatedAt: input.now,
-		},
-		{
-			kind: "research_batch_recorded",
-			actor: input.actor,
-			summary: `Updated bounded research run ${input.batchId}`,
-			subjectId: input.batchId,
-			relatedIds: input.addRunId ? [input.addRunId] : [],
-			now: input.now,
-		},
-	);
-}
-
 export function addResearchPlan(state: CoMathProjectState, input: AddResearchPlanInput): CoMathProjectState {
 	const title = input.title.trim();
 	const objective = input.objective.trim();
@@ -2172,7 +2115,26 @@ export function addResearchPlanTask(state: CoMathProjectState, input: AddResearc
 	if (state.researchPlanTasks.some((task) => task.id === id)) {
 		throw new Error(`Duplicate research plan task id: ${id}`);
 	}
-	const sequence = state.researchPlanTasks.filter((task) => task.planId === plan.id).length + 1;
+	const priorTasks = getResearchPlanTasks(state, plan.id);
+	const sequence = priorTasks.length + 1;
+	const requestedDependencies = input.dependsOnTaskIds;
+	const dependsOnTaskIds =
+		requestedDependencies === undefined
+			? priorTasks.at(-1)
+				? [priorTasks.at(-1)!.id]
+				: []
+			: uniqueStrings(requestedDependencies.map((dependencyId) => dependencyId.trim()).filter(Boolean));
+	const priorTaskIds = new Set(priorTasks.map((task) => task.id));
+	if (dependsOnTaskIds.some((dependencyId) => !priorTaskIds.has(dependencyId))) {
+		throw new Error("Research plan task dependencies must reference earlier tasks in the same plan.");
+	}
+	const requiredCapabilities = uniqueResearchPlanTaskRequiredCapabilities([
+		...(input.requiredCapabilities ?? []),
+		...requiredCapabilitiesForTaskKind(input.kind),
+	]);
+	const repairOfTaskId = input.repairOfTaskId?.trim();
+	const repairGeneration = normalizeRepairGeneration(input.repairGeneration);
+	const supersededByTaskId = input.supersededByTaskId?.trim();
 	const task: ResearchPlanTaskRecord = {
 		id,
 		planId: plan.id,
@@ -2183,6 +2145,13 @@ export function addResearchPlanTask(state: CoMathProjectState, input: AddResearc
 		description,
 		...(input.goal?.trim() ? { goal: input.goal.trim() } : {}),
 		acceptanceCriteria: sanitizeStringArray(input.acceptanceCriteria ?? []),
+		dependsOnTaskIds,
+		requiredCapabilities,
+		sourceRequests: normalizeResearchTaskSourceRequests(input.sourceRequests),
+		attemptIds: [],
+		...(repairOfTaskId ? { repairOfTaskId } : {}),
+		...(repairGeneration !== undefined ? { repairGeneration } : {}),
+		...(supersededByTaskId ? { supersededByTaskId } : {}),
 		...(input.pathId?.trim() ? { pathId: input.pathId.trim() } : {}),
 		sourceIds: [],
 		claimSupportIds: [],
@@ -2211,6 +2180,156 @@ export function addResearchPlanTask(state: CoMathProjectState, input: AddResearc
 			now: input.now,
 		},
 	);
+}
+
+export const MAX_RESEARCH_PLAN_REPAIR_GENERATIONS = 3;
+
+/**
+ * Insert one deterministic repair task for an independently rejected task. The rejected attempt
+ * remains intact; only its successor link and unfinished dependent edges change. This is a pure
+ * transform so a transaction retry can safely apply it again.
+ */
+export function insertResearchPlanRepairTask(
+	state: CoMathProjectState,
+	input: InsertResearchPlanRepairTaskInput,
+): InsertResearchPlanRepairTaskResult {
+	const plan = state.researchPlans.find((candidate) => candidate.id === input.planId);
+	if (!plan) {
+		throw new Error(`Unknown research plan: ${input.planId}`);
+	}
+	const rejectedTask = state.researchPlanTasks.find(
+		(candidate) => candidate.id === input.rejectedTaskId && candidate.planId === plan.id,
+	);
+	if (!rejectedTask) {
+		throw new Error(`Unknown research plan task: ${input.rejectedTaskId}`);
+	}
+	if (rejectedTask.reviewOutcome !== "rejected") {
+		throw new Error(`Research plan task ${rejectedTask.id} was not rejected by independent review.`);
+	}
+	const rejectionReason = input.rejectionReason.trim();
+	if (!rejectionReason) {
+		throw new Error("A repair task requires the independent review rejection reason.");
+	}
+	const existingRepair = state.researchPlanTasks.find(
+		(candidate) =>
+			candidate.planId === plan.id &&
+			candidate.repairOfTaskId === rejectedTask.id &&
+			(candidate.status === "pending" || candidate.status === "running" || candidate.status === "completed"),
+	);
+	if (existingRepair) {
+		return { state, repairTask: existingRepair, rewiredTaskIds: [] };
+	}
+	const repairGeneration = (rejectedTask.repairGeneration ?? 0) + 1;
+	if (repairGeneration > MAX_RESEARCH_PLAN_REPAIR_GENERATIONS) {
+		throw new Error(
+			`Research plan task ${rejectedTask.id} has reached the ${MAX_RESEARCH_PLAN_REPAIR_GENERATIONS}-generation repair limit.`,
+		);
+	}
+	const repairTaskId = `research-plan-repair-${rejectedTask.id}-${repairGeneration}`;
+	const sameIdTask = state.researchPlanTasks.find((candidate) => candidate.id === repairTaskId);
+	if (sameIdTask) {
+		if (sameIdTask.planId === plan.id && sameIdTask.repairOfTaskId === rejectedTask.id) {
+			return { state, repairTask: sameIdTask, rewiredTaskIds: [] };
+		}
+		throw new Error(`Duplicate research plan task id: ${repairTaskId}`);
+	}
+	const tasks = getResearchPlanTasks(state, plan.id);
+	const rejectedIndex = tasks.findIndex((candidate) => candidate.id === rejectedTask.id);
+	if (rejectedIndex < 0) {
+		throw new Error(`Research plan task ${rejectedTask.id} is not part of plan ${plan.id}.`);
+	}
+	const originalGoal = rejectedTask.goal ?? rejectedTask.description;
+	const repairTask: ResearchPlanTaskRecord = {
+		id: repairTaskId,
+		planId: plan.id,
+		kind: rejectedTask.kind,
+		status: "pending",
+		sequence: rejectedTask.sequence + 1,
+		title: `Repair: ${rejectedTask.title}`,
+		description: `Address the independent review concern while preserving the original task objective: ${originalGoal}`,
+		goal: `Address the independent review of ${rejectedTask.id}:\n${rejectionReason}\n\nPreserve the original task goal:\n${originalGoal}`,
+		acceptanceCriteria: uniqueStrings([
+			`Resolve the independent review concern: ${rejectionReason}`,
+			...rejectedTask.acceptanceCriteria,
+		]),
+		dependsOnTaskIds: [...rejectedTask.dependsOnTaskIds],
+		requiredCapabilities: uniqueResearchPlanTaskRequiredCapabilities([
+			...rejectedTask.requiredCapabilities,
+			...requiredCapabilitiesForTaskKind(rejectedTask.kind),
+			"independent-review",
+		]),
+		sourceRequests: (rejectedTask.sourceRequests ?? []).map((request) => ({
+			sourceId: request.sourceId,
+			ranges: request.ranges.map((range) => ({ ...range })),
+		})),
+		...(rejectedTask.pathId ? { pathId: rejectedTask.pathId } : {}),
+		repairOfTaskId: rejectedTask.id,
+		repairGeneration,
+		attemptIds: [],
+		sourceIds: [],
+		claimSupportIds: [],
+		computationalArtifactIds: [],
+		evidenceEntryIds: [],
+		createdAt: input.now,
+		updatedAt: input.now,
+	};
+	const unfinishedTaskIds = new Set(
+		tasks
+			.filter((candidate) => candidate.status !== "completed" && candidate.status !== "cancelled")
+			.map((candidate) => candidate.id),
+	);
+	const rewiredTaskIds: string[] = [];
+	const transformedPlanTasks = state.researchPlanTasks.map((candidate) => {
+		if (candidate.id === rejectedTask.id) {
+			return { ...candidate, supersededByTaskId: repairTask.id, updatedAt: input.now };
+		}
+		if (
+			candidate.planId !== plan.id ||
+			!unfinishedTaskIds.has(candidate.id) ||
+			!candidate.dependsOnTaskIds.includes(rejectedTask.id)
+		) {
+			return candidate.sequence > rejectedTask.sequence && candidate.planId === plan.id
+				? { ...candidate, sequence: candidate.sequence + 1, updatedAt: input.now }
+				: candidate;
+		}
+		rewiredTaskIds.push(candidate.id);
+		return {
+			...candidate,
+			sequence: candidate.sequence > rejectedTask.sequence ? candidate.sequence + 1 : candidate.sequence,
+			dependsOnTaskIds: uniqueStrings(
+				candidate.dependsOnTaskIds.map((dependencyId) =>
+					dependencyId === rejectedTask.id ? repairTask.id : dependencyId,
+				),
+			),
+			updatedAt: input.now,
+		};
+	});
+	const nextTasks = [...transformedPlanTasks, repairTask];
+	const orderedTaskIds = [...tasks.map((candidate) => candidate.id)];
+	orderedTaskIds.splice(rejectedIndex + 1, 0, repairTask.id);
+	validateResearchPlanTaskGraph(
+		nextTasks.filter((candidate) => candidate.planId === plan.id),
+		orderedTaskIds,
+	);
+	const nextState = appendEvent(
+		{
+			...state,
+			researchPlans: state.researchPlans.map((candidate) =>
+				candidate.id === plan.id ? { ...candidate, taskIds: orderedTaskIds, updatedAt: input.now } : candidate,
+			),
+			researchPlanTasks: nextTasks,
+			updatedAt: input.now,
+		},
+		{
+			kind: "research_plan_task_recorded",
+			actor: input.actor,
+			summary: `Created repair task ${repairTask.id} for rejected task ${rejectedTask.id}.`,
+			subjectId: repairTask.id,
+			relatedIds: [plan.id, rejectedTask.id, ...rewiredTaskIds],
+			now: input.now,
+		},
+	);
+	return { state: nextState, repairTask, rewiredTaskIds };
 }
 
 export function updateResearchPlan(state: CoMathProjectState, input: UpdateResearchPlanInput): CoMathProjectState {
@@ -2267,36 +2386,35 @@ export function updateResearchPlanTask(
 	return appendEvent(
 		{
 			...state,
-			researchPlanTasks: state.researchPlanTasks.map((candidate) =>
-				candidate.id === input.taskId
-					? {
-							...candidate,
-							...(input.status ? { status: input.status } : {}),
-							...(input.runId?.trim() ? { runId: input.runId.trim() } : {}),
-							...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
-							sourceIds: uniqueStrings([...candidate.sourceIds, ...(input.addSourceIds ?? [])]),
-							claimSupportIds: uniqueStrings([
-								...candidate.claimSupportIds,
-								...(input.addClaimSupportIds ?? []),
-							]),
-							computationalArtifactIds: uniqueStrings([
-								...candidate.computationalArtifactIds,
-								...(input.addComputationalArtifactIds ?? []),
-							]),
-							evidenceEntryIds: uniqueStrings([
-								...candidate.evidenceEntryIds,
-								...(input.addEvidenceEntryIds ?? []),
-							]),
-							...(input.progressKind ? { progressKind: input.progressKind } : {}),
-							...(input.reviewOutcome ? { reviewOutcome: input.reviewOutcome } : {}),
-							...(input.blockedReason?.trim() ? { blockedReason: input.blockedReason.trim() } : {}),
-							...(input.failureReason?.trim() ? { failureReason: input.failureReason.trim() } : {}),
-							...(input.startedAt ? { startedAt: input.startedAt } : {}),
-							...(input.completedAt ? { completedAt: input.completedAt } : {}),
-							updatedAt: input.now,
-						}
-					: candidate,
-			),
+			researchPlanTasks: state.researchPlanTasks.map((candidate) => {
+				if (candidate.id !== input.taskId) return candidate;
+				const updated: ResearchPlanTaskRecord = {
+					...candidate,
+					...(input.status ? { status: input.status } : {}),
+					...(input.runId?.trim() ? { runId: input.runId.trim() } : {}),
+					...(input.reportId?.trim() ? { reportId: input.reportId.trim() } : {}),
+					sourceIds: uniqueStrings([...candidate.sourceIds, ...(input.addSourceIds ?? [])]),
+					claimSupportIds: uniqueStrings([...candidate.claimSupportIds, ...(input.addClaimSupportIds ?? [])]),
+					computationalArtifactIds: uniqueStrings([
+						...candidate.computationalArtifactIds,
+						...(input.addComputationalArtifactIds ?? []),
+					]),
+					evidenceEntryIds: uniqueStrings([...candidate.evidenceEntryIds, ...(input.addEvidenceEntryIds ?? [])]),
+					...(input.progressKind ? { progressKind: input.progressKind } : {}),
+					...(input.reviewOutcome ? { reviewOutcome: input.reviewOutcome } : {}),
+					...(input.blockedReason?.trim() ? { blockedReason: input.blockedReason.trim() } : {}),
+					...(input.failureReason?.trim() ? { failureReason: input.failureReason.trim() } : {}),
+					...(input.startedAt ? { startedAt: input.startedAt } : {}),
+					...(input.completedAt ? { completedAt: input.completedAt } : {}),
+					updatedAt: input.now,
+				};
+				if (input.clearBlockedReason || input.status === "pending") delete updated.blockedReason;
+				if (input.clearFailureReason || input.status === "pending") delete updated.failureReason;
+				if (input.clearReviewOutcome) delete updated.reviewOutcome;
+				if (input.clearStartedAt || input.status === "pending") delete updated.startedAt;
+				if (input.clearCompletedAt || input.status === "pending") delete updated.completedAt;
+				return updated;
+			}),
 			updatedAt: input.now,
 		},
 		{
@@ -2328,9 +2446,87 @@ export function getResearchPlanTasks(state: CoMathProjectState, planId: string):
 	return state.researchPlanTasks.filter((task) => task.planId === planId).sort((a, b) => a.sequence - b.sequence);
 }
 
+/** Default evidence requirements derived from the work a task asks for, not its mathematical subject. */
+export function requiredCapabilitiesForTaskKind(kind: ResearchPlanTaskKind): ResearchPlanTaskRequiredCapability[] {
+	switch (kind) {
+		case "source-refresh":
+		case "literature-search":
+			return ["source-grounding", "independent-review"];
+		case "computation":
+			return ["sandboxed-computation", "independent-review"];
+		case "proof-attempt":
+		case "refutation-attempt":
+			return ["independent-review"];
+		default:
+			return [];
+	}
+}
+
+function normalizeResearchTaskSourceRequests(value: unknown): ResearchTaskSourceRequest[] {
+	if (!Array.isArray(value)) return [];
+	const requests: ResearchTaskSourceRequest[] = [];
+	for (const candidate of value) {
+		if (typeof candidate !== "object" || candidate === null) continue;
+		const record = candidate as Record<string, unknown>;
+		const sourceId = getOptionalStringField(record, "sourceId");
+		if (!sourceId || !Array.isArray(record.ranges)) continue;
+		const ranges = record.ranges.flatMap((range) => {
+			if (typeof range !== "object" || range === null) return [];
+			const rangeRecord = range as Record<string, unknown>;
+			const start = rangeRecord.start;
+			const end = rangeRecord.end;
+			return typeof start === "number" &&
+				Number.isSafeInteger(start) &&
+				start > 0 &&
+				typeof end === "number" &&
+				Number.isSafeInteger(end) &&
+				end >= start
+				? [{ start, end }]
+				: [];
+		});
+		if (ranges.length > 0) requests.push({ sourceId, ranges });
+	}
+	return requests;
+}
+
+/** Whether every declared prerequisite completed successfully in this plan. */
+export function areResearchPlanTaskDependenciesCompleted(
+	state: CoMathProjectState,
+	task: ResearchPlanTaskRecord,
+): boolean {
+	const tasksById = new Map(getResearchPlanTasks(state, task.planId).map((candidate) => [candidate.id, candidate]));
+	return task.dependsOnTaskIds.every((dependencyId) => tasksById.get(dependencyId)?.status === "completed");
+}
+
+function validateResearchPlanTaskGraph(
+	tasks: readonly ResearchPlanTaskRecord[],
+	orderedTaskIds: readonly string[],
+): void {
+	const byId = new Map(tasks.map((task) => [task.id, task]));
+	if (
+		byId.size !== tasks.length ||
+		orderedTaskIds.length !== tasks.length ||
+		new Set(orderedTaskIds).size !== tasks.length
+	) {
+		throw new Error("Research plan repair produced duplicate task ids.");
+	}
+	for (let index = 0; index < orderedTaskIds.length; index += 1) {
+		const taskId = orderedTaskIds[index]!;
+		const task = byId.get(taskId);
+		if (!task || task.sequence !== index + 1) {
+			throw new Error("Research plan repair produced inconsistent task sequence ordering.");
+		}
+		const earlierTaskIds = new Set(orderedTaskIds.slice(0, index));
+		if (task.dependsOnTaskIds.some((dependencyId) => !earlierTaskIds.has(dependencyId))) {
+			throw new Error("Research plan repair produced a dangling, forward, or cyclic dependency.");
+		}
+	}
+}
+
 /**
- * The next task the plan runner may execute: the lowest-sequence pending task. Returns `undefined`
- * while a task is still running (only one task may run at a time) or when nothing is pending.
+ * The next task the plan runner may execute: the lowest-sequence pending task whose declared
+ * prerequisites completed successfully. Returns `undefined` while a task is still running (only
+ * one task may run at a time) or when nothing is ready.
  */
 export function getNextRunnableResearchPlanTask(
 	state: CoMathProjectState,
@@ -2340,7 +2536,7 @@ export function getNextRunnableResearchPlanTask(
 	if (tasks.some((task) => task.status === "running")) {
 		return undefined;
 	}
-	return tasks.find((task) => task.status === "pending");
+	return tasks.find((task) => task.status === "pending" && areResearchPlanTaskDependenciesCompleted(state, task));
 }
 
 export function addResearchObligation(
@@ -2765,7 +2961,41 @@ export function getTheoremApplicabilityChecksForPath(
 	state: CoMathProjectState,
 	pathId: string,
 ): TheoremApplicabilityCheckRecord[] {
-	return state.theoremApplicabilityChecks.filter((check) => check.pathId === pathId);
+	return getCurrentTheoremApplicabilityChecks(state).filter((check) => check.pathId === pathId);
+}
+
+/**
+ * Current theorem-check view for model context and execution decisions. Raw state retains every
+ * historical check for auditability, while a later check of the same theorem against the same
+ * object supersedes the earlier verdict. This prevents a corrected applicability audit from
+ * coexisting as an active instruction with the mistake it corrected.
+ */
+export function getCurrentTheoremApplicabilityChecks(
+	state: Pick<CoMathProjectState, "theoremApplicabilityChecks">,
+): TheoremApplicabilityCheckRecord[] {
+	const current: TheoremApplicabilityCheckRecord[] = [];
+	for (const check of [...state.theoremApplicabilityChecks].reverse()) {
+		if (current.some((candidate) => theoremChecksHaveSameSubject(candidate, check))) {
+			continue;
+		}
+		current.push(check);
+	}
+	return current.reverse();
+}
+
+function theoremChecksHaveSameSubject(
+	left: TheoremApplicabilityCheckRecord,
+	right: TheoremApplicabilityCheckRecord,
+): boolean {
+	const leftKey = normalizeTheoremKey(left.theorem);
+	const rightKey = normalizeTheoremKey(right.theorem);
+	if (!leftKey || !rightKey || (leftKey !== rightKey && !textsNearlyMatch(leftKey, rightKey, 0.8))) {
+		return false;
+	}
+	if (namesDifferentMathExpressions(left.targetObject, right.targetObject)) {
+		return false;
+	}
+	return textsNearlyMatch(stripMathDecorations(left.targetObject), stripMathDecorations(right.targetObject), 0.65);
 }
 
 /** Record a route pivot. A pivot restating an existing one's from/to (paraphrases included) is ignored. */
@@ -2822,91 +3052,7 @@ export function addResearchPivot(state: CoMathProjectState, input: AddResearchPi
 	);
 }
 
-export function addResearchWorkstreamIncrementalReport(
-	state: CoMathProjectState,
-	input: AddResearchWorkstreamIncrementalReportInput,
-): CoMathProjectState {
-	const run = state.researchWorkstreamRuns.find((candidate) => candidate.id === input.runId);
-	if (!run) {
-		throw new Error(`Unknown research workstream run: ${input.runId}`);
-	}
-	const title = input.title.trim();
-	const summary = input.summary.trim();
-	if (!title) {
-		throw new Error("Research workstream incremental report requires a title.");
-	}
-	if (!summary) {
-		throw new Error("Research workstream incremental report requires a summary.");
-	}
-	const report: ResearchWorkstreamIncrementalReportRecord = {
-		id: input.id?.trim() || `${run.id}-incremental-${run.incrementalReports.length + 1}`,
-		stage: input.stage,
-		status: input.status,
-		title,
-		summary,
-		details: [...input.details],
-		createdAt: input.now,
-	};
-	return appendEvent(
-		{
-			...state,
-			researchWorkstreamRuns: state.researchWorkstreamRuns.map((candidate) =>
-				candidate.id === input.runId
-					? {
-							...candidate,
-							status: input.status === "running" ? "running" : candidate.status,
-							currentStage: input.stage,
-							incrementalReports: [...candidate.incrementalReports, report],
-							updatedAt: input.now,
-						}
-					: candidate,
-			),
-			updatedAt: input.now,
-		},
-		{
-			kind: "research_workstream_run_recorded",
-			actor: input.actor,
-			summary: `Recorded ${input.stage} progress for ${run.pathTitle}`,
-			subjectId: input.runId,
-			relatedIds: [run.pathId],
-			now: input.now,
-		},
-	);
-}
-
 export const STALE_RESEARCH_WORKSTREAM_RUN_REASON = "Previous Pi session ended before completion.";
-
-export function failStaleResearchWorkstreamRuns(
-	state: CoMathProjectState,
-	input: FailStaleResearchWorkstreamRunsInput,
-): CoMathProjectState {
-	const activeRunIds = new Set(input.activeRunIds);
-	const reason = input.reason?.trim() || STALE_RESEARCH_WORKSTREAM_RUN_REASON;
-	let nextState = state;
-	for (const run of state.researchWorkstreamRuns) {
-		if ((run.status === "queued" || run.status === "running") && !activeRunIds.has(run.id)) {
-			nextState = updateResearchWorkstreamRun(nextState, {
-				runId: run.id,
-				status: "interrupted",
-				failureReason: reason,
-				now: input.now,
-				actor: input.actor,
-			});
-			if (run.batchId) {
-				nextState = updateResearchBatch(nextState, {
-					batchId: run.batchId,
-					status: "paused",
-					currentPathId: run.pathId,
-					nextPathId: run.pathId,
-					interruptedRunId: run.id,
-					now: input.now,
-					actor: input.actor,
-				});
-			}
-		}
-	}
-	return nextState;
-}
 
 export function getLatestResearchWorkstreamRun(state: CoMathProjectState): ResearchWorkstreamRunRecord | undefined {
 	return state.researchWorkstreamRuns.at(-1);
@@ -3477,6 +3623,12 @@ export function upsertWorkingPaperSectionByTitle(
 			title,
 			body,
 			status: input.status,
+			sourceClaimIds: input.sourceClaimIds,
+			sourceEvidenceIds: input.sourceEvidenceIds,
+			sourceWarningIds: input.sourceWarningIds,
+			sourceArtifactIds: input.sourceArtifactIds,
+			sourceReviewRoundIds: input.sourceReviewRoundIds,
+			sourceRoleRunIds: input.sourceRoleRunIds,
 			now: input.now,
 			actor: input.actor,
 		});
@@ -3490,6 +3642,21 @@ export function upsertWorkingPaperSectionByTitle(
 							...section,
 							body,
 							status: input.status ?? section.status,
+							sourceClaimIds: uniqueStrings([...section.sourceClaimIds, ...(input.sourceClaimIds ?? [])]),
+							sourceEvidenceIds: uniqueStrings([
+								...section.sourceEvidenceIds,
+								...(input.sourceEvidenceIds ?? []),
+							]),
+							sourceWarningIds: uniqueStrings([...section.sourceWarningIds, ...(input.sourceWarningIds ?? [])]),
+							sourceArtifactIds: uniqueStrings([
+								...section.sourceArtifactIds,
+								...(input.sourceArtifactIds ?? []),
+							]),
+							sourceReviewRoundIds: uniqueStrings([
+								...section.sourceReviewRoundIds,
+								...(input.sourceReviewRoundIds ?? []),
+							]),
+							sourceRoleRunIds: uniqueStrings([...section.sourceRoleRunIds, ...(input.sourceRoleRunIds ?? [])]),
 							updatedAt: input.now,
 						}
 					: section,
@@ -3661,19 +3828,109 @@ export function getDefaultStatePath(cwd: string): string {
 	return path.join(cwd, ".pi", "co-math", "state.json");
 }
 
+const STATE_LOCK_TIMEOUT_MS = 5_000;
+const STATE_LOCK_STALE_MS = 30_000;
+const STATE_LOCK_RETRY_MS = 20;
+
+export class CoMathStateConflictError extends Error {
+	readonly expectedRevision: number;
+	readonly actualRevision: number;
+
+	constructor(expectedRevision: number, actualRevision: number) {
+		super(`CoMath state revision conflict: expected ${expectedRevision}, found ${actualRevision}.`);
+		this.name = "CoMathStateConflictError";
+		this.expectedRevision = expectedRevision;
+		this.actualRevision = actualRevision;
+	}
+}
+
 export async function saveProjectState(statePath: string, state: CoMathProjectState): Promise<void> {
 	await mkdir(path.dirname(statePath), { recursive: true });
-	// Write to a unique temp file then rename so a concurrent loadProjectState (e.g. a background
-	// role-run finalize) never reads a half-written file. Rename is atomic on the same filesystem.
-	// A random name plus exclusive create ("wx") avoids collisions between concurrent writers.
-	const tempPath = `${statePath}.${randomUUID()}.tmp`;
+	const lockPath = `${statePath}.lock`;
+	await acquireStateFileLock(lockPath);
 	try {
-		await writeFile(tempPath, serializeProjectState(state), { encoding: "utf8", flag: "wx" });
-		await rename(tempPath, statePath);
+		const expectedRevision = normalizeStateRevision(state.revision);
+		const actualRevision = await readPersistedRevision(statePath);
+		if (actualRevision !== expectedRevision) {
+			throw new CoMathStateConflictError(expectedRevision, actualRevision);
+		}
+		const nextRevision = actualRevision + 1;
+		const persistedState: CoMathProjectState = { ...state, revision: nextRevision };
+		// Unique temp + same-filesystem rename keeps readers from observing partial JSON. The
+		// cross-process lock and revision comparison additionally prevent last-writer-wins loss.
+		const tempPath = `${statePath}.${randomUUID()}.tmp`;
+		try {
+			await writeFile(tempPath, serializeProjectState(persistedState), { encoding: "utf8", flag: "wx" });
+			await rename(tempPath, statePath);
+			state.revision = nextRevision;
+		} catch (error) {
+			await rm(tempPath, { force: true }).catch(() => {});
+			throw error;
+		}
+	} finally {
+		await rm(lockPath, { recursive: true, force: true });
+	}
+}
+
+/** Explicit project replacement used by `init`; ordinary commits must use revision-checked save. */
+export async function replaceProjectState(statePath: string, state: CoMathProjectState): Promise<void> {
+	await mkdir(path.dirname(statePath), { recursive: true });
+	const lockPath = `${statePath}.lock`;
+	await acquireStateFileLock(lockPath);
+	try {
+		const nextRevision = (await readPersistedRevision(statePath)) + 1;
+		const persistedState: CoMathProjectState = { ...state, revision: nextRevision };
+		const tempPath = `${statePath}.${randomUUID()}.tmp`;
+		try {
+			await writeFile(tempPath, serializeProjectState(persistedState), { encoding: "utf8", flag: "wx" });
+			await rename(tempPath, statePath);
+			state.revision = nextRevision;
+		} catch (error) {
+			await rm(tempPath, { force: true }).catch(() => {});
+			throw error;
+		}
+	} finally {
+		await rm(lockPath, { recursive: true, force: true });
+	}
+}
+
+async function acquireStateFileLock(lockPath: string): Promise<void> {
+	const deadline = Date.now() + STATE_LOCK_TIMEOUT_MS;
+	while (true) {
+		try {
+			await mkdir(lockPath);
+			return;
+		} catch (error) {
+			if (!isErrorCode(error, "EEXIST")) {
+				throw error;
+			}
+			const lockStat = await stat(lockPath).catch(() => undefined);
+			if (lockStat && Date.now() - lockStat.mtimeMs > STATE_LOCK_STALE_MS) {
+				await rm(lockPath, { recursive: true, force: true });
+				continue;
+			}
+			if (Date.now() >= deadline) {
+				throw new Error(`Timed out waiting for CoMath state lock: ${lockPath}`);
+			}
+			await new Promise<void>((resolve) => setTimeout(resolve, STATE_LOCK_RETRY_MS));
+		}
+	}
+}
+
+async function readPersistedRevision(statePath: string): Promise<number> {
+	try {
+		const value = JSON.parse(await readFile(statePath, "utf8")) as { revision?: unknown };
+		return normalizeStateRevision(value.revision);
 	} catch (error) {
-		await rm(tempPath, { force: true }).catch(() => {});
+		if (isMissingFileError(error)) {
+			return 0;
+		}
 		throw error;
 	}
+}
+
+function normalizeStateRevision(value: unknown): number {
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 
 export async function loadProjectState(statePath: string): Promise<CoMathProjectState | undefined> {
@@ -3691,9 +3948,19 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 	const updatedAt = getStringField(value, "updatedAt", new Date(0).toISOString());
 	const reports = getArrayField(value, "reports").map((record) => normalizeReport(record, updatedAt));
 	const roleRuns = (value.roleRuns ?? []).map(normalizeRoleRun);
+	const rawResearchPlanTasks = getArrayField(value, "researchPlanTasks");
+	const researchPlanTasks = rawResearchPlanTasks.map((record, index) =>
+		normalizeResearchPlanTask(record, updatedAt, index),
+	);
+	const taskIdsWithExplicitDependencies = new Set(
+		rawResearchPlanTasks
+			.map((record, index) => (Object.hasOwn(record, "dependsOnTaskIds") ? researchPlanTasks[index]?.id : undefined))
+			.filter((taskId): taskId is string => taskId !== undefined),
+	);
 	const normalizedState: CoMathProjectState = {
 		...value,
-		version: 1,
+		version: 2,
+		revision: normalizeStateRevision(value.revision),
 		projectId: getStringField(value, "projectId", "co-math-legacy"),
 		title: getStringField(value, "title", getStringField(value, "rootQuestion", "Untitled co-math project")),
 		rootQuestion: getStringField(value, "rootQuestion", getStringField(value, "title", "Untitled co-math project")),
@@ -3736,9 +4003,19 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		researchPlans: getArrayField(value, "researchPlans").map((record, index) =>
 			normalizeResearchPlan(record, updatedAt, index),
 		),
-		researchPlanTasks: getArrayField(value, "researchPlanTasks").map((record, index) =>
-			normalizeResearchPlanTask(record, updatedAt, index),
-		),
+		researchPlanTasks,
+		researchTaskAttempts: getArrayField(value, "researchTaskAttempts").flatMap((record, index) => {
+			const normalized = normalizeResearchTaskAttempt(record, updatedAt, index);
+			return normalized ? [normalized] : [];
+		}),
+		researchExecutions: getArrayField(value, "researchExecutions").flatMap((record, index) => {
+			const normalized = normalizeResearchExecution(record, updatedAt, index);
+			return normalized ? [normalized] : [];
+		}),
+		...(normalizeCanonicalProjection(value.canonicalProjection, updatedAt)
+			? { canonicalProjection: normalizeCanonicalProjection(value.canonicalProjection, updatedAt) }
+			: {}),
+		...(value.enginePolicyVersion === 1 ? { enginePolicyVersion: 1 as const } : {}),
 		researchObligations: getArrayField(value, "researchObligations").map((record, index) =>
 			normalizeResearchObligation(record, updatedAt, index),
 		),
@@ -3760,12 +4037,20 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 		literatureClaimSupports: getArrayField(value, "literatureClaimSupports").map((record, index) =>
 			normalizeLiteratureClaimSupport(record, updatedAt, index),
 		),
+		sourceIndexes: getArrayField(value, "sourceIndexes").flatMap((record, index) => {
+			const normalized = normalizeCoMathSourceIndex(record, updatedAt, index);
+			return normalized ? [normalized] : [];
+		}),
 		researchEvidenceBoard: getArrayField(value, "researchEvidenceBoard").map((record, index) =>
 			normalizeResearchEvidenceBoardEntry(record, updatedAt, index),
 		),
 		computationalArtifacts: getArrayField(value, "computationalArtifacts").map((record, index) =>
 			normalizeComputationalArtifact(record, updatedAt, index),
 		),
+		groundingReferences: getArrayField(value, "groundingReferences").flatMap((record, index) => {
+			const normalized = normalizeGroundingReference(record, updatedAt, index);
+			return normalized ? [normalized] : [];
+		}),
 		researchCoordinatorReports: getArrayField(value, "researchCoordinatorReports").map((record, index) =>
 			normalizeResearchCoordinatorReport(record, updatedAt, index),
 		),
@@ -3774,7 +4059,9 @@ function normalizeProjectState(value: LegacyProjectState): CoMathProjectState {
 			: {}),
 		updatedAt,
 	};
-	return normalizeClaimRelationshipsAndProofStatus(normalizedState);
+	return normalizeClaimRelationshipsAndProofStatus(
+		normalizeResearchPlanTaskDependencies(normalizedState, taskIdsWithExplicitDependencies),
+	);
 }
 
 function normalizeClaimRelationshipsAndProofStatus(state: CoMathProjectState): CoMathProjectState {
@@ -3804,6 +4091,40 @@ function normalizeClaimRelationshipsAndProofStatus(state: CoMathProjectState): C
 				? { ...claim, status: "needs_review" }
 				: claim,
 		),
+	};
+}
+
+/** Give legacy ordered plans their former sequential behavior while retaining explicit [] independence. */
+function normalizeResearchPlanTaskDependencies(
+	state: CoMathProjectState,
+	taskIdsWithExplicitDependencies: ReadonlySet<string>,
+): CoMathProjectState {
+	const byPlan = new Map<string, ResearchPlanTaskRecord[]>();
+	for (const task of state.researchPlanTasks) {
+		const tasks = byPlan.get(task.planId) ?? [];
+		tasks.push(task);
+		byPlan.set(task.planId, tasks);
+	}
+	const dependenciesByTaskId = new Map<string, string[]>();
+	for (const tasks of byPlan.values()) {
+		tasks.sort((left, right) => left.sequence - right.sequence);
+		const earlierIds = new Set<string>();
+		for (const task of tasks) {
+			const dependencies = taskIdsWithExplicitDependencies.has(task.id)
+				? uniqueStrings(task.dependsOnTaskIds.filter((dependencyId) => earlierIds.has(dependencyId)))
+				: tasks.find((candidate) => candidate.sequence === task.sequence - 1)
+					? [tasks.find((candidate) => candidate.sequence === task.sequence - 1)!.id]
+					: [];
+			dependenciesByTaskId.set(task.id, dependencies);
+			earlierIds.add(task.id);
+		}
+	}
+	return {
+		...state,
+		researchPlanTasks: state.researchPlanTasks.map((task) => ({
+			...task,
+			dependsOnTaskIds: dependenciesByTaskId.get(task.id) ?? [],
+		})),
 	};
 }
 
@@ -4074,6 +4395,16 @@ function normalizeResearchWorkstreamReport(
 		pathId: getStringField(value, "pathId", "path-legacy"),
 		pathTitle: getStringField(value, "pathTitle", "Research path"),
 		status: normalizeResearchWorkstreamReportStatus(value.status),
+		acceptanceStatus: normalizeResearchWorkstreamReportAcceptanceStatus(value.acceptanceStatus),
+		...(getOptionalStringField(value, "reviewedAt")
+			? { reviewedAt: getOptionalStringField(value, "reviewedAt") }
+			: {}),
+		...(getOptionalStringField(value, "promotedAt")
+			? { promotedAt: getOptionalStringField(value, "promotedAt") }
+			: {}),
+		...(getOptionalStringField(value, "rejectionReason")
+			? { rejectionReason: getOptionalStringField(value, "rejectionReason") }
+			: {}),
 		startedAt: getStringField(value, "startedAt", createdAt),
 		completedAt: getStringField(value, "completedAt", createdAt),
 		coordinatorBrief: getStringField(value, "coordinatorBrief", ""),
@@ -4085,12 +4416,29 @@ function normalizeResearchWorkstreamReport(
 		humanHelpUseful: getStringArrayField(value, "humanHelpUseful"),
 		suggestedNextMove: getStringField(value, "suggestedNextMove", ""),
 		workingPaperSectionTitle: getStringField(value, "workingPaperSectionTitle", ""),
+		workingPaperSummary: getStringField(value, "workingPaperSummary", ""),
 		...(getOptionalStringField(value, "workingPaperSectionId")
 			? { workingPaperSectionId: getOptionalStringField(value, "workingPaperSectionId") }
 			: {}),
 		sourceIds: getStringArrayField(value, "sourceIds"),
 		claimSupportIds: getStringArrayField(value, "claimSupportIds"),
 		computationalArtifactIds: getStringArrayField(value, "computationalArtifactIds"),
+		theoremChecks: getArrayField(value, "theoremChecks").map((check, checkIndex) => {
+			const normalized = normalizeTheoremApplicabilityCheck(check, createdAt, checkIndex);
+			return {
+				theorem: normalized.theorem,
+				targetObject: normalized.targetObject,
+				hypotheses: normalized.hypotheses,
+				status: normalized.status,
+				...(normalized.consequence ? { consequence: normalized.consequence } : {}),
+			};
+		}),
+		routePivots: getArrayField(value, "routePivots").map((pivot) => ({
+			fromRoute: getStringField(pivot, "fromRoute", ""),
+			toRoute: getStringField(pivot, "toRoute", ""),
+			reason: getStringField(pivot, "reason", ""),
+		})),
+		negativeConstraints: getStringArrayField(value, "negativeConstraints"),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", fallbackTime),
 	};
@@ -4130,6 +4478,27 @@ function normalizeLiteratureSourceArtifact(
 		summary: getStringField(value, "summary", ""),
 		...(getOptionalStringField(value, "extractedText")
 			? { extractedText: getOptionalStringField(value, "extractedText") }
+			: {}),
+		...(normalizeCoMathWorkspaceSourceRole(value.workspaceRole)
+			? { workspaceRole: normalizeCoMathWorkspaceSourceRole(value.workspaceRole) }
+			: {}),
+		...(value.citationEligibility === "citable" || value.citationEligibility === "inventory-only"
+			? { citationEligibility: value.citationEligibility }
+			: normalizeCoMathWorkspaceSourceRole(value.workspaceRole) === "compiled-binary" ||
+					normalizeCoMathWorkspaceSourceRole(value.workspaceRole) === "snapshot-metadata"
+				? { citationEligibility: "inventory-only" as const }
+				: { citationEligibility: "citable" as const }),
+		...(getOptionalStringField(value, "sourceIndexId")
+			? { sourceIndexId: getOptionalStringField(value, "sourceIndexId") }
+			: {}),
+		...(getOptionalStringField(value, "sourceRevisionId")
+			? { sourceRevisionId: getOptionalStringField(value, "sourceRevisionId") }
+			: {}),
+		...(getOptionalStringField(value, "sourceRelativePath")
+			? { sourceRelativePath: getOptionalStringField(value, "sourceRelativePath") }
+			: {}),
+		...(getOptionalStringField(value, "sourceFileSha256")
+			? { sourceFileSha256: getOptionalStringField(value, "sourceFileSha256") }
 			: {}),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
@@ -4171,6 +4540,83 @@ function normalizeLiteratureClaimSupport(
 		sourceIds: getStringArrayField(value, "sourceIds"),
 		status: normalizeLiteratureClaimSupportStatus(value.status),
 		...(getOptionalStringField(value, "note") ? { note: getOptionalStringField(value, "note") } : {}),
+		groundingReferenceIds: getStringArrayField(value, "groundingReferenceIds"),
+		groundingFailures: normalizeGroundingValidationFailures(getArrayField(value, "groundingFailures")),
+		...(normalizeCoMathSourceClaimScope(value.sourceScope)
+			? { sourceScope: normalizeCoMathSourceClaimScope(value.sourceScope) }
+			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+	};
+}
+
+function normalizeGroundingValidationFailures(values: readonly unknown[]): GroundingValidationFailure[] {
+	const codes = new Set([
+		"missing-exact-locator",
+		"unknown-source",
+		"non-citable-source",
+		"invalid-range",
+		"cross-region",
+		"scope-mismatch",
+		"digest-mismatch",
+		"non-evidence-region",
+	]);
+	return values.flatMap((value) => {
+		const record = asRecord(value);
+		if (!record || typeof record.code !== "string" || !codes.has(record.code)) return [];
+		const message = getOptionalStringField(record, "message");
+		if (!message) return [];
+		const lineRecord = asRecord(record.lines);
+		const lines = lineRecord
+			? { start: getNumberField(lineRecord, "start", 0), end: getNumberField(lineRecord, "end", 0) }
+			: undefined;
+		return [
+			{
+				code: record.code as GroundingValidationFailure["code"],
+				...(getOptionalStringField(record, "sourceId")
+					? { sourceId: getOptionalStringField(record, "sourceId") }
+					: {}),
+				...(lines &&
+				Number.isSafeInteger(lines.start) &&
+				Number.isSafeInteger(lines.end) &&
+				lines.start > 0 &&
+				lines.end >= lines.start
+					? { lines }
+					: {}),
+				message,
+			},
+		];
+	});
+}
+
+function normalizeCoMathSourceIndex(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): CoMathSourceIndexRecord | undefined {
+	const sourceId = getOptionalStringField(value, "sourceId");
+	const sourceRevisionId = getOptionalStringField(value, "sourceRevisionId");
+	const sourceManifestSha256 = getOptionalStringField(value, "sourceManifestSha256");
+	const indexArtifactId = getOptionalStringField(value, "indexArtifactId");
+	const indexPath = getOptionalStringField(value, "indexPath");
+	const indexSha256 = getOptionalStringField(value, "indexSha256");
+	if (!sourceId || !sourceRevisionId || !sourceManifestSha256 || !indexArtifactId || !indexPath || !indexSha256) {
+		return undefined;
+	}
+	const createdAt = getStringField(value, "createdAt", fallbackTime);
+	return {
+		id: getStringField(value, "id", `source-index-${index + 1}`),
+		sourceId,
+		sourceRevisionId,
+		sourceManifestSha256,
+		indexArtifactId,
+		indexPath,
+		indexSha256,
+		policyVersion: Math.max(1, Math.floor(getNumberField(value, "policyVersion", 1))),
+		status: value.status === "failed" ? "failed" : "ready",
+		fileCount: Math.max(0, Math.floor(getNumberField(value, "fileCount", 0))),
+		documentCount: Math.max(0, Math.floor(getNumberField(value, "documentCount", 0))),
+		warnings: getStringArrayField(value, "warnings"),
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
@@ -4212,6 +4658,109 @@ function normalizeResearchEvidenceBoardEntry(
 		createdAt,
 		updatedAt: getStringField(value, "updatedAt", createdAt),
 	};
+}
+
+function normalizeGroundingReference(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): GroundingReferenceRecord | undefined {
+	const subject = asRecord(value.subject);
+	const locator = asRecord(value.locator);
+	const subjectKind = subject?.kind;
+	const subjectId = subject?.id;
+	const artifactId = getOptionalStringField(value, "artifactId");
+	if (
+		!subject ||
+		(subjectKind !== "report" &&
+			subjectKind !== "claim-support" &&
+			subjectKind !== "evidence" &&
+			subjectKind !== "review" &&
+			subjectKind !== "obligation" &&
+			subjectKind !== "theorem-check") ||
+		typeof subjectId !== "string" ||
+		!artifactId ||
+		!locator
+	) {
+		return undefined;
+	}
+	const normalizedLocator = normalizeGroundingLocator(locator);
+	if (!normalizedLocator) {
+		return undefined;
+	}
+	const relation = value.relation;
+	if (
+		relation !== "supports" &&
+		relation !== "refutes" &&
+		relation !== "context" &&
+		relation !== "input" &&
+		relation !== "independent-check"
+	) {
+		return undefined;
+	}
+	const validationStatus = value.validationStatus;
+	if (validationStatus !== "validated" && validationStatus !== "legacy-unverified") {
+		return undefined;
+	}
+	return {
+		id: getStringField(value, "id", `grounding-${index + 1}`),
+		subject: { kind: subjectKind, id: subjectId.trim() },
+		relation,
+		artifactId,
+		locator: normalizedLocator,
+		...(getOptionalStringField(value, "excerpt") ? { excerpt: getOptionalStringField(value, "excerpt") } : {}),
+		...(getOptionalStringField(value, "excerptSha256")
+			? { excerptSha256: getOptionalStringField(value, "excerptSha256") }
+			: {}),
+		...(getOptionalStringField(value, "sourceIndexId")
+			? { sourceIndexId: getOptionalStringField(value, "sourceIndexId") }
+			: {}),
+		...(getOptionalStringField(value, "sourceRevisionId")
+			? { sourceRevisionId: getOptionalStringField(value, "sourceRevisionId") }
+			: {}),
+		...(getOptionalStringField(value, "sourceRelativePath")
+			? { sourceRelativePath: getOptionalStringField(value, "sourceRelativePath") }
+			: {}),
+		...(getOptionalStringField(value, "sourceFileSha256")
+			? { sourceFileSha256: getOptionalStringField(value, "sourceFileSha256") }
+			: {}),
+		...(normalizeCoMathSourceRegionKind(value.regionKind)
+			? { regionKind: normalizeCoMathSourceRegionKind(value.regionKind) }
+			: {}),
+		...(getOptionalStringField(value, "modelCallId")
+			? { modelCallId: getOptionalStringField(value, "modelCallId") }
+			: {}),
+		validationStatus,
+		createdAt: getStringField(value, "createdAt", fallbackTime),
+	};
+}
+
+function normalizeGroundingLocator(value: Record<string, unknown>): GroundingReferenceRecord["locator"] | undefined {
+	if (value.kind === "whole-artifact") return { kind: "whole-artifact" };
+	if (value.kind === "section" && typeof value.value === "string" && value.value.trim()) {
+		return { kind: "section", value: value.value.trim() };
+	}
+	if (value.kind === "json-pointer" && typeof value.value === "string" && value.value.trim()) {
+		return { kind: "json-pointer", value: value.value.trim() };
+	}
+	if (
+		(value.kind === "lines" || value.kind === "pages") &&
+		typeof value.start === "number" &&
+		typeof value.end === "number" &&
+		Number.isSafeInteger(value.start) &&
+		Number.isSafeInteger(value.end) &&
+		value.start >= 1 &&
+		value.end >= value.start
+	) {
+		return { kind: value.kind, start: value.start, end: value.end };
+	}
+	return undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: undefined;
 }
 
 function normalizeConjectureRevisionKind(value: unknown): ConjectureRevisionKind | undefined {
@@ -4267,6 +4816,9 @@ function normalizeResearchCoordinatorReport(
 		inputPathIds: getStringArrayField(value, "inputPathIds"),
 		inputSourceIds: getStringArrayField(value, "inputSourceIds"),
 		inputComputationalArtifactIds: getStringArrayField(value, "inputComputationalArtifactIds"),
+		...(getOptionalStringField(value, "inputReviewFingerprint")
+			? { inputReviewFingerprint: getOptionalStringField(value, "inputReviewFingerprint") }
+			: {}),
 		whatWeKnow: fallbackStringArray(getStringArrayField(value, "whatWeKnow"), "No durable findings were recorded."),
 		roadblocks: fallbackStringArray(getStringArrayField(value, "roadblocks"), "No current roadblock was identified."),
 		recommendedNextMoves: fallbackResearchCoordinatorNextMoves(
@@ -4313,6 +4865,9 @@ function normalizeResearchWorkstreamRun(
 			? { batchStepIndex: Math.max(1, Math.floor(value.batchStepIndex)) }
 			: {}),
 		...(getOptionalStringField(value, "taskId") ? { taskId: getOptionalStringField(value, "taskId") } : {}),
+		...(getOptionalStringField(value, "transcriptPath")
+			? { transcriptPath: getOptionalStringField(value, "transcriptPath") }
+			: {}),
 		startedAt,
 		updatedAt: getStringField(value, "updatedAt", startedAt),
 		...(getOptionalStringField(value, "completedAt")
@@ -4331,8 +4886,17 @@ function normalizeResearchWorkstreamRun(
 		...(getOptionalStringField(value, "finalReportId")
 			? { finalReportId: getOptionalStringField(value, "finalReportId") }
 			: {}),
+		...(getOptionalStringField(value, "failedStage")
+			? { failedStage: normalizeResearchWorkstreamStage(value.failedStage) }
+			: {}),
 		...(getOptionalStringField(value, "failureReason")
 			? { failureReason: getOptionalStringField(value, "failureReason") }
+			: {}),
+		...(getOptionalStringField(value, "fallbackStage")
+			? { fallbackStage: normalizeResearchWorkstreamStage(value.fallbackStage) }
+			: {}),
+		...(getOptionalStringField(value, "fallbackReason")
+			? { fallbackReason: getOptionalStringField(value, "fallbackReason") }
 			: {}),
 		...(typeof value.usedFallback === "boolean" ? { usedFallback: value.usedFallback } : {}),
 	};
@@ -4351,8 +4915,22 @@ function normalizeResearchRunModelCall(
 		return undefined;
 	}
 	return {
+		...(getOptionalStringField(value, "id") ? { id: getOptionalStringField(value, "id") } : {}),
 		stage,
 		at: getStringField(value, "at", fallbackTime),
+		...(value.status === "started" || value.status === "completed" || value.status === "failed"
+			? { status: value.status }
+			: {}),
+		...(getOptionalStringField(value, "startedAt") ? { startedAt: getOptionalStringField(value, "startedAt") } : {}),
+		...(getOptionalStringField(value, "completedAt")
+			? { completedAt: getOptionalStringField(value, "completedAt") }
+			: {}),
+		...(getOptionalStringField(value, "error") ? { error: getOptionalStringField(value, "error") } : {}),
+		...(typeof value.systemPromptPolicyVersion === "number" &&
+		Number.isSafeInteger(value.systemPromptPolicyVersion) &&
+		value.systemPromptPolicyVersion > 0
+			? { systemPromptPolicyVersion: value.systemPromptPolicyVersion }
+			: {}),
 		...(getOptionalStringField(value, "model") ? { model: getOptionalStringField(value, "model") } : {}),
 		...(getOptionalStringField(value, "provider") ? { provider: getOptionalStringField(value, "provider") } : {}),
 		...(getOptionalStringField(value, "thinkingLevel")
@@ -4472,16 +5050,39 @@ function normalizeResearchPlanTask(
 	index: number,
 ): ResearchPlanTaskRecord {
 	const createdAt = getStringField(value, "createdAt", getStringField(value, "updatedAt", fallbackTime));
+	const kind = normalizeResearchPlanTaskKind(value.kind);
 	return {
 		id: getStringField(value, "id", `research-plan-task-${index + 1}`),
 		planId: getStringField(value, "planId", "research-plan-1"),
-		kind: normalizeResearchPlanTaskKind(value.kind),
+		kind,
 		status: normalizeResearchPlanTaskStatus(value.status),
 		sequence: Math.max(1, Math.floor(getNumberField(value, "sequence", index + 1))),
 		title: getStringField(value, "title", "Research task"),
 		description: getStringField(value, "description", "Carry out the next bounded research move."),
 		...(getOptionalStringField(value, "goal") ? { goal: getOptionalStringField(value, "goal") } : {}),
 		acceptanceCriteria: getStringArrayField(value, "acceptanceCriteria"),
+		dependsOnTaskIds: getStringArrayField(value, "dependsOnTaskIds"),
+		requiredCapabilities: uniqueResearchPlanTaskRequiredCapabilities([
+			...getStringArrayField(value, "requiredCapabilities"),
+			...requiredCapabilitiesForTaskKind(kind),
+		]),
+		sourceRequests: normalizeResearchTaskSourceRequests(value.sourceRequests),
+		...(getOptionalStringField(value, "repairOfTaskId")
+			? { repairOfTaskId: getOptionalStringField(value, "repairOfTaskId") }
+			: {}),
+		...(normalizeRepairGeneration(value.repairGeneration) !== undefined
+			? { repairGeneration: normalizeRepairGeneration(value.repairGeneration) }
+			: {}),
+		...(getOptionalStringField(value, "supersededByTaskId")
+			? { supersededByTaskId: getOptionalStringField(value, "supersededByTaskId") }
+			: {}),
+		attemptIds: getStringArrayField(value, "attemptIds"),
+		...(getOptionalStringField(value, "acceptedAttemptId")
+			? { acceptedAttemptId: getOptionalStringField(value, "acceptedAttemptId") }
+			: {}),
+		...(getOptionalStringField(value, "latestAttemptId")
+			? { latestAttemptId: getOptionalStringField(value, "latestAttemptId") }
+			: {}),
 		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
 		...(getOptionalStringField(value, "runId") ? { runId: getOptionalStringField(value, "runId") } : {}),
 		...(getOptionalStringField(value, "reportId") ? { reportId: getOptionalStringField(value, "reportId") } : {}),
@@ -4508,6 +5109,189 @@ function normalizeResearchPlanTask(
 			? { completedAt: getOptionalStringField(value, "completedAt") }
 			: {}),
 	};
+}
+
+function normalizeResearchTaskAttempt(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	index: number,
+): ResearchTaskAttemptRecord | undefined {
+	const id = getOptionalStringField(value, "id");
+	const taskId = getOptionalStringField(value, "taskId");
+	const planId = getOptionalStringField(value, "planId");
+	if (!id || !taskId || !planId) return undefined;
+	const startedAt = getStringField(value, "startedAt", fallbackTime);
+	const stages = getArrayField(value, "stages").flatMap((stage) => normalizeResearchTaskAttemptStage(stage));
+	const currentStage = normalizeResearchTaskPipelineStage(value.currentStage) ?? "evidence-preparation";
+	return {
+		id,
+		taskId,
+		planId,
+		attemptNumber: Math.max(1, Math.floor(getNumberField(value, "attemptNumber", index + 1))),
+		status: normalizeResearchTaskAttemptStatus(value.status),
+		currentStage,
+		stages: stages.length > 0 ? stages : createResearchTaskAttemptStages(),
+		...(getOptionalStringField(value, "sourceCatalogArtifactId")
+			? { sourceCatalogArtifactId: getOptionalStringField(value, "sourceCatalogArtifactId") }
+			: {}),
+		...(getOptionalStringField(value, "claimLedgerArtifactId")
+			? { claimLedgerArtifactId: getOptionalStringField(value, "claimLedgerArtifactId") }
+			: {}),
+		...(getOptionalStringField(value, "reportArtifactId")
+			? { reportArtifactId: getOptionalStringField(value, "reportArtifactId") }
+			: {}),
+		computationArtifactIds: getStringArrayField(value, "computationArtifactIds"),
+		modelCalls: getArrayField(value, "modelCalls").flatMap((call) => {
+			const normalized = normalizeResearchRunModelCall(call, startedAt);
+			return normalized ? [normalized] : [];
+		}),
+		...(normalizeResearchTaskReviewOutcome(value.reviewOutcome)
+			? { reviewOutcome: normalizeResearchTaskReviewOutcome(value.reviewOutcome) }
+			: {}),
+		...(normalizeResearchAttemptFailure(value.failure)
+			? { failure: normalizeResearchAttemptFailure(value.failure)! }
+			: {}),
+		startedAt,
+		updatedAt: getStringField(value, "updatedAt", startedAt),
+		...(getOptionalStringField(value, "completedAt")
+			? { completedAt: getOptionalStringField(value, "completedAt") }
+			: {}),
+	};
+}
+
+function normalizeResearchTaskAttemptStage(value: Record<string, unknown>): ResearchTaskAttemptStageRecord[] {
+	const stage = normalizeResearchTaskPipelineStage(value.stage);
+	const status = value.status;
+	if (!stage || !isResearchTaskAttemptStageStatus(status)) return [];
+	return [
+		{
+			stage,
+			status,
+			...(getOptionalStringField(value, "startedAt")
+				? { startedAt: getOptionalStringField(value, "startedAt") }
+				: {}),
+			...(getOptionalStringField(value, "completedAt")
+				? { completedAt: getOptionalStringField(value, "completedAt") }
+				: {}),
+			modelCallIds: getStringArrayField(value, "modelCallIds"),
+			artifactIds: getStringArrayField(value, "artifactIds"),
+			...(normalizeResearchAttemptFailure(value.failure)
+				? { failure: normalizeResearchAttemptFailure(value.failure)! }
+				: {}),
+		},
+	];
+}
+
+function normalizeResearchExecution(
+	value: Record<string, unknown>,
+	fallbackTime: string,
+	_index: number,
+): ResearchExecutionRecord | undefined {
+	const id = getOptionalStringField(value, "id");
+	if (!id) return undefined;
+	const createdAt = getStringField(value, "createdAt", fallbackTime);
+	const status = value.status;
+	if (
+		status !== "running" &&
+		status !== "paused" &&
+		status !== "completed" &&
+		status !== "cancelled" &&
+		status !== "failed"
+	) {
+		return undefined;
+	}
+	return {
+		id,
+		requestedTaskCount: Math.max(1, Math.floor(getNumberField(value, "requestedTaskCount", 1))),
+		...(getOptionalStringField(value, "pathId") ? { pathId: getOptionalStringField(value, "pathId") } : {}),
+		taskIds: getStringArrayField(value, "taskIds"),
+		attemptIds: getStringArrayField(value, "attemptIds"),
+		status,
+		...(normalizeResearchAttemptFailure(value.failure)
+			? { failure: normalizeResearchAttemptFailure(value.failure)! }
+			: {}),
+		createdAt,
+		updatedAt: getStringField(value, "updatedAt", createdAt),
+		...(getOptionalStringField(value, "completedAt")
+			? { completedAt: getOptionalStringField(value, "completedAt") }
+			: {}),
+		...(getOptionalStringField(value, "cancelledAt")
+			? { cancelledAt: getOptionalStringField(value, "cancelledAt") }
+			: {}),
+	};
+}
+
+function normalizeCanonicalProjection(value: unknown, fallbackTime: string): CoMathCanonicalProjection | undefined {
+	if (typeof value !== "object" || value === null) return undefined;
+	const record = value as Record<string, unknown>;
+	if (record.policyVersion !== 1) return undefined;
+	return {
+		policyVersion: 1,
+		acceptedAttemptIds: getStringArrayField(record, "acceptedAttemptIds"),
+		acceptedLegacyReportIds: getStringArrayField(record, "acceptedLegacyReportIds"),
+		workingPaperSectionIds: getStringArrayField(record, "workingPaperSectionIds"),
+		updatedAt: getStringField(record, "updatedAt", fallbackTime),
+	};
+}
+
+function normalizeResearchAttemptFailure(value: unknown): ResearchAttemptFailure | undefined {
+	if (typeof value !== "object" || value === null) return undefined;
+	const record = value as Record<string, unknown>;
+	const stage = normalizeResearchTaskPipelineStage(record.stage);
+	const code = getOptionalStringField(record, "code");
+	const message = getOptionalStringField(record, "message");
+	if (!stage || !code || !message || typeof record.retryable !== "boolean") return undefined;
+	return { stage, code, message, claimIds: getStringArrayField(record, "claimIds"), retryable: record.retryable };
+}
+
+function normalizeResearchTaskAttemptStatus(value: unknown): ResearchTaskAttemptStatus {
+	return value === "queued" ||
+		value === "running" ||
+		value === "paused" ||
+		value === "needs-revision" ||
+		value === "rejected" ||
+		value === "accepted" ||
+		value === "failed" ||
+		value === "cancelled"
+		? value
+		: "queued";
+}
+
+function normalizeResearchTaskPipelineStage(value: unknown): ResearchTaskPipelineStage | undefined {
+	return value === "evidence-preparation" ||
+		value === "specialist" ||
+		value === "claim-validation" ||
+		value === "critic" ||
+		value === "synthesis" ||
+		value === "capability-validation" ||
+		value === "skeptic" ||
+		value === "finalization"
+		? value
+		: undefined;
+}
+
+function isResearchTaskAttemptStageStatus(value: unknown): value is ResearchTaskAttemptStageRecord["status"] {
+	return (
+		value === "pending" || value === "running" || value === "completed" || value === "blocked" || value === "failed"
+	);
+}
+
+export function createResearchTaskAttemptStages(): ResearchTaskAttemptStageRecord[] {
+	return [
+		"evidence-preparation",
+		"specialist",
+		"claim-validation",
+		"critic",
+		"synthesis",
+		"capability-validation",
+		"skeptic",
+		"finalization",
+	].map((stage) => ({
+		stage: stage as ResearchTaskPipelineStage,
+		status: "pending",
+		modelCallIds: [],
+		artifactIds: [],
+	}));
 }
 
 function normalizeResearchPlanStatus(value: unknown): ResearchPlanStatus {
@@ -4538,8 +5322,11 @@ function normalizeResearchPlanTaskStatus(value: unknown): ResearchPlanTaskStatus
 }
 
 function normalizeResearchTaskReviewOutcome(value: unknown): ResearchTaskReviewOutcome | undefined {
-	if (value === "accepted" || value === "completed-with-concerns" || value === "rejected") {
+	if (value === "accepted" || value === "needs-revision" || value === "rejected" || value === "unreviewed") {
 		return value;
+	}
+	if (value === "completed-with-concerns") {
+		return "needs-revision";
 	}
 	return undefined;
 }
@@ -4753,7 +5540,7 @@ function normalizeResearchWorkstreamRole(value: unknown): ResearchWorkstreamStep
 }
 
 function normalizeResearchWorkstreamStage(value: unknown): ResearchWorkstreamRunStage {
-	if (value === "literature-search" || value === "computation") {
+	if (value === "literature-search" || value === "claim-validation" || value === "computation") {
 		return value;
 	}
 	return normalizeResearchWorkstreamRole(value);
@@ -4761,6 +5548,10 @@ function normalizeResearchWorkstreamStage(value: unknown): ResearchWorkstreamRun
 
 function normalizeResearchWorkstreamReportStatus(value: unknown): ResearchWorkstreamReportStatus {
 	return value === "blocked" ? "blocked" : "completed";
+}
+
+function normalizeResearchWorkstreamReportAcceptanceStatus(value: unknown): ResearchWorkstreamReportAcceptanceStatus {
+	return value === "provisional" || value === "rejected" ? value : "accepted";
 }
 
 function normalizeResearchWorkstreamRunStatus(value: unknown): ResearchWorkstreamRunStatus {
@@ -4874,6 +5665,36 @@ function normalizeLiteratureClaimSupportStatus(value: unknown): LiteratureClaimS
 		return value;
 	}
 	return "unsupported";
+}
+
+function normalizeCoMathSourceClaimScope(value: unknown): CoMathSourceClaimScope | undefined {
+	return value === "formal-document" ||
+		value === "supplemental" ||
+		value === "ordinary-document" ||
+		value === "detached-source"
+		? value
+		: undefined;
+}
+
+function normalizeCoMathWorkspaceSourceRole(value: unknown): CoMathWorkspaceSourceRole | undefined {
+	return value === "primary-text" ||
+		value === "compiled-binary" ||
+		value === "curated-summary" ||
+		value === "bibliographic-metadata" ||
+		value === "snapshot-metadata"
+		? value
+		: undefined;
+}
+
+function normalizeCoMathSourceRegionKind(value: unknown): GroundingReferenceRecord["regionKind"] | undefined {
+	return value === "preamble" ||
+		value === "formal-document" ||
+		value === "included-formal-document" ||
+		value === "supplemental-after-end" ||
+		value === "detached-tex" ||
+		value === "ordinary-document"
+		? value
+		: undefined;
 }
 
 function normalizeResearchEvidenceClassification(value: unknown): ResearchEvidenceClassification {
@@ -5135,6 +5956,7 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "margin_note_resolved" ||
 		value === "working_paper_exported" ||
 		value === "research_workstream_recorded" ||
+		value === "research_workstream_report_reviewed" ||
 		value === "research_workstream_run_recorded" ||
 		value === "research_batch_recorded" ||
 		value === "research_plan_recorded" ||
@@ -5148,6 +5970,7 @@ function isCurrentEventKind(value: unknown): value is CoMathEventKind {
 		value === "literature_claim_support_recorded" ||
 		value === "research_evidence_board_entry_recorded" ||
 		value === "computational_artifact_recorded" ||
+		value === "grounding_reference_recorded" ||
 		value === "research_coordinator_report_recorded"
 	);
 }
@@ -5229,6 +6052,17 @@ function fallbackResearchCoordinatorNextMoves(moves: ResearchCoordinatorNextMove
 
 function sanitizeStringArray(values: readonly string[]): string[] {
 	return uniqueStrings(values.map((value) => value.trim()).filter((value) => value.length > 0));
+}
+
+function uniqueResearchPlanTaskRequiredCapabilities(values: readonly string[]): ResearchPlanTaskRequiredCapability[] {
+	return uniqueStrings(values).filter(
+		(value): value is ResearchPlanTaskRequiredCapability =>
+			value === "source-grounding" || value === "sandboxed-computation" || value === "independent-review",
+	);
+}
+
+function normalizeRepairGeneration(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 1 ? value : undefined;
 }
 
 function fallbackStringArray(values: readonly string[], fallback: string): string[] {
@@ -5332,5 +6166,9 @@ function hasAttachedOpenWarning(state: CoMathProjectState, claim: Claim): boolea
 }
 
 function isMissingFileError(error: unknown): boolean {
-	return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+	return isErrorCode(error, "ENOENT");
+}
+
+function isErrorCode(error: unknown, code: string): boolean {
+	return typeof error === "object" && error !== null && "code" in error && error.code === code;
 }

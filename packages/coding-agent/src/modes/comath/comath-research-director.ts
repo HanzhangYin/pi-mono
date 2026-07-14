@@ -18,14 +18,13 @@ import {
 	violatesRejectedRoute,
 } from "./comath-research-agenda.ts";
 import { buildResearchContextPack } from "./comath-research-context.ts";
-import type { ResearchWorkstreamModelExecutor } from "./comath-research-model-workstream.ts";
 import {
 	buildResearchPlanTaskBlueprints,
 	chooseResearchPathForPlanTaskKind,
 	createResearchPlanFromState,
 	MAX_RESEARCH_PLAN_TASKS,
 } from "./comath-research-planner.ts";
-import { findRevisionTarget } from "./comath-research-revision.ts";
+import type { ResearchWorkstreamModelExecutor } from "./comath-task-model.ts";
 import type {
 	CoMathActor,
 	CoMathProjectState,
@@ -33,6 +32,8 @@ import type {
 	ResearchPlanRecord,
 	ResearchPlanTaskKind,
 	ResearchPlanTaskRecord,
+	ResearchPlanTaskRequiredCapability,
+	ResearchTaskSourceRequest,
 } from "./schema.ts";
 import {
 	addResearchPivot,
@@ -48,11 +49,8 @@ const RESEARCH_PLAN_TASK_KINDS: readonly ResearchPlanTaskKind[] = [
 	"proof-attempt",
 	"refutation-attempt",
 	"computation",
-	"critic",
-	"synthesis",
 	"source-refresh",
 	"revise-conjecture",
-	"export",
 ];
 
 const MAX_AMENDMENT_ACTIONS = 3;
@@ -71,6 +69,60 @@ export interface ProposeResearchPlanResult {
 	source: "model" | "deterministic";
 }
 
+/** Reapply a validated proposal to fresh durable state without replacing concurrent records. */
+export function applyProposedResearchPlan(
+	state: CoMathProjectState,
+	proposal: ProposeResearchPlanResult,
+	input: { now: string; actor?: CoMathActor },
+): { state: CoMathProjectState; plan: ResearchPlanRecord } {
+	let nextState = addResearchPlan(state, {
+		title: proposal.plan.title,
+		objective: proposal.plan.objective,
+		now: input.now,
+		actor: input.actor,
+	});
+	const plan = nextState.researchPlans.at(-1);
+	if (!plan) {
+		throw new Error("Could not commit the proposed research plan.");
+	}
+	const committedTaskIds = new Map<string, string>();
+	for (const task of getResearchPlanTasks(proposal.state, proposal.plan.id)) {
+		if (task.pathId && !nextState.researchPaths.some((path) => path.id === task.pathId)) {
+			throw new Error(`Cannot commit a proposed task for missing research path ${task.pathId}.`);
+		}
+		const dependsOnTaskIds = task.dependsOnTaskIds.map((dependencyId) => {
+			const committedDependencyId = committedTaskIds.get(dependencyId);
+			if (!committedDependencyId) {
+				throw new Error("Cannot commit a proposed task with a missing or forward dependency.");
+			}
+			return committedDependencyId;
+		});
+		nextState = addResearchPlanTask(nextState, {
+			planId: plan.id,
+			kind: task.kind,
+			title: task.title,
+			description: task.description,
+			...(task.goal ? { goal: task.goal } : {}),
+			acceptanceCriteria: task.acceptanceCriteria,
+			dependsOnTaskIds,
+			requiredCapabilities: task.requiredCapabilities,
+			...(task.sourceRequests ? { sourceRequests: task.sourceRequests } : {}),
+			...(task.pathId ? { pathId: task.pathId } : {}),
+			now: input.now,
+			actor: input.actor,
+		});
+		const committedTask = getResearchPlanTasks(nextState, plan.id).at(-1);
+		if (!committedTask) {
+			throw new Error("Could not commit a proposed research plan task.");
+		}
+		committedTaskIds.set(task.id, committedTask.id);
+	}
+	return {
+		state: nextState,
+		plan: nextState.researchPlans.find((candidate) => candidate.id === plan.id) ?? plan,
+	};
+}
+
 export interface AmendResearchPlanInput {
 	executor: ResearchWorkstreamModelExecutor;
 	completedTask: ResearchPlanTaskRecord;
@@ -86,11 +138,17 @@ export interface AmendResearchPlanResult {
 }
 
 interface DirectorTaskDraft {
+	/** Original one-based task number in the director proposal. */
+	taskNumber: number;
 	kind: ResearchPlanTaskKind;
 	title: string;
 	description: string;
 	goal?: string;
 	acceptanceCriteria: string[];
+	/** Undefined means the immediately preceding task; [] declares independence. */
+	dependsOnTaskNumbers?: number[];
+	requiredCapabilities: ResearchPlanTaskRequiredCapability[];
+	sourceRequests?: ResearchTaskSourceRequest[];
 	pathId?: string;
 }
 
@@ -107,6 +165,7 @@ export async function proposeResearchPlan(
 		try {
 			const response = await input.executor.run({
 				role: "synthesizer",
+				purpose: "director",
 				rootQuestion: state.rootQuestion,
 				path: representativePath(state, input.now),
 				allPaths: state.researchPaths,
@@ -114,7 +173,7 @@ export async function proposeResearchPlan(
 				inputText: buildResearchContextPack(state),
 				prompt: buildDirectorPlanPrompt(state),
 			});
-			const drafts = parsePlanProposal(state, response.text);
+			const drafts = ensureWorkspaceSourceRefreshFirst(state, parsePlanProposal(state, response.text));
 			if (drafts.length > 0) {
 				const objective =
 					parseObjective(response.text) ?? `Make durable, reviewable progress on: ${state.rootQuestion}`;
@@ -128,7 +187,15 @@ export async function proposeResearchPlan(
 				if (!plan) {
 					throw new Error("Could not create the research plan.");
 				}
+				const createdTaskIds = new Map<number, string>();
 				for (const draft of drafts) {
+					const dependsOnTaskIds = draft.dependsOnTaskNumbers?.map((taskNumber) => {
+						const taskId = createdTaskIds.get(taskNumber);
+						if (!taskId) {
+							throw new Error("Research plan dependency must reference an earlier retained task.");
+						}
+						return taskId;
+					});
 					nextState = addResearchPlanTask(nextState, {
 						planId: plan.id,
 						kind: draft.kind,
@@ -136,10 +203,18 @@ export async function proposeResearchPlan(
 						description: draft.description,
 						...(draft.goal ? { goal: draft.goal } : {}),
 						acceptanceCriteria: draft.acceptanceCriteria,
+						...(dependsOnTaskIds ? { dependsOnTaskIds } : {}),
+						requiredCapabilities: draft.requiredCapabilities,
+						...(draft.sourceRequests ? { sourceRequests: draft.sourceRequests } : {}),
 						...(draft.pathId ? { pathId: draft.pathId } : {}),
 						now: input.now,
 						actor: input.actor,
 					});
+					const createdTask = getResearchPlanTasks(nextState, plan.id).at(-1);
+					if (!createdTask) {
+						throw new Error("Could not create a research plan task.");
+					}
+					createdTaskIds.set(draft.taskNumber, createdTask.id);
 				}
 				const persisted = nextState.researchPlans.find((candidate) => candidate.id === plan.id) ?? plan;
 				return { state: nextState, plan: persisted, source: "model" };
@@ -151,6 +226,71 @@ export async function proposeResearchPlan(
 	}
 	const created = createResearchPlanFromState(state, { now: input.now, actor: input.actor });
 	return { ...created, source: "deterministic" };
+}
+
+function ensureWorkspaceSourceRefreshFirst(
+	state: CoMathProjectState,
+	drafts: readonly DirectorTaskDraft[],
+): DirectorTaskDraft[] {
+	const needsSourceRefresh =
+		state.literatureSources.some((source) => source.kind === "local-file" && source.provider === "workspace") &&
+		!state.researchPlanTasks.some((task) => task.kind === "source-refresh" && task.status === "completed");
+	if (!needsSourceRefresh) {
+		return [...drafts];
+	}
+	const proposedRefresh = drafts.find((draft) => draft.kind === "source-refresh");
+	const path = proposedRefresh?.pathId
+		? state.researchPaths.find((candidate) => candidate.id === proposedRefresh.pathId)
+		: chooseResearchPathForPlanTaskKind(state, "source-refresh");
+	if (!path) {
+		return [...drafts];
+	}
+	const sourceRefresh: DirectorTaskDraft = proposedRefresh ?? {
+		taskNumber: 0,
+		kind: "source-refresh",
+		title: "Inspect the supplied source snapshot",
+		description:
+			"Extract the mathematical questions, definitions, claims, and dependencies from the immutable workspace source before attempting them.",
+		goal: "Produce a source-grounded problem map with exact snapshot locators and explicit uncertainty.",
+		acceptanceCriteria: [
+			"Identify the mathematical statements that warrant separate work.",
+			"Cite the immutable source paths or revision identities used.",
+		],
+		requiredCapabilities: ["source-grounding", "independent-review"],
+		pathId: path.id,
+	};
+	const remaining = drafts.filter((draft) => draft !== proposedRefresh);
+	if (remaining.length < MAX_RESEARCH_PLAN_TASKS) {
+		return requireSourceRefreshDependency([sourceRefresh, ...remaining], sourceRefresh.taskNumber);
+	}
+	return requireSourceRefreshDependency(
+		[sourceRefresh, ...remaining.slice(0, MAX_RESEARCH_PLAN_TASKS - 1)],
+		sourceRefresh.taskNumber,
+	);
+}
+
+function requireSourceRefreshDependency(
+	drafts: readonly DirectorTaskDraft[],
+	sourceRefreshTaskNumber: number,
+): DirectorTaskDraft[] {
+	return drafts.map((draft) => {
+		if (draft.taskNumber === sourceRefreshTaskNumber || !isSourceDependentTaskKind(draft.kind)) {
+			return draft;
+		}
+		return {
+			...draft,
+			dependsOnTaskNumbers: Array.from(new Set([...(draft.dependsOnTaskNumbers ?? []), sourceRefreshTaskNumber])),
+		};
+	});
+}
+
+function isSourceDependentTaskKind(kind: ResearchPlanTaskKind): boolean {
+	return (
+		kind === "literature-search" ||
+		kind === "computation" ||
+		kind === "proof-attempt" ||
+		kind === "refutation-attempt"
+	);
 }
 
 /**
@@ -174,6 +314,7 @@ export async function amendResearchPlanAfterTask(
 	try {
 		const response = await input.executor.run({
 			role: "synthesizer",
+			purpose: "director",
 			rootQuestion: state.rootQuestion,
 			path: representativePath(state, input.now),
 			allPaths: state.researchPaths,
@@ -229,6 +370,7 @@ export async function amendResearchPlanAfterTask(
 					description: draft.description,
 					...(draft.goal ? { goal: draft.goal } : {}),
 					acceptanceCriteria: draft.acceptanceCriteria,
+					...(draft.sourceRequests ? { sourceRequests: draft.sourceRequests } : {}),
 					...(draft.pathId ? { pathId: draft.pathId } : {}),
 					now: input.now,
 					actor: "coordinator",
@@ -268,13 +410,25 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 	const fallback = buildResearchPlanTaskBlueprints(state);
 	const agenda = deriveResearchAgenda(state);
 	return [
+		"ROLE",
 		"You are the research director for a mathematical research workspace.",
+		"TASK",
 		"Design a bounded research plan from the durable state below.",
-		"Rules:",
-		`- Between 1 and ${MAX_RESEARCH_PLAN_TASKS} tasks, ordered so earlier tasks inform later ones.`,
+		"ROLE-SPECIFIC RULES",
+		`- Between 1 and ${MAX_RESEARCH_PLAN_TASKS} tasks. Declare dependsOn as earlier one-based task numbers; omit it to depend on the immediately preceding task, or use [] only for genuinely independent work.`,
 		`- Each task kind must be one of: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}.`,
 		"- literature-search, source-refresh, computation, proof-attempt, and refutation-attempt tasks run against a research path; give pathNumber (1-based, from the paths listed below).",
 		"- Give each task a concrete goal and 1-3 acceptance criteria stating what counts as done.",
+		"- Keep acceptance criteria bounded to the task's named mathematical targets. Never require an exhaustive audit of every theorem, definition, notation item, or file in the project unless the user explicitly requested that audit.",
+		"- A source-refresh should recover the core statements and the definitions actually used by planned downstream tasks. It may record a source omission, ambiguity, or apparent typo as an explicit grounded result; do not require the task to invent or resolve text absent from the source.",
+		"- Make each criterion satisfiable from the requested source ranges plus a small number of bounded source inspections. Do not make acceptance depend on proving that no relevant statement exists elsewhere in the directory.",
+		'- Declare "sandboxed-computation" in requiredCapabilities whenever completing a task requires enumeration, scripts, numerical checks, symbolic calculation, or generator-removal tests, regardless of the task kind.',
+		"- Put exact local-source inputs in sourceRequests using durable sourceId plus numeric start/end ranges. Never encode executable locators only in description prose.",
+		...(state.literatureSources.some((source) => source.kind === "local-file" && source.provider === "workspace")
+			? [
+					"- Immutable workspace sources are supplied below. Make the first task a bounded source-refresh that extracts the task-relevant mathematical statements and cites their exact snapshot locators before proof or computation tasks.",
+				]
+			: []),
 		"- Respect the standing constraints listed in the state below; never plan a task they exclude.",
 		"- Respect recorded theorem applicability rejections and route changes; do not plan a rejected route again.",
 		"- Work both sides: alongside proof attempts, plan a refutation-attempt that actively searches for counterexamples.",
@@ -291,8 +445,10 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 				]
 			: []),
 		"",
+		"INPUT MATERIAL",
 		buildResearchContextPack(state),
 		"",
+		"OUTPUT CONTRACT",
 		"Return ONLY a JSON object, no prose, shaped like:",
 		JSON.stringify(
 			{
@@ -304,6 +460,9 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 						description: "what to do",
 						goal: "what to pursue",
 						acceptanceCriteria: ["done when ..."],
+						dependsOn: [1],
+						requiredCapabilities: ["sandboxed-computation", "independent-review"],
+						sourceRequests: [{ sourceId: "source-6", ranges: [{ start: 1489, end: 1552 }] }],
 						pathNumber: 1,
 					},
 				],
@@ -320,18 +479,22 @@ export function buildDirectorAmendmentPrompt(
 	pending: readonly ResearchPlanTaskRecord[],
 ): string {
 	return [
+		"ROLE",
 		"You are the research director for a mathematical research workspace.",
-		`A plan task just completed: task ${completedTask.sequence} (${completedTask.kind}): ${completedTask.title}.`,
+		"TASK",
+		`A plan task just completed or otherwise reached a durable outcome: task ${completedTask.sequence} (${completedTask.kind}, ${completedTask.status}${completedTask.reviewOutcome ? `, review ${completedTask.reviewOutcome}` : ""}): ${completedTask.title}.`,
 		"Decide whether the remaining pending tasks are still the right ones given the durable state below.",
-		"Rules:",
+		"ROLE-SPECIFIC RULES",
 		`- At most ${MAX_AMENDMENT_ACTIONS} actions. Prefer an empty action list; amend only when new findings changed what is worth doing.`,
 		"- You may only cancel PENDING tasks (by their task number) and add new tasks.",
-		`- Task kinds: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}. Added tasks need title, description, goal, acceptanceCriteria, and pathNumber for path-backed kinds.`,
+		`- Task kinds: ${RESEARCH_PLAN_TASK_KINDS.join(", ")}. Critique and synthesis are internal attempt stages, not plan tasks. Added tasks need title, description, goal, acceptanceCriteria, and pathNumber for path-backed kinds.`,
+		"- Put exact local-source inputs in sourceRequests using durable sourceId plus numeric start/end ranges. Never encode executable locators only in description prose.",
 		`- Pending tasks must stay at or below ${MAX_RESEARCH_PLAN_TASKS}.`,
 		"- Reallocate toward the productive side: when refuting evidence dominates, add a revise-conjecture task and cancel pending proof-attempt tasks aimed at the refuted statement; when supporting evidence dominates, cancel stale refutation work.",
 		"- Weigh path coverage: the 'Path coverage' lines in the state below show recorded work per path and flag untouched paths. Before adding another task to a path that already has completed work while suitable active paths remain untouched, give the reason in the new task's goal.",
 		"",
-		"Pending tasks:",
+		"INPUT MATERIAL",
+		"Pending tasks (input data):",
 		...(pending.length > 0
 			? pending.map((task) => `- Task ${task.sequence} (${task.kind}): ${task.title}`)
 			: ["- (none)"]),
@@ -340,6 +503,7 @@ export function buildDirectorAmendmentPrompt(
 		...buildStatementLineageContext(state),
 		buildResearchContextPack(state),
 		"",
+		"OUTPUT CONTRACT",
 		"Return ONLY a JSON object, no prose, shaped like:",
 		JSON.stringify(
 			{
@@ -383,7 +547,10 @@ function buildTwinTrackScoreboard(state: CoMathProjectState): string[] {
 
 /** Revision ancestry of the live statement, so amendments target the current version, not a refuted ancestor. */
 function buildStatementLineageContext(state: CoMathProjectState): string[] {
-	const target = findRevisionTarget(state);
+	const target = [...state.researchEvidenceBoard].reverse().find((entry) => {
+		if (entry.classification !== "conjecture" && entry.classification !== "theorem") return false;
+		return getEvidenceLineage(state, entry.id).at(-1)?.id === entry.id;
+	});
 	if (!target) {
 		return [];
 	}
@@ -410,16 +577,18 @@ function parsePlanProposal(state: CoMathProjectState, text: string): DirectorTas
 		return [];
 	}
 	const drafts: DirectorTaskDraft[] = [];
-	for (const rawTask of parsed.tasks) {
+	for (const [index, rawTask] of parsed.tasks.entries()) {
 		if (drafts.length >= MAX_RESEARCH_PLAN_TASKS) {
 			break;
 		}
 		if (typeof rawTask !== "object" || rawTask === null) {
 			continue;
 		}
-		const draft = validateTaskDraft(state, rawTask as Record<string, unknown>);
+		const draft = validateTaskDraft(state, rawTask as Record<string, unknown>, index + 1);
 		if (draft) {
 			drafts.push(draft);
+		} else if (hasExplicitDependencies(rawTask as Record<string, unknown>)) {
+			return [];
 		}
 	}
 	return drafts;
@@ -436,7 +605,11 @@ function parseObjective(text: string): string | undefined {
  * title/description, bounded criteria, and a resolvable non-abandoned research path for
  * workstream-backed kinds. Returns `undefined` when the task cannot be made safe.
  */
-function validateTaskDraft(state: CoMathProjectState, raw: Record<string, unknown>): DirectorTaskDraft | undefined {
+function validateTaskDraft(
+	state: CoMathProjectState,
+	raw: Record<string, unknown>,
+	taskNumber?: number,
+): DirectorTaskDraft | undefined {
 	const kind = RESEARCH_PLAN_TASK_KINDS.find((candidate) => candidate === raw.kind);
 	if (!kind) {
 		return undefined;
@@ -461,6 +634,12 @@ function validateTaskDraft(state: CoMathProjectState, raw: Record<string, unknow
 				.slice(0, MAX_ACCEPTANCE_CRITERIA)
 				.map((item) => truncate(item.trim(), 200))
 		: [];
+	const dependsOnTaskNumbers = parseTaskDependencyNumbers(raw.dependsOn, taskNumber);
+	if (hasExplicitDependencies(raw) && !dependsOnTaskNumbers) {
+		return undefined;
+	}
+	const requiredCapabilities = parseRequiredCapabilities(raw.requiredCapabilities);
+	const sourceRequests = parseDirectorSourceRequests(state, raw.sourceRequests);
 	// A task that restates already-planned or already-completed work is repetition, not progress,
 	// unless it sharpens the target with an acceptance criterion the earlier task did not have.
 	if (repeatsPlannedResearchTask(state, { kind, title, description, acceptanceCriteria })) {
@@ -484,11 +663,15 @@ function validateTaskDraft(state: CoMathProjectState, raw: Record<string, unknow
 		pathId = resolved.id;
 	}
 	return {
+		taskNumber: taskNumber ?? 0,
 		kind,
 		title,
 		description,
 		...(goal ? { goal } : {}),
 		acceptanceCriteria,
+		...(dependsOnTaskNumbers ? { dependsOnTaskNumbers } : {}),
+		requiredCapabilities,
+		...(sourceRequests.length > 0 ? { sourceRequests } : {}),
 		...(pathId ? { pathId } : {}),
 	};
 }
@@ -525,6 +708,64 @@ function toPositiveInteger(value: unknown): number | undefined {
 		return parsed >= 1 ? parsed : undefined;
 	}
 	return undefined;
+}
+
+function hasExplicitDependencies(raw: Record<string, unknown>): boolean {
+	return Object.hasOwn(raw, "dependsOn");
+}
+
+function parseTaskDependencyNumbers(value: unknown, taskNumber: number | undefined): number[] | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+	if (!Array.isArray(value) || taskNumber === undefined) {
+		return undefined;
+	}
+	const dependencies = value.map(toPositiveInteger);
+	if (dependencies.some((dependency) => dependency === undefined)) {
+		return undefined;
+	}
+	const uniqueDependencies = Array.from(new Set(dependencies as number[]));
+	return uniqueDependencies.every((dependency) => dependency < taskNumber) ? uniqueDependencies : undefined;
+}
+
+function parseRequiredCapabilities(value: unknown): ResearchPlanTaskRequiredCapability[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return Array.from(
+		new Set(
+			value.filter(
+				(capability): capability is ResearchPlanTaskRequiredCapability =>
+					capability === "source-grounding" ||
+					capability === "sandboxed-computation" ||
+					capability === "independent-review",
+			),
+		),
+	);
+}
+
+function parseDirectorSourceRequests(state: CoMathProjectState, value: unknown): ResearchTaskSourceRequest[] {
+	if (!Array.isArray(value)) return [];
+	const requests: ResearchTaskSourceRequest[] = [];
+	for (const candidate of value) {
+		if (typeof candidate !== "object" || candidate === null) continue;
+		const record = candidate as Record<string, unknown>;
+		const sourceId = typeof record.sourceId === "string" ? record.sourceId.trim() : "";
+		const source = state.literatureSources.find(
+			(item) => item.id === sourceId && item.citationEligibility === "citable" && item.sourceIndexId,
+		);
+		if (!source || !Array.isArray(record.ranges)) continue;
+		const ranges = record.ranges.flatMap((range) => {
+			if (typeof range !== "object" || range === null) return [];
+			const parsed = range as Record<string, unknown>;
+			const start = toPositiveInteger(parsed.start);
+			const end = toPositiveInteger(parsed.end);
+			return start !== undefined && end !== undefined && end >= start ? [{ start, end }] : [];
+		});
+		if (ranges.length > 0) requests.push({ sourceId, ranges });
+	}
+	return requests;
 }
 
 function truncate(text: string, maxLength: number): string {

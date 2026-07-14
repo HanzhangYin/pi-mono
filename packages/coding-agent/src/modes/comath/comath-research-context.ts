@@ -10,6 +10,7 @@ import { buildCoordinatorContext } from "./comath-coordinator-synthesis.ts";
 import { summarizeResearchPathCoverage } from "./comath-research-planner.ts";
 import type {
 	CoMathProjectState,
+	LiteratureSourceArtifact,
 	ResearchObligationRecord,
 	ResearchPlanRecord,
 	ResearchPlanTaskRecord,
@@ -32,6 +33,9 @@ export function buildResearchContextPack(state: CoMathProjectState): string {
 	return [
 		buildCoordinatorContext(state),
 		"",
+		"Workspace source snapshot extracts:",
+		...formatWorkspaceSourceContext(state.literatureSources),
+		"",
 		"Research plan:",
 		...formatPlanForContext(state),
 		"",
@@ -41,6 +45,32 @@ export function buildResearchContextPack(state: CoMathProjectState): string {
 		"Obligations (claims the project must establish or refute):",
 		...formatObligationsForContext(state),
 	].join("\n");
+}
+
+function formatWorkspaceSourceContext(sources: readonly LiteratureSourceArtifact[]): string[] {
+	const workspaceSources = sources.filter((source) => source.kind === "local-file" && source.provider === "workspace");
+	if (workspaceSources.length === 0) {
+		return ["- (none)"];
+	}
+	let remainingCharacters = 48_000;
+	const lines: string[] = [];
+	for (const source of workspaceSources.slice(0, 8)) {
+		lines.push(
+			`- ${source.id}: ${source.title}`,
+			`  Exact locator: ${source.path ?? "(missing)"}`,
+			`  Revision identity: ${source.externalId ?? "(missing)"}`,
+			`  Summary: ${source.summary}`,
+		);
+		if (source.extractedText && remainingCharacters > 0) {
+			const excerpt = source.extractedText.slice(0, remainingCharacters);
+			lines.push("  Extract:", excerpt);
+			remainingCharacters -= excerpt.length;
+		}
+	}
+	if (workspaceSources.length > 8 || remainingCharacters === 0) {
+		lines.push("- Additional source files remain available through their exact immutable snapshot records.");
+	}
+	return lines;
 }
 
 /**

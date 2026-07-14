@@ -14,7 +14,6 @@
  * All functions are pure state transforms; callers persist.
  */
 
-import type { SkepticIndependentCheckStatus } from "./comath-research-skeptic.ts";
 import { isSourceCommentaryClaim, mathClaimsNearlyMatch, stripMathDecorations } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
@@ -23,6 +22,8 @@ import type {
 	ResearchPlanTaskRecord,
 } from "./schema.ts";
 import { addResearchObligation, getRootResearchObligation, updateResearchObligation } from "./storage.ts";
+
+type SkepticIndependentCheckStatus = "not-run" | "completed" | "inconclusive";
 
 export const DEGRADED_RESEARCH_GAP = "This step ran without model-backed research.";
 

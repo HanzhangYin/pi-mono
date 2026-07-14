@@ -1,0 +1,9 @@
+{
+  "coMath": {
+    "models": {
+      "coordination": "openai-codex/gpt-5.6-sol",
+      "research": "openai-codex/gpt-5.6-terra",
+      "computation": "openai-codex/gpt-5.6-terra"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import { sanitizeProductIds } from "./comath-backend-output.ts";
 import type { CoMathResearchAutoPlan } from "./comath-research-autoplan.ts";
-import type { CoMathSource } from "./comath-source.ts";
+import { type CoMathSource, isUsableCoMathSource } from "./comath-source.ts";
 import type {
 	CoMathProjectState,
 	ComputationalArtifact,
@@ -24,7 +24,6 @@ import { STALE_RESEARCH_WORKSTREAM_RUN_REASON } from "./storage.ts";
 export type {
 	CoMathResearchActivityPhase,
 	FormatCoMathResearchActivityStatusInput,
-	FormatResearchWorkstreamRunInput,
 	FormatResearchWorkstreamStageCompletedInput,
 	FormatResearchWorkstreamStageStartedInput,
 } from "./comath-foreground-progress.ts";
@@ -33,11 +32,7 @@ export {
 	formatCoMathResearchActivityStatus,
 	formatCoMathResearchPhaseActivityStatus,
 	formatCoMathResearchStepActivityStatus,
-	formatResearchWorkstreamAlreadyRunning,
-	formatResearchWorkstreamRunFailed,
-	formatResearchWorkstreamRunProgress,
 	formatResearchWorkstreamRunStarted,
-	formatResearchWorkstreamRunStillRunningReport,
 	formatResearchWorkstreamStageCompleted,
 	formatResearchWorkstreamStageStarted,
 } from "./comath-foreground-progress.ts";
@@ -58,7 +53,7 @@ export function formatCoMathWelcome(source: CoMathSource | undefined): string {
 			"Describe the problem you want to investigate.",
 		].join("\n");
 	}
-	if (!source.exists || !source.isFile) {
+	if (!isUsableCoMathSource(source)) {
 		return [
 			"Pi is ready to help validate mathematical work.",
 			`Source warning: ${source.input}`,
@@ -67,9 +62,13 @@ export function formatCoMathWelcome(source: CoMathSource | undefined): string {
 			"Describe the problem you want to investigate.",
 		].join("\n");
 	}
+	const sourceLabel = source.isDirectory
+		? `Source directory: ${source.displayName} (${source.files?.length ?? 0} files selected)`
+		: `Source: ${source.displayName}`;
 	return [
 		"Pi is ready to help validate mathematical work.",
-		`Source: ${source.displayName}`,
+		sourceLabel,
+		...(source.truncated ? ["Source selection reached its configured safety limits."] : []),
 		"",
 		"Describe the problem you want to investigate.",
 	].join("\n");
@@ -686,9 +685,6 @@ export function formatResearchPlanTaskCompleted(input: FormatResearchPlanTaskInp
 	return [
 		`Finished task ${input.task.sequence} of ${input.tasks.length}: ${input.task.title}.`,
 		...(input.task.progressKind ? [formatTaskProgressKindLine(input.task.progressKind)] : []),
-		...(input.task.reviewOutcome === "completed-with-concerns"
-			? ["The independent review raised concerns; they are recorded with the step."]
-			: []),
 		formatResearchPlanProgressLine(input.tasks),
 	].join("\n");
 }

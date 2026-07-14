@@ -17,12 +17,37 @@ export type MarginNoteStatus = "open" | "resolved";
 export type ResearchPathStatus = "active" | "promising" | "blocked" | "abandoned" | "resolved";
 export type ResearchWorkstreamRole = "coordinator" | "specialist" | "critic" | "synthesizer";
 export type ResearchWorkstreamReportStatus = "completed" | "blocked";
+/** Whether a finished report is allowed to influence canonical project state. */
+export type ResearchWorkstreamReportAcceptanceStatus = "provisional" | "accepted" | "rejected";
 export type ResearchWorkstreamRunStatus = "queued" | "running" | "completed" | "blocked" | "failed" | "interrupted";
-export type ResearchWorkstreamRunStage = ResearchWorkstreamRole | "literature-search" | "computation";
+export type ResearchWorkstreamRunStage =
+	| ResearchWorkstreamRole
+	| "literature-search"
+	| "claim-validation"
+	| "computation";
 export type ResearchWorkstreamIncrementalReportStatus = "running" | "completed" | "blocked" | "failed";
 export type ResearchBatchStatus = "running" | "paused" | "completed" | "failed" | "cancelled";
 export type ResearchPlanStatus = "active" | "paused" | "completed" | "failed" | "cancelled";
 export type ResearchPlanTaskStatus = "pending" | "running" | "completed" | "blocked" | "failed" | "cancelled";
+/** The authoritative lifecycle for new single-engine task attempts. */
+export type ResearchTaskAttemptStatus =
+	| "queued"
+	| "running"
+	| "paused"
+	| "needs-revision"
+	| "rejected"
+	| "accepted"
+	| "failed"
+	| "cancelled";
+export type ResearchTaskPipelineStage =
+	| "evidence-preparation"
+	| "specialist"
+	| "claim-validation"
+	| "critic"
+	| "synthesis"
+	| "capability-validation"
+	| "skeptic"
+	| "finalization";
 /**
  * What a completed plan task actually produced:
  * - "mathematical": new evidence, computations, claims, or a repaired statement.
@@ -31,12 +56,14 @@ export type ResearchPlanTaskStatus = "pending" | "running" | "completed" | "bloc
  * - "status": context/status only (sources listed, state summarized); no new mathematics.
  */
 export type ResearchTaskProgressKind = "mathematical" | "obstruction" | "status";
-/**
- * The independent review's verdict on a completed task: accepted cleanly, completed but with
- * recorded concerns, or rejected (the step failed its acceptance criteria and is not treated as
- * cleanly completed).
- */
-export type ResearchTaskReviewOutcome = "accepted" | "completed-with-concerns" | "rejected";
+/** The independent review's verdict on a task-backed report. */
+export type ResearchTaskReviewOutcome = "accepted" | "needs-revision" | "rejected" | "unreviewed";
+/** Machine-enforceable evidence requirements for a plan task. */
+export type ResearchPlanTaskRequiredCapability = "source-grounding" | "sandboxed-computation" | "independent-review";
+export interface ResearchTaskSourceRequest {
+	sourceId: string;
+	ranges: Array<{ start: number; end: number }>;
+}
 export type ResearchPlanTaskKind =
 	| "literature-search"
 	| "proof-attempt"
@@ -74,6 +101,31 @@ export type LiteratureSourceProvider =
 export type LiteratureSourceType = "preprint" | "journal" | "conference" | "book" | "web" | "unknown";
 export type LiteratureSearchProviderStatus = "completed" | "failed" | "skipped";
 export type LiteratureClaimSupportStatus = "supported" | "partially-supported" | "unsupported" | "conflicting";
+export type CoMathSourceClaimScope = "formal-document" | "supplemental" | "ordinary-document" | "detached-source";
+export type GroundingValidationFailureCode =
+	| "missing-exact-locator"
+	| "unknown-source"
+	| "non-citable-source"
+	| "invalid-range"
+	| "cross-region"
+	| "scope-mismatch"
+	| "digest-mismatch"
+	| "non-evidence-region"
+	| "malformed-citation";
+
+export interface GroundingValidationFailure {
+	code: GroundingValidationFailureCode;
+	sourceId?: string;
+	lines?: { start: number; end: number };
+	message: string;
+}
+export type CoMathWorkspaceSourceRole =
+	| "primary-text"
+	| "compiled-binary"
+	| "curated-summary"
+	| "bibliographic-metadata"
+	| "snapshot-metadata";
+export type CoMathSourceCitationEligibility = "citable" | "inventory-only";
 export type ResearchEvidenceClassification =
 	| "theorem"
 	| "conjecture"
@@ -118,6 +170,7 @@ export type CoMathEventKind =
 	| "margin_note_resolved"
 	| "working_paper_exported"
 	| "research_workstream_recorded"
+	| "research_workstream_report_reviewed"
 	| "research_workstream_run_recorded"
 	| "research_batch_recorded"
 	| "research_plan_recorded"
@@ -131,7 +184,8 @@ export type CoMathEventKind =
 	| "literature_claim_support_recorded"
 	| "research_evidence_board_entry_recorded"
 	| "computational_artifact_recorded"
-	| "research_coordinator_report_recorded";
+	| "research_coordinator_report_recorded"
+	| "grounding_reference_recorded";
 export type ArtifactKind =
 	| "source"
 	| "computation"
@@ -366,6 +420,12 @@ export interface LiteratureSourceArtifact {
 	year?: string;
 	summary: string;
 	extractedText?: string;
+	workspaceRole?: CoMathWorkspaceSourceRole;
+	citationEligibility?: CoMathSourceCitationEligibility;
+	sourceIndexId?: string;
+	sourceRevisionId?: string;
+	sourceRelativePath?: string;
+	sourceFileSha256?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -400,6 +460,9 @@ export interface LiteratureClaimSupport {
 	sourceIds: string[];
 	status: LiteratureClaimSupportStatus;
 	note?: string;
+	groundingReferenceIds?: string[];
+	groundingFailures?: GroundingValidationFailure[];
+	sourceScope?: CoMathSourceClaimScope;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -443,11 +506,59 @@ export interface ComputationalArtifact {
 	updatedAt: string;
 }
 
+/** An exact, machine-checkable link from a research record to immutable source material. */
+export interface GroundingReferenceRecord {
+	id: string;
+	subject: {
+		kind: "report" | "claim-support" | "evidence" | "review" | "obligation" | "theorem-check";
+		id: string;
+	};
+	relation: "supports" | "refutes" | "context" | "input" | "independent-check";
+	/** A literature-source id or a recorded project artifact id. */
+	artifactId: string;
+	locator:
+		| { kind: "lines"; start: number; end: number }
+		| { kind: "pages"; start: number; end: number }
+		| { kind: "section"; value: string }
+		| { kind: "json-pointer"; value: string }
+		| { kind: "whole-artifact" };
+	excerpt?: string;
+	excerptSha256?: string;
+	sourceIndexId?: string;
+	sourceRevisionId?: string;
+	sourceRelativePath?: string;
+	sourceFileSha256?: string;
+	regionKind?:
+		| "preamble"
+		| "formal-document"
+		| "included-formal-document"
+		| "supplemental-after-end"
+		| "detached-tex"
+		| "ordinary-document";
+	modelCallId?: string;
+	validationStatus: "validated" | "legacy-unverified";
+	createdAt: string;
+}
+
 export interface ResearchWorkstreamStepRecord {
 	role: ResearchWorkstreamRole;
 	title: string;
 	summary: string;
 	details: string[];
+}
+
+export interface ResearchWorkstreamReportTheoremCheck {
+	theorem: string;
+	targetObject: string;
+	hypotheses: TheoremHypothesisCheck[];
+	status: TheoremApplicabilityStatus;
+	consequence?: string;
+}
+
+export interface ResearchWorkstreamReportPivot {
+	fromRoute: string;
+	toRoute: string;
+	reason: string;
 }
 
 export interface ResearchWorkstreamReportRecord {
@@ -456,6 +567,11 @@ export interface ResearchWorkstreamReportRecord {
 	pathId: string;
 	pathTitle: string;
 	status: ResearchWorkstreamReportStatus;
+	/** Provisional reports are durable history but cannot update paths, evidence, or the paper. */
+	acceptanceStatus?: ResearchWorkstreamReportAcceptanceStatus;
+	reviewedAt?: string;
+	promotedAt?: string;
+	rejectionReason?: string;
 	startedAt: string;
 	completedAt: string;
 	coordinatorBrief: string;
@@ -467,10 +583,15 @@ export interface ResearchWorkstreamReportRecord {
 	humanHelpUseful: string[];
 	suggestedNextMove: string;
 	workingPaperSectionTitle: string;
+	/** Stored until review so promotion does not need the original in-memory workstream result. */
+	workingPaperSummary?: string;
 	workingPaperSectionId?: string;
 	sourceIds: string[];
 	claimSupportIds: string[];
 	computationalArtifactIds: string[];
+	theoremChecks?: ResearchWorkstreamReportTheoremCheck[];
+	routePivots?: ResearchWorkstreamReportPivot[];
+	negativeConstraints?: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -491,6 +612,8 @@ export interface ResearchWorkstreamIncrementalReportRecord {
  * providers that omit usage stay valid.
  */
 export interface ResearchModelCallProvenance {
+	/** Version of the static Co-Math policy supplied to the model, when known. */
+	systemPromptPolicyVersion?: number;
 	model?: string;
 	provider?: string;
 	thinkingLevel?: string;
@@ -505,8 +628,14 @@ export interface ResearchModelCallProvenance {
 
 /** A model call recorded on a research workstream run, tagged with the stage that made it. */
 export interface ResearchRunModelCallRecord extends ResearchModelCallProvenance {
+	/** Stable attempt-local identifier for new engine calls. Legacy records may omit it. */
+	id?: string;
 	stage: string;
 	at: string;
+	status?: "started" | "completed" | "failed";
+	startedAt?: string;
+	completedAt?: string;
+	error?: string;
 }
 
 export interface ResearchWorkstreamRunRecord {
@@ -523,10 +652,17 @@ export interface ResearchWorkstreamRunRecord {
 	updatedAt: string;
 	completedAt?: string;
 	incrementalReports: ResearchWorkstreamIncrementalReportRecord[];
+	/** Compact lifecycle transcript; full prompts/responses are never duplicated here. */
+	transcriptPath?: string;
 	/** Model calls this run made, appended at stage boundaries. */
 	modelCalls?: ResearchRunModelCallRecord[];
 	finalReportId?: string;
+	/** Stage that failed; retained even if a later stage provides a bounded fallback. */
+	failedStage?: ResearchWorkstreamRunStage;
 	failureReason?: string;
+	/** Stage for which a fallback was used, without replacing successful prior stages. */
+	fallbackStage?: ResearchWorkstreamRunStage;
+	fallbackReason?: string;
 	usedFallback?: boolean;
 }
 
@@ -579,6 +715,22 @@ export interface ResearchPlanTaskRecord {
 	goal?: string;
 	/** What "done" means for this task; shown to the executing role and the skeptic. */
 	acceptanceCriteria: string[];
+	/** Completed task ids that must succeed before this task is runnable. */
+	dependsOnTaskIds: string[];
+	/** Evidence capabilities that must be met before this task can be accepted. */
+	requiredCapabilities: ResearchPlanTaskRequiredCapability[];
+	/** Exact immutable source inputs selected by the director or user; execution never reparses prose. */
+	sourceRequests?: ResearchTaskSourceRequest[];
+	/** The immediately preceding rejected task this deterministic repair addresses. */
+	repairOfTaskId?: string;
+	/** Repair depth in a rejected-task chain; ordinary tasks omit this field. */
+	repairGeneration?: number;
+	/** The repair task now responsible for satisfying this rejected task's descendants. */
+	supersededByTaskId?: string;
+	/** Immutable single-engine attempts. Legacy repair metadata above remains read-only history. */
+	attemptIds: string[];
+	acceptedAttemptId?: string;
+	latestAttemptId?: string;
 	pathId?: string;
 	runId?: string;
 	reportId?: string;
@@ -596,6 +748,67 @@ export interface ResearchPlanTaskRecord {
 	startedAt?: string;
 	updatedAt: string;
 	completedAt?: string;
+}
+
+export interface ResearchAttemptFailure {
+	stage: ResearchTaskPipelineStage;
+	code: string;
+	message: string;
+	claimIds: string[];
+	retryable: boolean;
+}
+
+export interface ResearchTaskAttemptStageRecord {
+	stage: ResearchTaskPipelineStage;
+	status: "pending" | "running" | "completed" | "blocked" | "failed";
+	startedAt?: string;
+	completedAt?: string;
+	modelCallIds: string[];
+	artifactIds: string[];
+	failure?: ResearchAttemptFailure;
+}
+
+/** Immutable durable execution of one task. New work is represented here, not as a repair task. */
+export interface ResearchTaskAttemptRecord {
+	id: string;
+	taskId: string;
+	planId: string;
+	attemptNumber: number;
+	status: ResearchTaskAttemptStatus;
+	currentStage: ResearchTaskPipelineStage;
+	stages: ResearchTaskAttemptStageRecord[];
+	sourceCatalogArtifactId?: string;
+	claimLedgerArtifactId?: string;
+	reportArtifactId?: string;
+	computationArtifactIds: string[];
+	modelCalls: ResearchRunModelCallRecord[];
+	reviewOutcome?: ResearchTaskReviewOutcome;
+	failure?: ResearchAttemptFailure;
+	startedAt: string;
+	updatedAt: string;
+	completedAt?: string;
+}
+
+export interface ResearchExecutionRecord {
+	id: string;
+	requestedTaskCount: number;
+	pathId?: string;
+	taskIds: string[];
+	attemptIds: string[];
+	status: "running" | "paused" | "completed" | "cancelled" | "failed";
+	failure?: ResearchAttemptFailure;
+	createdAt: string;
+	updatedAt: string;
+	completedAt?: string;
+	cancelledAt?: string;
+}
+
+export interface CoMathCanonicalProjection {
+	policyVersion: 1;
+	acceptedAttemptIds: string[];
+	acceptedLegacyReportIds: string[];
+	workingPaperSectionIds: string[];
+	updatedAt: string;
 }
 
 /**
@@ -710,6 +923,8 @@ export interface ResearchCoordinatorReportRecord {
 	inputPathIds: string[];
 	inputSourceIds: string[];
 	inputComputationalArtifactIds: string[];
+	/** Fingerprint of accepted reports plus review/evidence/constraint state used for this synthesis. */
+	inputReviewFingerprint?: string;
 	whatWeKnow: string[];
 	roadblocks: string[];
 	recommendedNextMoves: ResearchCoordinatorNextMove[];
@@ -719,8 +934,31 @@ export interface ResearchCoordinatorReportRecord {
 	workingPaperSectionId?: string;
 }
 
+export interface CoMathSourceIndexRecord {
+	id: string;
+	sourceId: string;
+	sourceRevisionId: string;
+	sourceManifestSha256: string;
+	indexArtifactId: string;
+	indexPath: string;
+	indexSha256: string;
+	policyVersion: number;
+	status: "ready" | "failed";
+	fileCount: number;
+	documentCount: number;
+	warnings: string[];
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface CoMathProjectState {
-	version: 1;
+	version: 2;
+	/** Monotonic compare-and-swap revision. Legacy in-memory fixtures may omit it. */
+	revision?: number;
+	/** Transaction manifest that produced this active state revision, when committed through the v2 store. */
+	lastTransactionId?: string;
+	/** New writes use the single-task engine when this policy is present. */
+	enginePolicyVersion?: 1;
 	projectId: string;
 	title: string;
 	rootQuestion: string;
@@ -745,6 +983,9 @@ export interface CoMathProjectState {
 	researchBatches: ResearchBatchRecord[];
 	researchPlans: ResearchPlanRecord[];
 	researchPlanTasks: ResearchPlanTaskRecord[];
+	researchTaskAttempts: ResearchTaskAttemptRecord[];
+	researchExecutions: ResearchExecutionRecord[];
+	canonicalProjection?: CoMathCanonicalProjection;
 	researchObligations: ResearchObligationRecord[];
 	researchConstraints: ResearchConstraintRecord[];
 	theoremApplicabilityChecks: TheoremApplicabilityCheckRecord[];
@@ -752,8 +993,11 @@ export interface CoMathProjectState {
 	literatureSources: LiteratureSourceArtifact[];
 	literatureSearches: LiteratureSearchRecord[];
 	literatureClaimSupports: LiteratureClaimSupport[];
+	sourceIndexes: CoMathSourceIndexRecord[];
 	researchEvidenceBoard: ResearchEvidenceBoardEntry[];
 	computationalArtifacts: ComputationalArtifact[];
+	/** Optional only for legacy state; all newly created state includes this collection. */
+	groundingReferences?: GroundingReferenceRecord[];
 	researchCoordinatorReports: ResearchCoordinatorReportRecord[];
 	researchFocus?: ResearchFocus;
 	updatedAt: string;

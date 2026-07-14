@@ -7,8 +7,6 @@
  * what the plan is.
  */
 
-import { isComputationalResearchPath } from "./comath-computation-workstream.ts";
-import { isLiteratureResearchPath } from "./comath-literature-workstream.ts";
 import { deriveResearchAgenda, violatesRejectedRoute } from "./comath-research-agenda.ts";
 import type {
 	CoMathActor,
@@ -75,7 +73,10 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 		const plannedPathIds: string[] = [];
 		for (const item of agenda) {
 			const path = chooseResearchPathForPlanTaskKind(state, item.kind, { plannedPathIds });
-			const needsPath = item.kind !== "revise-conjecture" && item.kind !== "synthesis" && item.kind !== "critic";
+			if (item.kind === "critic" || item.kind === "synthesis" || item.kind === "export") {
+				continue;
+			}
+			const needsPath = item.kind !== "revise-conjecture";
 			if (needsPath && !path) {
 				continue;
 			}
@@ -90,16 +91,7 @@ export function buildResearchPlanTaskBlueprints(state: CoMathProjectState): Rese
 				...(path ? { pathId: path.id } : {}),
 			});
 		}
-		if (blueprints.length > 0) {
-			return [
-				...blueprints.slice(0, MAX_RESEARCH_PLAN_TASKS - 1),
-				{
-					kind: "synthesis" as const,
-					title: "Summarize durable findings and pick the next move",
-					description: "Combine what is known across paths into the working paper and recommend the next move.",
-				},
-			];
-		}
+		if (blueprints.length > 0) return blueprints.slice(0, MAX_RESEARCH_PLAN_TASKS);
 	}
 	return buildFreshWorkspaceBlueprints(state);
 }
@@ -115,13 +107,32 @@ function buildFreshWorkspaceBlueprints(state: CoMathProjectState): ResearchPlanT
 		}
 		return path;
 	};
+	const hasWorkspaceSources = state.literatureSources.some(
+		(source) => source.kind === "local-file" && source.provider === "workspace",
+	);
+	const sourceRefreshPath = hasWorkspaceSources
+		? claimPath(chooseResearchPathForPlanTaskKind(state, "source-refresh", { plannedPathIds }))
+		: undefined;
 	const computationPath = claimPath(chooseResearchPathForPlanTaskKind(state, "computation", { plannedPathIds }));
 	const proofPath = claimPath(chooseResearchPathForPlanTaskKind(state, "proof-attempt", { plannedPathIds }));
 	const literaturePath = claimPath(chooseResearchPathForPlanTaskKind(state, "literature-search", { plannedPathIds }));
 	const refutationPath = claimPath(chooseResearchPathForPlanTaskKind(state, "refutation-attempt", { plannedPathIds }));
-	// Concrete mathematics leads: anchor examples and a proof attempt come before the literature
-	// check, so the first steps work the problem instead of describing its status.
+	const asksForCurrentStatus =
+		/\b(current|present[- ]day|latest|settled|settlement|literature status|known status)\b/i.test(state.rootQuestion);
+	// A supplied immutable source is inspected first. Otherwise concrete mathematics leads: anchor
+	// examples and a proof attempt come before the literature check.
 	const blueprints: ResearchPlanTaskBlueprint[] = [
+		...(sourceRefreshPath
+			? [
+					{
+						kind: "source-refresh" as const,
+						title: "Inspect the supplied source snapshot",
+						description:
+							"Extract the mathematical questions, definitions, claims, and dependencies from the immutable workspace source before attempting them.",
+						pathId: sourceRefreshPath.id,
+					},
+				]
+			: []),
 		...(computationPath
 			? [
 					{
@@ -142,7 +153,7 @@ function buildFreshWorkspaceBlueprints(state: CoMathProjectState): ResearchPlanT
 					},
 				]
 			: []),
-		...(literaturePath
+		...((!sourceRefreshPath || asksForCurrentStatus) && literaturePath
 			? [
 					{
 						kind: "literature-search" as const,
@@ -162,15 +173,11 @@ function buildFreshWorkspaceBlueprints(state: CoMathProjectState): ResearchPlanT
 					},
 				]
 			: []),
-		{
-			kind: "synthesis" as const,
-			title: "Summarize durable findings and pick the next move",
-			description: "Combine what is known across paths into the working paper and recommend the next move.",
-		},
 	];
-	return blueprints
-		.filter((blueprint) => !violatesRejectedRoute(state, `${blueprint.title} ${blueprint.description}`))
-		.slice(0, MAX_RESEARCH_PLAN_TASKS);
+	const eligible = blueprints.filter(
+		(blueprint) => !violatesRejectedRoute(state, `${blueprint.title} ${blueprint.description}`),
+	);
+	return eligible.slice(0, MAX_RESEARCH_PLAN_TASKS);
 }
 
 /** Create a durable research plan (with its tasks) from the current state. Caller persists. */
@@ -254,6 +261,14 @@ function proofAttemptCandidatePaths(paths: readonly ResearchPath[]): ResearchPat
 		.filter((path) => !isLiteratureResearchPath(path) && !isComputationalResearchPath(path))
 		.sort((a, b) => a.priority - b.priority);
 	return dedupePaths([...proofTitled, ...argumentPaths]);
+}
+
+function isLiteratureResearchPath(path: ResearchPath): boolean {
+	return /(?:literature|source|theorem|reference|paper)/i.test(`${path.title} ${path.objective}`);
+}
+
+function isComputationalResearchPath(path: ResearchPath): boolean {
+	return /(?:comput|example|counterexample|finite|experiment|search)/i.test(`${path.title} ${path.objective}`);
 }
 
 function dedupePaths(paths: readonly ResearchPath[]): ResearchPath[] {

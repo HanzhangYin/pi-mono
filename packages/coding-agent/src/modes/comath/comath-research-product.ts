@@ -16,7 +16,11 @@
 
 import { significantContentTokens } from "./comath-text-similarity.ts";
 import type { CoMathProjectState, LiteratureSourceArtifact, ResearchEvidenceBoardEntry } from "./schema.ts";
-import { getRootResearchObligation } from "./storage.ts";
+import {
+	describeObligationEstablishmentGate,
+	getCurrentTheoremApplicabilityChecks,
+	getRootResearchObligation,
+} from "./storage.ts";
 
 /** Working-paper section title under which the document is persisted and exported. */
 export const STATE_OF_PROBLEM_SECTION_TITLE = "State of the problem";
@@ -63,7 +67,7 @@ export function buildStateOfProblemSectionBody(state: CoMathProjectState): strin
 		...buildOpenGapLines(state),
 		"",
 		"Sources consulted",
-		...buildSourceLines(state.literatureSources),
+		...buildSourceLines(state),
 	].join("\n");
 }
 
@@ -83,7 +87,7 @@ export function describeRootQuestionVerdict(state: CoMathProjectState): string {
 			"A counterexample stands against it.";
 		return `Verdict: answered negatively — the statement as written is refuted. ${basis}`;
 	}
-	if (root?.status === "established") {
+	if (root?.status === "established" && describeObligationEstablishmentGate(state, root.id).ok) {
 		return "Verdict: answered — the statement is established: its support passed an independent review with no open gaps and all required subclaims settled.";
 	}
 	return `Verdict: the question remains open. ${describeStrongestOpenSupport(state)}`;
@@ -256,13 +260,32 @@ function buildOpenGapLines(state: CoMathProjectState): string[] {
  * claims cite, since durable literature-source ids are assigned as `source-N` in recording order —
  * so the mapping survives even when the list is capped.
  */
-function buildSourceLines(sources: readonly LiteratureSourceArtifact[]): string[] {
+function buildSourceLines(state: CoMathProjectState): string[] {
+	const sources = selectProductSources(state);
 	if (sources.length === 0) {
 		return ["- No literature sources have been consulted yet."];
 	}
-	return sources.slice(-MAX_SECTION_ITEMS).map((source) => {
+	return sources.map((source) => {
 		return `- [${source.id}] ${source.title} — ${describeSourceReliability(source)}`;
 	});
+}
+
+/**
+ * Keep every source cited by an established fact in the product, then fill the remaining bounded
+ * source list with the most recently consulted sources. Provenance closure takes priority over the
+ * normal section cap: a displayed fact must never point at a source omitted from the same product.
+ */
+function selectProductSources(state: CoMathProjectState): LiteratureSourceArtifact[] {
+	const requiredIds = new Set(
+		selectEstablishedFacts(state)
+			.slice(-MAX_SECTION_ITEMS)
+			.flatMap((fact) => fact.entry.sourceIds),
+	);
+	const required = state.literatureSources.filter((source) => requiredIds.has(source.id));
+	const remaining = state.literatureSources
+		.filter((source) => !requiredIds.has(source.id))
+		.slice(-Math.max(0, MAX_SECTION_ITEMS - required.length));
+	return [...required, ...remaining];
 }
 
 function describeSourceReliability(source: LiteratureSourceArtifact): string {
@@ -296,14 +319,11 @@ function formatSourceLabels(state: CoMathProjectState, sourceIds: readonly strin
 
 /** The passed applicability check backing a theorem entry, by report linkage or theorem name. */
 function findPassedTheoremCheck(state: CoMathProjectState, entry: ResearchEvidenceBoardEntry): string | undefined {
-	const passed = state.theoremApplicabilityChecks.filter((check) => check.status === "applies");
-	const byName = passed.find((check) => entry.claim.toLowerCase().includes(check.theorem.toLowerCase()));
-	if (byName) {
-		return byName.theorem;
-	}
-	const byReport =
-		entry.reportId !== undefined ? passed.find((check) => check.reportId === entry.reportId) : undefined;
-	return byReport?.theorem;
+	const matching = getCurrentTheoremApplicabilityChecks(state).filter((check) =>
+		entry.claim.toLowerCase().includes(check.theorem.toLowerCase()),
+	);
+	const passed = matching.find((check) => check.status === "applies");
+	return passed?.theorem;
 }
 
 /** An entry another entry revised away; it belongs to lineage history, not the current picture. */

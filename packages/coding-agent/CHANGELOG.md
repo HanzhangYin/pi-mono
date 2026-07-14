@@ -6,6 +6,15 @@
 
 - Added the opt-in `max` thinking level across CLI, SDK, RPC, model selection, and themes. Custom themes can define `thinkingMax`; existing themes fall back to `thinkingXhigh`.
 - Added request-wide input-token pricing tiers to custom model costs in `models.json`, `modelOverrides`, and extension-registered providers.
+- Added generic co-math report review lifecycles, artifact-grounded independent checks, fail-closed computation sandboxing, and revisioned transactional state storage.
+- Added configurable, pinned co-math role model routing through nested `coMath.models` settings.
+- Added bounded CoMath directory intake from startup arguments or first prompts, with immutable hashed source snapshots and transactional manifest registration.
+
+### Fixed
+
+- Fixed parallel co-math workers corrupting or interleaving the single foreground TUI stream by consuming worker model streams privately.
+- Fixed CoMath directory intake bypassing research plans and role model routing; source-backed starts now use bounded immutable source context and sandboxed research execution.
+- Fixed CoMath role transcripts storing quadratic full-message snapshots for every stream delta, and restricted the legacy nested role runner to read-only tools.
 
 ## [0.80.5] - 2026-07-09
 

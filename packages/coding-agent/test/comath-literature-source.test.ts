@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+	buildLiteratureSearchQueries,
+	extractLiteratureSearchHints,
 	type LiteratureSourceQuery,
 	type LiteratureSourceResult,
 	rankLiteratureSources,
@@ -13,6 +15,20 @@ const PRIME_QUERY: LiteratureSourceQuery = {
 };
 
 describe("co-math literature source relevance", () => {
+	it("extracts a bounded publication title instead of searching an entire claim ledger", () => {
+		const hints = extractLiteratureSearchHints([
+			"SOURCE source-5\n12: <title>Presenting the cohomology of a Schubert variety</title>\n4: <title>arXiv Query: id_list=0809.2981</title>",
+		]);
+		expect(hints).toEqual(["Presenting the cohomology of a Schubert variety"]);
+		const queries = buildLiteratureSearchQueries({
+			rootQuestion: hints[0] ?? "",
+			pathTitle: "Known theorem or literature reduction",
+			pathObjective: "Find later work.",
+			maxSources: 8,
+		});
+		expect(queries[0]).toBe("Presenting the cohomology of a Schubert variety");
+	});
+
 	it("rejects unrelated search hits before they reach the literature model", () => {
 		const sources: LiteratureSourceResult[] = [
 			{

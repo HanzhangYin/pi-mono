@@ -11,9 +11,18 @@ The first-class product mode wraps the same durable workspace in a natural-langu
 ```bash
 pi comath                  # fresh research workspace in the current directory
 pi comath paper.pdf        # pin a source document for validation work
+pi comath ./paper-sources  # pin a bounded directory source
 ```
 
 Typing a fresh math question starts a bounded autonomous run: the harness plans durable tasks, executes them through model-backed workstreams, and puts every finished step through an independent review before anything counts as progress.
+
+You can also supply a local source in the first prompt:
+
+```text
+Look at the directory /absolute/path/to/math-sources and start.
+```
+
+Directory intake walks files deterministically without following symlinks, ignores dependency, generated, VCS, and `.pi` directories, and applies depth, file-count, per-file, total-byte, and scan-count limits. Selected files are copied into an immutable content-addressed revision under `.pi/co-math/artifacts/sources/`; the manifest and snapshot paths are committed to state together before an audit starts. Review roles read those snapshot copies rather than mutable originals.
 
 ### Parallel independent research tasks
 

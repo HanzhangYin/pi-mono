@@ -22,6 +22,7 @@ import type {
 	TheoremHypothesisCheck,
 	TheoremHypothesisStatus,
 } from "./schema.ts";
+import { getCurrentTheoremApplicabilityChecks } from "./storage.ts";
 
 const MAX_THEOREM_CHECKS_PER_TEXT = 3;
 const MAX_PIVOTS_PER_TEXT = 3;
@@ -363,7 +364,7 @@ export function formatDisciplineStateForContext(
 	state: Pick<CoMathProjectState, "researchConstraints" | "theoremApplicabilityChecks" | "researchPivots">,
 ): string[] {
 	const active = state.researchConstraints.filter((constraint) => constraint.status === "active");
-	const checks = state.theoremApplicabilityChecks.slice(-MAX_CONTEXT_RECORDS);
+	const checks = getCurrentTheoremApplicabilityChecks(state).slice(-MAX_CONTEXT_RECORDS);
 	const pivots = state.researchPivots.slice(-MAX_CONTEXT_RECORDS);
 	return [
 		...(active.length > 0

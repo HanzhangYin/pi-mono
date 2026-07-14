@@ -479,12 +479,24 @@ describe("getPiInvocation", () => {
 		const scriptPath = join(root, "fake-pi.sh");
 		const extensionDir = join(root, "extension");
 		const transcriptPath = join(root, ".pi", "co-math", "transcripts", "role-run-1.jsonl");
+		const repeatedPartial = "DO_NOT_PERSIST_FULL_PARTIAL_".repeat(400);
+		const updateLine = JSON.stringify({
+			type: "message_update",
+			message: { role: "assistant", content: [{ type: "text", text: repeatedPartial }] },
+			assistantMessageEvent: {
+				type: "text_delta",
+				contentIndex: 0,
+				delta: "ok",
+				partial: { role: "assistant", content: [{ type: "text", text: repeatedPartial }] },
+			},
+		});
 		mkdirSync(join(extensionDir, "agents"), { recursive: true });
 		writeFileSync(join(extensionDir, "agents", "workstream.md"), "fake prompt\n");
 		writeFileSync(
 			scriptPath,
 			[
 				"#!/bin/sh",
+				`printf '%s\\n' '${updateLine}'`,
 				'printf \'%s\\n\' \'{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"{\\"summary\\":\\"ok\\",\\"blockers\\":[\\"still blocked\\"]}"}]}}\'',
 				"printf '%s\\n' 'diagnostic stderr' >&2",
 			].join("\n"),
@@ -504,13 +516,26 @@ describe("getPiInvocation", () => {
 
 		expect(result.summary).toBe("ok");
 		expect(result.blockers).toEqual(["still blocked"]);
-		const events = readFileSync(transcriptPath, "utf8")
+		const transcriptText = readFileSync(transcriptPath, "utf8");
+		expect(transcriptText).not.toContain("DO_NOT_PERSIST_FULL_PARTIAL_");
+		const events = transcriptText
 			.trim()
 			.split("\n")
 			.map((line) => JSON.parse(line) as { type: string; [key: string]: unknown });
 		expect(events).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({ type: "started", role: "workstream", command: scriptPath }),
+				expect.objectContaining({
+					type: "started",
+					transcriptFormatVersion: 2,
+					messageUpdateEncoding: "delta-only",
+					role: "workstream",
+					command: scriptPath,
+					args: expect.arrayContaining(["--no-extensions", "--tools", "read,grep,find,ls"]),
+				}),
+				expect.objectContaining({
+					type: "stream_update",
+					assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta: "ok" },
+				}),
 				expect.objectContaining({ type: "stdout", line: expect.stringContaining('"message_end"') }),
 				expect.objectContaining({ type: "stderr", text: "diagnostic stderr\n" }),
 				expect.objectContaining({

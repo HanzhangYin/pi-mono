@@ -129,7 +129,18 @@ async function runPiRole(
 	promptPath: string,
 	invocationOptions: PiInvocationOptions = {},
 ): Promise<RoleRunResult> {
-	const args = ["--mode", "json", "-p", "--no-session", "--append-system-prompt", promptPath, `Task: ${input.task}`];
+	const args = [
+		"--mode",
+		"json",
+		"-p",
+		"--no-session",
+		"--no-extensions",
+		"--tools",
+		"read,grep,find,ls",
+		"--append-system-prompt",
+		promptPath,
+		`Task: ${input.task}`,
+	];
 	const invocation = getPiInvocation(args, invocationOptions);
 	const transcript = await createTranscriptWriter(input.transcriptPath);
 	let stdoutBuffer = "";
@@ -152,6 +163,8 @@ async function runPiRole(
 
 	transcript.write({
 		type: "started",
+		transcriptFormatVersion: 2,
+		messageUpdateEncoding: "delta-only",
 		timestamp: new Date().toISOString(),
 		role: input.role,
 		cwd: input.cwd,
@@ -181,7 +194,11 @@ async function runPiRole(
 
 			const processLine = (line: string) => {
 				const event = parseJsonObject(line);
-				if (!event) return;
+				if (!event) {
+					transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line });
+					return;
+				}
+				writePiJsonTranscriptEvent(transcript, event, line);
 				const activity = activityFromPiJsonEvent(event);
 				if (activity) {
 					emitActivity(activity.kind, activity.message, activity.detail);
@@ -205,7 +222,6 @@ async function runPiRole(
 				const lines = stdoutBuffer.split("\n");
 				stdoutBuffer = lines.pop() ?? "";
 				for (const line of lines) {
-					transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line });
 					processLine(line);
 				}
 			};
@@ -236,7 +252,6 @@ async function runPiRole(
 					const remainingStderr = proc.stderr.read();
 					if (remainingStderr) processStderrText(remainingStderr.toString());
 					if (stdoutBuffer.trim().length > 0) {
-						transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line: stdoutBuffer });
 						processLine(stdoutBuffer);
 					}
 					const resolvedCode = code ?? 0;
@@ -326,6 +341,28 @@ export async function createTranscriptWriter(
 			await closePromise;
 		},
 	};
+}
+
+function writePiJsonTranscriptEvent(
+	transcript: TranscriptWriter,
+	event: Record<string, unknown>,
+	originalLine: string,
+): void {
+	if (event.type !== "message_update") {
+		transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line: originalLine });
+		return;
+	}
+	const assistantMessageEvent = getObject(event.assistantMessageEvent);
+	if (!assistantMessageEvent) {
+		transcript.write({ type: "stdout", timestamp: new Date().toISOString(), line: originalLine });
+		return;
+	}
+	const { partial: _partial, ...compactAssistantMessageEvent } = assistantMessageEvent;
+	transcript.write({
+		type: "stream_update",
+		timestamp: new Date().toISOString(),
+		assistantMessageEvent: compactAssistantMessageEvent,
+	});
 }
 
 function parseStructuredJsonText(text: string): Record<string, unknown> | undefined {

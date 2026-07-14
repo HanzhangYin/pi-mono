@@ -11,6 +11,7 @@ import {
 	isShowResearchStatePrompt,
 	normalizeCoMathPrompt,
 	parseCancelResearchBatchPrompt,
+	parseCoMathSourceIntent,
 	parseNaturalResearchQuestion,
 	parseResearchBatchPrompt,
 	parseUserProvidedLiteratureSourcePrompt,
@@ -87,6 +88,44 @@ describe("co-math prompt routing helpers", () => {
 			expect(isShowLatestReportPrompt(prompt), prompt).toBe(false);
 			expect(isShowReportForPathPrompt(prompt), prompt).toBeUndefined();
 			expect(isShowLatestCoordinatorReportPrompt(prompt), prompt).toBe(false);
+		}
+	});
+});
+
+describe("local source-intake prompts", () => {
+	it("parses the minimal directory prompt", () => {
+		expect(parseCoMathSourceIntent("Look at the directory: /Users/example/math-problems and start")).toEqual({
+			pathInput: "/Users/example/math-problems",
+			remainingInstruction: "start",
+			kindHint: "directory",
+		});
+	});
+
+	it("supports quoted paths with spaces and relative sources", () => {
+		expect(parseCoMathSourceIntent('Please inspect the folder "../math sources/set one" and begin')).toEqual({
+			pathInput: "../math sources/set one",
+			remainingInstruction: "begin",
+			kindHint: "directory",
+		});
+		expect(parseCoMathSourceIntent("work from ./problems/input.tex and start")).toEqual({
+			pathInput: "./problems/input.tex",
+			remainingInstruction: "start",
+		});
+		expect(parseCoMathSourceIntent("inspect the directory problems and start")).toEqual({
+			pathInput: "problems",
+			remainingInstruction: "start",
+			kindHint: "directory",
+		});
+	});
+
+	it("does not interpret URLs, formulas, or report path commands as source intake", () => {
+		for (const prompt of [
+			"Look at https://example.test/paper and start",
+			"Investigate x/y as n tends to infinity",
+			"show report for path 2",
+			"look at the ratio x/y",
+		]) {
+			expect(parseCoMathSourceIntent(prompt), prompt).toBeUndefined();
 		}
 	});
 });

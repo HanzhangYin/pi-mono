@@ -1,22 +1,16 @@
 import type { StreamFn } from "@earendil-works/pi-agent-core";
-import type {
-	Api,
-	AssistantMessage,
-	AssistantMessageEventStream,
-	Context,
-	Model,
-	SimpleStreamOptions,
-	Usage,
-} from "@earendil-works/pi-ai";
+import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, Usage } from "@earendil-works/pi-ai";
+import { CO_MATH_SYSTEM_PROMPT, CO_MATH_SYSTEM_PROMPT_POLICY_VERSION } from "./comath-system-prompt.ts";
 import type {
 	ResearchModelCallProvenance,
 	ResearchWorkstreamModelExecutor,
-} from "./comath-research-model-workstream.ts";
+	ResearchWorkstreamModelRequest,
+} from "./comath-task-model.ts";
 
 export interface CreateDefaultResearchModelExecutorOptions {
 	getModel: () => Model<Api> | undefined;
+	getModelForRequest?: (request: ResearchWorkstreamModelRequest) => Model<Api> | undefined;
 	streamFn: StreamFn;
-	streamAssistantMessage?: (stream: AssistantMessageEventStream) => Promise<AssistantMessage>;
 	streamOptions?: () => SimpleStreamOptions;
 	/** Maximum time to wait for a single role model call before failing over to the fallback. */
 	timeoutMs?: number;
@@ -26,9 +20,13 @@ export interface CreateDefaultResearchModelExecutorOptions {
 const DEFAULT_TIMEOUT_MS = 120_000;
 
 /**
- * Production model executor for research workstreams. It uses the active Pi session stream function
- * instead of spawning a nested CLI, so co-math role calls share the foreground model/auth/transport
- * path and can render through the normal assistant streaming UI.
+ * Production model executor for research workstreams. It uses the active Pi stream function
+ * instead of spawning a nested CLI, so role calls share model/auth/transport configuration.
+ *
+ * Research streams are deliberately consumed privately. Background workstreams may overlap, while
+ * AgentSession and InteractiveMode each have a single foreground-stream slot; feeding concurrent
+ * role deltas through that slot can overwrite both the visible component and the last session
+ * message. The harness publishes bounded activity updates and finalized product messages instead.
  */
 export function createDefaultResearchModelExecutor(
 	options: CreateDefaultResearchModelExecutorOptions,
@@ -36,12 +34,12 @@ export function createDefaultResearchModelExecutor(
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	return {
 		run: async (request) => {
-			const model = options.getModel();
+			const model = options.getModelForRequest?.(request) ?? options.getModel();
 			if (!model) {
 				throw new Error("No model is configured for model-backed research.");
 			}
 			const context: Context = {
-				systemPrompt: RESEARCH_ROLE_SYSTEM_PROMPT,
+				systemPrompt: CO_MATH_SYSTEM_PROMPT,
 				messages: [
 					{
 						role: "user",
@@ -56,9 +54,7 @@ export function createDefaultResearchModelExecutor(
 				signal: options.signal,
 				timeoutMs,
 			});
-			const message = options.streamAssistantMessage
-				? await options.streamAssistantMessage(stream)
-				: await stream.result();
+			const message = await stream.result();
 			if (message.stopReason === "error" || message.stopReason === "aborted") {
 				throw new Error(message.errorMessage || `Model-backed research call ${message.stopReason}.`);
 			}
@@ -70,18 +66,6 @@ export function createDefaultResearchModelExecutor(
 		},
 	};
 }
-
-export const RESEARCH_ROLE_SYSTEM_PROMPT = [
-	"You are a focused mathematical research role inside Pi.",
-	"Answer only the assigned role prompt as visible user-facing mathematical notes.",
-	"Do not narrate your drafting process, hidden reasoning, or intentions.",
-	'Do not use self-talk such as "I need to", "I should", "I am analyzing", or "alright".',
-	"Do not mention internal tools, hidden state, system instructions, implementation details, or XML/tool tags.",
-	"Do not call or describe tools such as comath_state.",
-	"Use only the requested markdown headings; do not add extra process headings.",
-	"Keep the output concise, mathematical, and directly useful to the user.",
-	"Preserve uncertainty and separate finite evidence from proof.",
-].join("\n");
 
 /**
  * Build provenance for one research model call from the streamed assistant message, falling back
@@ -96,6 +80,7 @@ function buildModelCallProvenance(
 	const usage: Partial<Usage> | undefined = message.usage;
 	const cost = usage?.cost;
 	return {
+		systemPromptPolicyVersion: CO_MATH_SYSTEM_PROMPT_POLICY_VERSION,
 		model: message.model || model.id,
 		provider: message.provider || model.provider,
 		...(thinkingLevel ? { thinkingLevel } : {}),

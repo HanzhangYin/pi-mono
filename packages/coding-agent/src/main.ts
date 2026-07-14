@@ -45,18 +45,9 @@ import { SettingsManager } from "./core/settings-manager.ts";
 import { printTimings, resetTimings, time } from "./core/timings.ts";
 import { hasTrustRequiringProjectResources, ProjectTrustStore } from "./core/trust-manager.ts";
 import { runMigrations, showDeprecationWarnings } from "./migrations.ts";
-import {
-	CoMathHarness,
-	type CoMathResearchPhaseActivitySignal,
-	type CoMathResearchWorkstreamActivityEndInput,
-	type CoMathResearchWorkstreamActivityStartInput,
-	type CoMathResearchWorkstreamActivityUpdateInput,
-} from "./modes/comath/comath-harness.ts";
-import {
-	formatCoMathActivityElapsed,
-	formatCoMathResearchActivityStatus,
-	formatCoMathWelcome,
-} from "./modes/comath/comath-progress.ts";
+import { CoMathHarness, type CoMathResearchPhaseActivitySignal } from "./modes/comath/comath-harness.ts";
+import { createCoMathModelRouter } from "./modes/comath/comath-model-routing.ts";
+import { formatCoMathActivityElapsed, formatCoMathWelcome } from "./modes/comath/comath-progress.ts";
 import { createDefaultResearchModelExecutor } from "./modes/comath/comath-research-model-executor.ts";
 import { resolveCoMathSource } from "./modes/comath/comath-source.ts";
 import { getDefaultStatePath } from "./modes/comath/storage.ts";
@@ -115,9 +106,6 @@ function isTruthyEnvFlag(value: string | undefined): boolean {
 }
 
 interface CoMathInteractiveActivityBridge {
-	start(input: CoMathResearchWorkstreamActivityStartInput): void;
-	update(input: CoMathResearchWorkstreamActivityUpdateInput): void;
-	end(input: CoMathResearchWorkstreamActivityEndInput): void;
 	phase(signal: CoMathResearchPhaseActivitySignal): void;
 }
 
@@ -173,15 +161,6 @@ function createCoMathInteractiveActivityBridge(interactiveMode: InteractiveMode)
 		syncTicker();
 	};
 	return {
-		start(input) {
-			upsert(input.run.id, formatCoMathResearchActivityStatus(input));
-		},
-		update(input) {
-			upsert(input.run.id, formatCoMathResearchActivityStatus(input));
-		},
-		end(input) {
-			remove(input.runId);
-		},
 		phase(signal) {
 			if (signal.kind === "end") {
 				remove(signal.activityId);
@@ -894,17 +873,25 @@ export async function main(args: string[], options?: MainOptions) {
 			thinkingBudgets: session.agent.thinkingBudgets,
 			maxRetryDelayMs: session.agent.maxRetryDelayMs,
 		});
+		const coMathModelRouter = createCoMathModelRouter({
+			catalog: modelRegistry,
+			settings: settingsManager.getCoMathModels(),
+		});
+		for (const warning of coMathModelRouter.warnings) {
+			await sendCoMathNotice(warning, "warning");
+		}
 		const coMathModelExecutor = createDefaultResearchModelExecutor({
-			getModel: () => session.model,
+			getModel: () => undefined,
+			getModelForRequest: coMathModelRouter.getModelForRequest,
 			streamFn: session.agent.streamFn,
-			streamAssistantMessage: (stream) => session.streamAssistantMessage(stream),
 			streamOptions: coMathStreamOptions,
 		});
 		// Director planning/amendment, revision, and skeptic calls speak a JSON/structured protocol
 		// that is parsed into durable records and rendered as product text; their raw output must
 		// never stream into the conversation.
 		const coMathDirectorExecutor = createDefaultResearchModelExecutor({
-			getModel: () => session.model,
+			getModel: () => undefined,
+			getModelForRequest: coMathModelRouter.getModelForRequest,
 			streamFn: session.agent.streamFn,
 			streamOptions: coMathStreamOptions,
 		});
@@ -922,9 +909,6 @@ export async function main(args: string[], options?: MainOptions) {
 					}),
 				researchModelExecutor: coMathModelExecutor,
 				researchDirectorExecutor: coMathDirectorExecutor,
-				onResearchWorkstreamActivityStart: (input) => coMathActivityBridge?.start(input),
-				onResearchWorkstreamActivityUpdate: (input) => coMathActivityBridge?.update(input),
-				onResearchWorkstreamActivityEnd: (input) => coMathActivityBridge?.end(input),
 				onResearchPhaseActivity: (signal) => coMathActivityBridge?.phase(signal),
 				...(parsed.comathInitialSteps !== undefined ? { initialResearchStepCount: parsed.comathInitialSteps } : {}),
 				// Interactive real runs default to two independent research tasks at once; the harness

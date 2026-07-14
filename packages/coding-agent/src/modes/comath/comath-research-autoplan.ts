@@ -20,14 +20,15 @@ export function createCoMathResearchAutoPlan(problemText: string): CoMathResearc
 			slug: "small-examples-counterexamples",
 			title: "Small examples and counterexamples",
 			objective: `List initial examples for ${label} and note which support or obstruct the conjecture.`,
-			suggestedNextMove: "Compute or manually inspect small cases and look for modular obstructions.",
+			suggestedNextMove: "Compute or inspect representative small cases and look for structural obstructions.",
 			priority: 1,
 		},
 		{
 			slug: "direct-proof-attempt",
 			title: "Direct proof attempt",
 			objective: `Look for a direct proof strategy or obstruction for ${label}.`,
-			suggestedNextMove: "Check whether simple Euclid-style, congruence, or density arguments apply or fail.",
+			suggestedNextMove:
+				"Test the simplest structural arguments, isolate needed lemmas, and record where they fail.",
 			priority: 2,
 		},
 		{
