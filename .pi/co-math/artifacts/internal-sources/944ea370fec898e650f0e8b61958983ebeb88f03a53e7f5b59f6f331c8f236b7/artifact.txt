@@ -1,0 +1,37 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-148-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-147-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-147-1 · specialist · ARTIFACT f23a1212a1fd92edb8383d02697274f8439de20002f91d106054a32f017e057b
+000004	## Claims
+000005	- [computed] For \(i=j=p=2,c=6\), the accepted \(c=6\) Pieri/Smith output has quotient ranks \(1,1,2,1,1\) in degrees \(4,5,6,7,8\), respectively, and rank \(0\) in degrees \(9,\ldots,32\), with no torsion. Hence
+000006	  \[
+000007	  Q=J/\Lambda_+J\cong\mathbb Z^{1+1+2+1+1}=\mathbb Z^6.
+000008	  \]
+000009	  [artifact 162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126]
+000010	- [source-backed] With \(r=8,n-r=4,i=j=2\), one has \(a=\min(4-2,8-2)=2\), \(b=2\); the two source families generate \(J\), and each has \(\binom{a+b}{a}=6\) elements. [source-2, lines 1382-1421]
+000011	- [proved] The two generating families specialize to
+000012	  \[
+000013	  \mathcal F_{\rm top}=\{s_{22},s_{32},s_{42},s_{33},s_{43},s_{44}\},
+000014	  \qquad
+000015	  \mathcal F_{\rm bot}=\{s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222}\}.
+000016	  \]
+000017	  Since either six-element family generates \(J\), it induces a surjection \(\mathbb Z^6\twoheadrightarrow Q\cong\mathbb Z^6\). By the accepted indexed-family Nakayama criterion, its images are a \(\mathbb Z\)-basis of \(Q\); therefore no proper subfamily generates \(J\).
+000018	- [proved] The requested new \(i=j=p=2,c=6\) minimality corollary is established: both \(\mathcal F_{\rm top}\) and \(\mathcal F_{\rm bot}\) are minimal generating sets of \(J\).
+000019	
+000020	## Strategy
+000021	Sum the accepted degreewise ranks, then apply source-stated generation and the accepted indexed-family Nakayama criterion.
+000022	
+000023	## Gaps
+000024	None for this case-specific corollary.
+000025	
+000026	## Next
+000027	None.
+000028	
+000029	INTERNAL ATTEMPT research-attempt-research-plan-task-147-1 · critic · ARTIFACT b312dcb9519520c8fa5ac3848f6a249577467b5f3fdd2a798a5d00b29cff9a2d
+000030	## Critique
+000031	- claim-1: Supported by the accepted \(c=6\) artifact. The degreewise free ranks sum to \(1+1+2+1+1=6\); all remaining ranks and all torsion factors vanish. Thus \(Q\cong\mathbb Z^6\).
+000032	- claim-2: Correctly grounded by [source-2@L1382-L1421|claim=formal-document], together with the accepted parameter correspondence. Here \(a=b=2\), so each generating family has \(\binom42=6\) elements.
+000033	- claim-3: Correct. The two intervals specialize to the displayed six Schur classes. Generation gives \(\mathbb Z^6\twoheadrightarrow Q\cong\mathbb Z^6\), hence an isomorphism; therefore the quotient images form a basis and no proper subfamily generates \(J\).
+000034	- claim-4: The stated strategy reaches the exact requested target. Relative to the accepted computation, generation theorem, and indexed-family Nakayama criterion, the new \(i=j=p=2,c=6\) minimality corollary is established.
+000035	
+000036	## Required revisions
+000037	- None.

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-237-1",
+	"text": "## Findings\n- claim-1: Workspace provider record DOI `10.1112/jlms.12832` has abstract field: “We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.” [doi:10.1112/jlms.12832, lines 124-131]\n## Strategy\nNo sandbox action or durable-stream resolver was provided. The required byte-stream audit was not executed. External grounding exists: workspace provider, DOI `10.1112/jlms.12832`, abstract field [lines 124-131].\n\n## Gaps\nThe exact audit certificate is not established: no resolver manifest, twelve counts, code, stdout/stderr, exit status, task-owned artifact, locator, or digests were produced.\n\n## Next\nUnavailable without an executable sandbox action resolving the three specified persisted sources."
+}

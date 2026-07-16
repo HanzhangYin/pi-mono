@@ -1,0 +1,34 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-188-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-187-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-187-1 · specialist · ARTIFACT f97f166e3154530d78c82e6faf61c4b609601a009667ec2c3494494609a59fdf
+000004	## Claims
+000005	- [source-backed] The supplied source-29 full text states Lemma 2.5’s implication from a nonzero homogeneous syzygy to consistency of the decomposable equations, and defines tall right-hand sides as \(f_{\nu_B}\) and wide ones as \(0\). [doi:10.1112/jlms.12832, lines 176-189]
+000006	- [source-backed] The supplied text states Theorem 4.4’s inconsistency conclusion and Theorem 4.5 derives absence of the specified syzygy from Lemma 2.5 and Theorem 4.4. [doi:10.1112/jlms.12832, lines 473-502]
+000007	- [unsupported] The required complete formulas for equations (8)–(10) and all Definition 2.1 valid-tuple inequalities are not recoverable from the supplied source-29 passage: its equation displays and the inequalities following “with” are corrupted/truncated. [doi:10.1112/jlms.12832, lines 149-188]
+000008	- [unsupported] No supplied alternate-provider FULL-TEXT SOURCE supplies an uncorrupted bounded replacement excerpt containing all requested items.
+000009	- [unsupported] The requested target—one uncorrupted bounded full-text excerpt containing (8)–(10), complete Definition 2.1 inequalities, and the Lemma 2.5/Theorems 4.4–4.5 linkage—is **not established**.
+000010	
+000011	## Strategy
+000012	Compare the supplied ar5iv full-text block with alternate search records. Retain only legible theorem linkage; do not reconstruct truncated formulas.
+000013	
+000014	## Gaps
+000015	The only supplied 2024 full-text block is corrupt precisely at equations (8)–(10) and Definition 2.1. Crossref/arXiv candidate records do not provide an alternate uncorrupted full-text passage.
+000016	
+000017	## Next
+000018	Obtain a bounded full-text passage from a different provider or the publisher PDF/text, then transcribe the missing equations and all valid-tuple inequalities verbatim.
+000019	
+000020	INTERNAL ATTEMPT research-attempt-research-plan-task-187-1 · critic · ARTIFACT 358a08c82a33640a391ffeae8b517a17885d7c38e69dafd4a933eab1d1c668ee
+000021	## Critique
+000022	- claim-1: Supported for the limited linkage and tall/wide right-hand sides. The displayed syzygy and equation (10) remain truncated, so this does not supply the requested complete excerpt.
+000023	- claim-2: Supported. Theorem 4.4 applies to every valid tuple; \(N\le \min(j,n-r-i)\) and its complementary case are proof branches, not theorem hypotheses. Theorem 4.5 explicitly invokes Lemma 2.5 and Theorem 4.4.
+000024	- claim-3: Accurate diagnosis of the supplied ar5iv corruption, but it does not retrieve equations (8)–(10) or Definition 2.1’s complete inequalities.
+000025	- claim-4: Correct only as an inventory statement about the supplied search record. The 2024 full-text candidates are identical ar5iv content with the same digest; Crossref supplies metadata, and the other full-text source is the unrelated 2011 paper. No alternate-provider 2024 excerpt was obtained.
+000026	- claim-5: Correct. The requested target is **not established**. In particular, the strategy neither obtains the required uncorrupted excerpt nor fully distinguishes valid-tuple hypotheses from reductions used only inside the proof.
+000027	
+000028	## Repair certificates
+000029	- [source-refresh] Retrieve source-29 from a provider other than ar5iv—such as the native arXiv PDF/source or publisher PDF/HTML—and provide one bounded, digested excerpt containing verbatim: equations (8), (9), and (10); every inequality in Definition 2.1; Lemma 2.5; and Theorems 4.4–4.5. Include stable locators and identify separately (i) valid-tuple conditions inherited as theorem hypotheses and (ii) proof-only branches such as \(N\le\min(j,n-r-i)\) versus \(N>\min(j,n-r-i)\).
+000030	
+000031	## Required revisions
+000032	- Do not present the legible linkage as satisfying the full extraction task.
+000033	- Record that the alternate-provider requirement was attempted but not fulfilled.
+000034	- Explicitly state that “valid \(\varphi\)” is a theorem hypothesis whose complete content remains unavailable, whereas the \(N\)-inequalities in the proof of Theorem 4.4 are not additional theorem restrictions.

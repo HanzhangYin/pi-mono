@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-149-1",
+	"taskId": "research-plan-task-149",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The required new task-owned sandbox artifact was not returned; therefore no executable output, exit status, or stable artifact digest is available.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Consequently, the requested \\(c=6\\) rank-extraction capability certificate, and hence the conditional \\(i=j=p=2,c=6\\) minimality corollary, are not established in this repair.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "fc6056e9978faef774d6826064509e5cf9f37a8d5ed5a705b64ab03d41e8849a"
+}

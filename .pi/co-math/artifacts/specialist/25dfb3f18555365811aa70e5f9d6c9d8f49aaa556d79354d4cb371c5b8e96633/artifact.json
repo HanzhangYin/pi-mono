@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-216-1",
+	"text": "## Claims\n- [unsupported] The requested complete degreewise Pieri matrices, Smith forms, quotient ranks, torsion factors, and complementary unimodular minors for \\((i,j,p,c)=(2,2,4,4)\\) are not available from the supplied evidence.\n\n## Strategy\nThe sole supplied sandbox execution timed out (artifact `6023ed39d39a75b5f28a67cf9b2b7a6491f316c9bd96976ba5f2b60096efaacc`), so it yields no finite computation certificate.\n\n## Gaps\nNo successful task-owned computation artifact supplies the required matrices or Smith data in degrees \\(4,\\ldots,36\\).\n\n## Next\nThe requested target was **not established**."
+}

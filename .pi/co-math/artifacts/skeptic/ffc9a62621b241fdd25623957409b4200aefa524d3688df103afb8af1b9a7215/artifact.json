@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-287-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. The proof correctly specializes the accepted quotient-conjugation isomorphism, proves \\(v^\\vee=v\\), verifies \\(C^2=\\mathrm{id}\\), and identifies the conjugates of the residue classes in \\(G_L\\) exactly with those in \\(G_R\\), including \\(a=0\\)."
+}

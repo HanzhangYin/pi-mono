@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-72-1",
+	"taskId": "research-plan-task-72",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied record contains no fifteen-case table with the required conditions, column orders, selected rows, or matrices; hence the requested literal products cannot be reconstructed without invention.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e29f80c5e2cc3ef119d442186310e6d6c4809f49c1988a5b6dcfeaebc742af11"
+}

@@ -1,0 +1,63 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-260-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-259-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-259-1 · specialist · ARTIFACT 21f04342d6332b700f5f703152fc49da5a445ac1ef4be0c5e9e23eddf3b2de32
+000004	## Claims
+000005	- [source-backed] Schur functions are homogeneous of partition weight, and the Grassmannian quotient inherits this grading. [doi:10.1112/jlms.12832, lines 263-269]
+000006	- [source-backed] The involution \(\omega(s_\lambda)=s_{\lambda'}\) is a ring involution. [doi:10.1112/jlms.12832, lines 481-485]
+000007	- [proved] The requested corollary
+000008	  \[
+000009	  J_v/A_+J_v\cong J_{v^\vee}/A_+J_{v^\vee}
+000010	  \]
+000011	  is an integral graded isomorphism; it preserves torsion subgroups and every degreewise rank.
+000012	
+000013	## Strategy
+000014	Let \(A=\Lambda/I_{r,q}\), \(A^\vee=\Lambda/I_{q,r}\), and let
+000015	\[
+000016	\Omega:A\overset{\sim}{\longrightarrow}A^\vee,\qquad
+000017	\overline{s_\lambda}\longmapsto\overline{s_{\lambda'}}.
+000018	\]
+000019	Accepted quotient conjugation makes this well-defined, and accepted ideal correspondence gives
+000020	\(\Omega(J_v)=J_{v^\vee}\).
+000021	
+000022	Since \(|\lambda'|=|\lambda|\), \(\Omega\) is graded. Therefore it maps the positive-degree ideal onto the positive-degree ideal:
+000023	\[
+000024	\Omega(A_+)=A^\vee_+.
+000025	\]
+000026	Consequently,
+000027	\[
+000028	\Omega(A_+J_v)=\Omega(A_+)\Omega(J_v)
+000029	=A^\vee_+J_{v^\vee}.
+000030	\]
+000031	Thus \(\Omega|_{J_v}\) descends to an integral graded isomorphism
+000032	\[
+000033	\bar\Omega:J_v/A_+J_v\overset{\sim}{\longrightarrow}
+000034	J_{v^\vee}/A^\vee_+J_{v^\vee}.
+000035	\]
+000036	
+000037	For every degree \(d\), its restriction is an isomorphism of finitely generated abelian groups
+000038	\[
+000039	\bar\Omega_d:(J_v/A_+J_v)_d\overset{\sim}{\longrightarrow}
+000040	(J_{v^\vee}/A^\vee_+J_{v^\vee})_d.
+000041	\]
+000042	Hence it restricts to an isomorphism on integral torsion subgroups and induces equality of free ranks:
+000043	\[
+000044	\operatorname{Tor}(Q_d)\cong\operatorname{Tor}(Q^\vee_d),
+000045	\qquad
+000046	\operatorname{rank}_{\mathbb Z}Q_d=\operatorname{rank}_{\mathbb Z}Q^\vee_d.
+000047	\]
+000048	Therefore every certified degreewise indecomposables computation transfers unchanged, including torsion factors and ranks, to the conjugate case.
+000049	
+000050	## Gaps
+000051	None, conditional on the accepted quotient-conjugation and ideal-correspondence results.
+000052	
+000053	## Next
+000054	None.
+000055	
+000056	INTERNAL ATTEMPT research-attempt-research-plan-task-259-1 · critic · ARTIFACT 9dd1bc6a6da3752dbfeb65a8412ece84b5a84475a06fc4da0d8d5af5ef249954
+000057	## Critique
+000058	- claim-1: Correctly grounded. Homogeneity by partition weight and truncated multiplication imply the Grassmannian quotient is graded.
+000059	- claim-2: Correctly grounded and sufficient for the conjugation ring isomorphism.
+000060	- claim-3: The strategy proves the requested target, conditional on the accepted quotient-conjugation and ideal-correspondence results. Gradedness gives \(\Omega(A_+)=A^\vee_+\), hence \(\Omega(A_+J_v)=A^\vee_+J_{v^\vee}\), so the induced map is an integral graded isomorphism. In each degree it preserves element orders, therefore torsion subgroups and all primary/invariant factors, while equality of free \(\mathbb Z\)-ranks follows from the abelian-group isomorphism. Thus certified degreewise ranks and torsion data transfer to the conjugate case. No computation artifact is needed for this formal consequence.
+000061	
+000062	## Required revisions
+000063	- Clarify that the \(A_+\) appearing on the right side of the requested display means \(A^\vee_+\), the positive-degree ideal of \(A^\vee=\Lambda/I_{q,r}\). With that convention, the requested corollary is established.

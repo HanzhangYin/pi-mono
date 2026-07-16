@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-89-1",
+	"taskId": "research-plan-task-89",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral interval Schur/Pieri presentation, for \\(p=c=1\\) and \\(\\min(i,j)=3\\), the degree-\\(d+4\\) quotient by \\(A_+M\\) vanishes.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The required integral interval presentation and completeness of its \\(A_+\\)-product rows are invoked here, not independently source-grounded.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "1471aac447e29683693c9d5110be97156125400cf8ebaa0d615abf218f8607f3"
+}

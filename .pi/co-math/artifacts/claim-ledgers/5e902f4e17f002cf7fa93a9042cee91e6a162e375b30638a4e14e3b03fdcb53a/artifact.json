@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-79-1",
+	"taskId": "research-plan-task-79",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied snapshot `6f334d54dae132cc21b3cdc3474c8db8e2ed295b141f404fd92ab293199f96d8` reports a prior assertion about artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, but does not supply independently inspectable exact bytes, component-level line locators, or an immutable digest declaration for that target artifact.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "bd41f67557e1010d319d0d20102b38ec689509f4aef59c961e1eecfafc70d507"
+}

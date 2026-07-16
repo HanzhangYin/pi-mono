@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-55-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 and claim-2 concern the earlier arXiv:0809.2981v2 paper, not a full-text copy associated with DOI \\(10.1112/jlms.12832\\).\n- claim-3 correctly records missing evidence but does not establish the requested positive certificate.\n- No immutable full-text artifact, DOI linkage, integrity digest, indexed main-theorem passage, coefficient hypotheses, or exhaustive indexed audit of descriptions of \\(J_v/A_+J_v\\) is supplied.\n\n## Unresolved certificates\n- [proof-attempt] Ingest a verifiable full-text copy associated with DOI \\(10.1112/jlms.12832\\), identify it immutably with integrity metadata, and provide exact indexed passages stating the main theorem, all coefficient hypotheses, definitions of \\(J_v\\) and \\(A_+\\), and every description or equivalent formulation of \\(J_v/A_+J_v\\)."
+}

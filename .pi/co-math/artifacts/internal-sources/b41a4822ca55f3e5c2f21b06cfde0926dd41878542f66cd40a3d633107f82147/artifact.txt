@@ -1,0 +1,47 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-96-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-93-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-93-1 · specialist · ARTIFACT 9c0f6398ffa20d0628ed4d1e9ec47f3f1657402f3204583600e7f2fedf52c416
+000004	## Claims
+000005	- [proved] Conditional on task 85’s interval presentation and complete \(h_1\)-row hypothesis, for \(0\le k\le b=\min(i,j)\),
+000006	  \[
+000007	  M_{d+k}/L_k\cong\mathbb Z,\qquad [C_x]=(-1)^x[C_0]\quad(0\le x\le k),
+000008	  \]
+000009	  where \(C_x=P_{x,k-x}\). The isomorphism sends \([C_0]\) to \(1\).
+000010	- [proved] Put
+000011	  \[
+000012	  X_k=P_{k,0}=s_{((i+1)^k,i^{j-k})},\qquad
+000013	  Y_k=P_{0,k}=s_{(i^j,k)}.
+000014	  \]
+000015	  Then degreewise
+000016	  \[
+000017	  [X_k]=(-1)^k[Y_k],\qquad [Y_k]=(-1)^k[X_k].
+000018	  \]
+000019	  Thus the change-of-basis matrix from the horizontal endpoint basis \(([X_k])\) to the vertical endpoint basis \(([Y_k])\) is the \(1\times1\) matrix \(\bigl((-1)^k\bigr)\), for every \(0\le k\le b\).
+000020	- [proved] The requested truncated conditional target is established; no globalization claim is made.
+000021	
+000022	## Strategy
+000023	For \(k\ge1\), task 85 gives
+000024	\[
+000025	M_{d+k}=\bigoplus_{x=0}^k\mathbb ZC_x,\qquad
+000026	L_k=\sum_{x=0}^{k-1}\mathbb Z(C_x+C_{x+1}).
+000027	\]
+000028	Hence \(C_{x+1}=-C_x\) in the quotient, giving \([C_x]=(-1)^x[C_0]\). The homomorphism
+000029	\[
+000030	C_x\longmapsto (-1)^x\in\mathbb Z
+000031	\]
+000032	annihilates \(L_k\) and sends \(C_0\) to \(1\), proving that \([C_0]\) has infinite order and that the quotient is \(\mathbb Z\). For \(k=0\), \(L_0=0\) and \(M_d=\mathbb ZC_0\).
+000033	
+000034	## Gaps
+000035	The conclusion remains conditional on task 85’s invoked integral presentation and completeness of the \(h_1\)-row set. It concerns only degrees \(d,\ldots,d+b\), not the full quotient or ideal minimality.
+000036	
+000037	## Next
+000038	No further conclusion follows without a separate globalization argument.
+000039	
+000040	INTERNAL ATTEMPT research-attempt-research-plan-task-93-1 · critic · ARTIFACT fc2b706ef12dfc8326d7963708e52ef5e4f28b803c16e1bff6ef59a6b0722705
+000041	## Critique
+000042	- claim-1: Correct under task 85’s hypotheses. The relations \(C_x+C_{x+1}\) make the quotient cyclic, while \(C_x\mapsto(-1)^x\) descends to a left inverse sending \([C_0]\) to \(1\); hence no torsion remains and the quotient is \(\mathbb Z\). The \(k=0\) case is handled correctly.
+000043	- claim-2: Correct. Since \(Y_k=C_0\) and \(X_k=C_k\), claim-1 gives \([X_k]=(-1)^k[Y_k]\). Its inverse has the same scalar, so the degreewise change-of-basis matrix is \(\bigl((-1)^k\bigr)\).
+000044	- claim-3: Accurate. The strategy establishes exactly the requested conditional result for \(0\le k\le b\), and makes no globalization, full-quotient, or ideal-minimality claim.
+000045	
+000046	## Required revisions
+000047	- None.

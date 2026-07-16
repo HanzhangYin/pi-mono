@@ -1,0 +1,30 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-322-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-321-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-321-1 · specialist · ARTIFACT a2e33c5c923283e0dffecbb3f7efa6a2ba3a4144ac001da9bbdf20ac4af921e3
+000004	## Claims
+000005	- [source-backed] The supplied full text contains the Hopf identity \(\sum_{\lambda,\mu}(-1)^{|\lambda|}c_{\lambda,\mu}^{\nu}s_{\lambda'}s_\mu=0\) for \(\nu\ne\varnothing\); it does not state the requested \((\rho,a,b,j,q,r)\)-indexed bordered-determinant congruence. [doi:10.1112/jlms.12832, lines 702-705]
+000006	- [unsupported] The exact recovered statement required to determine the bordered matrix, its target congruence modulus, and its \(\rho,a,b,j,q,r\) hypotheses is absent from the supplied material.
+000007	- [proved] Therefore no checkable bordered Jacobi–Trudi certificate, Laplace-sign computation, shape-containment verification, or separate \(\rho=\varnothing\) and \(a=0\) analysis for the unnamed target can be given without inventing the target statement.
+000008	
+000009	## Strategy
+000010	The requested certificate depends on a literal identity and conventions not present here. The adjacent Hopf identity cannot be substituted for that missing statement.
+000011	
+000012	## Gaps
+000013	Missing: the exact congruence, modulus, parameter ranges, definitions of both indexed shapes, and prescribed bordered-matrix ordering.
+000014	
+000015	## Next
+000016	Provide the recovered task-313 statement verbatim; then the specified determinant certificate can be derived.
+000017	
+000018	
+000019	
+000020	INTERNAL ATTEMPT research-attempt-research-plan-task-321-1 · critic · ARTIFACT f40b642592733fd24a985d3bd9906fc2e9265c5cdaf2ad9a521b39f0cb642073
+000021	## Critique
+000022	- claim-1: Correctly distinguishes the adjacent Hopf identity from the missing bordered-determinant congruence. The Hopf identity cannot substitute for the requested statement.
+000023	- claim-2: Accurate but unsupported in the specialist output. The supplied task-owned audit independently records the missing formula, modulus, hypotheses, and ordering at `artifacts/internal-sources/ea8cbaa2ded18d838b01a8ac936e552d2ae74e352b2f091359aeb6fec148f783/artifact.txt@L17-L28`.
+000024	- claim-3: The conclusion is justified by underdetermination, but it does not satisfy the computation task. No matrix, row/column ordering, Laplace signs, minors, congruence, containment checks, or boundary cases were supplied. The named certificate remains **not established**.
+000025	
+000026	## Repair certificates
+000027	- [source-refresh] Retrieve the exact persisted task-313 statement verbatim, including the identity, parameter ranges, two indexed shapes, congruence modulus, \(h_0/h_k\) conventions, and prescribed bordered-matrix ordering.
+000028	
+000029	## Required revisions
+000030	- After that source refresh, provide the requested determinant proof exactly as stated, including all signs, minors, shape-containment checks, and separate treatments of \(\rho=\varnothing\) and \(a=0\). Do not infer the target from the Hopf identity or an adjacent bordered Jacobi–Trudi lemma.

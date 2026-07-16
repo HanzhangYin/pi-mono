@@ -1,0 +1,74 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-39-1",
+	"taskId": "research-plan-task-39",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The project documentation records the stronger statement \\(M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}\\) only as suspected, and says that a proof had eluded the authors. [source-6@L56-L72|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 56,
+						"end": 72
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "56: ## 3. Stronger suspected formulation\n57: \n58: Set \\(M=J_{v_{r,s,t,n}}\\), and let \\(\\Lambda_+\\) denote the positive-degree part of the ring of symmetric functions. The authors further conjecture that\n59: \n60: \\[\n61: M/\\Lambda_+M\n62: \\]\n63: \n64: requires \\(\\binom{a+b}{a}\\) generators. They suspect the stronger structural statement\n65: \n66: \\[\n67: M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}.\n68: \\]\n69: \n70: This is presented in prose rather than as a second numbered conjecture. The authors write that a proof had eluded them.\n71: \n72: **Primary-source location:** lines 1517–1552.",
+					"excerptSha256": "62179db4533208da5966c0cb9c30831e46c25e34a3491066b26e984c1e8ccb55",
+					"canonicalCitation": "[source-6@L56-L72|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Let \\(q=n-r\\), assume \\(a=1,b=2\\), and use the accepted integral Schur/Pieri presentation \\(Q=J_v/A_+J_v\\). Then \\(i,j\\ge2\\), \\(q-i,r-j\\ge1\\), \\(\\min(i,j)=2\\), and \\(\\min(q-i,r-j)=1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\[ x_0=s_{i^j},\\quad x_1=s_{(i+1,i^{j-1})},\\quad x_2=s_{((i+1)^2,i^{j-2})}, \\] \\[ y_1=s_{(i^j,1)},\\quad y_2=s_{(i^j,2)}. \\] In \\(Q\\), Pieri relations give \\[ \\bar x_1+\\bar y_1=0,\\qquad \\bar u+\\bar x_2+\\bar z=0,\\qquad \\bar u+\\bar z+\\bar y_2=0, \\] where \\(u=s_{(i+2,i^{j-1})}\\) is interpreted as \\(0\\) if outside the \\(q^r\\)-box and \\(z=s_{(i+1,i^{j-1},1)}\\). Hence \\[ \\bar y_1=-\\bar x_1,\\qquad \\bar y_2=\\bar x_2. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Consequently the two \\(a=1,b=2\\) proposed families \\[ F_1=(x_0,x_1,x_2),\\qquad F_2=(x_0,y_1,y_2) \\] have images related in \\(Q\\) by the unimodular diagonal matrix \\(\\operatorname{diag}(1,-1,1)\\). Thus either family is an integral basis of its span in \\(Q\\) exactly when the other is.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "**Uniform \\(a=1,b=2\\) elimination lemma.** In the accepted integral presentation of \\(Q\\), all Schur columns other than \\(x_0,x_1,x_2\\) admit integral unit-pivot elimination, with no residual relation on these three columns. Equivalently, \\[ Q\\cong\\mathbb Z\\bar x_0\\oplus\\mathbb Z\\bar x_1\\oplus\\mathbb Z\\bar x_2. \\]",
+			"classification": "conjectural",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e8fe9c38b08c3be61e393da2b8855bde1419ab70fa356b5f427aa80f45aa1b4f"
+}

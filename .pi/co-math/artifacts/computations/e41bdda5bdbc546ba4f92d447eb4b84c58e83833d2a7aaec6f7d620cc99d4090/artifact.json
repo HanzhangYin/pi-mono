@@ -1,0 +1,122 @@
+{
+	"attemptId": "research-attempt-research-plan-task-207-1",
+	"taskId": "research-plan-task-207",
+	"kind": "source-literal-search",
+	"summary": "Whole-source exact fixed-literal audit of persisted source-30; produce complete hit table and per-term counts, including zero counts.",
+	"result": {
+		"sourceId": "source-30",
+		"sourceLocator": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+		"sourceFileSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128",
+		"extractedTextSha256": "17124102e015b7d6bddcbf3dab82d41ee1b725269723f673223b932d37bd86ab",
+		"caseSensitive": false,
+		"terms": [
+			{
+				"term": "conjecture",
+				"lineHitCount": 11,
+				"occurrenceCount": 11,
+				"hits": [
+					{
+						"line": 202,
+						"text": "Actually, we conjecture that this smaller generating set for J_{v} in",
+						"occurrences": 1
+					},
+					{
+						"line": 206,
+						"text": "minimality conjecture, as explained in Section 4.5 , is that",
+						"occurrences": 1
+					},
+					{
+						"line": 938,
+						"text": "4.5. A minimality conjecture",
+						"occurrences": 1
+					},
+					{
+						"line": 942,
+						"text": "Conjecture 4.10 .",
+						"occurrences": 1
+					},
+					{
+						"line": 945,
+						"text": "Via computer, we have verified this conjecture for all bigrassmannian permutations",
+						"occurrences": 1
+					},
+					{
+						"line": 947,
+						"text": "In fact, Conjecture 4.10 indicates obstructions to short presentations of",
+						"occurrences": 1
+					},
+					{
+						"line": 949,
+						"text": "a family of ideals that would require a large number of generators if the conjecture is true.",
+						"occurrences": 1
+					},
+					{
+						"line": 955,
+						"text": "generators according to Conjecture 4.10 .",
+						"occurrences": 1
+					},
+					{
+						"line": 972,
+						"text": "Thus we conjecture that this abelian group M/\\Lambda_{+}M requires",
+						"occurrences": 1
+					},
+					{
+						"line": 978,
+						"text": "conjectured that the generating sets provided by Theorem 4.8",
+						"occurrences": 1
+					},
+					{
+						"line": 1247,
+						"text": "From Bruhat intervals to intersection lattices and a conjecture of Postnikov.",
+						"occurrences": 1
+					}
+				]
+			},
+			{
+				"term": "question",
+				"lineHitCount": 4,
+				"occurrenceCount": 4,
+				"hits": [
+					{
+						"line": 89,
+						"text": "Therefore, a basic question is to request more efficient generating",
+						"occurrences": 1
+					},
+					{
+						"line": 104,
+						"text": "The question of finding",
+						"occurrences": 1
+					},
+					{
+						"line": 1143,
+						"text": "5. A question",
+						"occurrences": 1
+					},
+					{
+						"line": 1144,
+						"text": "Question 5.1 .",
+						"occurrences": 1
+					}
+				]
+			},
+			{
+				"term": "problem",
+				"lineHitCount": 0,
+				"occurrenceCount": 0,
+				"hits": []
+			},
+			{
+				"term": "we ask",
+				"lineHitCount": 0,
+				"occurrenceCount": 0,
+				"hits": []
+			},
+			{
+				"term": "remains open",
+				"lineHitCount": 0,
+				"occurrenceCount": 0,
+				"hits": []
+			}
+		]
+	}
+}

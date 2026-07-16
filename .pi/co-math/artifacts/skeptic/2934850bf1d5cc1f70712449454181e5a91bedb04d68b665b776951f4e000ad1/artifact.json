@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-325-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- claim-1 is grounded by inspection of the complete supplied snapshot at artifact `645fe6f78a205f41d7b48b40116ea95bb1076558b298e93c4799d20dfa986433`, lines 1–30. The report accurately records that this source omits the task-313 excerpt and does not reconstruct it from source-2.\n- No parent theorem is claimed."
+}

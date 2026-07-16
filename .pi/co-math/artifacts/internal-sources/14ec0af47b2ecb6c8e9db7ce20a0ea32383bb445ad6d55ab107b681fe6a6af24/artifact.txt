@@ -1,0 +1,67 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-180-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-179-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-179-1 · specialist · ARTIFACT f279ff1b89b959f1fbce1a7e052179d2c72308fa4351fc209dfdd7e295e3704d
+000004	## Claims
+000005	- [computed] The accepted \(i=j=p=2,c=7\) computation gives \(Q=J_{2,7}/A_+J_{2,7}\) free of rank \(1,1,2,1,1\) in degrees \(4,5,6,7,8\), respectively, and zero thereafter, with no torsion. [artifact 0cb4505255df5a5b7c63937fc09205c75c5d4ffbbabb4a1f810117f6514d0918]
+000006	- [proved] With ordered quotient basis
+000007	  \[
+000008	  B=(\bar s_{22},\bar s_{32},\bar s_{42},\bar s_{33},\bar s_{43},\bar s_{44}),
+000009	  \]
+000010	  the first family \((s_{22},s_{32},s_{42},s_{33},s_{43},s_{44})\) has coordinate matrix \(I_6\), of determinant \(1\).
+000011	- [proved] The Pieri relations give
+000012	  \[
+000013	  \bar s_{221}=-\bar s_{32},\quad
+000014	  \bar s_{222}=\bar s_{33},\quad
+000015	  \bar s_{2211}=\bar s_{42},\quad
+000016	  \bar s_{2221}=-\bar s_{43},\quad
+000017	  \bar s_{2222}=\bar s_{44}.
+000018	  \]
+000019	  Hence the second family \((s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222})\) has coordinate matrix
+000020	  \[
+000021	  C=\begin{pmatrix}
+000022	  1&0&0&0&0&0\\
+000023	  0&-1&0&0&0&0\\
+000024	  0&0&0&1&0&0\\
+000025	  0&0&1&0&0&0\\
+000026	  0&0&0&0&-1&0\\
+000027	  0&0&0&0&0&1
+000028	  \end{pmatrix},
+000029	  \qquad \det C=-1.
+000030	  \]
+000031	  Thus it is unimodular.
+000032	- [proved] The requested target is established: both six-element families map to \(\mathbb Z\)-bases of \(J_{2,7}/A_+J_{2,7}\). No broader claim is made.
+000033	
+000034	## Strategy
+000035	Use the accepted Smith computation for the graded ranks, then reduce the low-degree complete Pieri rows to the basis \(B\); the two displayed coordinate matrices have determinants \(1\) and \(-1\).
+000036	
+000037	## Gaps
+000038	None for the stated finite \(c=7\) quotient-coordinate target.
+000039	
+000040	## Next
+000041	None.
+000042	
+000043	INTERNAL ATTEMPT research-attempt-research-plan-task-179-1 · critic · ARTIFACT 498b2bc5db35719495b4169e9be210424eb351e656a27653328bcf0919af7ac9
+000044	## Critique
+000045	- claim-1: Supported by the accepted internal artifact `0cb4505255df5a5b7c63937fc09205c75c5d4ffbbabb4a1f810117f6514d0918`. However, rank and torsion data alone do not identify the proposed quotient basis or its coordinates.
+000046	- claim-2: Circular as written: \(B\) is called an “ordered quotient basis” before this is certified. The determinant of \(I_6\) proves nothing unless the six classes in \(B\) are first shown to form an integral basis, for example by degreewise unimodular complementary minors or explicit Smith projection maps.
+000047	- claim-3: Conditional on \(B\) being a basis and on the five displayed quotient relations, the coordinate matrix is correct and \(\det C=-1\). But the Pieri rows or row combinations producing those relations are omitted, so the relations—and absence of a finite-index ambiguity—remain unsupported in this output.
+000048	- claim-4: The strategy would reach the requested target after the missing certificates are supplied, but the target is **not established by the specialist output as presented**. The identity and determinant computations are conditional on the unproved basis and quotient relations.
+000049	
+000050	## Repair certificates
+000051	- [proof-attempt] Using the artifact’s degree-\(d\) ordered bases, display the selected Pieri rows whose restrictions to the non-\(B\) columns have determinants
+000052	  \[
+000053	  \det(\varnothing)=1,\quad 1,\quad -1,\quad -1,\quad 1
+000054	  \]
+000055	  in degrees \(4,5,6,7,8\). With the recorded low-degree row ordering, candidate row sets are respectively
+000056	  \[
+000057	  \varnothing,\quad(1),\quad(1,2,3),\quad(1,2,4,5,7,8),\quad
+000058	  (1,15,9,2,14,11,3,5,6,7).
+000059	  \]
+000060	  The corresponding non-survivor columns are all columns except \(22\), \(32\), \((42,33)\), \(43\), and \(44\). Then explicitly reduce the five second-family classes to obtain the claimed signs and permutations.
+000061	- [computation] Execute a task-owned exact replay against artifact `0cb4505255df5a5b7c63937fc09205c75c5d4ffbbabb4a1f810117f6514d0918` that extracts the degree-\(4,\ldots,8\) bases and Pieri matrices, verifies the preceding minors, computes the six quotient-coordinate vectors for each family, and outputs \(I_6\), \(C\), and determinants \(1,-1\), with captured output, exit status, and stable digest.
+000062	
+000063	## Required revisions
+000064	- Replace the unsupported declaration that \(B\) is a basis with an explicit integral complement or Smith-coordinate certificate.
+000065	- Display the Pieri rows or exact row combinations proving all five quotient identities.
+000066	- Cite the accepted artifact at the coordinate-extraction step, not only for rank and torsion.
+000067	- Until these additions are made, state explicitly that the requested quotient-coordinate target remains unestablished by this output.

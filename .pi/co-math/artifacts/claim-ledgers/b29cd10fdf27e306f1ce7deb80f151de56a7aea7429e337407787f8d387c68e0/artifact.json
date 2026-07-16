@@ -1,0 +1,228 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-6-2",
+	"taskId": "research-plan-task-6",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(v=v_{r,s,t,n}\\), the paper conjectures that both Theorem 5.4 generating sets of \\(J_v\\) are minimal; each has \\(N=\\binom{a+b}{a}\\) elements, where \\(a=\\min(n-r-i,r-j)\\) and \\(b=\\min(i,j)\\). [source-6@L14-L27|claim=ordinary-document] [source-6@L35-L42|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 27
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}",
+					"excerptSha256": "b00b8c4064b078abf547da8c8cb820afc1f668892ac3cab690bd91b142f9ed81",
+					"canonicalCitation": "[source-6@L14-L27|claim=ordinary-document]"
+				},
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 35,
+						"end": 42
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "35: \n36: Each contains\n37: \n38: \\[\n39: \\binom{a+b}{a}\n40: \\]\n41: \n42: generators. “Minimal” means that no proper subset still generates \\(J_v\\).",
+					"excerptSha256": "69754c725242bc1cfb0cb87d4cd3e428c638a15d8356052c39f2c5595c5b0e6b",
+					"canonicalCitation": "[source-6@L35-L42|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The stronger proposed reduction is \\(J_v/\\Lambda_+J_v\\cong\\mathbb Z^{\\binom{a+b}{a}}\\); the authors report that a proof had eluded them. [source-6@L56-L72|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 56,
+						"end": 72
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "56: ## 3. Stronger suspected formulation\n57: \n58: Set \\(M=J_{v_{r,s,t,n}}\\), and let \\(\\Lambda_+\\) denote the positive-degree part of the ring of symmetric functions. The authors further conjecture that\n59: \n60: \\[\n61: M/\\Lambda_+M\n62: \\]\n63: \n64: requires \\(\\binom{a+b}{a}\\) generators. They suspect the stronger structural statement\n65: \n66: \\[\n67: M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}.\n68: \\]\n69: \n70: This is presented in prose rather than as a second numbered conjecture. The authors write that a proof had eluded them.\n71: \n72: **Primary-source location:** lines 1517–1552.",
+					"excerptSha256": "62179db4533208da5966c0cb9c30831e46c25e34a3491066b26e984c1e8ccb55",
+					"canonicalCitation": "[source-6@L56-L72|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "\\(\\Lambda\\) has Schur \\(\\mathbb Z\\)-basis, \\(I_{r,n-r}\\) is the ideal spanned by \\(s_\\lambda\\) with \\(\\lambda\\not\\subseteq(n-r)^r\\), and \\(\\Lambda/I_{r,n-r}\\) has basis \\(s_\\lambda\\) for \\(\\lambda\\subseteq(n-r)^r\\). [source-2@L1312-L1330|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1312,
+						"end": 1330
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1312: identities, we will work within a quotient of the {\\it ring of\n1313:   symmetric functions} with integral coefficients\n1314: $$\n1315: \\Lambda=\\Lambda_\\ZZ(x_1,x_2,\\ldots);\n1316: $$\n1317: see \\cite[Chapter 1]{Macdonald-symm-fns}, \\cite[Chapter 7]{Stanley-EC2}.\n1318: The $\\ZZ$-basis for $\\Lambda$ given by the Schur functions $s_\\lambda$ \n1319: has the property that the $\\ZZ$-submodule $I_{r,n-r}$ spanned by all $s_\\lambda$\n1320: with  $\\lambda \\not\\subseteq (n-r)^r$ forms an ideal, and the\n1321: map sending $s_\\lambda$ to $s_\\lambda(x_1,\\ldots,x_r)$ induces an isomorphism\n1322: $$\n1323: \\Lambda/I_{r,n-r} \\quad \\overset{\\sim}{\\longrightarrow} \\quad \\ZZ[\\xx]^{W_J}/\\ZZ[\\xx]^W_+ \\ZZ[\\xx]^{W_J} \n1324:                      \\quad \\left( \\cong H^\\star(G/P_J,\\ZZ) \\right) \n1325: $$\n1326: Thus $H^\\star(G/P_J,\\ZZ)$ has $\\ZZ$-basis given by \n1327: $$\n1328: \\{ \\sigma_w: w \\in W^J \\}\n1329: %  =   \\{ \\schubp_w: w \\in W \\text{ is }r-\\text{grassmannian} \\}\n1330:   = \\{s_\\lambda: \\lambda \\subseteq (n-r)^r \\}.",
+					"excerptSha256": "950c8bdd7c2419db69aff3f553acd3b3387774a9e67b0929ce511076b76f63c9",
+					"canonicalCitation": "[source-2@L1312-L1330|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The supplied paper states that \\(J_v\\) is generated in \\(\\Lambda/I_{r,n-r}\\) by each of the two explicitly bounded Schur lists \\(i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\) and \\(i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\). [source-2@L1390-L1400|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1390,
+						"end": 1400
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1390: Then $J_v$ is generated as an ideal of \n1391: $H^{\\star}(G/P_J, {\\mathbb Z})\\cong \\Lambda/I_{r,n-r}$ by \n1392: \\begin{equation}\n1393: \\label{generating-set-one}\n1394: \\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq ((i+a)^b,i^{j-b}) \\}.\n1395: \\end{equation}\n1396: \n1397: Alternatively, $J_v$ is generated by \n1398: \\begin{equation}\n1399: \\label{generating-set-two}\n1400: \\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (i^j,b^a) \\}.",
+					"excerptSha256": "fbdeeb6b38f1850c20be1244cff72b5075736825af02cd93a40f174ad5372ddf",
+					"canonicalCitation": "[source-2@L1390-L1400|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The reported finite verification range is all bigrassmannian permutations with \\(r\\le4\\) and \\(n-r\\le5\\); this is finite evidence, not a universal proof. [source-6@L46-L54|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 46,
+						"end": 54
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "46: ## 2. Evidence reported by the authors\n47: \n48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]\n53: \n54: **Primary-source location:** lines 1501–1502.",
+					"excerptSha256": "9fe1db2374940bdad6459339c8767cafd54e7f1ea4a5ba5b4bb8710ff9de4109",
+					"canonicalCitation": "[source-6@L46-L54|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "The only nonlocal search candidate with an abstract, “Model Reduction for Switched Differential-Algebraic Equations with Known Switching Signal,” concerns switched differential-algebraic equations and model reduction, not symmetric functions, Schubert ideals, indecomposables, or \\(\\operatorname{Tor}_0^\\Lambda\\); it supplies no applicable theorem. [doi:10.52825/dae-p.v3i.688]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-6"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.52825/dae-p.v3i.688",
+						"externalId": "10.52825/dae-p.v3i.688",
+						"url": "https://doi.org/10.52825/dae-p.v3i.688"
+					},
+					"excerpt": "Model Reduction for Switched Differential-Algebraic Equations with Known Switching Signal\nBuilding on our recently proposed model reduction methods for switched ordinary linear systems, we propose a comprehensive model reduction method for linear switched differential-algebraic equations (DAEs). In contrast to most other available model reduction methods for switched systems, we consider the switching signal as a given time-variance of the system. This allows us to exploit certain linear subspaces in the reduction process and also provide in general significantly smaller reduced models compared to methods which consider arbitrary switching signals. Model reduction for switched DAEs has some unique features that make a generalization of the available methods nontrivial; in particular, the presence of jumps and Dirac impulses in response to switches have to be carefully treated. Furthermore, due to the algebraic constraints, the reachability subspaces cannot be the full space, hence a straightforward application of balanced truncation is not possible (because the corresponding reachability Gramians will be structurally non-invertible). We resolve this problem by first applying an exact model reduction which reduces the switched DAE to a switched ordinary system with jumps and which carefully keeps track of the impulsive effects. As a second step, we then apply a midpoint balanced truncation approach to further reduce the switched system. In addition to the challenge to appropriately take into account the Dirac impulses, another novel challenge was the occurrence of input-dependent state-jumps. We propose to deal with input-dependent jumps by combining certain discrete-time reachability Gramians with continuous-time reachability Gramians. We provide corresponding Matlab implementations of the proposed algorithms and illustrate their effectiveness with some academic examples.",
+					"excerptSha256": "61fcb14486138ad129a6420f3ad78fc28ff73314ad5569a52e066eed938835e4",
+					"canonicalCitation": "[doi:10.52825/dae-p.v3i.688]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "If an abelian group \\(Q\\) is spanned by \\(N\\) elements and \\(\\dim_{\\mathbb Q}(Q\\otimes\\mathbb Q)=N\\), then \\(Q\\cong\\mathbb Z^N\\): the surjection \\(\\mathbb Z^N\\to Q\\) has kernel \\(K\\); tensoring gives \\(\\mathbb Q^N\\to Q\\otimes\\mathbb Q\\) an isomorphism, so \\(K\\otimes\\mathbb Q=0\\); since \\(K\\subseteq\\mathbb Z^N\\) is torsion-free, \\(K=0\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "Establishing \\(\\dim_{\\mathbb Q}(J_v/\\Lambda_+J_v\\otimes\\mathbb Q)=\\binom{a+b}{a}\\) would prove the stronger proposed freeness statement and hence minimality of either displayed \\(N\\)-element generating set.",
+			"classification": "conjectural",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-9",
+			"text": "No retrieved exact external theorem statement computes \\(J_v/\\Lambda_+J_v\\), \\(\\operatorname{Tor}_0^\\Lambda(\\mathbb Z,J_v)\\), or the relevant graded Betti numbers.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "bdb6665037fd8327a425415250b1009542a539b0d1ea3a366b134e06d9e273e2"
+}

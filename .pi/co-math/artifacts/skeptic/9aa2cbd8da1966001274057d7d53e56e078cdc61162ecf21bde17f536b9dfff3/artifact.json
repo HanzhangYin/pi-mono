@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-99-1",
+	"text": "## Verdict\nrejected\n\n## Concerns\n- claim-1 supplies only metadata and abstract-level evidence; it cannot support source ingestion.\n- claim-2 confirms that the required full text, registry identifier, digest, and stable locators are all absent. Thus the requested target is explicitly **not established**.\n\n## Unresolved certificates\n- [proof-attempt] Ingest a stable full-text copy of DOI `10.1112/jlms.12832` into the source registry and record its immutable source ID, file digest, stable bibliographic locator, and stable page or normalized-line locators for the exact theorem."
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-236-1",
+	"text": "## Claims\n\n## Strategy\nNo sandbox action or durable-byte-stream resolver was provided, so no audit was executed.\n\n## Gaps\nThe requested target is **not established**: the resolver manifest, twelve counts, code output, exit status, locator, and artifact digests could not be persisted without an executable sandbox action.\n\n## Next\nUnavailable."
+}

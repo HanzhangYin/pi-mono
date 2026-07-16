@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-243-1",
+	"taskId": "research-plan-task-243",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested computation was not established: the supplied `partition-pieri` primitive rejected degrees \\(31,\\ldots,35\\) because they exceed \\(|[5^6]|=30\\); no task-owned artifact or labelled-row comparison was produced.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "75c843e3800a769cc57d465b28b7a9ef1cf1a8d87604195faf5ac6ecdd4f81bb"
+}

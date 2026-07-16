@@ -1,0 +1,256 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-200-1",
+	"taskId": "research-plan-task-200",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "L69 — **prior proposition:** “see also [ C92 , Cor. 4.4] and [ GR02 , Prop. 2.1]”; it supports the ensuing cell-decomposition presentation and surjection \\(H^\\star(G/B)\\to H^\\star(X_w)\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 67-84]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 67,
+							"end": 84
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "67: The above facts lead to an a priori presentation\n68: for H^{\\star}(X_{w}); see also [ C92 , Cor. 4.4] and\n69: [ GR02 , Prop. 2.1] : The Schubert variety X_{w} is the\n70: union of the Schubert cells X_{u}^{\\circ} for which u\\leq w in the\n71: (strong) Bruhat order ; hence it inherits a cell decomposition\n72: from the flag variety. Consequently, the map on cohomology\n73: H^{\\star}(G/B)\\rightarrow H^{\\star}(X_{w})\n74: induced by including X_{w}\\hookrightarrow G/B is surjective\n75: with kernel\n76: (1.2)\n77: I_{w}:=\\Bbbk\\text{-span of }\\{\\sigma_{u}:u\\not\\leq w\\}.\n78: This gives rise to presentations\n79: (1.3)\n80: \\displaystyle H^{\\star}(X_{w})\n81: \\displaystyle\\cong H^{\\star}(G/B)/I_{w}\n82: \\displaystyle\\text{ working over }{\\mathbb{Z}}\n83: \\displaystyle\\cong\\Bbbk[V]/\\left(I_{w}+\\Bbbk[V]^{W}_{+}\\right)\n84: \\displaystyle\\text{ working over }\\Bbbk.",
+					"excerptSha256": "b572f6f8efa34f8948100108747d8aa35f128d6991394d7763fe71e24a602611",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 67-84]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "L91 — **prior result:** “[ GR02 ] reduced the \\(|W|=n!\\) upper bound … to a polynomial bound of \\(n^2\\)” for varieties defined by inclusions. [doi:10.1090/s0002-9947-2010-05163-3, lines 89-103]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 89,
+							"end": 103
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "89: Therefore, a basic question is to request more efficient generating\n90: sets for I_{w}. For type A_{n-1}, earlier work\n91: [ GR02 ] reduced the |W|=n! upper bound on the number\n92: of generators for I_{w} to a polynomial bound of n^{2} for the class\n93: of Schubert varieties X_{w} defined by inclusions ; this class\n94: includes all smooth X_{w}. Moreover, for a certain subclass of smooth\n95: Schubert varieties X_{w} considered originally by Ding\n96: [ D97 , D01 ] , they gave a smaller generating set for these I_{w}\n97: having only n generators. This latter result was applied in\n98: [ DMR07 ] to classify these varieties up to\n99: isomorphism and homeomorphism (the generating set ( 1.2 )\n100: having proved too unwieldy). One motivation for this work arises from\n101: the desire to extend this classification to general Schubert varieties of\n102: type A. Experience suggests that presentations for I_{w} that are\n103: as simple as possible are best for this purpose.",
+					"excerptSha256": "3bf6dd285f9733cc876d4258493f19d76034a76477c88a2c314af314496e12b4",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 89-103]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "L200 — **comparison/subsumption claim:** the paper’s result “subsumes (and slightly improves upon; see Example 4.9) the generating set of size \\(n^2\\) given by [ GR02 ].” [doi:10.1090/s0002-9947-2010-05163-3, lines 194-205]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 194,
+							"end": 205
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "194: Therefore, concatenating these generating sets for J_{v} gives a generating set for\n195: (1.6)\n196: I_{w}=\\sum_{v\\in{\\mathcal{E}}(w)}J_{v}\n197: that is smaller than the one provided by Theorem 1.1 .\n198: We remark that this result subsumes (and slightly improves upon;\n199: see Example 4.9 )\n200: the generating set of size n^{2} given by [ GR02 ]\n201: in the case of Schubert varieties defined by inclusions.\n202: Actually, we conjecture that this smaller generating set for J_{v} in\n203: type A is minimal (although the generating set ( 1.6 )\n204: for I_{w} obtained by concatenation is not always minimal; see\n205: Example 4.12 .) The significance of this",
+					"excerptSha256": "627ac42c4d1ce23595bbcb0f46c86ddf71550b2fb3fdcd64569b9f267889d71a",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 194-205]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "L727 — **conventions/bijection background:** “This bijection can be inferred from the discussion in [ FP98 ] and [ GR02 ] (our conventions are in line with those the latter text).” [doi:10.1090/s0002-9947-2010-05163-3, lines 722-730]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 722,
+							"end": 730
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "722: Example 4.7 .\n723: In order to be explicit about the bijection asserted in\n724: Proposition 4.6 , it will be convenient for us\n725: to use a slight adaptation of Fulton’s essential set. This bijection\n726: can be inferred from the discussion in [ FP98 ] and\n727: [ GR02 ] (our conventions are in line with those the\n728: latter text), and one also can thereby also give an explicit bijection\n729: between our essential set and Fulton’s essential set as originally\n730: defined.",
+					"excerptSha256": "ccedb4a3b1dc0e8458ce92100c82b58af47a29f4e88c0fe44a8d675fb293a9fe",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 722-730]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "L901 — **terminology attribution:** varieties for which all Schubert conditions are inclusions “were called Schubert varieties defined by inclusions in [ GR02 ].” [doi:10.1090/s0002-9947-2010-05163-3, lines 893-912]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 893,
+							"end": 912
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "893: Example 4.9 .\n894: We examine the special case where the bigrassmannian\n895: v:=v_{r,s,t,n} has t equal to r or s, so that the Schubert condition C_{r,s,t}\n896: in 4.1 becomes an inclusion\n897: V_{r}\\subseteq{\\mathbb{C}}^{s} or V_{r}\\supseteq{\\mathbb{C}}^{s}.\n898: Schubert varieties X_{w} in type A for which\n899: all Schubert conditions on X_{w} take one of these two forms\n900: were called Schubert varieties defined by inclusions in\n901: [ GR02 ] . That paper gave a presentation for the cohomology\n902: containing\n903: \\bullet\n904: for each inclusion condition V_{r}\\supseteq{\\mathbb{C}}^{s},\n905: a set of s generators for J_{v} of the form\n906: (4.7)\n907: \\{e_{m}(x_{1},\\ldots,x_{r})\\}_{m=r-s+1,r-s+2,\\ldots,r},\n908: \\bullet\n909: and for each inclusion condition V_{r}\\subseteq{\\mathbb{C}}^{s},\n910: a set of r generators for J_{v} of the form\n911: (4.8)\n912: \\{e_{m}(x_{r}+1,\\ldots,x_{n})\\}_{m=s-r+1,s-r+2,\\ldots,n-r}.",
+					"excerptSha256": "f368d78523ab0d5b5b11c09de060c27529794f281ef703db6a3f9252831ceb7f",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 893-912]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "L934 — **methodological commentary:** “the techniques utilized in [ GR02 ] seem very particular to the case where \\(X_w\\) is defined by inclusions.” [doi:10.1090/s0002-9947-2010-05163-3, lines 927-937]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 927,
+							"end": 937
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "927: Hence ( 4.6 ) says\n928: that J_{v} is generated by the set of a+1 Schur functions\n929: \\{s_{\\mu}:1^{r-s+1}\\subseteq\\mu\\subseteq 1^{a+r-s+1}\\}=\\{e_{m}(x_{1},\\ldots,x_{r})\\}_{m=r-s+1,r-s+2,\\ldots,a+r-s+1}\n930: which is exactly the first a+1=\\min(n-r,s) out of the s generators\n931: listed in ( 4.7 ). Hence Theorem 4.8\n932: provides a dramatic reduction in the size of the\n933: generating set for J_{v} whenever n-r is small compared to s.\n934: We remark also that the techniques utilized in [ GR02 ]\n935: seem very particular to the case where X_{w} is defined by inclusions.\n936: We do not know how to use them for some alternate approach\n937: to the case of general X_{w} considered in this paper.",
+					"excerptSha256": "168e45b7d3474896b91caf9cac8771298c7b6b757117aa51c67684ea0ad5b2cf",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 927-937]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "L1147 — **subclass reference:** the question names “[ GR02 , HLSS07 , OPY07 ]” as recently studied subclasses “where \\(I_w\\) can be generated by \\(n^2\\) elements.” [doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1160]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 1143,
+							"end": 1160
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "1143: 5. A question\n1144: Question 5.1 .\n1145: Can one find a minimal generating set for the ideal I_{w} in type A_{n-1}?\n1146: Can this at least be done for some of the\n1147: recently-studied subclasses [ GR02 , HLSS07 , OPY07 ]\n1148: where I_{w} can be generated by n^{2} elements, such as\n1149: \\bullet\n1150: when X_{w} is defined by inclusions , which occurs when w avoids the\n1151: patterns\n1152: \\{4231,35142,42513,351624\\},\n1153: \\bullet\n1154: or more restrictively, when X_{w} is smooth , which occurs when w avoids the\n1155: patterns\n1156: \\{3412,4231\\}?\n1157: It was mentioned in the introduction that for\n1158: a special subclass of smooth Schubert varieties X_{w} originally considered by Ding [ D97 , D01 ] ,\n1159: there is a known minimal (in fact, complete intersection) presentation for H^{*}(X_{w},{\\mathbb{Z}}) with n\n1160: relations that was exploited in [ DMR07 ] . Short presentations would be",
+					"excerptSha256": "f6ba000588454fbdcb6577fa9915cda6cfdb2def1ac0f71cb20ca84cec15e1d4",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1160]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "L1232 — **bibliography entry:** “[GR02] V. Gasharov and V. Reiner, *Cohomology of smooth Schubert varieties in partial flag manifolds*, *J. London Math. Soc.* 66 (2002), no. 3, 550–562.” [doi:10.1090/s0002-9947-2010-05163-3, lines 1232-1235]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 1232,
+							"end": 1235
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "1232: [GR02]\n1233: V. Gasharov and V. Reiner,\n1234: Cohomology of smooth Schubert varieties in partial flag manifolds.\n1235: J. London Math. Soc. 66 (2002), no. 3, 550–562.",
+					"excerptSha256": "0220c86a8cc79c40ac17aedf635b497462e58267184e1a8b3573a72c517f6fba",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 1232-1235]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "d4b82e0154113cc98c8f0352c376d05b12919ce6e58e994417f58bb4e9808bb9"
+}

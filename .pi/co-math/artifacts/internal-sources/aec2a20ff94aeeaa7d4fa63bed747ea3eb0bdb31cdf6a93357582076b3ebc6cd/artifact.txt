@@ -1,0 +1,29 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-116-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-115-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-115-1 · specialist · ARTIFACT 3cdee0d3d5f0e036ab805bde7462d7cda73f8679a1caa876928ac97f875adffd
+000004	## Claims
+000005	- [computed] The specified `partition-pieri` execution failed with exit status \(1\): `ValueError("unit-minor search exceeds the certified minor bound")`. [artifact d272ad758a969084cf65e9295531bfa1696964265e931363e1a339ff5f16952f]
+000006	- [computed] A second supplied execution failed identically with exit status \(1\). [artifact d05ff74175533541ec5fc597bb269e1e53b6441f8a8e32a6c13345828a600a6b]
+000007	- [unsupported] No successful task-owned artifact supplies the required ordered bases, complete Pieri rows, Smith data, quotient ranks, torsion decompositions, or boundary vanishing for \([2,2,0,0,0]\subseteq\lambda\subseteq[4,4,4,4,4]\).
+000008	
+000009	## Strategy
+000010	The requested primitive was attempted, but its exact-invariant routine exceeded its certified minor bound before producing complete output.
+000011	
+000012	## Gaps
+000013	The successful exit-\(0\) computation artifact, stable digest, and all required degreewise data for degrees \(4,\ldots,20\), including vanishing for \(e<4\) and \(e>20\), are unavailable.
+000014	
+000015	## Next
+000016	This bounded \(4^5\) computation certificate is not established.
+000017	
+000018	INTERNAL ATTEMPT research-attempt-research-plan-task-115-1 · critic · ARTIFACT 3e13a7489c46ba53916583aca639b80185df37d278c802fbf58d4a4374db933d
+000019	## Critique
+000020	- claim-1: Unsupported. The artifact contents, executable code, captured error output, and exit record are not supplied, so the asserted failure cannot be independently checked.
+000021	- claim-2: Unsupported for the same reason.
+000022	- claim-3: Consistent with the supplied evidence: no successful exit-\(0\) artifact or required degreewise data appear. The failed strategy therefore does not satisfy the named certificate.
+000023	
+000024	## Repair certificates
+000025	- [computation] Execute exact code on `lower=[2,2,0,0,0]`, `upper=[4,4,4,4,4]`, `degrees=[4,...,20]`, and `hDegrees=[1,2,3,4]`. Persist one exit-\(0\) task-owned artifact containing the code, explicit inputs, complete captured output, stable digest, and—for every degree—ordered basis, every source-labelled Pieri row and coefficient vector, matrix dimensions, exact Smith diagonal, quotient free rank, and torsion decomposition. Include the empty-row case at degree \(4\) and explicit vanishing for degrees below \(4\) and above \(20\).
+000026	
+000027	## Required revisions
+000028	- Supply the successful artifact itself rather than unsupported descriptions of failed executions.
+000029	- Conclude only whether this bounded \(4^5\) computation certificate is established.

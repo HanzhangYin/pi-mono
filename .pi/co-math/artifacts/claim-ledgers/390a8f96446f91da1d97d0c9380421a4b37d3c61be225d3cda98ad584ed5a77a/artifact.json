@@ -1,0 +1,66 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-164-1",
+	"taskId": "research-plan-task-164",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested source-30/source-29 extraction and exhaustive labelled-item list are not established: source-30 is not a citable indexed file, and no citable full text for source-29 was supplied.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Source-2 defines labelled `conjecture` and `question` theorem environments, but this does not establish source-30’s contents or exhaustiveness. [source-2, lines 22-34]",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "non-evidence-region",
+					"message": "Source source-2 lines 22-34 are not an evidence region.",
+					"sourceId": "source-2",
+					"lines": {
+						"start": 22,
+						"end": 34
+					}
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-2 is source-backed but has no valid exact source locator."
+				}
+			]
+		},
+		{
+			"id": "claim-3",
+			"text": "The 2024 candidate’s abstract metadata says “We prove the minimality conjecture,” but no full-text theorem passage is supplied; it cannot determine source-29 status for any source-30 item. [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://doi.org/10.1112/jlms.12832"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "8c29f5549f3192cd46cf72eb6d29815b5e89ab61dce9405c33b37970f108d2a8"
+}

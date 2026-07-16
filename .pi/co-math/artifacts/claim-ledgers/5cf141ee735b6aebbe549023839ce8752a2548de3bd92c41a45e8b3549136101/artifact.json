@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-68-1",
+	"taskId": "research-plan-task-68",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral \\(q^r\\)-box Schur basis and integral Pieri rule, the requested exhaustive degree-\\(d+3\\) certificate is established for \\(i,j\\ge2\\), \\(p,c\\ge1\\), \\(\\min(p,c)=1\\): all \\(p=2,c=2,i=2,j=2\\) threshold deletions are included, the independently enumerated \\(R_{\\rm full}\\) is displayed below, and \\(R_{\\rm full}=\\mathcal C R_{\\rm selected}\\) is checked by unit minors and explicit row coordinates. This proves no parent theorem.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "f0efb4a0b4881180d676abd69c4449a3f4762cea5341161446fda9308e473d3e"
+}

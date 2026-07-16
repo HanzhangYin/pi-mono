@@ -1,0 +1,74 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-26-1",
+	"taskId": "research-plan-task-26",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(r,q\\ge1\\), with \\(A=\\Lambda/I_{r,q}\\) the \\(q^r\\)-box quotient, \\[ A\\cong\\mathbb Z[h_1,\\ldots,h_q]/(e_{r+1},\\ldots,e_{r+q}), \\] where \\(E(-t)H(t)=1\\). Indeed, \\[ I_{r,q}=(h_{q+1},h_{q+2},\\ldots,e_{r+1},\\ldots,e_{r+q}). \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For the \\(i=j=1\\) case, \\(J_v=A_+\\), and, with \\(m=\\min(r,q)\\), \\[ A_+/A_+^2\\cong\\bigoplus_{k=1}^{m}\\mathbb Z\\,\\overline h_k\\cong\\mathbb Z^m. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "In \\(A_+/A_+^2\\), \\[ \\overline e_k=(-1)^{k-1}\\overline h_k\\qquad(1\\le k\\le m). \\] Hence both \\(\\{h_1,\\ldots,h_m\\}\\) and \\(\\{e_1,\\ldots,e_m\\}\\) map to integral bases.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The two specialized families are \\[ \\{h_1,\\ldots,h_m\\},\\qquad \\{e_1,\\ldots,e_m\\}; \\] each minimally generates \\(J_v=A_+\\). Thus the \\(i=j=1\\) family, equivalently \\(v_{r,r,r,r+q}\\) for \\(r,q\\ge1\\), is settled.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The supplied project documentation records the corresponding free-indecomposables assertion as only suspected in the general rectangular case. [source-6@L56-L70|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 56,
+						"end": 70
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "56: ## 3. Stronger suspected formulation\n57: \n58: Set \\(M=J_{v_{r,s,t,n}}\\), and let \\(\\Lambda_+\\) denote the positive-degree part of the ring of symmetric functions. The authors further conjecture that\n59: \n60: \\[\n61: M/\\Lambda_+M\n62: \\]\n63: \n64: requires \\(\\binom{a+b}{a}\\) generators. They suspect the stronger structural statement\n65: \n66: \\[\n67: M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}.\n68: \\]\n69: \n70: This is presented in prose rather than as a second numbered conjecture. The authors write that a proof had eluded them.",
+					"excerptSha256": "afa1647d3d1ea7882118913c77de6fe917f975092477e0e412d487c7c59f5e08",
+					"canonicalCitation": "[source-6@L56-L70|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "02d79b902f482732834fb97655259dc9716d5068f088c7c10eedeb963c23ac0e"
+}

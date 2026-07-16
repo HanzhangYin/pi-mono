@@ -1,0 +1,27 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-80-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-79-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-79-1 · specialist · ARTIFACT 61ce99c2cfc6948b4bcee3600405ba1cfd57712cea77e23d2577ffb0e4986deb
+000004	## Claims
+000005	- [unsupported] The supplied snapshot `6f334d54dae132cc21b3cdc3474c8db8e2ed295b141f404fd92ab293199f96d8` reports a prior assertion about artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, but does not supply independently inspectable exact bytes, component-level line locators, or an immutable digest declaration for that target artifact.
+000006	
+000007	## Strategy
+000008	The target artifact itself was not available as an inspectable source record; no reconstruction or inference was attempted.
+000009	
+000010	## Gaps
+000011	Missing: exact target bytes; provenance subrange; opening-hypotheses subrange; equation-(1) subrange; fifteen table-(4) entry subranges; immutable digest-declaration subrange.
+000012	
+000013	## Next
+000014	This source certificate is not established.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-79-1 · critic · ARTIFACT 425fb7f50175c0da270a153c2c896a1e1646ebad1212b1c0288b831114a048b5
+000017	## Critique
+000018	- claim-1: Correctly classified as unsupported. Neither the target artifact’s exact bytes nor an independently retrievable source is supplied, so the asserted contents and omissions cannot be independently checked. The strategy appropriately avoids reconstruction, but does not satisfy any substantive acceptance criterion. The named source certificate remains unestablished; no parent-theorem conclusion follows.
+000019	
+000020	## Repair certificates
+000021	- [source-refresh] Supply one independently retrievable, byte-exact grounding record for artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, with stable bounded line locators and exact excerpts for: provenance linking `research-attempt-research-plan-task-68-1` and embedded artifact `a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67`; every opening hypothesis; equation (1); each of the fifteen entries of table (4); and the immutable digest declaration.
+000022	
+000023	## Required revisions
+000024	- Identify a stable retrieval location and specify the byte-preserving representation, including encoding and line-ending convention.
+000025	- Provide separate bounded locators for every required component, including each table-(4) entry and every stated hypothesis or theorem.
+000026	- If the target remains unavailable or omits any component, state that limitation explicitly rather than inferring or reconstructing text.
+000027	- Conclude only whether this source certificate is established.

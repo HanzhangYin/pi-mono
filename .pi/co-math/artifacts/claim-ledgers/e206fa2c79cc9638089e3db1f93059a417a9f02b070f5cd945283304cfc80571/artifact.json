@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-114-1",
+	"taskId": "research-plan-task-114",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "No successful task-owned computation artifact for the specified five-row interval is supplied; all three supplied executions exited nonzero.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "c6d3b6a1f0c30a857e4490f9fc018dedbf66681f4ddd62274fb4445ad2795c05"
+}

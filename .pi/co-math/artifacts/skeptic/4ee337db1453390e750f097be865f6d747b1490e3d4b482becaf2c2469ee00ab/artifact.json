@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-104-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is proved correctly from the Schur-basis box definition.\n- claim-2 proves \\(J_{1,1}\\subseteq\\phi(J_{p,c})\\), but does not explicitly prove the reverse inclusion. The exact Schur-basis definition of \\(J_{p,c}\\) is not stated, nor is the image of every basis class computed.\n\n## Unresolved certificates\n- [proof-attempt] State the Schur-basis formula for \\(J_{p,c}\\) and show basiswise that classes outside \\((i+1)^{j+1}\\) map to \\(0\\), while all remaining classes lie in \\(J_{1,1}\\); then the asserted restriction and descent follow."
+}

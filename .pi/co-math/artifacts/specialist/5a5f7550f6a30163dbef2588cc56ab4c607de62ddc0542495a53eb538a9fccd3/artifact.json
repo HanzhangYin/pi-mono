@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-322-1",
+	"text": "## Claims\n- [source-backed] Source-2 gives only the distinct \\((i,k,\\mu)\\)-bordered Jacobi–Trudi lemma and its matrix construction. [source-2, lines 1697-1742]\n- [unsupported] No supplied exact statement defines the requested \\((\\rho,a,b,j,q,r)\\)-indexed congruence, its modulus, two shapes, or bordered-matrix order.\n- [proved] Therefore the requested determinant certificate cannot be established without inventing its target statement.\n\n## Strategy\nThe available bordered lemma cannot be substituted, per scope. Its hypotheses and indexing differ from the requested certificate.\n\n## Gaps\nMissing recovered statement: parameter ranges, determinant identity/congruence, modulus, row/column order, and the two indexed shapes.\n\n## Next\nProvide the exact persisted task-313 statement with bounded source locators."
+}

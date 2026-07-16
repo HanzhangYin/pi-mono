@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-70-1",
+	"text": "## Claims\n- [source-backed] The supplied records identify `sources/0809.2981v2.tex` as the primary TeX source and give its relevant paper locations as lines 1380–1421 and 1489–1552. [source-4, lines 20-28]\n- [unsupported] The supplied excerpts do not contain `research-attempt-research-plan-task-68-1` or an equation/table labeled (4); hence its fifteen cases, column orders, selected-row convention, and intended \\(R_{\\mathrm{full}}\\) cannot be transcribed without inference.\n\n## Strategy\nCompared the requested internal-attempt identifier against the supplied source material and available locators.\n\n## Gaps\nThe requested source attempt and its equation/table (4) are unavailable in the supplied record. No exact certificate can be established.\n\n## Next\nProvide the text or a stable locator for `research-attempt-research-plan-task-68-1`, especially its labeled equation/table (4)."
+}

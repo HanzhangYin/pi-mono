@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-100-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- The result is explicitly conditional on the task-85 interval/Pieri presentation and compatible box-specialization maps. Under those assumptions, the requested \\(a=1\\) target for every \\(b\\) is established, including \\(Q\\cong\\mathbb Z^{b+1}\\) and minimality of both endpoint families."
+}

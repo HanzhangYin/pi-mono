@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-306-1",
+	"taskId": "research-plan-task-306",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied task does not state any signed-conjugation equation, so no determinate proposition indexed by \\(\\rho\\subseteq b^a\\) is available to prove or disprove.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "f245e8d93782610a435be679a2eb026060467775a4a51d9ce8e7a8ba31fd6e5d"
+}

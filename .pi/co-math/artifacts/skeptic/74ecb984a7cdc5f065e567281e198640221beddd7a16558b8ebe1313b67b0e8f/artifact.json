@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-97-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 correctly proves the rank-plus-Smith criterion, including the stated boundary cases.\n- claim-3 is internally inconsistent: its Findings assert \\(T_d=\\varnothing\\) for \\(d>D=rq\\), while its Strategy correctly notes that the displayed definition can make \\(T_d\\) nonempty there.\n- claim-3 leaves \\(N_d\\) as an arbitrary “prescribed target rank.” This does not identify \\(N\\) degreewise for the stated \\(J_v/\\Lambda_+J_v\\) application, as explicitly required.\n\n## Unresolved certificates\n- [proof-attempt] Give one consistent degreewise presentation: define \\(R_d\\) only for \\(d_0\\le d\\le D\\) (and use \\(0\\to0\\) outside that range), and explicitly define the intended \\(N_d\\)—including all boundary cases and \\(N=\\sum_dN_d\\)—before applying the proved rank-plus-Smith criterion."
+}

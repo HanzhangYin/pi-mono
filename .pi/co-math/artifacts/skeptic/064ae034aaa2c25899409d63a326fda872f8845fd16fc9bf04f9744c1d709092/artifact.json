@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-332-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The specialization is mislabeled: the interval has \\(i=j=2\\), \\(p=2\\), \\(c=3\\), hence \\(a=b=2\\), not \\(a=3,b=2\\).\n- It duplicates an existing \\(a=b=2\\) case and covers only degrees \\(4,\\ldots,10\\) of support \\(4,\\ldots,20\\).\n- No Smith witnesses \\(U_dM_dV_d=D_d\\) were produced. The draft correctly states that the requested target was not established.\n\n## Unresolved certificates\n- [computation] Execute the genuinely new case \\([2,2,2,0,0,0]\\subseteq\\lambda\\subseteq[5,5,5,5,5,5]\\) in every degree \\(6,\\ldots,30\\), using \\(h_1,\\ldots,h_5\\), with complete Pieri rows and verified integral witnesses \\(U_dM_dV_d=D_d\\); report degreewise quotient ranks, torsion, and any structural obstruction."
+}

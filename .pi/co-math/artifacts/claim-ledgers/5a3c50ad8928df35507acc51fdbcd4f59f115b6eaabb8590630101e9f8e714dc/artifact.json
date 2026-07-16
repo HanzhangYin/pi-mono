@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-180-1",
+	"taskId": "research-plan-task-180",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Specialist response omitted the required ## Claims section.",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "The specialist response must contain a ## Claims section."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-1 has no valid classification."
+				}
+			]
+		}
+	],
+	"sha256": "a5ad77f1d6b41c7a849e123c4dc41a7bcae699de53e40024ac81df41889c0d49"
+}

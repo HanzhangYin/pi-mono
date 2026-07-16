@@ -1,0 +1,27 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-217-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-216-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-216-1 · specialist · ARTIFACT 25dfb3f18555365811aa70e5f9d6c9d8f49aaa556d79354d4cb371c5b8e96633
+000004	## Claims
+000005	- [unsupported] The requested complete degreewise Pieri matrices, Smith forms, quotient ranks, torsion factors, and complementary unimodular minors for \((i,j,p,c)=(2,2,4,4)\) are not available from the supplied evidence.
+000006	
+000007	## Strategy
+000008	The sole supplied sandbox execution timed out (artifact `6023ed39d39a75b5f28a67cf9b2b7a6491f316c9bd96976ba5f2b60096efaacc`), so it yields no finite computation certificate.
+000009	
+000010	## Gaps
+000011	No successful task-owned computation artifact supplies the required matrices or Smith data in degrees \(4,\ldots,36\).
+000012	
+000013	## Next
+000014	The requested target was **not established**.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-216-1 · critic · ARTIFACT acf31dabcbf85c5a63f18c1e162b4769ddba6dabba27e2494912825309eb48cd
+000017	## Critique
+000018	- claim-1: The cautious conclusion is appropriate but supplies none of the requested computational results. No ordered degreewise bases, labelled Pieri rows, matrices, Smith diagonals, quotient ranks, torsion factors, or complementary minors are given. The timeout reference `6023ed39d39a75b5f28a67cf9b2b7a6491f316c9bd96976ba5f2b60096efaacc` is not a successful computation certificate. Thus the stated strategy does not reach the acceptance criteria, although it correctly reports that the target was **not established**.
+000019	
+000020	## Repair certificates
+000021	- [computation] Execute an exact witness-preserving partition-Pieri computation with `lower=[2,2,0,0,0,0]`, `upper=[6,6,6,6,6,6]`, `degrees=[4,...,36]`, and `hDegrees=[1,...,6]`. For every degree, emit the ordered Schur basis, every labelled Pieri row and full integer matrix, exact Smith diagonal, quotient free rank and torsion factors, and—relative to the explicitly defined complementary basis—selected row/column indices, the full square minor, and determinant \( \pm1\) (including empty witnesses where applicable). Preserve executable code, complete output, exit status, and stable digests.
+000022	
+000023	## Required revisions
+000024	- Replace the unsupported non-result with the successful computation certificate and its complete degreewise tables.
+000025	- State the row/column ordering and Pieri convention explicitly.
+000026	- Check consistency among matrix rank, Smith form, quotient decomposition, and minor size in every degree.
+000027	- Retain an explicit case-specific statement of whether the requested \((2,2,4,4)\) target was established.

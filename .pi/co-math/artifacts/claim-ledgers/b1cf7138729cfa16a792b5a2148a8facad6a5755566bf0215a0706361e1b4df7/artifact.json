@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-161-1",
+	"taskId": "research-plan-task-161",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Sources `source-30` and `source-29` are not supplied as citable source blocks; therefore the requested complete extraction and status comparison cannot be performed.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The supplied auxiliary summary identifies one formal conjecture and one formal open question in arXiv:0809.2981v2, but it is not source-30 or source-29. [source-6@L104-L110|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 104,
+						"end": 110
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "104: ## Classification summary\n105: \n106: | Item | Status in the paper |\n107: |---|---|\n108: | Minimality of both Theorem 5.4 generating sets for \\(J_v\\) | Formally labeled conjecture |\n109: | \\(M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}\\) | Stronger suspected statement in prose |\n110: | Minimal generating sets for general \\(I_w\\) in type \\(A\\) | Formally labeled open question |",
+					"excerptSha256": "a7fcfe9a12f8b451a65e89318b9d3ad6c86bf8e1a9f5063124ebc774da6b7b9f",
+					"canonicalCitation": "[source-6@L104-L110|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "ec8da46bedeb3202f1313ced7b0a37d4241f99e26a0c35a2aa9ee53f680e8acc"
+}

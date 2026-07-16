@@ -1,0 +1,27 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-150-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-149-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-149-1 · specialist · ARTIFACT 769c8dab3e35b03716a966c47c53ffd49bb9c8eaef38a8b4efc1500bb1e43cbb
+000004	{"action":"run_computation","summary":"Independently enumerate the bounded \(c=6\) partition--Pieri matrices, perform exact unimodular unit-pivot reduction, and extract and sum their quotient ranks.","script":"import json, hashlib\n\nlower=(2,2,0,0,0,0,0,0)\nupper=(4,4,4,4,4,4,4,4)\ndegrees=list(range(4,33))\nhdegrees=[1,2,3,4]\n\ndef parts(pos=0, prev=4, cur=()):\n    if pos==8:\n        yield cur; return\n    lo=lower[pos]; hi=min(prev,upper[pos])\n    for a in range(hi,lo-1,-1):\n        yield from parts(pos+1,a,cur+(a,))\n\nP=sorted(parts(), reverse=True)\nbydeg={d:[p for p in P if sum(p)==d] for d in degrees}\n\ndef horiz(mu,la):\n    # mu/la is a horizontal strip (with la padded to length 8).\n    return all(mu[i]>=la[i]>= (mu[i+1] if i<7 else 0) for i in range(8))\n\ndef unit_reduce(A):\n    # Integer row/column additions, swaps, and sign changes only.\n    A=[r[:] for r in A]\n    m=len(A); n=len(A[0]) if m else 0; k=0\n    while True:\n        found=None\n        for i in range(k,m):\n            for j in range(k,n):\n                if abs(A[i][j])==1:\n                    found=(i,j); break\n            if found: break\n        if not found: break\n        i,j=found\n        A[k],A[i]=A[i],A[k]\n        for row in A: row[k],row[j]=row[j],row[k]\n        if A[k][k]==-1: A[k]=[-x for x in A[k]]\n        for i in range(m):\n            if i!=k and A[i][k]:\n                q=A[i][k]; A[i]=[A[i][z]-q*A[k][z] for z in range(n)]\n        for j in range(n):\n            if j!=k and A[k][j]:\n                q=A[k][j]\n                for i in range(m): A[i][j]-=q*A[i][k]\n        k+=1\n    assert all(A[i][j]==0 for i in range(k,m) for j in range(k,n)), (m,n,k,A)\n    return k\n\nrecords=[]\nfor d in degrees:\n    cols=bydeg[d]\n    rows=[]\n    for t in hdegrees:\n        for la in bydeg.get(d-t,[]):\n            rows.append([1 if horiz(mu,la) else 0 for mu in cols])\n    rank=unit_reduce(rows) if rows else 0\n    free=len(cols)-rank\n    records.append({'degree':d,'matrixShape':[len(rows),len(cols)],'rank':rank,\n                    'smithDiagonal':[1]*rank,'quotientFreeRank':free,\n                    'torsionInvariantFactors':[]})\nexpected={4:1,5:1,6:2,7:1,8:1}\nassert [(x['degree'],x['quotientFreeRank']) for x in records] == [(d,expected.get(d,0)) for d in degrees]\nassert sum(x['quotientFreeRank'] for x in records)==6\npayload={'inputs':{'lower':list(lower),'upper':list(upper),'degrees':degrees,'hDegrees':hdegrees,'pieriRule':'mu_i >= lambda_i >= mu_(i+1)'},'degreewiseQuotientData':records,'totalFreeRank':6,'torsionFree':True,'conclusion':'Q is isomorphic to Z^6'}\nencoded=json.dumps(payload,sort_keys=True,separators=(',',':'))\nprint(json.dumps({'outputSha256':hashlib.sha256(encoded.encode()).hexdigest(),**payload},sort_keys=True,separators=(',',':')))"}
+000005	## Claims
+000006	- [unsupported] The required new task-owned sandbox artifact was not returned; therefore no executable output, exit status, or stable artifact digest is available.
+000007	- [unsupported] Consequently, the requested \(c=6\) rank-extraction capability certificate, and hence the conditional \(i=j=p=2,c=6\) minimality corollary, are not established in this repair.
+000008	
+000009	## Strategy
+000010	A bounded exact partition–Pieri computation was submitted to enumerate the specified interval and verify ranks \(1,1,2,1,1,0,\ldots,0\), but no execution result was supplied.
+000011	
+000012	## Gaps
+000013	Missing sandbox artifact, captured stdout/stderr, exit status, and artifact digest.
+000014	
+000015	## Next
+000016	Re-execute and persist the submitted computation; only then sum the verified ranks and apply the accepted generation/Nakayama criterion.
+000017	
+000018	INTERNAL ATTEMPT research-attempt-research-plan-task-149-1 · critic · ARTIFACT 9a99d9fc42ed296951e226df3d51febcade6b61b4aba91d42420d2c3b0c633e8
+000019	## Critique
+000020	- claim-1: Correct. Supplying executable code without a sandbox execution is not computation evidence. No task-owned artifact ID, captured stdout/stderr, exit status, or stable digest was returned.
+000021	- claim-2: Correct as the status of this repair. Earlier accepted evidence supports the rank calculation and conditional minimality argument, but cannot replace the expressly required new task-owned computation artifact. Thus the named capability certificate remains unestablished; this does not refute the mathematical corollary.
+000022	
+000023	## Repair certificates
+000024	- [computation] Execute verbatim the self-contained script in the Specialist Output with its embedded inputs. Its assertions must verify degreewise free ranks \(1,1,2,1,1\) in degrees \(4,\ldots,8\), zero in degrees \(9,\ldots,32\), no torsion, and total rank \(6\). Persist the executable code, explicit inputs, complete stdout/stderr, exit status \(0\), script/output digests, and a new task-owned artifact digest.
+000025	
+000026	## Required revisions
+000027	- Return the resulting task-owned artifact identifier and digests. Only after successful execution may the output conclude \(Q\cong\mathbb Z^6\) and apply accepted generation and indexed-family Nakayama to the two six-element families, proving their case-specific \(i=j=p=2,c=6\) minimality. Do not claim any broader theorem.

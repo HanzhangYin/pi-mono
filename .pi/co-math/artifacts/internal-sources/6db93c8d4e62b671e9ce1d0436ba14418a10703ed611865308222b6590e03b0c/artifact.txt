@@ -1,0 +1,31 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-166-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-165-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-165-1 · specialist · ARTIFACT 5933b75504c3c4ed0a31629feac7c9c20a2cd3e2130730219fa31ed521e5a312
+000004	## Claims
+000005	- [unsupported] The requested source-refresh certificate is not established: source-30 is reported non-citable, and no citable source-29 text or bounded passages were supplied.
+000006	- [unsupported] Consequently, exhaustive labelled-item coverage in source-30 and itemwise source-29 status excerpts cannot be certified without substituting other sources.
+000007	
+000008	## Strategy
+000009	Use only source-30 and source-29 as requested; do not replace them with source-2 or source-6.
+000010	
+000011	## Gaps
+000012	Persisted, citable full-text line ranges for source-30 and source-29 are missing.
+000013	
+000014	## Next
+000015	Provide citable indexed full texts or bounded inspection access for source-30 and source-29.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-165-1 · critic · ARTIFACT a688b2b6b979f7dfcdc0ce31ed40a5ae6b0695181b2424828826927303c0f3bd
+000018	## Critique
+000019	- claim-1: Correctly reports that the requested target is not established, but its reasons remain unsupported. No durable inspection record identifies source-30 as non-citable or maps source-29/source-30 to the supplied literature candidates. The external search did run; however, it does not establish inspection of the specified persisted sources.
+000020	- claim-2: The conclusion is appropriate relative to the missing evidence, but the strategy does not satisfy the task: it declines inspection rather than supplying exhaustive coverage. The candidate 2011 text contains at least Conjecture 4.10 and Question 5.1 [arxiv:0809.2981v2, lines 938-975] [arxiv:0809.2981v2, lines 1143-1156], but it cannot replace source-30 without a durable identity mapping. Moreover, Conjecture 4.10 depends on the complete parameterized Theorem 4.8 statement [arxiv:0809.2981v2, lines 847-892]; quoting only its short label would be incomplete. Candidate-2 has no citable full-text block and cannot provide itemwise source-29 status evidence.
+000021	
+000022	## Repair certificates
+000023	- [proof-attempt] Prove exhaustive coverage by classifying every occurrence of the exact tokens “Conjecture,” “Question,” and “Problem” in canonical source-30, showing that the reported labelled-item list contains every classified label.
+000024	- [computation] Execute a byte-stable scan of canonical source-30 and source-29, recording file digests, every matching token with byte and line offsets, and replayable output; include searches in source-29 for each source-30 item’s label, number, and distinctive statement text.
+000025	- [source-refresh] Supply durable bounded source-30 excerpts containing each complete labelled statement and all referenced parameters, plus itemwise bounded source-29 excerpts stating its status—or the executed exhaustive search and inspected contexts establishing that source-29 states no status.
+000026	
+000027	## Required revisions
+000028	- Ground the asserted citability condition and exact identities of source-29 and source-30.
+000029	- Replace absence-of-evidence assertions with actual persisted-text inspection and exhaustive coverage evidence.
+000030	- Report each labelled item separately with complete parameters and its corresponding source-29 status.
+000031	- Retain the explicit conclusion: the requested source-refresh certificate is currently **not established**.

@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-233-1",
+	"taskId": "research-plan-task-233",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "No executable audit artifact or occurrence counts were supplied for `persisted:source-39`.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "d5ccbc7b843001a5cef031044e3e256eb40e171be975efd90e126db5e1f17f16"
+}

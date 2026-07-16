@@ -1,0 +1,44 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-151-1",
+	"taskId": "research-plan-task-151",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Accepted computation dependency `162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126` (exit status \\(0\\); script SHA-256 `16fd86d80765622e58e1da6f79707ddf13a2f664cccea1c42a38e798b9d07680`; output SHA-256 `818902094d31864cfaca06b0649fb4fc447ab0cc889c87f4d3a885dd54996e93`) records quotient ranks \\(1,1,2,1,1\\) in degrees \\(4,5,6,7,8\\), respectively, and \\(0\\) in degrees \\(9,\\ldots,32\\), with no torsion, for lower \\([2,2,0,0,0,0,0,0]\\), upper \\([4,4,4,4,4,4,4,4]\\), and \\(h\\)-degrees \\(1,2,3,4\\). [artifact 162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Thus the degreewise sum is \\(1+1+2+1+1=6\\), and the recorded torsion-free Smith data give \\(Q=J_{2,6}/A_+J_{2,6}\\cong\\mathbb Z^6\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Using accepted generation of the two six-element Theorem-5.4 families and the accepted indexed-family Nakayama criterion, both are minimal generating sets for \\(J_{2,6}\\): their images yield surjections \\(\\mathbb Z^6\\twoheadrightarrow Q\\cong\\mathbb Z^6\\), hence are bases; no proper subfamily generates \\(Q\\), hence none generates \\(J_{2,6}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested new task-owned sandbox artifact was not produced: the supplied primitive execution failed with `partition-pieri requires 1-25 degrees`. Therefore the missing task-owned capability certificate is not established, despite the cited accepted dependency.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "92802b9145dc0dd0af9dd8d2500ed553edcc869493bc2348a458cda71b2b8518"
+}

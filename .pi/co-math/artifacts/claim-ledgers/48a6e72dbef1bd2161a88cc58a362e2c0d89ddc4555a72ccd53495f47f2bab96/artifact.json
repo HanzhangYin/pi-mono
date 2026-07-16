@@ -1,0 +1,82 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-153-1",
+	"taskId": "research-plan-task-153",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Accepted task `research-attempt-research-plan-task-124-1` gives, for \\((i,j,p,c)=(2,2,2,4)\\), quotient free ranks \\(1,1,2,1,1,0,\\ldots,0\\) in degrees \\(4,5,6,7,8,9,\\ldots,24\\), respectively; every torsion-invariant-factor list is empty. Hence \\(J/A_+J\\cong\\mathbb Z^{1+1+2+1+1}=\\mathbb Z^6\\). [accepted task research-attempt-research-plan-task-124-1]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The two Theorem 5.4 families are indexed by \\(\\{s_\\mu: i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\\) and \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\), where \\(a=\\min(n-r-i,r-j)\\), \\(b=\\min(i,j)\\). [source-6@L14-L21|claim=ordinary-document] [source-6@L24-L33|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 21
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).",
+					"excerptSha256": "87d2f4b6b21db77c8f7f8710b3bca3e5d74ed164e5ced175ca5c4cf9eb18d40f",
+					"canonicalCitation": "[source-6@L14-L21|claim=ordinary-document]"
+				},
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 24,
+						"end": 33
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.",
+					"excerptSha256": "e50fcef8606b387384c09d858c50e84c7ce5ab6372c941a66b6b2c61a4f9a041",
+					"canonicalCitation": "[source-6@L24-L33|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Here \\(a=b=2\\), and the accepted generating families are \\[ \\{s_{22},s_{32},s_{42},s_{33},s_{43},s_{44}\\},\\qquad \\{s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222}\\}. \\] Each has six elements and generates \\(J\\). Its image therefore surjects \\(\\mathbb Z^6\\twoheadrightarrow J/A_+J\\cong\\mathbb Z^6\\). By the accepted indexed-family Nakayama criterion, each image is a \\(\\mathbb Z\\)-basis; thus no proper subfamily generates \\(J\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested \\(c=4\\) minimality corollary is established: both displayed six-element families are minimal generating sets of \\(J\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "3d563d438b4150c36ff56065a68d3225ef4e6b0d6b83e8ff8a61fcf35fce3530"
+}

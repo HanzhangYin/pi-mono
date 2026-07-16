@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-81-1",
+	"taskId": "research-plan-task-81",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied record contains no retrievable raw byte stream for artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`; therefore its length, encoding, line endings, SHA-256 verification, provenance, and requested locators cannot be certified. [artifact a739eee4c9253c3d38fbd3463d22edf21f622707d712ea269bbe57cf21fccab8, lines 1-26]",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "df2453eadc452a448b2aaea0c4fb5195f8ada32556ddfec286e683af617e4b7a"
+}

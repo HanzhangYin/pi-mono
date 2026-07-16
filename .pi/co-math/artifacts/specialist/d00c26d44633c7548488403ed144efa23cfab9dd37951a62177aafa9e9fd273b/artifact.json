@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-294-1",
+	"text": "## Claims\n- [unsupported] The requested certificate is not established: the supplied material does not specify the target artifact’s \\(C_d,L_d,R_d,T_d\\), selection conventions, determinant witnesses, or prescribed-transition identities needed for exact reconstruction and comparison.\n\n## Strategy\nNo computation was asserted or substituted. The prior attempt is explicitly deficient because it emitted no Smith witnesses or the other named objects.\n\n## Gaps\nThe exact data behind artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602` are unavailable in the supplied material; therefore an exact standalone reconstruction cannot be checked.\n\n## Next\nObtain the target artifact’s complete machine-readable certificate specification and output."
+}

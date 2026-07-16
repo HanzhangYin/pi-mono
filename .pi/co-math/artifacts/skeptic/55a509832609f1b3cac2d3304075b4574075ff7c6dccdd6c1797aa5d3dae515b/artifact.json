@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-91-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- Conditional on the integral box–Schur/LR/Pieri presentation, the ten-row reduction and the equality for \\((A_+M)_{d+4}\\) are correct.\n- However, the proof asserts globally that the ideal equals the Schur span, which yields higher-degree conclusions forbidden by the task.\n- The supplied source grounds only the ideal-generating family, not the assumed integral basis and truncated LR/Pieri presentation. Thus the requested target is only conditionally established.\n\n## Unresolved certificates\n- [proof-attempt] Explicitly invoke an accepted ambient integral presentation (or prove it), then give a degree-\\(d+4\\)-local argument for both displayed equalities and the ten-row reduction, without asserting any higher-degree ideal presentation."
+}

@@ -1,0 +1,26 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-82-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-81-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-81-1 · specialist · ARTIFACT dd03c480437835cb01ce4669983adbb358e587f7027e4d79c0003e048f075481
+000004	## Claims
+000005	- [unsupported] The supplied record contains no retrievable raw byte stream for artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`; therefore its length, encoding, line endings, SHA-256 verification, provenance, and requested locators cannot be certified. [artifact a739eee4c9253c3d38fbd3463d22edf21f622707d712ea269bbe57cf21fccab8, lines 1-26]
+000006	
+000007	## Strategy
+000008	No reconstruction from a digest or prior summary was attempted.
+000009	
+000010	## Gaps
+000011	Missing raw bytes, stable retrieval locator, detached manifest, digest-declaration location, and bounded excerpts/line ranges for hypotheses, equation (1), and fifteen table-(4) entries.
+000012	
+000013	## Next
+000014	This source certificate is not established.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-81-1 · critic · ARTIFACT ffa1e115476810f14b061f345792455d4fe5fc6e5dc38b1b4ed6d8899755ab26
+000017	## Critique
+000018	- claim-1: The limitation is correctly confined to the supplied record, and avoiding reconstruction from a SHA-256 digest is sound. However, `artifact a739eee4c9253c3d38fbd3463d22edf21f622707d712ea269bbe57cf21fccab8, lines 1-26` is only a report of missing evidence; it does not provide the target byte stream, manifest, locators, excerpts, or successful digest verification. Thus the strategy does not satisfy the named source-certificate criteria.
+000019	
+000020	## Repair certificates
+000021	- [source-refresh] Provide one stable retrieval bundle containing the unmodified target byte stream, plus a detached manifest specifying byte length, encoding, line-ending convention, provenance, inclusive line ranges and bounded exact excerpts for every opening hypothesis, equation (1), and each of the fifteen table-(4) entries separately. Locate the immutable digest declaration and state whether it is internal or detached. Include an executable verifier that reads the raw bytes and confirms SHA-256 exactly `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, with captured successful output.
+000022	
+000023	## Required revisions
+000024	- Replace the negative report with the retrieval bundle and detached manifest described above.
+000025	- Do not infer or reconstruct missing content.
+000026	- Conclude only whether this source certificate is established; do not claim the parent theorem.

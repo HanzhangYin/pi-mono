@@ -1,0 +1,330 @@
+{
+	"runId": "research-attempt-research-plan-task-6-1",
+	"sourceIds": [
+		"source-2",
+		"source-4",
+		"source-6",
+		"source-5"
+	],
+	"inventorySourceIds": [
+		"source-1",
+		"source-7"
+	],
+	"requested": [],
+	"priorAttemptFailures": [],
+	"priorReviewerFeedback": [],
+	"externalLiteratureSearch": {
+		"sources": [
+			{
+				"title": "New plan on how pharmaceutical science can create better medicines",
+				"provider": "crossref",
+				"externalId": "10.1211/pj.2014.11138175",
+				"doi": "10.1211/pj.2014.11138175",
+				"url": "https://doi.org/10.1211/pj.2014.11138175",
+				"kind": "paper",
+				"sourceType": "journal",
+				"authors": [],
+				"year": "2014",
+				"venue": "The Pharmaceutical Journal",
+				"publishedAt": "2014",
+				"citationCount": 0,
+				"summary": "Crossref metadata record; no abstract was provided."
+			},
+			{
+				"title": "UfI unveils plan to create millions of new learners",
+				"provider": "crossref",
+				"externalId": "10.1108/ws.1999.07948eaf.004",
+				"doi": "10.1108/ws.1999.07948eaf.004",
+				"url": "https://doi.org/10.1108/ws.1999.07948eaf.004",
+				"kind": "paper",
+				"sourceType": "journal",
+				"authors": [],
+				"year": "1999",
+				"venue": "Work Study",
+				"publishedAt": "1999-09-01",
+				"citationCount": 0,
+				"summary": "Crossref metadata record; no abstract was provided."
+			},
+			{
+				"title": "Final Report: Sensitivity Analysis and Model Reduction of Nonlinear Differential Algebraic Systems, January 1, 1998 - August 31, 1999",
+				"provider": "crossref",
+				"externalId": "10.2172/765541",
+				"doi": "10.2172/765541",
+				"url": "https://doi.org/10.2172/765541",
+				"kind": "paper",
+				"sourceType": "unknown",
+				"authors": [
+					"Linda Petzold"
+				],
+				"year": "1999",
+				"publishedAt": "1999-08-31",
+				"citationCount": 1,
+				"summary": "Crossref metadata record; no abstract was provided."
+			},
+			{
+				"title": "Sensitivity analysis and model reduction of nonlinear differential-algebraic systems. Final progress report",
+				"provider": "crossref",
+				"externalId": "10.2172/354988",
+				"doi": "10.2172/354988",
+				"url": "https://doi.org/10.2172/354988",
+				"kind": "paper",
+				"sourceType": "unknown",
+				"authors": [
+					"L.R. Petzold",
+					"J.B. Rosen"
+				],
+				"year": "1997",
+				"publishedAt": "1997-12-30",
+				"citationCount": 0,
+				"summary": "Crossref metadata record; no abstract was provided."
+			},
+			{
+				"title": "Canada Releases its New 2030 Emissions Reduction Plan",
+				"provider": "crossref",
+				"externalId": "10.1163/9789004322714_cclc_2022-0198-0714",
+				"doi": "10.1163/9789004322714_cclc_2022-0198-0714",
+				"url": "https://doi.org/10.1163/9789004322714_cclc_2022-0198-0714",
+				"kind": "paper",
+				"sourceType": "unknown",
+				"authors": [],
+				"venue": "Climate Change and Law Collection",
+				"citationCount": 0,
+				"summary": "Crossref metadata record; no abstract was provided."
+			},
+			{
+				"title": "Model Reduction for Switched Differential-Algebraic Equations with Known Switching Signal",
+				"provider": "crossref",
+				"externalId": "10.52825/dae-p.v3i.688",
+				"doi": "10.52825/dae-p.v3i.688",
+				"url": "https://doi.org/10.52825/dae-p.v3i.688",
+				"kind": "paper",
+				"sourceType": "journal",
+				"authors": [
+					"Md. Sumon Hossain",
+					"Stephan Trenn"
+				],
+				"year": "2025",
+				"venue": "DAE Panel",
+				"publishedAt": "2025-02-04",
+				"citationCount": 2,
+				"summary": "Building on our recently proposed model reduction methods for switched ordinary linear systems, we propose a comprehensive model reduction method for linear switched differential-algebraic equations (DAEs). In contrast to most other available model reduction methods for switched systems, we consider the switching signal as a given time-variance of the system. This allows us to exploit certain linear subspaces in the reduction process and also provide in general significantly smaller reduced models compared to methods which consider arbitrary switching signals. Model reduction for switched DAEs has some unique features that make a generalization of the available methods nontrivial; in particular, the presence of jumps and Dirac impulses in response to switches have to be carefully treated. Furthermore, due to the algebraic constraints, the reachability subspaces cannot be the full space, hence a straightforward application of balanced truncation is not possible (because the corresponding reachability Gramians will be structurally non-invertible). We resolve this problem by first applying an exact model reduction which reduces the switched DAE to a switched ordinary system with jumps and which carefully keeps track of the impulsive effects. As a second step, we then apply a midpoint balanced truncation approach to further reduce the switched system. In addition to the challenge to appropriately take into account the Dirac impulses, another novel challenge was the occurrence of input-dependent state-jumps. We propose to deal with input-dependent jumps by combining certain discrete-time reachability Gramians with continuous-time reachability Gramians. We provide corresponding Matlab implementations of the proposed algorithms and illustrate their effectiveness with some academic examples."
+			},
+			{
+				"title": "NEW YORK REGIONAL PLAN",
+				"provider": "crossref",
+				"externalId": "10.4159/harvard.9780674289307.c30",
+				"doi": "10.4159/harvard.9780674289307.c30",
+				"url": "https://doi.org/10.4159/harvard.9780674289307.c30",
+				"kind": "paper",
+				"sourceType": "book",
+				"authors": [],
+				"year": "1924",
+				"venue": "Men and Policies",
+				"publishedAt": "1924-12-31",
+				"citationCount": 0,
+				"summary": "Crossref metadata record; no abstract was provided."
+			},
+			{
+				"title": "Report from the NSF Future Directions Workshop, Toward User-Oriented Agents: Research Directions and Challenges",
+				"provider": "arxiv",
+				"externalId": "2006.06026v1",
+				"url": "http://arxiv.org/abs/2006.06026v1",
+				"kind": "paper",
+				"sourceType": "preprint",
+				"authors": [
+					"Maxine Eskenazi",
+					"Tiancheng Zhao"
+				],
+				"year": "2020",
+				"publishedAt": "2020-06-10T18:32:35Z",
+				"summary": "This USER Workshop was convened with the goal of defining future research directions for the burgeoning intelligent agent research community and to communicate them to the National Science Foundation. It took place in Pittsburgh Pennsylvania on October 24 and 25, 2019 and was sponsored by National Science Foundation Grant Number IIS-1934222. Any opinions, findings and conclusions or future directions expressed in this document are those of the authors and do not necessarily reflect the views of the National Science Foundation. The 27 participants presented their individual research interests and their personal research goals. In the breakout sessions that followed, the participants defined the main research areas within the domain of intelligent agents and they discussed the major future directions that the research in each area of this domain should take"
+			},
+			{
+				"title": "not-yet-known not-yet-known not-yet-known unknown DEMOGRAPHIC TURNOVER IN SOCIAL NETWORKS: NEW RECRUITS CREATE COMMUNITIES, RETURNING INDIVIDUALS CREATE CONNECTIONS",
+				"provider": "crossref",
+				"externalId": "10.22541/au.172467500.03985119/v1",
+				"doi": "10.22541/au.172467500.03985119/v1",
+				"url": "https://doi.org/10.22541/au.172467500.03985119/v1",
+				"kind": "paper",
+				"sourceType": "unknown",
+				"authors": [
+					"Anastasia Madsen",
+					"Bruce Lyon",
+					"Alexis Chaine",
+					"Daizaburo Shizuka"
+				],
+				"citationCount": 1,
+				"summary": "Animal social structure is influenced by demographic processes such as survival and recruitment. Yet, how the gain and loss of social associations among individuals scale up through levels of social organization is poorly understood. To address this gap, we conducted multiscale analysis of long-term social network dynamics over twelve winters for a migrant passerine, the golden-crowned sparrow. We found consistently high levels of stability in pairwise associations among returning sparrows, but this social fidelity was not the strongest driver of higher-level properties such as community cohesion and network modularity. Instead, these were increased more by the clustered social associations of newly immigrating individuals. Thus, the interplay of distinct processes---social fidelity among older birds and social cohesion among newer birds---jointly drive social structures at different levels of social organization. Our results demonstrate the different effects of demographic changes on social structure across pairwise, community, and population levels."
+			},
+			{
+				"title": "Blockchain Data Analytics: A Scoping Literature Review and Directions for Future Research",
+				"provider": "arxiv",
+				"externalId": "2505.04403v1",
+				"url": "http://arxiv.org/abs/2505.04403v1",
+				"kind": "paper",
+				"sourceType": "preprint",
+				"authors": [
+					"Marcel Bühlmann",
+					"Hans-Georg Fill",
+					"Simon Curty"
+				],
+				"year": "2025",
+				"publishedAt": "2025-05-07T13:36:43Z",
+				"summary": "Blockchain technology has rapidly expanded beyond its original use in cryptocurrencies to a broad range of applications, creating vast amounts of immutable, decentralized data. As blockchain adoption grows, so does the need for advanced data analytics techniques to extract insights for business intelligence, fraud detection, financial analysis and many more. While previous research has examined specific aspects of blockchain data analytics, such as transaction patterns, illegal activity detection, and data management, there remains a lack of comprehensive reviews that explore the full scope of blockchain data analytics. This study addresses this gap through a scoping literature review, systematically mapping the existing research landscape, identifying key topics, and highlighting emerging trends. Using established methodologies for literature reviews, we analyze 466 publications, clustering them into six major research themes: illegal activity detection, data management, financial analysis, user analysis, community detection, and mining analysis. Our findings reveal a strong focus on detecting illicit activities and financial applications, while holistic business intelligence use cases remain underexplored. This review provides a structured overview of blockchain data analytics, identifying research gaps and proposing future directions to enhance the fields impact."
+			}
+		],
+		"providers": [
+			{
+				"provider": "arxiv",
+				"query": "User-directed Known theorem or literature reduction create a new research plan that addresses the final reviewer concern and then continues to the algebraic reduction",
+				"status": "completed",
+				"candidateCount": 5
+			},
+			{
+				"provider": "semantic-scholar",
+				"query": "User-directed Known theorem or literature reduction create a new research plan that addresses the final reviewer concern and then continues to the algebraic reduction",
+				"status": "failed",
+				"candidateCount": 0,
+				"error": "HTTP 429"
+			},
+			{
+				"provider": "crossref",
+				"query": "User-directed Known theorem or literature reduction create a new research plan that addresses the final reviewer concern and then continues to the algebraic reduction",
+				"status": "completed",
+				"candidateCount": 5
+			},
+			{
+				"provider": "arxiv",
+				"query": "user-directed known theorem literature reduction create new research plan addresses",
+				"status": "completed",
+				"candidateCount": 5
+			},
+			{
+				"provider": "semantic-scholar",
+				"query": "user-directed known theorem literature reduction create new research plan addresses",
+				"status": "failed",
+				"candidateCount": 0,
+				"error": "HTTP 429"
+			},
+			{
+				"provider": "crossref",
+				"query": "user-directed known theorem literature reduction create new research plan addresses",
+				"status": "completed",
+				"candidateCount": 5
+			}
+		],
+		"queries": [
+			"User-directed Known theorem or literature reduction create a new research plan that addresses the final reviewer concern and then continues to the algebraic reduction",
+			"User-directed Known theorem or literature reduction create a new research plan that addresses the final reviewer concern and then continues to the algebraic reduction User-directed Known theorem or literature reduction create a new research plan that addresses the final reviewer concern and then continues to the algebraic reduction",
+			"user-directed known theorem literature reduction create new research plan addresses"
+		],
+		"candidateCount": 20
+	},
+	"delivered": [
+		{
+			"sourceId": "source-2",
+			"sourceRelativePath": "sources/0809.2981v2.tex",
+			"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+			"ranges": [
+				{
+					"start": 15,
+					"end": 32
+				},
+				{
+					"start": 115,
+					"end": 149
+				},
+				{
+					"start": 218,
+					"end": 234
+				},
+				{
+					"start": 268,
+					"end": 284
+				},
+				{
+					"start": 421,
+					"end": 443
+				},
+				{
+					"start": 783,
+					"end": 787
+				},
+				{
+					"start": 805,
+					"end": 805
+				},
+				{
+					"start": 919,
+					"end": 919
+				},
+				{
+					"start": 1715,
+					"end": 1715
+				}
+			],
+			"context": "SOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 15-32\nREGION preamble\nEXCERPT-SHA256 d02fc2ec753aabd5ab8f0e47d7f98187f1541c293121e522359d89b5e0a0a1d1\n15: \\setlength{\\headheight}{0pt}\n16: \\setlength{\\headsep}{0pt}\n17: \\setlength{\\footskip}{.3in}\n18: \\setlength{\\textheight}{9.2in}\n19: \\setlength{\\textwidth}{6.5in}\n20: \\setlength{\\parskip}{4pt}\n21: \n22: \\theoremstyle{plain}\n23:   \\newtheorem{theorem}{Theorem}[section]\n24:   \\newtheorem{proposition}[theorem]{Proposition}\n25:   \\newtheorem{lemma}[theorem]{Lemma}\n26:   \\newtheorem{corollary}[theorem]{Corollary}\n27:   \\newtheorem{conjecture}[theorem]{Conjecture}\n28: \\theoremstyle{definition}\n29:   \\newtheorem{definition}[theorem]{Definition}\n30:   \\newtheorem{example}[theorem]{Example}\n31:   \\newtheorem{examples}[theorem]{Examples}\n32:   \\newtheorem{question}[theorem]{Question}\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 115-149\nREGION formal-document\nEXCERPT-SHA256 d8818cd954d36ad1b2c4c0359a34f9930fecfe0b657ed18ad07e0c813490ef29\n115: \\section{Introduction}\n116: \\label{intro-section}\n117: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n118: \n119: %The first main result of this paper is Theorem 1.1 below.  We first\n120: %explain here some of the background and motivation behind it.\n121: % AY: I know we've talked about this before, but given there's an abstract,\n122: % this sentence seems a little funny to me. What else were we planning to do\n123: % but to explain the background and motivation for our result?\n124: \n125: The cohomology of the generalized flag manifold $G/B$, for any complex\n126: semisimple algebraic group $G$ and Borel subgroup $B$, has a classical\n127: presentation due to Borel \\cite{Borel}.  Pick a maximal torus\n128: $T\\subset B\\subset G$, choose a field $\\Bbbk$ of characteristic zero, and let\n129: $V=\\Bbbk\\otimes_{\\ZZ} X(T)$, where $X(T)$ is the coweight lattice of\n130: $T$.  Let $\\Bbbk[V]:=\\Sym(V^{\\star})$ be the symmetric algebra for\n131: $V^{\\star}$; it naturally carries an action of the Weyl group $W :=\n132: N_G(T)/T$.  Furthermore let $\\Bbbk[V]^W$ be the ring of $W$-invariants\n133: of $\\Bbbk[V]$, and $\\Bbbk[V]^W_+$ the ideal of $\\Bbbk[V]$ generated by\n134: the $W$-invariants of positive degree.  A classical theorem of Borel\n135: \\cite{Borel} states that\n136: \\begin{equation}\n137: \\label{Borel-presentation}\n138: H^*(G/B,\\Bbbk) \\cong \\Bbbk[V]/(\\Bbbk[V]^W_+).\n139: \\end{equation}\n140: %This presentation is proved by showing that $\\Bbbk[V]^W_+$ is the kernel of the\n141: %surjective map $\\Sym(V^\\star) \\rightarrow H^*(G/B)$ that sends a torus\n142: %weight $\\lambda \\in V^{\\star}$ to the first Chern class of the equivariant\n143: %line bundle ${\\mathcal L}_\\lambda$ on $G/B$; see the original paper\n144: %\\cite{Borel} or, e.g., \\cite[\\S III.4]{Hiller} for further details.  \n145: \n146: A desirable feature of Borel's presentation is its shortness: since $W$\n147: acts on $V^\\star$ as a finite reflection group, by Chevalley's Theorem,\n148: the $W$-invariants $\\Bbbk[V]^W$ are a polynomial algebra\n149: $\\Bbbk[f_1,\\ldots,f_n]$, where $n:=\\dim_\\Bbbk V$ is the rank of\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 218-234\nREGION formal-document\nEXCERPT-SHA256 0db4218ccb5894e563ebb16607107c03765a97bcdd6d9bcf1fb59edb8ce3d0c4\n218: as simple as possible are best for this purpose.\n219: \n220: The question of finding \n221: simple presentations of $I_w$ for other root systems appears to \n222: have been less studied.\n223: \n224: The main goal of this paper is to give a concise and root-system\n225: uniform extension of Borel's presentation that produces for arbitrary\n226: $w\\in W$ an abbreviated list of generators for $I_w$.  Our first main\n227: result, Theorem~\\ref{general-bound}, achieves this via a strong\n228: restriction on the {\\bf descent set}\n229: $$\n230: \\Des(u):=\\{ s \\in S: \\ell(us) < \\ell(u) \\}\n231: $$ of the elements $u$ in $W$ that index elements in our list of ideal\n232: generators $\\sigma_u$ for $I_w$.  We will need the following\n233: definitions, the first two of which are standard:\n234: \\begin{enumerate}\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 268-284\nREGION formal-document\nEXCERPT-SHA256 8b1e42985e69dd215d6835e2468c530453679db85d1167704c4bc3d60ff65bd4\n268: by those grassmannian $u$ for which there exist some bigrassmannian\n269: $v$ in $\\Ess(w)$ satisfying both $u \\geq v$ and $\\Des(u) = \\Des(v)$.\n270: \\end{theorem}\n271: \n272: In type $A$, a similar result was obtained by Akyildiz, Lascoux, and\n273: Pragacz \\cite[Theorem~2.2]{ALP}. Specifically, they prove the first\n274: sentence of Theorem~\\ref{general-bound}, though they do not address the\n275: strengthening given by the second sentence. Their methods are mainly\n276: geometric, as opposed to our essentially combinatorial arguments. Their\n277: work provides, to our knowledge, the first inroads towards an abbreviated\n278: generating set for $I_w$.\n279: \n280: Theorem~\\ref{general-bound} replaces the general upper bound\n281: of $|W|$ on the number of generators needed for $I_w$ with the bound \n282: \\begin{equation}\n283: \\label{less-wasteful-general-bound}\n284: \\sum_{s \\in S} [W:W_{S\\setminus\\{s\\}}],\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 421-443\nREGION formal-document\nEXCERPT-SHA256 41aacf390dc13c5c038dd102bbf89994e2d9e94d332b675cbf769f5e0e2eb749\n421: coinvariant algebras. This emphasizes that the arguments of this\n422: section and the next only depend on Coxeter combinatorics and formal\n423: properties of divided difference operators and coinvariant\n424: algebras.  We review here the relevant facts from \\cite[Chapter\n425: IV]{Hiller}.\n426: \n427: Let $W$ be a finite and irreducible Coxeter group, and $V$ its\n428: reflection representation.  One then picks a (possibly\n429: non-crystallographic) root system $\\Phi$ for $W$ as follows: $\\Phi\n430: \\subset V^\\star$ is any $W$-stable choice\\footnote{Note that this may\n431: require coefficients in a subfield $\\Bbbk$ of $\\RR$ strictly larger\n432: than $\\QQ$ when $W$ is not crystallographic.} of a set of a linear\n433: functionals $\\alpha$ and $-\\alpha$ such that the perpendicular spaces\n434: $\\alpha^\\perp$ in $V$ run through the reflecting hyperplanes of $W$.\n435: These reflecting hyperplanes divide $V$ into chambers; we pick one\n436: which we call the dominant chamber $\\mathcal{C}$.  One declares the\n437: positive roots $\\Phi^+\\subseteq\\Phi$ to be the roots which are\n438: positive on this chamber.  The Coxeter generators $S$ of $W$ are\n439: declared to be the reflections across the hyperplanes which are facets of\n440: $\\mathcal{C}$.  Among the positive roots are the simple roots\n441: $\\Pi=\\{\\alpha_s\\}_{s \\in S}$, where $\\alpha_s$ is the positive root\n442: vanishing on the reflecting hyperplane of $s$.\n443: \n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 783-787\nREGION formal-document\nEXCERPT-SHA256 f15b73d94d2aff39d39f10c115ffd67c353272d66ccc57595cbf5b08dd018b72\n783: relate ideals of $R$ and $\\hat{R}$ by the operations of {\\it extension} and {\\it contraction}:\n784: given an ideal $I$ in $R$, its extension $\\hat{R}I$ to $\\hat{R}$ is the ideal it generates\n785: in $\\hat{R}$, and given an ideal $\\hat{I}$ of $\\hat{R}$, its contraction to $R$ is the intersection $\\hat{I} \\cap R$.\n786: Say that the inclusion \n787: $R \\overset{i}{\\hookrightarrow} \\hat{R}$ is a {\\it split inclusion} if it has\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 805-805\nREGION formal-document\nEXCERPT-SHA256 15e928a939cce4d25fea3aa707e315ab3a691d98b6ac5a308b6576eb2d24a576\n805: \\begin{array}{llll}\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 919-919\nREGION formal-document\nEXCERPT-SHA256 1fe904fddbfb8d89a49b2430f7cff02b41d91260a989f88dd7a402e50ec73dc5\n919: \\label{type-A-section}\n\nSOURCE source-2\nFILE sources/0809.2981v2.tex\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02\nLINES 1715-1715\nREGION formal-document\nEXCERPT-SHA256 bbf3f11cb5b43e700273a78d12de55e4a7eab741ed2abf13787a4d2dc832b8ec\n1715: %"
+		},
+		{
+			"sourceId": "source-4",
+			"sourceRelativePath": "README.md",
+			"sourceFileSha256": "95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac",
+			"ranges": [
+				{
+					"start": 15,
+					"end": 32
+				},
+				{
+					"start": 1,
+					"end": 32
+				}
+			],
+			"context": "SOURCE source-4\nFILE README.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac\nLINES 15-32\nREGION ordinary-document\nEXCERPT-SHA256 0e6676821e56fd3dfd665d176d4dc0cc9432d02c3499008f1ab63a216abe21d0\n15: - [`sources/CITATION.bib`](sources/CITATION.bib): BibTeX entries for the arXiv and journal versions.\n16: - [`sources/SHA256SUMS`](sources/SHA256SUMS): checksums for source-material integrity.\n17: \n18: ## Finding the source passages\n19: \n20: In the TeX source:\n21: \n22: - Theorem defining the two generating sets: lines 1380–1421.\n23: - Formally labeled minimality conjecture and computational evidence: lines 1489–1502.\n24: - Exponential lower-bound consequence: lines 1504–1515.\n25: - Stronger quotient-module formulation: lines 1517–1552.\n26: - Related open question: lines 1897–1935.\n27: \n28: The line references above apply to the archived file `sources/0809.2981v2.tex` in this directory.\n29: \n30: ## Scope note\n31: \n32: The paper contains one formally labeled `conjecture` environment. It also gives a stronger suspected algebraic statement and one formally labeled open question. These are separated clearly in `conjectures.md` rather than being counted as multiple formal conjectures.\n\nSOURCE source-4\nFILE README.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac\nLINES 1-32\nREGION ordinary-document\nEXCERPT-SHA256 df46c9f79c79135dde7292f7cc7914e257f1d6123f9ea198107e8834aa5f17f5\n1: # Conjectures in arXiv:0809.2981\n2: \n3: This directory records the conjectural and open-problem content of:\n4: \n5: Victor Reiner, Alexander Woo, and Alexander Yong, **“Presenting the cohomology of a Schubert variety.”**  \n6: [arXiv:0809.2981v2](https://arxiv.org/abs/0809.2981v2), published in *Transactions of the American Mathematical Society* **363** (2011), 521–543.\n7: \n8: ## Contents\n9: \n10: - [`conjectures.md`](conjectures.md): precise statement, stronger formulation, evidence, consequence, and related open question.\n11: - [`sources/0809.2981v2.pdf`](sources/0809.2981v2.pdf): paper PDF downloaded from arXiv.\n12: - [`sources/0809.2981v2.tex`](sources/0809.2981v2.tex): decompressed TeX source from arXiv.\n13: - [`sources/0809.2981v2-source.gz`](sources/0809.2981v2-source.gz): original arXiv source download.\n14: - [`sources/arxiv-metadata.xml`](sources/arxiv-metadata.xml): arXiv API metadata.\n15: - [`sources/CITATION.bib`](sources/CITATION.bib): BibTeX entries for the arXiv and journal versions.\n16: - [`sources/SHA256SUMS`](sources/SHA256SUMS): checksums for source-material integrity.\n17: \n18: ## Finding the source passages\n19: \n20: In the TeX source:\n21: \n22: - Theorem defining the two generating sets: lines 1380–1421.\n23: - Formally labeled minimality conjecture and computational evidence: lines 1489–1502.\n24: - Exponential lower-bound consequence: lines 1504–1515.\n25: - Stronger quotient-module formulation: lines 1517–1552.\n26: - Related open question: lines 1897–1935.\n27: \n28: The line references above apply to the archived file `sources/0809.2981v2.tex` in this directory.\n29: \n30: ## Scope note\n31: \n32: The paper contains one formally labeled `conjecture` environment. It also gives a stronger suspected algebraic statement and one formally labeled open question. These are separated clearly in `conjectures.md` rather than being counted as multiple formal conjectures."
+		},
+		{
+			"sourceId": "source-5",
+			"sourceRelativePath": "sources/arxiv-metadata.xml",
+			"sourceFileSha256": "a7c250a03574b7b0daefcf97e2c1245d0fed93738e2e11faa3579f03751cadbc",
+			"ranges": [
+				{
+					"start": 1,
+					"end": 19
+				}
+			],
+			"context": "SOURCE source-5\nFILE sources/arxiv-metadata.xml\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 a7c250a03574b7b0daefcf97e2c1245d0fed93738e2e11faa3579f03751cadbc\nLINES 1-19\nREGION ordinary-document\nEXCERPT-SHA256 392959d2d80505b028e86ab1e318f06982a467835d9c7af34aeaea45346d226d\n1: <?xml version='1.0' encoding='UTF-8'?>\n2: <feed xmlns:opensearch=\"http://a9.com/-/spec/opensearch/1.1/\" xmlns:arxiv=\"http://arxiv.org/schemas/atom\" xmlns=\"http://www.w3.org/2005/Atom\">\n3:   <id>https://arxiv.org/api/huPGrmJzHxa4fncpJfWOCr5J+EE</id>\n4:   <title>arXiv Query: search_query=&amp;id_list=0809.2981&amp;start=0&amp;max_results=10</title>\n5:   <updated>2026-07-11T13:39:22Z</updated>\n6:   <link href=\"https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=0809.2981\" type=\"application/atom+xml\"/>\n7:   <opensearch:itemsPerPage>10</opensearch:itemsPerPage>\n8:   <opensearch:totalResults>1</opensearch:totalResults>\n9:   <opensearch:startIndex>0</opensearch:startIndex>\n10:   <entry>\n11:     <id>http://arxiv.org/abs/0809.2981v2</id>\n12:     <title>Presenting the cohomology of a Schubert variety</title>\n13:     <updated>2009-09-04T21:19:20Z</updated>\n14:     <link href=\"https://arxiv.org/abs/0809.2981v2\" rel=\"alternate\" type=\"text/html\"/>\n15:     <link href=\"https://arxiv.org/pdf/0809.2981v2\" rel=\"related\" type=\"application/pdf\" title=\"pdf\"/>\n16:     <summary>  We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.</summary>\n17:     <category term=\"math.CO\" scheme=\"http://arxiv.org/schemas/atom\"/>\n18:     <category term=\"math.RA\" scheme=\"http://arxiv.org/schemas/atom\"/>\n19:     <published>2008-09-17T19:12:56Z</published>"
+		},
+		{
+			"sourceId": "source-6",
+			"sourceRelativePath": "conjectures.md",
+			"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+			"ranges": [
+				{
+					"start": 7,
+					"end": 25
+				},
+				{
+					"start": 35,
+					"end": 57
+				},
+				{
+					"start": 83,
+					"end": 103
+				},
+				{
+					"start": 3,
+					"end": 33
+				},
+				{
+					"start": 41,
+					"end": 110
+				},
+				{
+					"start": 1,
+					"end": 19
+				}
+			],
+			"context": "SOURCE source-6\nFILE conjectures.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02\nLINES 7-25\nREGION ordinary-document\nEXCERPT-SHA256 51b6ee0d7cd9157002fd4d8e1e77458c95cb07cfe4bbf25438a890cbbb9904a1\n7: - **arXiv:** [0809.2981v2](https://arxiv.org/abs/0809.2981v2)\n8: - **Journal:** *Transactions of the American Mathematical Society* 363 (2011), 521–543\n9: \n10: ## 1. The formally stated conjecture\n11: \n12: ### Minimality conjecture\n13: \n14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n\nSOURCE source-6\nFILE conjectures.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02\nLINES 35-57\nREGION ordinary-document\nEXCERPT-SHA256 4c81e3c06273aea327c2e74b2406f2e8d38d76f539658f5b97f03b612976c0b6\n35: \n36: Each contains\n37: \n38: \\[\n39: \\binom{a+b}{a}\n40: \\]\n41: \n42: generators. “Minimal” means that no proper subset still generates \\(J_v\\).\n43: \n44: **Primary-source location:** `sources/0809.2981v2.tex`, lines 1380–1421 and 1489–1499.\n45: \n46: ## 2. Evidence reported by the authors\n47: \n48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]\n53: \n54: **Primary-source location:** lines 1501–1502.\n55: \n56: ## 3. Stronger suspected formulation\n57: \n\nSOURCE source-6\nFILE conjectures.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02\nLINES 83-103\nREGION ordinary-document\nEXCERPT-SHA256 50841f437c64888abb4f8ecb2ad2926e72153c23b919a3f79c78bcf74ae9f588\n83: \n84: generators. This gives an exponential lower bound and shows that uniformly short presentations of \\(H^*(X_w)\\) cannot be expected in general, even in type \\(A\\).\n85: \n86: **Primary-source location:** lines 1504–1515; see also the introductory discussion at lines 355–364.\n87: \n88: ## 5. Related open question\n89: \n90: The final section asks:\n91: \n92: > Can one find a minimal generating set for the ideal \\(I_w\\) in type \\(A_{n-1}\\)?\n93: \n94: The authors ask whether this can at least be done for subclasses already known to admit generating sets of size \\(n^2\\), including:\n95: \n96: 1. Schubert varieties defined by inclusions, characterized there by avoidance of\n97:    \\(\\{4231,35142,42513,351624\\}\\);\n98: 2. smooth Schubert varieties, characterized by avoidance of \\(\\{3412,4231\\}\\).\n99: \n100: This is an open question, not another formally labeled conjecture.\n101: \n102: **Primary-source location:** lines 1897–1935.\n103: \n\nSOURCE source-6\nFILE conjectures.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02\nLINES 3-33\nREGION ordinary-document\nEXCERPT-SHA256 5a9bbe27bdec1c10efaf6e84ee899fb92ed62d62b0a82a6d83f11c9a6909bbdb\n3: ## Bibliographic identification\n4: \n5: - **Title:** Presenting the cohomology of a Schubert variety\n6: - **Authors:** Victor Reiner, Alexander Woo, Alexander Yong\n7: - **arXiv:** [0809.2981v2](https://arxiv.org/abs/0809.2981v2)\n8: - **Journal:** *Transactions of the American Mathematical Society* 363 (2011), 521–543\n9: \n10: ## 1. The formally stated conjecture\n11: \n12: ### Minimality conjecture\n13: \n14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.\n\nSOURCE source-6\nFILE conjectures.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02\nLINES 41-110\nREGION ordinary-document\nEXCERPT-SHA256 44f553374621641c825a1615b82c6fe9d12c7561ec53f0e9c872901d4fd3a5ef\n41: \n42: generators. “Minimal” means that no proper subset still generates \\(J_v\\).\n43: \n44: **Primary-source location:** `sources/0809.2981v2.tex`, lines 1380–1421 and 1489–1499.\n45: \n46: ## 2. Evidence reported by the authors\n47: \n48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]\n53: \n54: **Primary-source location:** lines 1501–1502.\n55: \n56: ## 3. Stronger suspected formulation\n57: \n58: Set \\(M=J_{v_{r,s,t,n}}\\), and let \\(\\Lambda_+\\) denote the positive-degree part of the ring of symmetric functions. The authors further conjecture that\n59: \n60: \\[\n61: M/\\Lambda_+M\n62: \\]\n63: \n64: requires \\(\\binom{a+b}{a}\\) generators. They suspect the stronger structural statement\n65: \n66: \\[\n67: M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}.\n68: \\]\n69: \n70: This is presented in prose rather than as a second numbered conjecture. The authors write that a proof had eluded them.\n71: \n72: **Primary-source location:** lines 1517–1552.\n73: \n74: ## 4. Consequence of the conjecture\n75: \n76: Take \\(n=4m\\) and the family for which \\(a=b=m\\). If the minimality conjecture is true, the corresponding ideal requires\n77: \n78: \\[\n79: \\binom{2m}{m}\n80: \\sim \\frac{4^m}{\\sqrt{\\pi m}}\n81: =\\frac{\\sqrt{2}^{\\,n+2}}{\\sqrt{\\pi n}}\n82: \\]\n83: \n84: generators. This gives an exponential lower bound and shows that uniformly short presentations of \\(H^*(X_w)\\) cannot be expected in general, even in type \\(A\\).\n85: \n86: **Primary-source location:** lines 1504–1515; see also the introductory discussion at lines 355–364.\n87: \n88: ## 5. Related open question\n89: \n90: The final section asks:\n91: \n92: > Can one find a minimal generating set for the ideal \\(I_w\\) in type \\(A_{n-1}\\)?\n93: \n94: The authors ask whether this can at least be done for subclasses already known to admit generating sets of size \\(n^2\\), including:\n95: \n96: 1. Schubert varieties defined by inclusions, characterized there by avoidance of\n97:    \\(\\{4231,35142,42513,351624\\}\\);\n98: 2. smooth Schubert varieties, characterized by avoidance of \\(\\{3412,4231\\}\\).\n99: \n100: This is an open question, not another formally labeled conjecture.\n101: \n102: **Primary-source location:** lines 1897–1935.\n103: \n104: ## Classification summary\n105: \n106: | Item | Status in the paper |\n107: |---|---|\n108: | Minimality of both Theorem 5.4 generating sets for \\(J_v\\) | Formally labeled conjecture |\n109: | \\(M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}\\) | Stronger suspected statement in prose |\n110: | Minimal generating sets for general \\(I_w\\) in type \\(A\\) | Formally labeled open question |\n\nSOURCE source-6\nFILE conjectures.md\nREVISION source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281\nSHA256 6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02\nLINES 1-19\nREGION ordinary-document\nEXCERPT-SHA256 7221016882ac49dcd73bd9f639361e2737fb20b37792b0cb013f6c0bebe7f146\n1: # Conjectural content of arXiv:0809.2981v2\n2: \n3: ## Bibliographic identification\n4: \n5: - **Title:** Presenting the cohomology of a Schubert variety\n6: - **Authors:** Victor Reiner, Alexander Woo, Alexander Yong\n7: - **arXiv:** [0809.2981v2](https://arxiv.org/abs/0809.2981v2)\n8: - **Journal:** *Transactions of the American Mathematical Society* 363 (2011), 521–543\n9: \n10: ## 1. The formally stated conjecture\n11: \n12: ### Minimality conjecture\n13: \n14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: "
+		}
+	],
+	"createdAt": "2026-07-14T19:54:29.800Z"
+}

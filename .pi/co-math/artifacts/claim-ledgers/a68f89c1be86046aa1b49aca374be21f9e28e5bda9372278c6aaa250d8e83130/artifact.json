@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-24-1",
+	"taskId": "research-plan-task-24",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "**Indexed graded Nakayama minimality criterion.** Let \\(A=\\bigoplus_{d\\ge0}A_d\\) be a commutative unital \\(\\mathbb Z\\)-algebra with \\(1\\in A_0\\) and \\(A_0=\\mathbb Z\\), and put \\(A_+=\\bigoplus_{d>0}A_d\\). Let \\(J\\subseteq A\\) be a homogeneous ideal, and let \\(g_1,\\ldots,g_N\\in J\\) be homogeneous elements such that \\(J=\\sum_{i=1}^NAg_i\\). If their images \\(\\bar g_1,\\ldots,\\bar g_N\\) are a \\(\\mathbb Z\\)-basis of \\(J/A_+J\\), then, for every \\(k\\), \\(\\{g_i:i\\ne k\\}\\) does not generate \\(J\\). Indeed, if \\(J=\\sum_{i\\ne k}Ag_i\\), then modulo \\(A_+J\\), every coefficient \\(a\\in A\\) acts through its degree-zero component in \\(A/A_+=A_0=\\mathbb Z\\). Hence \\(J/A_+J\\) would be \\(\\mathbb Z\\)-spanned by \\(\\{\\bar g_i:i\\ne k\\}\\), contradicting that \\(\\bar g_1,\\ldots,\\bar g_N\\) is a basis.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The ideal hypothesis is used as follows: since \\(J\\) is an ideal, \\(A_+J\\subseteq J\\); since \\(J\\) is homogeneous, \\(J/A_+J\\) inherits the grading. The irredundance conclusion itself only uses \\(A_+J\\subseteq J\\), \\(A/A_+\\cong\\mathbb Z\\), and the asserted basis property.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "More generally, for a graded \\(A\\)-module \\(M\\) bounded below in degree and homogeneous elements \\(g_1,\\ldots,g_N\\), if their images generate \\(M/A_+M\\) over \\(\\mathbb Z\\), then they generate \\(M\\). This follows by induction on degree: an element of degree \\(d\\) differs from a \\(\\mathbb Z\\)-linear combination of the \\(g_i\\) by terms \\(am\\) with \\(\\deg a>0\\) and \\(\\deg m<d\\). For a homogeneous ideal \\(J\\subseteq A\\) with \\(A\\) nonnegatively graded, bounded-below is automatic.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "44dd6c2a380c96abcb9d4099e1d5ca5bf47977ac84df41b57a0d9453a8ff8fbd"
+}

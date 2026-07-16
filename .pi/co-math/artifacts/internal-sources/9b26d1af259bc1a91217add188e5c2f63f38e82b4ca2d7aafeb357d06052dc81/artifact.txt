@@ -1,0 +1,76 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-334-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-331-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-331-1 · specialist · ARTIFACT 89006b67312d42f38b90092b112a0ebdc52c867929a0a3156b374f798cdc3c6b
+000004	## Claims
+000005	- [proved] **Theorem.** Let \(v=v_{r,s,t,n}\) be bigrassmannian, with \(1\le t\le r,s\le n\) and \(t>r+s-n\). Put
+000006	  \[
+000007	  q=n-r,\quad i=s-t+1,\quad j=r-t+1,\quad
+000008	  a=\min(q-i,r-j),\quad b=\min(i,j),
+000009	  \]
+000010	  \[
+000011	  A=\Lambda/I_{r,q},\qquad Q=J_v/A_+J_v.
+000012	  \]
+000013	  Then both
+000014	  \[
+000015	  G_L=\{\bar s_{(i^j,\rho)}:\rho\subseteq b^a\}
+000016	  \quad\text{and}\quad
+000017	  G_R=\{\bar s_\mu:i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\}
+000018	  \]
+000019	  map to homogeneous integral bases of \(Q\). Hence both families minimally generate \(J_v\). In particular,
+000020	  \[
+000021	  Q\cong\bigoplus_{\rho\subseteq b^a}\mathbb Z\,e_\rho,\qquad
+000022	  \deg e_\rho=ij+|\rho|,
+000023	  \]
+000024	  \[
+000025	  H_Q(z)=z^{ij}\binom{a+b}{a}_z,
+000026	  \]
+000027	  and \(Q_d\) is torsion-free. The basis \(e_\rho\) admits the perfect integral degree-complement pairing
+000028	  \[
+000029	  \langle e_\rho,e_\sigma\rangle=\delta_{\sigma,\rho^\vee},\qquad
+000030	  \rho^\vee=(b-\rho_a,\ldots,b-\rho_1),
+000031	  \]
+000032	  between \(Q_d\) and \(Q_{2ij+ab-d}\). The lower-family generation and its no-syzygy mechanism are grounded in the supplied full text. [doi:10.1112/jlms.12832, lines 219-235, 819-831]
+000033	- [unsupported] A parameter-uniform closed formula for the unimodular change-of-basis matrix from the ordered \(G_L\)-basis to the ordered \(G_R\)-basis is not established.
+000034	
+000035	## Strategy
+000036	
+000037	**Hypotheses.** The theorem uses precisely the bigrassmannian conditions and definitions in the claim. Here \(A_+=\bigoplus_{d>0}A_d\); the case \(a=0\) means \(b^a\) contains only the empty partition.
+000038	
+000039	**Dependency boundary.** The required lower-family integral indecomposables certificate is canonical accepted attempt `research-attempt-research-plan-task-296-1`. Quotient conjugation is `research-attempt-research-plan-task-301-1`; its application to the right-adjoined family, including conjugate-parameter admissibility, is `research-attempt-research-plan-task-286-1`. The Hilbert-series and pairing consequences agree with `research-attempt-research-plan-task-317-1`. No finite computation, including transition computations in degrees \(6,\ldots,10\), is used.
+000040	
+000041	**Consolidated proof.** Let \(F_L\) be the graded free abelian group on \(G_L\), mapped to \(Q\). Generation gives a graded surjection \(F_L\twoheadrightarrow Q\). If its kernel contained a nonzero homogeneous element of added weight \(N\), then, after expressing its image in \(A_+J_v\) using generation by \(G_L\) and collecting degrees, one obtains a nonzero homogeneous syzygy
+000042	\[
+000043	\sum_{|\rho|=N}c_\rho\bar s_{(i^j,\rho)}
+000044	=\sum_{|\lambda|<N}f_\lambda\bar s_{(i^j,\lambda)},
+000045	\qquad \deg f_\lambda=N-|\lambda|>0.
+000046	\]
+000047	The accepted graded-kernel certificate verifies the necessary box nonvanishing, validity inequalities, large-\(N\) descent, and the \(a=0\) boundary; the no-syzygy theorem therefore forces all \(c_\rho=0\). Thus \(F_L\cong Q\).
+000048	
+000049	Partition conjugation induces the accepted graded integral isomorphism
+000050	\[
+000051	Q_v\cong Q_{v^\vee}.
+000052	\]
+000053	It interchanges \(i,j\), preserves \(a,b\), and sends \(G_R(v)\) bijectively to \(G_L(v^\vee)\). Since the latter is an integral basis by the preceding paragraph, \(G_R(v)\) is an integral basis of \(Q_v\). A proper subfamily of either basis cannot generate \(Q\), hence cannot generate \(J_v\), proving minimality.
+000054	
+000055	Finally, indexing the lower basis by \(\rho\subseteq b^a\) gives the Hilbert series. Complementation in \(b^a\) reverses weight from \(|\rho|\) to \(ab-|\rho|\); its permutation matrix gives the displayed perfect integral pairing.
+000056	
+000057	**Verdict.** The requested target—minimality of both generating families, strengthened to integral homogeneous bases of \(J_v/A_+J_v\)—is established within the stated boundary.
+000058	
+000059	## Gaps
+000060	- Optional unsupported statement: no closed general \(G_L\)-to-\(G_R\) transition formula is supplied.
+000061	- No required certificate for the audited theorem is missing.
+000062	
+000063	## Next
+000064	The audited theorem boundary is ready for independent review.
+000065	
+000066	INTERNAL ATTEMPT research-attempt-research-plan-task-331-1 · critic · ARTIFACT 79500456496644498a4f5b1b4a70339504d0e3d03b1fe470c1ad38f62a845ddb
+000067	## Critique
+000068	- claim-1: The mathematical strategy reaches the requested target using only accepted general results: `research-attempt-research-plan-task-296-1` gives the lower-family quotient basis, `research-attempt-research-plan-task-301-1` and `research-attempt-research-plan-task-286-1` transfer it to the right family, and `research-attempt-research-plan-task-317-1` gives the Hilbert series and perfect pairing. The kernel-to-syzygy argument covers integral independence, including the \(a=0\) boundary, and no finite computation is used. Thus the requested theorem is established. However, [doi:10.1112/jlms.12832, lines 219-235] supports the lower-family minimal-generation theorem but not the claimed “no-syzygy mechanism”; that mechanism occurs at lines 819-825. For exact self-containment, the Hypotheses paragraph should also define integral \(\Lambda\), \(I_{r,q}\), the Grassmannian basic ideal \(J_v\), and \(A_+\).
+000069	- claim-2: Correctly isolated as optional and unused. It records lack of a uniform transition formula, not evidence that such a formula cannot exist.
+000070	
+000071	## Repair certificates
+000072	- [source-refresh] Add the supplied exact grounding [doi:10.1112/jlms.12832, lines 819-825] for the no-syzygy theorem; retain [doi:10.1112/jlms.12832, lines 219-235] only for the lower-family theorem and generation statement.
+000073	
+000074	## Required revisions
+000075	- Correct the no-syzygy grounding locator.
+000076	- Make the coefficient ring and definitions of \(I_{r,q}\), \(J_v\), and \(A_+\) explicit without changing the theorem boundary.

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-158-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. Claim-1 explicitly defines all boundary matrices, verifies dimensions and \\(U_4M_4V_4=D_4\\), and checks unimodularity via determinants equal to \\(1\\). No parent-theorem claim is made."
+}

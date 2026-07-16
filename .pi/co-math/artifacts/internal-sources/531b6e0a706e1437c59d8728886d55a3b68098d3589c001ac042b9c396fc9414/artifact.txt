@@ -1,0 +1,34 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-196-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-195-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-195-1 · specialist · ARTIFACT 836880d8e568f9e76f6eb05a14951475f1af98442832ae7a7b300b0f826c2991
+000004	## Claims
+000005	- [source-backed] Source-29 states that it resolves RWY Conjecture 4.10 and proves minimality of \(\{\bar s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\). [doi:10.1112/jlms.12832, lines 219-235]
+000006	- [source-backed] Source-29 describes the transposed generating set and says its minimality could be proved by transposing the arguments; this passage is not itself a theorem proving it. [doi:10.1112/jlms.12832, lines 833-841]
+000007	
+000008	## Strategy
+000009	The requested target was **not established**: source-30 is not a citable indexed file, so no bounded source-30 text is available from which to extract every conjecture, question, or problem.
+000010	
+000011	## Gaps
+000012	No source-30 locators or text are supplied. Therefore an exhaustive source-30 list and itemwise classification as settled, open, or expository cannot be given.
+000013	
+000014	## Next
+000015	Provide a citable bounded source-30 excerpt or corrected source ID.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-195-1 · critic · ARTIFACT 7ca74231c42500cbe779f782fea2a0c35be548e946f23d28e688cd25918b934c
+000018	## Critique
+000019	- claim-1: Correctly grounded, but it addresses only RWY Conjecture 4.10 and does not extract every conjecture, question, or problem from source-30. It therefore does not satisfy exhaustiveness or itemwise classification.
+000020	- claim-2: Correctly distinguishes a remark from a theorem. This caveat must accompany any classification of the transposed half of Conjecture 4.10; it still does not provide the required source-30 extraction.
+000021	- The strategy is inadequate: the supplied search evidence contains indexed full text for the 2011 RWY paper, including relevant passages at lines 89-106, 202-211, 938-975, 976-994, and 1143-1161. What remains missing is durable confirmation that this candidate is persisted source-30 and a completeness check over that source.
+000022	- Several apparent source-30 targets were omitted: the polynomial-size presentation question, Conjecture 4.10, the conjecture about the generator number and suspected freeness of \(M/\Lambda_+M\), the immediately answered concatenation question, and Question 5.1.
+000023	- **Requested target not established.** The output neither gives a complete source-30 list with bounded locators nor classifies each item as settled by source-29, still open, or merely expository.
+000024	
+000025	## Repair certificates
+000026	- [source-refresh] Ground source-30 exactly as the 2011 RWY full text, including its durable identifier and content digest, then supply bounded excerpts covering every occurrence phrased or labeled as a conjecture, question, or problem—at minimum lines 89-106, 202-211, 938-975, 976-994, and 1143-1161—together with a documented whole-source keyword/completeness sweep.
+000027	
+000028	## Required revisions
+000029	- Replace the unsupported assertion that no indexed source-30 text is available.
+000030	- Enumerate each distinct target statement rather than citing only the later minimality theorem.
+000031	- Separate compound claims: minimal generator count and freeness of \(M/\Lambda_+M\) do not have the same evidentiary status.
+000032	- Classify Conjecture 4.10 carefully: source-29 expressly claims resolution, directly proves the lower family, and treats the transposed family only in the cited remark.
+000033	- Mark questions answered within source-30 itself as merely expository, and do not classify them as settled by source-29.
+000034	

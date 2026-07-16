@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-135-1",
+	"text": "## Critique\n- claim-1: Supported. Task-owned internal evidence grounds the required range \\(4,\\ldots,32\\) and recorded range \\(4,\\ldots,25\\) [artifact f958a73c1a6336f0b28b6befbb76dad428b867fe6d84559d45e8f92fc85dff5a, lines 3-20]. Artifact `a3b98d2563eb5bf732cf1634e095ec26ced9ea79823aabca47f24d5d2764465b` independently computes their exact set difference as \\(\\{26,\\ldots,32\\}\\), with executable code, explicit inputs, captured stdout/stderr, exit status \\(0\\), and stable digests. Thus the bounded missingness and computation-capability certificates are established.\n- claim-2: Correct. The computation proves only the finite range identity and does not compute the omitted bases, rows, or Smith forms, nor establish any parent theorem.\n\n## Required revisions\n- None for this bounded certificate."
+}

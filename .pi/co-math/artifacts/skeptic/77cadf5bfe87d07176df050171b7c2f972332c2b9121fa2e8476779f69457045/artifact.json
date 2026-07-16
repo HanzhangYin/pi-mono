@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-199-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-4 does not supply exact locators for the asserted repeated GR02 references. Its citation [lines 67–106] supports only the introductory discussion, not the essential-set discussion, later comparison, final question, or bibliography entry.\n- Consequently, the report’s declaration that the requested exact-occurrence extraction was established is unsupported. Claims 1–3 and 5 are adequately grounded, but they do not cure this central omission.\n\n## Unresolved certificates\n- [source-refresh] Provide a complete occurrence inventory for GR02 in source-30, with bounded excerpts and exact locators for each occurrence, including the essential-set discussion, Theorem 4.8 comparison and lines 934–937 remark, final open question, and bibliography entry."
+}

@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-61-1",
+	"taskId": "research-plan-task-61",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the stipulated integral \\(q^r\\)-box/Schur/Pieri presentation, the following exact integral identities \\(R_{\\mathrm{full}}=C R_{\\mathrm{selected}}\\) hold in all three regimes \\((p,c)=(1,1)\\), \\(p=1,c\\ge2\\), and \\(p\\ge2,c=1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(c=1,\\ p\\ge3\\), writing \\(u=\\gamma=s_{(i+2,i^{j-1})}\\), one has \\[ h_2y_1=h_1u+h_1z+h_1y_2-h_2x_1. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "ec4189ecb54c21bb07c5eb2fcbd5f2af6c50827700506031c14273a14a187775"
+}

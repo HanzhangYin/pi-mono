@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-312-1",
+	"taskId": "research-plan-task-312",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The required bordered-matrix Laplace certificate is not supplied here; therefore the requested target is not established by this response.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Ordinary Schur notation \\(s_{(i^j,\\sigma)}\\) additionally requires \\(b\\le i\\) (or a stated generalized-Jacobi–Trudi convention).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "65d494e4f8029f81bb3bbbb3fbb458cac86b66fac361581678049bbfbdd4569e"
+}

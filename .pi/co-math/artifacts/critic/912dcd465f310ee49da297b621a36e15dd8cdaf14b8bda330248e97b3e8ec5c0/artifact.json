@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-170-1",
+	"text": "## Critique\n- claim-1: Supported by the cited bounded passage; it supplies the bigrassmannian parameter hypotheses and definition of \\(J_v\\).\n- claim-2: Supported; it gives the integral coefficient ring, \\(I_{r,n-r}\\), the quotient, and overline notation.\n- claim-3: Supported; the passage contains the exact Theorem 1.2 hypotheses, parameter definitions, generating family, and minimality conclusion.\n- claim-4: Supported and correctly limited: the transposed family appears only in Remark 4.7, not in Theorem 1.2’s proved conclusion.\n- claim-5: Correct as a task-status assessment. The cited passage supports the stated limitation, although “the requested extraction is established” is a procedural conclusion rather than a source proposition.\n\n## Required revisions\n- None. The requested theorem-level extraction is established, with no implication beyond the cited passages."
+}

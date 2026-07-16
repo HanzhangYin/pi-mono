@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-205-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The core audit is missing: no executed task-owned artifact, complete occurrence table, term totals, or verified zero counts were supplied.\n- Claims 1–2 are properly grounded in bounded source lines, and the draft correctly states that the requested audit target is not established.\n\n## Unresolved certificates\n- [computation] Execute a case-insensitive exact fixed-literal audit of persisted source-30 for `conjecture`, `question`, `problem`, `we ask`, and `remains open`; persist every hit with locator/snippet, per-term counts including verified zeros, source SHA-256 `34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128`, and the resulting task-owned artifact digest."
+}

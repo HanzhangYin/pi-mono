@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-72-1",
+	"text": "## Verdict\nrejected\n\n## Concerns\n- claim-1 only records missing evidence; it does not establish the requested certificate.\n- The exact fifteen case conditions, column orders, selected-row indices, and matrices are absent.\n- No entrywise verification of \\(\\mathcal C R_{\\mathrm{selected}}=R_{\\mathrm{full}}\\) is provided for any fifteen-case system.\n\n## Unresolved certificates\n- [proof-attempt] Supply the complete standalone fifteen-case table with every required matrix and an entrywise proof of \\(\\mathcal C R_{\\mathrm{selected}}=R_{\\mathrm{full}}\\) in each case."
+}

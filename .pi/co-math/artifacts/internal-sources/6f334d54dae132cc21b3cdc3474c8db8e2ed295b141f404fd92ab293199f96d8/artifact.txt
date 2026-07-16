@@ -1,0 +1,250 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-79-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-78-1, research-attempt-research-plan-task-68-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-78-1 · specialist · ARTIFACT b84281aa0a5f09e757e02b1f84836aa7d2b80628444206a6a732e56e3b78ea7f
+000004	## Claims
+000005	- [proved] The requested source certificate is present in task-owned immutable snapshot `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, whose bounded locator is `artifacts/internal-sources/873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4/artifact.txt@L1-L216`. Its provenance identifies the inspected item as `research-attempt-research-plan-task-68-1`, with embedded attempt artifact `a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67`. The snapshot’s verbatim excerpt gives the hypotheses
+000006	  \[
+000007	  q=i+p,\quad r=j+c,\quad d=ij,\quad i,j\ge2,\quad p,c\ge1,\quad\min(p,c)=1,
+000008	  \]
+000009	  \[
+000010	  e_t=[p\ge t],\quad f_t=[c\ge t],\quad\kappa=[j\ge3],\quad\eta=[i\ge3],
+000011	  \]
+000012	  conditional on the integral \(q^r\)-box Schur basis and integral Pieri rule, with out-of-box classes zero. It defines the column order \((A,B,C,D,E,F,G,H,I,J)\) and respective presence conditions
+000013	  \[
+000014	  p\ge3,\ p\ge2,\ j\ge3,\ p\ge2,\ {\rm always},\ {\rm always},\
+000015	  c\ge2,\ i\ge3,\ c\ge2,\ c\ge3.
+000016	  \]
+000017	  Its equation (1) is
+000018	  \[
+000019	  R_{\rm full}=
+000020	  \begin{pmatrix}
+000021	  e_3&0&0&e_2&0&1&0&\eta&0&0\\
+000022	  e_3&e_2&0&e_2&1&1&0&0&0&0\\
+000023	  0&0&0&e_2&0&1&f_2&\eta&f_2&0\\
+000024	  e_3&e_2&0&e_2&0&0&0&0&0&0\\
+000025	  0&e_2&\kappa&0&1&0&0&0&0&0\\
+000026	  0&0&0&e_2&1&1&f_2&0&0&0\\
+000027	  0&0&0&0&0&1&0&\eta&f_2&0\\
+000028	  0&0&0&0&0&0&f_2&0&f_2&f_3
+000029	  \end{pmatrix}.
+000030	  \]
+000031	  Its table (4), with determinants in the available-column order inherited from \((A,\ldots,J)\), contains exactly these fifteen cases:
+000032	  \[
+000033	  \begin{array}{c|c|c|c}
+000034	  (p,c)&(\kappa,\eta)=(0,1)&(1,0)&(0,0)\\ \hline
+000035	  (1,1)&(r_1,r_2,r_5),-1&(r_1,r_2,r_5),-1&(r_1,r_5),-1\\
+000036	  (1,2)&(r_1,r_2,r_5,r_7,r_8),-1&(r_1,r_2,r_5,r_6,r_8),-1&(r_1,r_5,r_7,r_8),1\\
+000037	  (1,\ge3)&(r_1,r_2,r_5,r_6,r_7,r_8),1&(r_1,r_2,r_5,r_6,r_7,r_8),-1&(r_1,r_5,r_6,r_7,r_8),-1\\
+000038	  (2,1)&(r_1,r_4,r_5,r_6,r_7),-1&(r_1,r_4,r_5,r_6,r_7),1&(r_1,r_4,r_5,r_7),-1\\
+000039	  (\ge3,1)&(r_1,r_3,r_4,r_5,r_6,r_7),-1&(r_1,r_3,r_4,r_5,r_6,r_7),1&(r_3,r_4,r_5,r_6,r_7),1
+000040	  \end{array}
+000041	  \]
+000042	  [artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, `artifact.txt@L1-L216`]
+000043	
+000044	## Strategy
+000045	Treat the immutable snapshot as an excerpt certificate only; no mathematical assertion from the inspected draft is promoted.
+000046	
+000047	## Gaps
+000048	No independent hash recomputation was supplied. The snapshot preserves the draft’s stated conditional hypotheses and gaps; its mathematical claims are not independently validated here.
+000049	
+000050	## Next
+000051	The named source certificate is established from the supplied immutable snapshot only.
+000052	
+000053	INTERNAL ATTEMPT research-attempt-research-plan-task-78-1 · critic · ARTIFACT 314b93a970a4dddb504035aa06183263b9b290f8401d558da88a691416828b88
+000054	## Critique
+000055	- claim-1: Not established from the supplied evidence. The artifact’s contents are not included or independently grounded; only a specialist summary is provided, and the evidence ledger marks the claim unsupported. The single broad locator `artifact.txt@L1-L216` does not identify exact subranges for provenance, opening hypotheses, equation (1), and table (4). Consequently, verbatimness, all fifteen cases, provenance, and the asserted digest cannot be checked. The strategy would satisfy the bounded task only after the cited snapshot is made inspectable and precisely located; no parent-theorem validation is required.
+000056	
+000057	## Repair certificates
+000058	- [source-refresh] Provide an independently retrievable grounding record for artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, preserving its exact bytes and giving separate bounded line locators for: (i) provenance linking it to `research-attempt-research-plan-task-68-1` and embedded artifact `a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67`; (ii) all opening hypotheses; (iii) equation (1); (iv) all fifteen entries of table (4); and (v) the immutable digest declaration.
+000059	
+000060	## Required revisions
+000061	- Keep claim-1 unsupported until the artifact and exact component locators are inspectable.
+000062	- Conclude only whether this source certificate is established; do not infer or validate the parent theorem.
+000063	
+000064	INTERNAL ATTEMPT research-attempt-research-plan-task-68-1 · specialist · ARTIFACT a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67
+000065	## Claims
+000066	- [proved] Conditional on the integral \(q^r\)-box Schur basis and integral Pieri rule, the requested exhaustive degree-\(d+3\) certificate is established for \(i,j\ge2\), \(p,c\ge1\), \(\min(p,c)=1\): all \(p=2,c=2,i=2,j=2\) threshold deletions are included, the independently enumerated \(R_{\rm full}\) is displayed below, and \(R_{\rm full}=\mathcal C R_{\rm selected}\) is checked by unit minors and explicit row coordinates. This proves no parent theorem.
+000067	
+000068	## Strategy
+000069	Put
+000070	\[
+000071	q=i+p,\quad r=j+c,\quad d=ij,\quad
+000072	e_t=[p\ge t],\quad f_t=[c\ge t],\quad
+000073	\kappa=[j\ge3],\quad\eta=[i\ge3].
+000074	\]
+000075	All Schur classes outside \(q^r\) are zero.  The degree-\(d+3\) slots,
+000076	in column order \((A,B,C,D,E,F,G,H,I,J)\), are
+000077	\[
+000078	\begin{array}{c|c|c}
+000079	\text{slot}&\text{partition}&\text{present precisely when}\\ \hline
+000080	A&(i+3,i^{j-1})&p\ge3\\
+000081	B&(i+2,i+1,i^{j-2})&p\ge2\\
+000082	C&((i+1)^3,i^{j-3})&j\ge3\\
+000083	D&(i+2,i^{j-1},1)&p\ge2\\
+000084	E&((i+1)^2,i^{j-2},1)&\text{always}\\
+000085	F&(i+1,i^{j-1},2)&\text{always}\\
+000086	G&(i+1,i^{j-1},1,1)&c\ge2\\
+000087	H&(i^j,3)&i\ge3\\
+000088	I&(i^j,2,1)&c\ge2\\
+000089	J&(i^j,1,1,1)&c\ge3.
+000090	\end{array}
+000091	\]
+000092	Here \(i^0\) is omitted.  In particular: \(p=2\) deletes only \(A\);
+000093	\(c=2\) admits \(G,I\) but deletes \(J\); \(i=2\) deletes \(H\);
+000094	and \(j=2\) deletes \(C\).  The joint case \(p=c=2\) is excluded by
+000095	the stipulated \(\min(p,c)=1\).
+000096	
+000097	The complete degree-\(d+3\) Pieri table is
+000098	\[
+000099	\begin{array}{c|l}
+000100	r_1=h_3x_0&A+D+F+H\\
+000101	r_2=h_2x_1&A+B+D+E+F\\
+000102	r_3=h_2y_1&D+F+G+H+I\\
+000103	r_4=h_1\gamma&A+B+D\\
+000104	r_5=h_1x_2&B+C+E\\
+000105	r_6=h_1z&D+E+F+G\\
+000106	r_7=h_1y_2&F+H+I\\
+000107	r_8=h_1\theta&G+I+J .
+000108	\end{array}
+000109	\]
+000110	Terms whose slots are deleted are omitted.  These are exhaustive because
+000111	degree \(d+3\) elements of \(A_+J\) arise only from
+000112	\[
+000113	h_3x_0,\quad h_2x_1,\quad h_2y_1,\quad
+000114	h_1\gamma,\ h_1x_2,\ h_1z,\ h_1y_2,\ h_1\theta.
+000115	\]
+000116	
+000117	Before imposing box and small-\(i,j\) deletions, the formal coordinate
+000118	matrix is
+000119	\[
+000120	R^{(0)}=
+000121	\begin{pmatrix}
+000122	1&0&0&1&0&1&0&1&0&0\\
+000123	1&1&0&1&1&1&0&0&0&0\\
+000124	0&0&0&1&0&1&1&1&1&0\\
+000125	1&1&0&1&0&0&0&0&0&0\\
+000126	0&1&1&0&1&0&0&0&0&0\\
+000127	0&0&0&1&1&1&1&0&0&0\\
+000128	0&0&0&0&0&1&0&1&1&0\\
+000129	0&0&0&0&0&0&1&0&1&1
+000130	\end{pmatrix}.
+000131	\]
+000132	Applying the slot-presence table independently gives
+000133	\[
+000134	R_{\rm full}=
+000135	\begin{pmatrix}
+000136	e_3&0&0&e_2&0&1&0&\eta&0&0\\
+000137	e_3&e_2&0&e_2&1&1&0&0&0&0\\
+000138	0&0&0&e_2&0&1&f_2&\eta&f_2&0\\
+000139	e_3&e_2&0&e_2&0&0&0&0&0&0\\
+000140	0&e_2&\kappa&0&1&0&0&0&0&0\\
+000141	0&0&0&e_2&1&1&f_2&0&0&0\\
+000142	0&0&0&0&0&1&0&\eta&f_2&0\\
+000143	0&0&0&0&0&0&f_2&0&f_2&f_3
+000144	\end{pmatrix}. \tag{1}
+000145	\]
+000146	
+000147	For \((\kappa,\eta)=(1,1)\), independently selecting the following
+000148	Pieri rows gives the indicated unimodular complementary minor, with
+000149	retained column \(C\):
+000150	\[
+000151	\begin{array}{c|c|c}
+000152	(p,c)&R_{\rm selected}&\det(R_{\rm selected}|_{\widehat C})\\ \hline
+000153	(1,1)&(r_1,r_2,r_5)&-1\\
+000154	(1,2)&(r_1,r_2,r_5,r_6,r_8)&1\\
+000155	(1,\ge3)&(r_1,r_2,r_5,r_6,r_7,r_8)&1\\
+000156	(2,1)&(r_1,r_4,r_5,r_6,r_7)&-1\\
+000157	(\ge3,1)&(r_1,r_3,r_4,r_5,r_6,r_7)&-1.
+000158	\end{array} \tag{2}
+000159	\]
+000160	Writing selected rows in the listed order, the coordinate identities are
+000161	\[
+000162	\begin{array}{c|cccccccc}
+000163	(p,c)&r_1&r_2&r_3&r_4&r_5&r_6&r_7&r_8\\ \hline
+000164	(1,1)&s_1&s_2&s_1&0&s_3&s_2&s_1&0\\
+000165	(1,2)&s_1&s_2&s_1+s_5&0&s_3&s_4&s_1+s_2-s_4+s_5&s_5\\
+000166	(1,\ge3)&s_1&s_2&-s_2+s_4+s_5&0&s_3&s_4&s_5&s_6\\
+000167	(2,1)&s_1&-s_1+s_2+s_4+s_5&s_1&s_2&s_3&s_4&s_5&0\\
+000168	(\ge3,1)&s_1&-s_2+s_3+s_5+s_6&s_2&s_3&s_4&s_5&s_6&0 .
+000169	\end{array} \tag{3}
+000170	\]
+000171	Thus (3) is the explicit \(\mathcal C\) satisfying
+000172	\(R_{\rm full}=\mathcal C R_{\rm selected}\), entrywise.
+000173	
+000174	For every small-\(i,j\) deletion, the remaining columns are instead
+000175	fully spanned.  The following table gives an independently selected
+000176	square \(R_{\rm selected}\); its determinant is in the available-column
+000177	order inherited from \((A,\ldots,J)\):
+000178	\[
+000179	\begin{array}{c|c|c|c|c}
+000180	(p,c)&(\kappa,\eta)=(0,1)&(1,0)&(0,0)\\ \hline
+000181	(1,1)&(r_1,r_2,r_5),-1&(r_1,r_2,r_5),-1&(r_1,r_5),-1\\
+000182	(1,2)&(r_1,r_2,r_5,r_7,r_8),-1&
+000183	(r_1,r_2,r_5,r_6,r_8),-1&
+000184	(r_1,r_5,r_7,r_8),1\\
+000185	(1,\ge3)&(r_1,r_2,r_5,r_6,r_7,r_8),1&
+000186	(r_1,r_2,r_5,r_6,r_7,r_8),-1&
+000187	(r_1,r_5,r_6,r_7,r_8),-1\\
+000188	(2,1)&(r_1,r_4,r_5,r_6,r_7),-1&
+000189	(r_1,r_4,r_5,r_6,r_7),1&
+000190	(r_1,r_4,r_5,r_7),-1\\
+000191	(\ge3,1)&(r_1,r_3,r_4,r_5,r_6,r_7),-1&
+000192	(r_1,r_3,r_4,r_5,r_6,r_7),1&
+000193	(r_3,r_4,r_5,r_6,r_7),1 .
+000194	\end{array} \tag{4}
+000195	\]
+000196	Each determinant in (4) is a unit.  Hence
+000197	\[
+000198	\mathcal C:=R_{\rm full}R_{\rm selected}^{-1}
+000199	\]
+000200	is integral in every deletion case, and the identity
+000201	\[
+000202	R_{\rm full}=\mathcal C R_{\rm selected}
+000203	\]
+000204	holds entrywise.  This verifies all \(p=2,c=2,i=2,j=2\) threshold
+000205	deletions within the stated bounded regime.
+000206	
+000207	## Gaps
+000208	The argument assumes the integral box/Schur/Pieri presentation.  It does
+000209	not address degrees beyond \(d+3\), generation in all degrees,
+000210	minimality, or the parent theorem.
+000211	
+000212	## Next
+000213	No further conclusion is asserted from this certificate.
+000214	
+000215	INTERNAL ATTEMPT research-attempt-research-plan-task-68-1 · critic · ARTIFACT bc143ecf793d012188d1eb49a4a5d1faf5229746b12cfdc3f00a90c0e7577bb5
+000216	## Critique
+000217	- claim-1: The slot-presence table and symbolic matrix (1) correctly expose the \(p=2,c=2,i=2,j=2\) deletions. However, the certificate is incomplete in two respects. First, exhaustiveness is asserted rather than proved: one must show that the entire degree-\(d+3\) row lattice is generated by \(r_1,\ldots,r_8\), including products by arbitrary elements of \(A_1,A_2,A_3\). Second, for the fifteen small-\((i,j)\) cases in (4), neither the coordinate matrices \(R_{\mathrm{selected}}\) nor the integral coefficient matrices \(\mathcal C\) are displayed. Defining \(\mathcal C=R_{\mathrm{full}}R_{\mathrm{selected}}^{-1}\) makes the resulting equality tautological and does not provide the requested independent entrywise comparison. Thus the bounded certificate is not yet fully established.
+000218	
+000219	## Repair certificates
+000220	- [proof-attempt] Prove exhaustiveness by stating
+000221	  \[
+000222	  J_d=\mathbb Zx_0,\quad J_{d+1}=\mathbb Z\{x_1,y_1\},\quad
+000223	  J_{d+2}=\mathbb Z\{\gamma,x_2,z,y_2,\theta\},
+000224	  \]
+000225	  with unavailable slots omitted, and using
+000226	  \[
+000227	  A_1=\langle h_1\rangle,\quad A_2=\langle h_2,h_1^2\rangle,\quad
+000228	  A_3=\langle h_3,h_2h_1,h_1^3\rangle.
+000229	  \]
+000230	  Explicitly verify
+000231	  \[
+000232	  h_2h_1x_0=r_2+r_3,\qquad
+000233	  h_1^3x_0=r_4+r_5+2r_6+r_7+r_8,
+000234	  \]
+000235	  \[
+000236	  h_1^2x_1=r_4+r_5+r_6,\qquad
+000237	  h_1^2y_1=r_6+r_7+r_8.
+000238	  \]
+000239	  Then, for each of the fifteen cases in (4), display the available-column \(R_{\mathrm{selected}}\), an independently derived integral \(\mathcal C\), and the literal product \(\mathcal C R_{\mathrm{selected}}=R_{\mathrm{full}}\).
+000240	- [computation] Supply an exact-integer script for the twenty threshold representatives
+000241	  \[
+000242	  (i,j)\in\{2,3\}^2,\qquad
+000243	  (p,c)\in\{(1,1),(1,2),(1,3),(2,1),(3,1)\},
+000244	  \]
+000245	  enumerating horizontal strips, printing \(R_{\mathrm{full}},R_{\mathrm{selected}},\det R_{\mathrm{selected}},\mathcal C\), and verifying entrywise that \(\mathcal C R_{\mathrm{selected}}=R_{\mathrm{full}}\).
+000246	
+000247	## Required revisions
+000248	- Replace “arise only from” with a proved row-lattice generation statement.
+000249	- Expand (4) into explicit coordinate and multiplication data rather than defining \(\mathcal C\) from the desired equality.
+000250	- Retain the conditional box/Schur/Pieri hypothesis and make no parent-theorem claim.

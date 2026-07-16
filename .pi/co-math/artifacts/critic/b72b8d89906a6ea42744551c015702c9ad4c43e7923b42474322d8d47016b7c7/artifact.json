@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-111-1",
+	"text": "## Critique\n- claim-1: The bounded excerpt directly defines \\(I_{r,n-r}\\) as the Schur-span outside \\((n-r)^r\\) and states that it is an ideal. The grounding is exact and sufficient.\n- claim-2: The cited excerpt directly supplies the quotient isomorphism and the surviving Schur indexing by partitions inside \\((n-r)^r\\). No adjacent result is substituted.\n- claim-3: This follows formally from claim-1 because the Schur functions form a \\(\\mathbb Z\\)-basis of \\(\\Lambda\\): quotienting by the span of the complementary basis subset leaves the indicated free basis. Renaming \\(n-r=q\\) is harmless. The requested target is established.\n\n## Required revisions\n- None."
+}

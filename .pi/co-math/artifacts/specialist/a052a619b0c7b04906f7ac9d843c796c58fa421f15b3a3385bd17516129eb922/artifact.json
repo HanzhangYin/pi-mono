@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-247-1",
+	"text": "## Claims\n- [source-backed] The lower-adjoined family is minimally generating for every bigrassmannian parameter tuple. [doi:10.1112/jlms.12832, lines 219-235]\n- [source-backed] Right-adjoined minimality is only proposed by transposing the arguments in a remark. [doi:10.1112/jlms.12832, lines 833-840]\n\n## Strategy\nThe attempted exact sandbox computation did not finish: artifact `f3d1232fcc62bb13c59730096eee56ee9707f11421c735d4e3bdf6d9e3e5d124` exited with status 124 after 60000 ms. Hence no exact output, digest-backed result, or independent-review submission exists.\n\n## Gaps\nThe requested bounded experiment was not completed. No finite-case conclusion, structural pattern, or next proof lemma is justified.\n\n## Next\nThe requested target was **not established**."
+}

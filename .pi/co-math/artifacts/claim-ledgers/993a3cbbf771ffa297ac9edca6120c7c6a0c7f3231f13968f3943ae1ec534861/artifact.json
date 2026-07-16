@@ -1,0 +1,79 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-259-1",
+	"taskId": "research-plan-task-259",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Schur functions are homogeneous of partition weight, and the Grassmannian quotient inherits this grading. [doi:10.1112/jlms.12832, lines 263-269]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 263,
+							"end": 269
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "263: We briefly recall the basic properties of Schur functions and Littlewood--Richardson coefficients. See, \\emph{e.g.}, \\cite{fultonyt, ECII} for thorough introductions. For a partition $\\lambda$ (which we identify with its Young diagram in English notation), the \\emph{Schur function} $s_\\lambda=s_\\lambda(x_1,x_2,\\ldots)$ is the generating function for semistandard Young tableaux of shape $\\lambda$. Schur functions form a $\\mathbb{Z}$-basis of $\\Lambda$. The \\emph{Littlewood--Richardson coefficients} $c_{\\lambda,\\mu}^{\\nu}$ are the structure constants for the Schur basis:\n264: \\[s_\\lambda s_{\\mu} = \\sum_{\\nu} c_{\\lambda,\\mu}^{\\nu} s_{\\nu}. \\]\n265: The \\emph{Littlewood--Richardson rule} gives an explicit combinatorial description of $c_{\\lambda\\mu}^{\\nu}$\n266: (the version we use is Theorem~\\ref{thm:pictures}).\n267: A fact that we rely on throughout is that Schur functions are homogeneous of degree $|\\lambda|=\\lambda_1+\\lambda_2+\\cdots$. In particular, $c_{\\lambda,\\mu}^{\\nu}$ can only be nonzero if $|\\nu|=|\\lambda|+|\\mu|$. Similarly, it follows from the Littlewood--Richardson rule that $c_{\\lambda,\\mu}^\\nu$ can only be nonzero if $\\lambda,\\mu\\subseteq \\nu$ (identifying partitions with their Young diagrams in English notation).\n268: For the $\\overline{s}_\\lambda$ in $\\overline{\\Lambda}$, the multiplication is the same except partitions $\\rho$ must lie in the box $(n-r)^r$ in order for $\\overline{s}_\\rho$ to be nonzero:\n269: \\[\\overline{s}_\\lambda\\overline{s}_{\\mu} = \\sum_{\\nu\\subseteq (n-r)^r} c_{\\lambda,\\mu}^{\\nu} \\overline{s}_{\\nu}. \\]",
+					"excerptSha256": "eb6549f10ff771accf60656e958f29ab8d452a573e1792fcda258ede05cc2c97",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 263-269]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The involution \\(\\omega(s_\\lambda)=s_{\\lambda'}\\) is a ring involution. [doi:10.1112/jlms.12832, lines 481-485]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 481,
+							"end": 485
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "481: Hence it suffices to show that\n482: \\[c_{(i^j,\\lambda),\\theta}^\\nu=\\sum_{\\mu\\subseteq \\nu_B}c_{\\lambda,\\mu}^{\\nu_B} \\, c_{\\mu,\\nu_R}^{\\theta}\\]\n483: for all $\\lambda,\\theta\\subseteq (n-r)^r$ with $\\lambda\\subseteq \\nu_B$, $|\\lambda|<N$, and $|\\theta|=N-|\\lambda|$.\n484: Denote the conjugate of a partition $\\tau$ by $\\tau'$. The map $\\omega:\\Lambda\\to\\Lambda$ defined by $\\omega(s_\\rho)=s_{\\rho'}$ for each partition $\\rho$ is known to be ring involution (see for instance \\cite[Chapter 6.2]{fultonyt}). This implies that $c_{\\alpha,\\beta}^{\\gamma}=c_{\\alpha',\\beta'}^{\\gamma'}$ for any $\\alpha,\\beta,\\gamma$. Thus, the proof is complete if we can show\n485: \\[c^{\\nu'}_{(i^j,\\lambda)',\\theta'} = \\sum_{\\mu\\subseteq \\nu_B} c_{\\lambda',\\mu'}^{(\\nu_B)'}\\, c_{\\mu',(\\nu_R)'}^{\\theta'}. \\]",
+					"excerptSha256": "1fe6dfad15c6bc023eebccc8c4215ca98f7b937ba437d28c2443b611ca26e90b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 481-485]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The requested corollary \\[ J_v/A_+J_v\\cong J_{v^\\vee}/A_+J_{v^\\vee} \\] is an integral graded isomorphism; it preserves torsion subgroups and every degreewise rank.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "c6eb8dd976c1d490b06674b2d447c4c859ae6f3baab41947c1607c3fc861931b"
+}

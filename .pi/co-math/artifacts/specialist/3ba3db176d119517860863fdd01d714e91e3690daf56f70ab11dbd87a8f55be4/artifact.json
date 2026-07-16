@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-238-1",
+	"text": "## Claims\n- [unsupported] The requested three-input audit cannot be executed from supplied material: `persisted. source-39` has no resolvable supplied source block or bytes, and no sandbox action is available here.\n\n## Strategy\nThe requested target is **not established**. Missing input prevents a task-owned UTF-8 occurrence audit, resolver manifest, digests, code execution, stdout/stderr capture, and exit status. Existing DOI grounding for `10.1112/jlms.12832` is retained but does not supply this audit.\n\n## Gaps\nNo source content or stable locator is supplied for the exact identifier `persisted. source-39`; hence all twelve counts and the requested targeted-query count certificate remain uncomputed.\n\n## Next\nProvide a resolvable persisted-source block for `persisted. source-39` and sandbox execution access."
+}

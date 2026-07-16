@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-127-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- Claims 1–2 establish only the 2011 conjectural context and the 2024 abstract-level lead.\n- Claim 3’s counterexample correctly separates minimality from integral freeness of indecomposables.\n- Claim 4 identifies the decisive deficiency: the required 2024 theorem-level source refresh was not executed. Thus the requested target was explicitly, and correctly, reported as **not established**, but the task itself remains incomplete.\n\n## Unresolved certificates\n- [source-refresh] Retrieve bounded full-text passages from arXiv:2209.02011v2 or the DOI version, with stable theorem/definition locators, containing the exact minimality theorem, its hypotheses, coefficient ring, identified generating families, and conclusion; then compare it explicitly with \\(J/\\Lambda_+J\\cong\\mathbb Z^{\\binom{a+b}{a}}\\)."
+}

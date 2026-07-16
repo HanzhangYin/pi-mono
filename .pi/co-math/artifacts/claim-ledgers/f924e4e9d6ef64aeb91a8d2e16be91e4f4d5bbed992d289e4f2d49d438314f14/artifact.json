@@ -1,0 +1,43 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-99-1",
+	"taskId": "research-plan-task-99",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Metadata identifies *Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture*, Avery St. Dizier and Alexander Yong (2024), DOI 10.1112/jlms.12832; its abstract states that it proves the minimality conjecture using the Hopf algebra of symmetric functions. [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://doi.org/10.1112/jlms.12832"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No stable full-text copy of DOI 10.1112/jlms.12832, no source-registry identifier, no file digest, and no page or line locators were supplied.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "a6fde505ec42df3f07fe4356ef37b879eeca2c49dd5f00daac9f0170235f4473"
+}

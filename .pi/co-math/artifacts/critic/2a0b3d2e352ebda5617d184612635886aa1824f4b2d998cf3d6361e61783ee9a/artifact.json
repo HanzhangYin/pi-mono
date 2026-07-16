@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-287-1",
+	"text": "## Critique\n- claim-1: Correctly source-backed by [doi:10.1112/jlms.12832, lines 220-235], though not essential to the stated corollary.\n- claim-2: Correct. From \\(i=j\\) and \\(r=n-r\\), one obtains \\(t=r-i+1\\) and \\(s=r\\), so the displayed \\(v^\\vee\\) equals \\(v\\).\n- claim-3: Correct under the stipulated accepted quotient-conjugation result. Since both the rectangle and parameter are self-conjugate, that isomorphism becomes an integral graded endomorphism of \\(Q\\); partition conjugation squares to the identity.\n- claim-4: Correct. Writing \\(\\alpha=\\rho'\\) gives\n  \\[\n  (i^i,\\rho)'=(i+\\alpha_1,\\ldots,i+\\alpha_i),\n  \\]\n  and the inverse correspondence is conjugation itself. This includes \\(a=0\\).\n\n## Required revisions\n- None. The requested self-conjugate corollary is established via the accepted replacement route, not the failed explicit-identity route."
+}

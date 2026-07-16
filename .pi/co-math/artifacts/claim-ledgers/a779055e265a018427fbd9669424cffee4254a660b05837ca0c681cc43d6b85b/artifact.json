@@ -1,0 +1,74 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-31-1",
+	"taskId": "research-plan-task-31",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(\\mathfrak S_v=s_{i^j}\\), the two proposed families are \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\\) and \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\), with \\(a=\\min(n-r-i,r-j)\\), \\(b=\\min(i,j)\\). [source-6@L14-L33|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 33
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.",
+					"excerptSha256": "ed9060054bd9631503f414928754fe61c65c5ae31cde4027f6f5feee673c2b10",
+					"canonicalCitation": "[source-6@L14-L33|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\((r,q,i,j)=(5,3,2,2)\\), \\(a=1,b=2,N=\\binom31=3\\), and the two families are \\(F_1=(22,32,33)\\) and \\(F_2=(22,221,222)\\). [artifact e03b87dfaac58fc8c68b65e28c061cd1ac2d9a04b2e72c5e80e07ffd2ad7d00f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "In the \\(3^5\\)-box, the Schur-span module for shapes containing \\(22\\) has \\(40\\) ordered Schur columns. For \\(F_1\\), the complementary-column order is \\[ \\begin{gathered} 221;2211,222,321;22111,2221,3211,322,331;\\\\ 22211,2222,32111,3221,3311,332; 22221,32211,3222,33111,3321,333;\\\\ 22222,32221,33211,3322,3331; 32222,33221,33311,3332; 33222,33321,3333;33322,33331;33332;33333 . \\end{gathered} \\] The selected Pieri rows in the retained artifact order give a \\(37\\times37\\) complementary minor of absolute determinant \\(1\\). [artifact e03b87dfaac58fc8c68b65e28c061cd1ac2d9a04b2e72c5e80e07ffd2ad7d00f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The separately formed direct-LR relation rows reduce integrally to the selected Pieri rows: the artifact retains, for each LR row, its integer coefficient vector in the fixed selected-row order. Hence the LR and selected-Pieri relation lattices agree for both \\(F_1\\) and \\(F_2\\). [artifact e03b87dfaac58fc8c68b65e28c061cd1ac2d9a04b2e72c5e80e07ffd2ad7d00f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The resulting Smith quotients are torsion-free of rank \\(3\\): \\[ J_{v_{5,5,4,8}}/\\Lambda_+J_{v_{5,5,4,8}}\\cong\\mathbb Z^3, \\] with respective bases given by the images of \\(F_1\\) and \\(F_2\\), subject to the standard integral box-model identification of this quotient. [artifact e03b87dfaac58fc8c68b65e28c061cd1ac2d9a04b2e72c5e80e07ffd2ad7d00f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "0838f9abf4020d8649dae9bc6d8de870a5aa1937bbf4771a9c1bcbf898523168"
+}

@@ -1,0 +1,160 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-186-1",
+	"taskId": "research-plan-task-186",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Inspected alternate-provider full text: ar5iv’s rendering of St. Dizier–Yong, DOI 10.1112/jlms.12832, supplied with SHA-256 `6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456`. It identifies the 2011 Reiner–Woo–Yong paper separately as reference [12]. [doi:10.1112/jlms.12832, lines 548-550]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011",
+						"lines": {
+							"start": 548,
+							"end": 550
+						},
+						"contentSha256": "6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456"
+					},
+					"excerpt": "548: [12]\n549: V. Reiner, A. Woo, and A. Yong, Presenting the cohomology of a Schubert variety. Trans. Amer. Math. Soc. 363 (2011), no. 1, 521–543.\n550: [13]",
+					"excerptSha256": "1b9c5f47f4331649b86a033ef35873548804009249cb1a43134d54d43ed20ec3",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 548-550]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The supplied rendering contains visibly corrupted required material: after introducing (8) and (9), it truncates mathematical content, and Definition 2.1 reads only “valid if \\(n,r,i,j,a,b,N\\ge1\\) with \\(r\\ 9)\\),” omitting its inequalities. [doi:10.1112/jlms.12832, lines 149-164]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011",
+						"lines": {
+							"start": 149,
+							"end": 164
+						},
+						"contentSha256": "6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456"
+					},
+					"excerpt": "149: Since the Schur functions are homogeneous, both \\Lambda and I_{r,n-r} are graded by degree. The quotient \\overline{\\Lambda} inherits this grading. Thus, we can compare the degree N=|\\rho| homogeneous components of both sides of ( 7 ) and rearrange to obtain a homogeneous syzygy of the form\n150: (8)\n151: \\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n152: |\\lambda|=N\\end{subarray}}\\overline{s}_{(i^{j},\\lambda)}f_{\\lambda}=\\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n153: |\\lambda| 8 ) is simply a \\mathbb{Z}-linear combination (that is, each f_{\\lambda}\\in{\\mathbb{Z}}). We ignore the left-hand side of ( 8 ) for now and instead focus on the right-hand side.\n154: Since f_{\\lambda}\\in\\overline{\\Lambda}, we can expand in the Schur basis to obtain\n155: f_{\\lambda}=\\sum_{\\begin{subarray}{c}\\theta\\subseteq(n-r)^{r}\\\\\n156: |\\theta|=N-|\\lambda|\\end{subarray}}A_{\\lambda,\\theta}\\overline{s}_{\\theta}.\n157: Then\n158: \\displaystyle\\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n159: |\\lambda| 8 ) for some n,r,i,j,a,b,N is equivalent to a solution of the simultaneous linear equations\n160: (9)\n161: \\biggr{\\{}\\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n162: |\\lambda| Definition 2.1 .\n163: Call an integer tuple \\varphi=(n,r,i,j,a,b,N) valid if n,r,i,j,a,b,N\\geq 1 with\n164: r 9 ).",
+					"excerptSha256": "5a5f10ab67bb99cc77d5e85e9dd87da23cde54acf7f9498892949de719c36dbf",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 149-164]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The visible linkage is: Lemma 2.5 says a specified nonzero homogeneous syzygy implies consistency of decomposable equations (10); Theorem 4.4 declares the corresponding system inconsistent when wide right sides vanish and some tall right side is nonzero; Theorem 4.5 invokes Lemma 2.5 and Theorem 4.4. [doi:10.1112/jlms.12832, lines 176-190] [doi:10.1112/jlms.12832, lines 473-502]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011",
+						"lines": {
+							"start": 176,
+							"end": 190
+						},
+						"contentSha256": "6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456"
+					},
+					"excerpt": "176: Lemma 2.5 .\n177: Suppose for some valid \\varphi=(n,r,i,j,a,b,N) there is a homogeneous syzygy of degree N in \\overline{\\Lambda} of the form\n178: \\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n179: |\\lambda|=N\\end{subarray}}\\overline{s}_{(i^{j},\\lambda)}f_{\\lambda}=\\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n180: |\\lambda| with the left-hand side nonzero.\n181: Then the decomposable equations\n182: (10)\n183: \\biggr{\\{}\\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n184: |\\lambda| are consistent, where \\chi(\\nu)\\in\\mathbb{Z} is defined for \\nu\\in\\operatorname{Dec}_{\\varphi} by\n185: \\chi(\\nu)=\\begin{cases}f_{\\nu_{B}}&\\mbox{ if $\\nu$ is tall,}\\\\\n186: 0&\\mbox{ if $\\nu$ is wide.}\\end{cases}\n187: Proof.\n188: The above considerations show that the lemma is true if we replace ( 10 ) with the superset ( 9 ). Clearly, removing equations from a consistent linear system yields a consistent linear system.\n189: ∎\n190: We show that the decomposable equations are inconsistent in Theorem 4.4 . We will use the following notation for left-hand sides of the individual equations in ( 10 ).",
+					"excerptSha256": "59264089fc88848f741693d319d5aef43a1a577ce93d08d7fabe61b60cd79b9f",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 176-190]"
+				},
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011",
+						"lines": {
+							"start": 473,
+							"end": 502
+						},
+						"contentSha256": "6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456"
+					},
+					"excerpt": "473: Theorem 4.4 .\n474: For any valid \\varphi=(n,r,i,j,a,b,N), the equations\n475: (13)\n476: \\left\\{\\operatorname{Lin}_{\\varphi}(\\nu)=d_{\\nu}\\mid\\nu\\in\\operatorname{Dec}_{\\varphi}\\right\\}\n477: are inconsistent whenever d_{\\nu}=0 for all wide \\nu, and d_{\\rho}\\neq 0 for some tall \\rho.\n478: Proof.\n479: Suppose first that\n480: N\\leq\\min(j,n-r-i).\n481: By Lemma 4.2 , we have \\operatorname{Lin}_{\\varphi}(\\rho)\\in W.\n482: The restriction d_{\\nu}=0 when \\nu is wide would then force d_{\\rho}=0, contradicting the hypothesis. Thus the equations ( 13 ) are inconsistent.\n483: Now suppose that\n484: N>\\min(j,n-r-i).\n485: Choose q so that N\\leq\\min(2^{q}j,4^{q}n-2^{q}r-i). Let\n486: \\widehat{\\varphi}=(\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N),\\quad\\mbox{where}\\quad\\widehat{n}=4^{q}n,\\quad\\widehat{r}=2^{q}r,\\quad\\mbox{and}\\quad\\widehat{j}=2^{q}j.\n487: For each \\nu\\in\\operatorname{Dec}_{\\varphi}, let \\widehat{\\nu}\\in\\operatorname{Dec}_{\\widehat{\\varphi}} be the partition with \\widehat{\\nu}_{B}=\\nu_{B} and \\widehat{\\nu}_{R}=\\nu_{R}. For \\tau\\in\\operatorname{Dec}_{\\widehat{\\varphi}}, define\n488: e_{\\tau}=\\begin{cases}d_{\\nu}&\\mbox{ if }\\tau=\\widehat{\\nu}\\mbox{ for some }\\nu\\in\\operatorname{Dec}_{\\varphi},\\\\\n489: 0&\\mbox{ otherwise.}\\end{cases}\n490: By the previous argument, the equations\n491: (14)\n492: \\left\\{\\operatorname{Lin}_{\\widehat{\\varphi}}(\\tau)=e_{\\tau}\\mid\\tau\\in\\operatorname{Dec}_{\\widehat{\\varphi}}\\right\\}\n493: are inconsistent. By Lemma 4.3 , the equations ( 13 ) can be obtained by setting certain variables to zero in ( 14 ). Setting variables to zero in an inconsistent linear system produces the same.\n494: ∎\n495: Theorem 4.5 .\n496: For any valid \\varphi=(n,r,i,j,a,b,N), there is no syzygy of the form\n497: \\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n498: |\\lambda|=N\\end{subarray}}\\overline{s}_{(i^{j},\\lambda)}f_{\\lambda}=\\sum_{\\begin{subarray}{c}\\lambda\\subseteq b^{a}\\\\\n499: |\\lambda| with the left-hand side nonzero.\n500: Proof.\n501: By Lemma 2.5 , the existence of such a syzygy would contradict Theorem 4.4 .\n502: ∎",
+					"excerptSha256": "33e4d667b1aa37dee56c7fdd7b45f7737689a2eb49ed7cb53e216f7dc615faab",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 473-502]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "In Theorem 4.4, “\\(N\\le\\min(j,n-r-i)\\)” is proof-case-specific, not a theorem hypothesis: the theorem begins “For any valid \\(\\varphi\\),” and its proof subsequently treats both \\(N\\le\\min(j,n-r-i)\\) and \\(N>\\min(j,n-r-i)\\). [doi:10.1112/jlms.12832, lines 473-486]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011",
+						"lines": {
+							"start": 473,
+							"end": 486
+						},
+						"contentSha256": "6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456"
+					},
+					"excerpt": "473: Theorem 4.4 .\n474: For any valid \\varphi=(n,r,i,j,a,b,N), the equations\n475: (13)\n476: \\left\\{\\operatorname{Lin}_{\\varphi}(\\nu)=d_{\\nu}\\mid\\nu\\in\\operatorname{Dec}_{\\varphi}\\right\\}\n477: are inconsistent whenever d_{\\nu}=0 for all wide \\nu, and d_{\\rho}\\neq 0 for some tall \\rho.\n478: Proof.\n479: Suppose first that\n480: N\\leq\\min(j,n-r-i).\n481: By Lemma 4.2 , we have \\operatorname{Lin}_{\\varphi}(\\rho)\\in W.\n482: The restriction d_{\\nu}=0 when \\nu is wide would then force d_{\\rho}=0, contradicting the hypothesis. Thus the equations ( 13 ) are inconsistent.\n483: Now suppose that\n484: N>\\min(j,n-r-i).\n485: Choose q so that N\\leq\\min(2^{q}j,4^{q}n-2^{q}r-i). Let\n486: \\widehat{\\varphi}=(\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N),\\quad\\mbox{where}\\quad\\widehat{n}=4^{q}n,\\quad\\widehat{r}=2^{q}r,\\quad\\mbox{and}\\quad\\widehat{j}=2^{q}j.",
+					"excerptSha256": "5d57fa904f6b464139e907acbc64df02c0d14400dc12aae33b3fbfe65138be12",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 473-486]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The requested source certificate is **not established** from the supplied record: the only alternate-provider full text is corrupted precisely where complete equations (8)–(10) and Definition 2.1’s valid-tuple inequalities are required. Hence neither the visible linkage nor adjacent 2011-paper identification can substitute for one uncorrupted bounded source-29 excerpt.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "658aa2296423b33a6a4533df56b434239669ca64ed39f03daeeae3d2ca8d39fb"
+}

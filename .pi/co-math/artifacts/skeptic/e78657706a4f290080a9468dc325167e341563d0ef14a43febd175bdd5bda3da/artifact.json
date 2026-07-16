@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-193-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. Claim-1 matches the exact interval, all support degrees \\(4\\)–\\(25\\), and \\(h\\)-degrees \\(1,\\dots,5\\); the artifact contains every ordered Pieri row and exact Smith diagonal. The requested finite target is established.\n- Claim-2 correctly limits the computation’s scope."
+}

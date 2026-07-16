@@ -1,0 +1,56 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-322-1",
+	"taskId": "research-plan-task-322",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Source-2 gives only the distinct \\((i,k,\\mu)\\)-bordered Jacobi–Trudi lemma and its matrix construction. [source-2@L1697-L1742|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1697,
+						"end": 1742
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1697: \\begin{lemma}\n1698: \\label{Woo-2nd-lemma}\n1699: Let $i < k$, and assume $\\mu$ is a partition with\n1700: $\n1701: \\mu_k > i \\geq \\mu_{k+1},\n1702: $\n1703: so that the $(i+1)^{st}$ column of the Young diagram for $\\mu$ has length $k > i$.\n1704: Then\n1705: $$\n1706: s_\\mu = \\sum_{m=1}^k (-1)^{k-m} \\,\\, h_{\\mu_m+k-i-m} \\,\\, s_{\\mu^{(m)}},\n1707: $$\n1708: where for $m=1,2,\\ldots,k$ one defines\n1709: $$\n1710: \\mu^{(m)}:=(\\mu_1,\\mu_2,\\ldots,\\mu_{m-1},\\widehat{\\mu_m}, \\mu_{m+1}-1,\\mu_{m+2}-1,\n1711:                \\ldots,\\mu_k-1,i,\\mu_{k+1},\\mu_{k+2},\\ldots,\\mu_{\\ell}),\n1712: $$\n1713: where $\\ell:=\\ell(\\mu)$ and $\\widehat{\\mu_m}$ refers to the deletion of\n1714: the entry $\\mu_m$.\n1715: %\n1716: %In particular, for each $m=1,2,\\ldots,k$ in the sum, the\n1717: %factor $h_{\\mu_m+k-i-m}$ has positive degree (since $\\mu_m \\geq i+1$), \n1718: %and each $\\lambda^{(m)}$ also has $\\lambda^{(m)}_j \\geq i$.\n1719: \\end{lemma}\n1720: \\begin{proof}\n1721: Start with the $\\ell \\times \\ell$\n1722: Jacobi-Trudi matrix for $\\mu$.  From this create an $(\\ell+1) \\times \\ell$ matrix by inserting a \n1723: new row between its row $k$ and row $k+1$, having entries \n1724: $$\n1725: (h_{i-k+1},h_{i-k+2},\\ldots,h_{i-k+\\ell}).\n1726: $$  \n1727: Then from this $(\\ell+1) \\times \\ell$ matrix, create a singular $(\\ell+1) \\times (\\ell+1)$ matrix \n1728: by introducing an $(\\ell+1)^{st}$ column that\n1729: duplicates the $(k-i)^{th}$ column.  This last duplicated column is\n1730: $$\n1731: \\begin{array}{lccrll}\n1732: \\ \\ \\ \\ (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},\n1733:    &h_{i-k + (k-i)},&h_{\\mu_{k+1}-i-1},&\\ldots, &h_{\\mu_{\\ell}+k-i-\\ell}&)^T \\\\\n1734: = (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},\n1735:    &1,            &0,              &\\ldots,&0&)^T.\n1736: \\end{array}\n1737: $$\n1738: Here we have used the facts that $h_0=1$ and that $h_{\\mu_m+k-i-m}=0$ \n1739: for $m \\geq k+1$ because $\\mu_m \\leq \\mu_{k+1} \\leq i$ implies \n1740: $\\mu_m+k-i-m=(\\mu_m-i)+(k-m)<0$.\n1741: One then checks that cofactor expanding the (zero) determinant of this \n1742: $(\\ell+1) \\times (\\ell+1)$ matrix along this duplicated column gives the asserted identity.",
+					"excerptSha256": "f84642a442bea04b1b0802b131b093abed73e7535286c5714980dd70e54e912d",
+					"canonicalCitation": "[source-2@L1697-L1742|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No supplied exact statement defines the requested \\((\\rho,a,b,j,q,r)\\)-indexed congruence, its modulus, two shapes, or bordered-matrix order.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Therefore the requested determinant certificate cannot be established without inventing its target statement.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "7d7e98063faab12105742c447bcd4ae5a1abb6f0b656476bf7171e38b8d2a5a1"
+}

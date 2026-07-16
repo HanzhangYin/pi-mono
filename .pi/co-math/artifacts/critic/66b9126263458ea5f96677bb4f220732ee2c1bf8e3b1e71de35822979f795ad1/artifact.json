@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-158-1",
+	"text": "## Critique\n- claim-1: Correct and complete for the named boundary certificate. The matrices have compatible dimensions, their product is the unique \\(0\\times1\\) zero matrix, and \\(\\det(I_0)=\\det([1])=1\\), a unit in \\(\\mathbb Z\\), proving unimodularity. No parent-theorem claim is made.\n\n## Required revisions\n- None."
+}

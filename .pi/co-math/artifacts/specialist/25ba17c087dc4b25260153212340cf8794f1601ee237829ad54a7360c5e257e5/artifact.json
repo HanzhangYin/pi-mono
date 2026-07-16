@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-180-1",
+	"text": "{\"action\":\"run_math_primitive\",\"primitive\":\"partition-pieri\",\"summary\":\"For the \\(i=j=p=2,c=7\\) interval, enumerate degrees \\(4,\\ldots,8\\) with the artifact-compatible reverse-lexicographic ordered bases and complete Pieri rows; extract and verify the specified complementary minors and reductions of the second-family classes.\",\"input\":{\"lower\":[2,2,0,0,0,0,0,0,0],\"upper\":[4,4,4,4,4,4,4,4,4],\"degrees\":[4,5,6,7,8],\"hDegrees\":[1,2,3,4]}}"
+}

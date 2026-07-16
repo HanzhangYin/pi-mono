@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-77-1",
+	"taskId": "research-plan-task-77",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "`README.md` catalogues archived external source files and TeX locators only. [source-4@L10-L28|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-4"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-4",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 10,
+						"end": 28
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "README.md",
+					"sourceFileSha256": "95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac",
+					"regionKind": "ordinary-document",
+					"excerpt": "10: - [`conjectures.md`](conjectures.md): precise statement, stronger formulation, evidence, consequence, and related open question.\n11: - [`sources/0809.2981v2.pdf`](sources/0809.2981v2.pdf): paper PDF downloaded from arXiv.\n12: - [`sources/0809.2981v2.tex`](sources/0809.2981v2.tex): decompressed TeX source from arXiv.\n13: - [`sources/0809.2981v2-source.gz`](sources/0809.2981v2-source.gz): original arXiv source download.\n14: - [`sources/arxiv-metadata.xml`](sources/arxiv-metadata.xml): arXiv API metadata.\n15: - [`sources/CITATION.bib`](sources/CITATION.bib): BibTeX entries for the arXiv and journal versions.\n16: - [`sources/SHA256SUMS`](sources/SHA256SUMS): checksums for source-material integrity.\n17: \n18: ## Finding the source passages\n19: \n20: In the TeX source:\n21: \n22: - Theorem defining the two generating sets: lines 1380–1421.\n23: - Formally labeled minimality conjecture and computational evidence: lines 1489–1502.\n24: - Exponential lower-bound consequence: lines 1504–1515.\n25: - Stronger quotient-module formulation: lines 1517–1552.\n26: - Related open question: lines 1897–1935.\n27: \n28: The line references above apply to the archived file `sources/0809.2981v2.tex` in this directory.",
+					"excerptSha256": "a677f006a13130419e6710155edf79a6f074448edce44661e9bfb4470b35346d",
+					"canonicalCitation": "[source-4@L10-L28|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The supplied record has no task-owned, line-addressable verbatim excerpt artifact for `research-attempt-research-plan-task-68-1`, no bounded locators for its hypotheses, (1), or fifteen cases of (4), and no inspectable provenance or immutable excerpt digest. The quoted internal artifact ID cannot be treated as such a digest.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "25e9ffeca61413ae6d5be2b8b48e6c473cb71cbb500bc95904f7f189ea709011"
+}

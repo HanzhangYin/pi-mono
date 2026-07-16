@@ -1,0 +1,36 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-154-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-153-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-153-1 · specialist · ARTIFACT 67fb1e5e9e0ec5ec449281b98b6a046bdfb7827802fccc287d40e9ec2e7fc000
+000004	## Claims
+000005	- [computed] Accepted task `research-attempt-research-plan-task-124-1` gives, for \((i,j,p,c)=(2,2,2,4)\), quotient free ranks \(1,1,2,1,1,0,\ldots,0\) in degrees \(4,5,6,7,8,9,\ldots,24\), respectively; every torsion-invariant-factor list is empty. Hence \(J/A_+J\cong\mathbb Z^{1+1+2+1+1}=\mathbb Z^6\). [accepted task research-attempt-research-plan-task-124-1]
+000006	- [source-backed] The two Theorem 5.4 families are indexed by \(\{s_\mu: i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\}\) and \(\{s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\), where \(a=\min(n-r-i,r-j)\), \(b=\min(i,j)\). [source-6, lines 14-21; source-6, lines 24-33]
+000007	- [proved] Here \(a=b=2\), and the accepted generating families are
+000008	  \[
+000009	  \{s_{22},s_{32},s_{42},s_{33},s_{43},s_{44}\},\qquad
+000010	  \{s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222}\}.
+000011	  \]
+000012	  Each has six elements and generates \(J\). Its image therefore surjects \(\mathbb Z^6\twoheadrightarrow J/A_+J\cong\mathbb Z^6\). By the accepted indexed-family Nakayama criterion, each image is a \(\mathbb Z\)-basis; thus no proper subfamily generates \(J\).
+000013	- [proved] The requested \(c=4\) minimality corollary is established: both displayed six-element families are minimal generating sets of \(J\).
+000014	
+000015	## Strategy
+000016	Extract task 124’s degreewise Smith data, sum the nonzero free ranks, and apply accepted generation plus indexed-family Nakayama.
+000017	
+000018	## Gaps
+000019	None relative to the accepted task-124 computation and accepted generation/Nakayama inputs.
+000020	
+000021	## Next
+000022	None.
+000023	
+000024	INTERNAL ATTEMPT research-attempt-research-plan-task-153-1 · critic · ARTIFACT 6bc3901297d27c742fa1456e34a3d8eb6088063947409697ae5ec1afd46b8d96
+000025	## Critique
+000026	- claim-1: The exact degreewise data are not present in the supplied accepted-attempt details. The accepted task index records task 124’s objective, but not its output, Smith diagonals, or artifact locator. Thus the asserted ranks and absence of torsion cannot presently be checked or extracted from the supplied evidence.
+000027	- claim-2: Adequately grounded by the validated source excerpts.
+000028	- claim-3: The specialization and Nakayama argument are mathematically correct conditional on claim-1. Both displayed families have six elements and generate \(J\); a surjection \(\mathbb Z^6\to\mathbb Z^6\) is unimodular, so their quotient images are bases and no proper subfamily generates \(J\).
+000029	- claim-4: Only conditionally established. Because claim-1 lacks inspectable task-124 output, the requested \(c=4\) corollary is not established on the supplied evidence.
+000030	
+000031	## Repair certificates
+000032	- [computation] Execute or expose the accepted task-124 exact computation for `lower=[2,2,0,0,0,0]`, `upper=[4,4,4,4,4,4]`, `degrees=[4,...,24]`, and `hDegrees=[1,2,3,4]`; provide degreewise Smith diagonals, free ranks, torsion factors, and unimodular witnesses \(U_dM_dV_d=D_d\).
+000033	
+000034	## Required revisions
+000035	- Supply the durable task-124 report or artifact locator recording the claimed rank sequence and empty torsion lists.
+000036	- Only after that evidence verifies \(J/A_+J\cong\mathbb Z^6\), state the unconditional \(c=4\) minimality conclusion using the otherwise valid argument in claim-3.

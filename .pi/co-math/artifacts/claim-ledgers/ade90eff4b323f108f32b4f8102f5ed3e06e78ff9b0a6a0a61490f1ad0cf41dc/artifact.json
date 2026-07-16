@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-317-1",
+	"taskId": "research-plan-task-317",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Assuming the accepted graded basis \\(Q=\\bigoplus_{\\rho\\subseteq b^a}\\mathbb Z\\,e_\\rho\\), with \\(\\deg e_\\rho=ij+|\\rho|\\), one has \\[ H_Q(z)=z^{ij}\\sum_{\\rho\\subseteq b^a}z^{|\\rho|} =z^{ij}\\binom{a+b}{a}_z. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The formula \\[ \\rho^\\vee=(b-\\rho_a,\\ldots,b-\\rho_1) \\] is an involution on partitions in \\(b^a\\) and satisfies \\[ |\\rho^\\vee|=ab-|\\rho|. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The integral bilinear form \\[ \\langle e_\\rho,e_\\sigma\\rangle=\\delta_{\\sigma,\\rho^\\vee} \\] is a perfect degree-complement pairing \\[ Q_d\\times Q_{\\,2ij+ab-d}\\longrightarrow\\mathbb Z. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "0db1dca6e82d60871731a38be74078054cc4df740c1d61315288f40c669656ff"
+}

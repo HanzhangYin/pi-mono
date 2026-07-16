@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-315-1",
+	"text": "## Findings\n- claim-1: The standalone determinant identity from task 313 is not stated in the supplied material; therefore its ordered bordered matrix, Laplace index sets, complementary minors, and target Jacobi–Trudi determinant cannot be identified without invention.\n## Strategy\nThe task-313 determinant identity and its definitions are absent. No bordered matrix or Jacobi–Trudi target can be reconstructed without invention.\n\n## Gaps\nMissing: task-313 statement, parameter ranges, matrix ordering, determinant identity, and conventions. Therefore the requested target is **not established**.\n\n## Next\nProvide the persisted task-313 statement and required conventions for a standalone proof."
+}

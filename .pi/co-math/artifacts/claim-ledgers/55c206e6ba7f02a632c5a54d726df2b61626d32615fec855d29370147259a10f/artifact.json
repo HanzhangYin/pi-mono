@@ -1,0 +1,82 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-185-1",
+	"taskId": "research-plan-task-185",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested bounded full-text excerpt cannot be retrieved: `source-29` is not a citable indexed file, and no supplied FULL-TEXT SOURCE block contains equations (8)–(10), Definition 2.1, Lemma 2.5, or Theorems 4.4–4.5.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The external search identifies St. Dizier–Yong’s 2024 paper and its abstract says “We prove the minimality conjecture,” but this is metadata/abstract material, not a theorem-level locator. [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://doi.org/10.1112/jlms.12832"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The supplied local source is instead the 2011 Reiner–Woo–Yong paper, identified as arXiv:0809.2981v2. [source-5@L11-L22|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-5"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-5",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 11,
+						"end": 22
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/arxiv-metadata.xml",
+					"sourceFileSha256": "a7c250a03574b7b0daefcf97e2c1245d0fed93738e2e11faa3579f03751cadbc",
+					"regionKind": "ordinary-document",
+					"excerpt": "11:     <id>http://arxiv.org/abs/0809.2981v2</id>\n12:     <title>Presenting the cohomology of a Schubert variety</title>\n13:     <updated>2009-09-04T21:19:20Z</updated>\n14:     <link href=\"https://arxiv.org/abs/0809.2981v2\" rel=\"alternate\" type=\"text/html\"/>\n15:     <link href=\"https://arxiv.org/pdf/0809.2981v2\" rel=\"related\" type=\"application/pdf\" title=\"pdf\"/>\n16:     <summary>  We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.</summary>\n17:     <category term=\"math.CO\" scheme=\"http://arxiv.org/schemas/atom\"/>\n18:     <category term=\"math.RA\" scheme=\"http://arxiv.org/schemas/atom\"/>\n19:     <published>2008-09-17T19:12:56Z</published>\n20:     <arxiv:comment>22 pages</arxiv:comment>\n21:     <arxiv:primary_category term=\"math.CO\"/>\n22:     <arxiv:journal_ref>Trans. Amer. Math. Soc. 363 (2011), 521-543</arxiv:journal_ref>",
+					"excerptSha256": "51f7e9d75cb91747775e0d7080245576c857b8474bdc1ee36697ebd9a41b09b2",
+					"canonicalCitation": "[source-5@L11-L22|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested target is **not established**: no uncorrupted bounded source-29 excerpt was available, so theorem hypotheses cannot be distinguished rigorously from proof-only restrictions.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "8eaa44787f13a8fcf1b64b5f2078585450dd6043a8ca4ab259c54d61a7bb0a63"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-247-1",
+	"text": "## Findings\n- claim-1: The lower-adjoined family is minimally generating for every bigrassmannian parameter tuple. [doi:10.1112/jlms.12832, lines 219-235]\n- claim-2: Right-adjoined minimality is only proposed by transposing the arguments in a remark. [doi:10.1112/jlms.12832, lines 833-840]\n## Strategy\nNo sandbox action or immutable computation artifact was provided in this run. Therefore no exact experiment was executed or submitted for independent review.\n\n## Gaps\nThe requested target is **not established**. Missing are the \\((i,j,p,c)=(2,2,3,4)\\) computation, code, outputs, digests, Smith witnesses, right-family unimodular complements, and independent review.\n\n## Next\nExecute the specified bounded \\((2,2,3,4)\\) Pieri/Smith computation and await independent review before extracting any pattern or proof lemma."
+}

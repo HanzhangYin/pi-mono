@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-186-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. The bounded source inspection precisely records the corruption, distinguishes the visible proof-local restriction, and correctly concludes that the requested source certificate was not established."
+}

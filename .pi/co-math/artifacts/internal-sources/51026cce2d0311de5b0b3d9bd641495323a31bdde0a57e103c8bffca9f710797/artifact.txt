@@ -1,0 +1,108 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-277-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-270-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-270-1 · specialist · ARTIFACT a32f9923a6137194b76fd4950f169fb3f6e3bee9a060b39ef9c8f19a2c134d35
+000004	## Claims
+000005	- [source-backed] For every bigrassmannian parameter tuple, the lower family \(\{\bar s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\) generates \(J_v\), and no member can be removed. [doi:10.1112/jlms.12832, lines 220-235]
+000006	- [source-backed] The homogeneous no-syzygy theorem used to prove lower-family minimality holds integrally in \(\Lambda/I_{r,n-r}\). [doi:10.1112/jlms.12832, lines 819-831]
+000007	- [source-backed] The right family is the conjugate family \(\{\bar s_\mu:i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\}\), and its generation was proved in the transposed version. [doi:10.1112/jlms.12832, lines 833-840]
+000008	- [proved] For \(i=j=3,\ a=2,\ b=3,\ r=n-r=5\), both displayed ten-element families map to \(\mathbb Z\)-bases of \(J/A_+J\).
+000009	- [proved] In the degreewise orders specified below, the transition from the lower basis to the right basis is \(\operatorname{diag}(1,-1,I_2,-I_2,I_2,-1,1)\), hence is unimodular.
+000010	
+000011	## Strategy
+000012	Put \(A=\Lambda/I_{5,5}\). Since \(A\) is graded and \(h_t=\bar s_{(t)}=0\) for \(t>5\),
+000013	\[
+000014	A_+=(h_1,h_2,h_3,h_4,h_5).
+000015	\]
+000016	The lower family is
+000017	\[
+000018	\begin{array}{c|l}
+000019	d&\mathcal L_d\\ \hline
+000020	9&(333)\\
+000021	10&(3331)\\
+000022	11&(3332,33311)\\
+000023	12&(3333,33321)\\
+000024	13&(33331,33322)\\
+000025	14&(33332)\\
+000026	15&(33333).
+000027	\end{array}
+000028	\]
+000029	It generates \(J\). If a nonzero integral relation among its degree-\(d\) classes held in \(J/A_+J\), lifting it gives a homogeneous syzygy with a nonzero constant-coefficient left side and positive-degree multiples of lower-degree lower-family elements on the right. This is excluded by the cited integral no-syzygy theorem. Thus the displayed classes are independent; generation gives spanning. Hence they are a \(\mathbb Z\)-basis.
+000030	
+000031	Let \(\omega(\bar s_\lambda)=\bar s_{\lambda'}\). It is a graded involution of \(A\), preserves \(A_+\), and maps the lower family to the right family. Since both families generate \(J\), \(\omega(J)=J\), so it induces an automorphism of \(J/A_+J\). Therefore the right-family classes are also a \(\mathbb Z\)-basis.
+000032	
+000033	Write
+000034	\[
+000035	L_\rho=\bar s_{(3^3,\rho)},\qquad
+000036	R_{\rho'}=\bar s_{(3+\rho'_1,\,3+\rho'_2,\,3+\rho'_3)}
+000037	=\omega(L_\rho),
+000038	\quad \rho\subseteq3^2.
+000039	\]
+000040	The finite Pieri–antipode reduction gives
+000041	\[
+000042	[R_{\rho'}]=(-1)^{|\rho|}[L_\rho]\quad\text{in }J/A_+J.
+000043	\]
+000044	It follows by expanding the antipode identity
+000045	\[
+000046	\sum_{\alpha,\beta}(-1)^{|\alpha|}
+000047	c_{\alpha,\beta}^{\nu}s_{\alpha'}s_\beta=0
+000048	\]
+000049	and discarding each term in \(A_+J\); this is the integral Hopf-antipode identity used in the source proof. [doi:10.1112/jlms.12832, lines 702-735]
+000050	
+000051	Explicitly, the paired reductions are
+000052	\[
+000053	\begin{array}{c|c}
+000054	R&\text{class in the lower basis}\\ \hline
+000055	333& L_{0}\\
+000056	433&-L_{1}\\
+000057	443& L_{2}\\
+000058	533& L_{11}\\
+000059	444&-L_{3}\\
+000060	543&-L_{21}\\
+000061	544& L_{31}\\
+000062	553& L_{22}\\
+000063	554&-L_{32}\\
+000064	555& L_{33}.
+000065	\end{array}
+000066	\]
+000067	Thus, by degree \(9,\ldots,15\), the transition matrices are
+000068	\[
+000069	[1],\ [-1],\ I_2,\ -I_2,\ I_2,\ [-1],\ [1].
+000070	\]
+000071	Each has determinant \(\pm1\). The requested target is established.
+000072	
+000073	## Gaps
+000074	None for this specialization.
+000075	
+000076	## Next
+000077	None.
+000078	
+000079	INTERNAL ATTEMPT research-attempt-research-plan-task-270-1 · critic · ARTIFACT 3c7a493a0df6eaf29b271565a399dc6d0ea5cd75711e80d4aa5b56974711a5d5
+000080	## Critique
+000081	- claim-1: Correctly grounded. The cited theorem gives integral generation and irredundancy of the lower family.
+000082	- claim-2: Correctly grounded and stronger than mere irredundancy. For excess degrees \(N=1,\ldots,6\), it can exclude every nonzero integral relation among same-degree lower generators modulo \(A_+J\). The degree-\(9\) case \(N=0\) still requires the separate observation \((A_+J)_9=0\).
+000083	- claim-3: Correctly grounded for generation and conjugacy. Given \(\omega(J)=J\) and \(\omega(A_+)=A_+\), it supports the right-family basis argument.
+000084	- claim-4: Essentially supported by the strategy, but the lifting argument should explicitly expand every homogeneous element of \(A_+J\) through the lower generators and verify the no-syzygy hypotheses for \(N=1,\ldots,6\). The omitted \(N=0\) argument must also be supplied.
+000085	- claim-5: Not established. The antipode identity at [doi:10.1112/jlms.12832, lines 702-735] does not directly state
+000086	  \[
+000087	  [R_{\rho'}]=(-1)^{|\rho|}[L_\rho].
+000088	  \]
+000089	  The strategy neither identifies the specialization of that identity nor proves that all other terms lie in \(A_+J\). Consequently the displayed ten reductions and the diagonal transition matrix currently lack exact quotient witnesses.
+000090	
+000091	## Repair certificates
+000092	- [proof-attempt] For every \(\rho\subseteq3^2\), exhibit an explicit integral identity
+000093	  \[
+000094	  R_{\rho'}-(-1)^{|\rho|}L_\rho
+000095	  =\sum_k a_k\,h_{t_k}\bar s_{\lambda_k},
+000096	  \qquad 1\le t_k\le5,\quad \bar s_{\lambda_k}\in J,
+000097	  \]
+000098	  or derive these identities rigorously from the antipode formula while identifying the two surviving terms and proving every discarded term belongs to \(A_+J\).
+000099	- [computation] Using the complete Pieri relation matrices in degrees \(9,\ldots,15\), provide exact integral quotient-coordinate witnesses for all lower and right classes and verify that the right-coordinate columns in the ordered lower bases are
+000100	  \[
+000101	  [1],\ [-1],\ I_2,\ -I_2,\ I_2,\ [-1],\ [1].
+000102	  \]
+000103	
+000104	## Required revisions
+000105	- Define \(J=\bigoplus_{333\subseteq\lambda\subseteq5^5}\mathbb Z\bar s_\lambda\), list both graded families, and handle degree \(9\) separately.
+000106	- Make the lower-family lifting/no-syzygy argument explicit in every relevant degree.
+000107	- Supply exact membership witnesses in \(A_+J\) for the claimed transition congruences.
+000108	- State that the requested target is **not yet established**: the basis portion is nearly complete, but the explicit unimodular transition remains unsupported.

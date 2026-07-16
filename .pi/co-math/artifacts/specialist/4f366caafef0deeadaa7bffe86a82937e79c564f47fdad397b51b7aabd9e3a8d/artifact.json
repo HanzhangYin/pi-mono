@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-54-1",
+	"text": "## Claims\n- [source-backed] The supplied citable material identifies arXiv:0809.2981v2 as the earlier paper, *Presenting the cohomology of a Schubert variety*, published in 2011. [source-5, lines 11-22]\n- [unsupported] No supplied citable source is a full-text copy of the later paper associated with DOI \\(10.1112/jlms.12832\\).\n\n## Strategy\nThe requested extraction requires indexed later-paper full text.\n\n## Gaps\nThe later paper’s main theorem, coefficient hypotheses, and statements about \\(J_v/A_+J_v\\) cannot be extracted from the supplied sources.\n\n## Next\nRequested target **not established**: ingest an indexed full-text copy of DOI \\(10.1112/jlms.12832\\)."
+}

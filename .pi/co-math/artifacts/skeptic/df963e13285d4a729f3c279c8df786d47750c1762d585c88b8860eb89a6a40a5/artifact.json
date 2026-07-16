@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-77-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 concerns only external archived sources and does not establish availability or absence of the internal attempt.\n- claim-2 is explicitly unsupported. No durable manifest, retrieval record, or inspected bounded range grounds the asserted unavailability of `research-attempt-research-plan-task-68-1`.\n\n## Unresolved certificates\n- [proof-attempt] Provide the requested immutable line-addressable excerpt with provenance and digest, or an immutable availability record demonstrating that the identified internal attempt cannot be inspected."
+}

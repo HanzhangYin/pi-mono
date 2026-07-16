@@ -1,0 +1,74 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-160-1",
+	"taskId": "research-plan-task-160",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(Q=J_{2,4}/A_+J_{2,4}\\), quotient free ranks in degrees \\(4,\\ldots,24\\) are \\[ (1,1,2,1,1,0,\\ldots,0), \\] i.e. \\(1,1,2,1,1\\) in degrees \\(4,5,6,7,8\\) and \\(0\\) in degrees \\(9,\\ldots,24\\); every torsion-factor list is empty. [artifact baf9447fe15327ded6640cbb3b0b3c7b43b62cdb3fb6fa1afcb78fe218ca5d97]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Using the accepted interval presentation (supported only in degrees \\(4,\\ldots,24\\)) and accepted identification of the complete \\(A_+J_{2,4}\\) Pieri-row lattice, the preceding Smith data give \\[ J_{2,4}/A_+J_{2,4}\\cong \\mathbb Z^{1+1+2+1+1}\\cong\\mathbb Z^6. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The supplied source summary states that Theorem 5.4 provides two generating sets for \\(J_v\\), with \\(a=\\min(n-r-i,r-j)\\), \\(b=\\min(i,j)\\), each of cardinality \\(\\binom{a+b}{a}\\). [source-6@L14-L42|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 42
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.\n34: \\]\n35: \n36: Each contains\n37: \n38: \\[\n39: \\binom{a+b}{a}\n40: \\]\n41: \n42: generators. “Minimal” means that no proper subset still generates \\(J_v\\).",
+					"excerptSha256": "8e3f40e39de8ac6527b4eee73906f9a74f3b5668a9b9fa10119bd56dbdc81e03",
+					"canonicalCitation": "[source-6@L14-L42|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "For \\(i=j=p=c=2\\), \\(a=b=2\\), so each accepted generating family has \\(\\binom42=6\\) elements. Since each maps to a surjection \\(\\mathbb Z^6\\twoheadrightarrow J_{2,4}/A_+J_{2,4}\\cong\\mathbb Z^6\\), accepted indexed-family Nakayama implies that both \\[ \\{s_{22},s_{32},s_{42},s_{33},s_{43},s_{44}\\} \\quad\\text{and}\\quad \\{s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222}\\} \\] map to \\(\\mathbb Z\\)-bases of the quotient. Hence neither has a proper subfamily generating \\(J_{2,4}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The requested target is established: both listed families are minimal generating sets of \\(J_{2,4}\\). No broader minimality claim is concluded.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "74104d482768cfbf91e9b0a5aaed7e58517decfb8391c9bbb3737227f2fc7685"
+}

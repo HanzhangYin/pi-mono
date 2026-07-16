@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-114-1",
+	"text": "## Claims\n- [unsupported] No successful task-owned computation artifact for the specified five-row interval is supplied; all three supplied executions exited nonzero.\n\n## Strategy\nThe requested certificate requires a successful exact computation with complete output. The supplied artifacts `d1a7675d91f3fb31a85fcca73b98d02e19723fc79a2e4382db1bf51b3ce7efb0`, `23e9ef1280fa2e247cbb7443adc6d9c54cc879b4c3faa5170aa02faa4bc9a5fb`, and `28c3dbb2f4b8f375c6d4f9643f29a1987bac2b24439b69663488289aa6f94bd5` all failed, so none certifies bases, rows, Smith data, or torsion.\n\n## Gaps\nThe exact ordered bases, complete Pieri rows, Smith diagonals, quotient ranks, torsion decompositions, and boundary vanishing for \\((2,2)\\subseteq\\lambda\\subseteq(4^5)\\) remain uncomputed in a successful task-owned artifact.\n\n## Next\nThis certificate is not established."
+}

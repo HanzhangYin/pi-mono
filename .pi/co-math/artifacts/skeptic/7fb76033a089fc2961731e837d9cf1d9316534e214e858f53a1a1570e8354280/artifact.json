@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-166-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1: Artifact `f1ea7b8a6c15d6654b7e1bd1673dd88e63c0753a417251ed8a5fd4e756dc86f9` only reprints hardcoded fields. It contains no captured arXiv response or citable provider-record locator, so it does not validate that the title and summary came from the external provider.\n- claim-2: The limitation is appropriate but does not repair the missing external grounding. Thus the named capability certificate is not established.\n\n## Unresolved certificates\n- [source-refresh] Persist a bounded, byte-stable arXiv provider-record capture for `arXiv:0809.2981v2`, with artifact ID, digest, locator, provider, stable identifier, and exact title or abstract field; explicitly ground one scoped claim in that captured field."
+}

@@ -1,0 +1,29 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-162-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-161-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-161-1 · specialist · ARTIFACT f23f9bded8d0284c6868100cf1ad156325e5987f3d702b18233de1448b004149
+000004	## Claims
+000005	- [unsupported] Sources `source-30` and `source-29` are not supplied as citable source blocks; therefore the requested complete extraction and status comparison cannot be performed.
+000006	- [source-backed] The supplied auxiliary summary identifies one formal conjecture and one formal open question in arXiv:0809.2981v2, but it is not source-30 or source-29. [source-6, lines 104-110]
+000007	
+000008	## Strategy
+000009	Do not substitute source-6 for the requested source-30/source-29 evidence.
+000010	
+000011	## Gaps
+000012	Exact source-30 labelled statements, parameters, and source-29 statuses are missing.
+000013	
+000014	## Next
+000015	Requested target: **not established**.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-161-1 · critic · ARTIFACT 2a343ba5a0c560b28362a210bde6fe669d888db6b0473504a48a0576864a24b4
+000018	## Critique
+000019	- claim-1: Correctly identifies the decisive evidence gap, but remains unsupported because no source inventory or source-30/source-29 excerpts are provided. Consequently, completeness of the requested extraction cannot be assessed.
+000020	- claim-2: Validly grounded in source-6, but irrelevant to the requested source-30 extraction and source-29 status comparison. The strategy correctly avoids substituting this adjacent evidence.
+000021	- The requested target is **not established**.
+000022	
+000023	## Repair certificates
+000024	- [source-refresh] Supply bounded, citable excerpts from source-30 containing every explicitly labelled “Conjecture,” “Question,” or “Problem,” including each complete statement and all parameter definitions; then supply bounded excerpts from source-29 stating the status of each corresponding item, or explicitly documenting that source-29 gives no status.
+000025	
+000026	## Required revisions
+000027	- Perform the extraction directly from source-30 and record the exact labels, statements, parameters, and locators.
+000028	- Match each extracted item against source-29 with exact locators and distinguish proved, disproved, open, partial, or unstated status.
+000029	- Include evidence establishing that the list is exhaustive; do not use source-6 as a substitute.

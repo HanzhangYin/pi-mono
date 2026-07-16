@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-16-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- The presentation is exact, but its Smith normal form is not computed; therefore \\(Q\\cong\\mathbb Z^{\\binom{a+b}{a}}\\) and minimality of the two smaller Schur families remain unresolved, as correctly stated."
+}

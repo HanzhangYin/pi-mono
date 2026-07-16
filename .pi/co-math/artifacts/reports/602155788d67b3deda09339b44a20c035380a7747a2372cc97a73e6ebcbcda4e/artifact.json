@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-294-1",
+	"text": "## Findings\n- claim-1: The requested certificate is not established: the supplied material does not specify the target artifact’s \\(C_d,L_d,R_d,T_d\\), selection conventions, determinant witnesses, or prescribed-transition identities needed for exact reconstruction and comparison.\n## Strategy\nNo sandbox action or complete target data was supplied here. Therefore no fresh computation can be executed or reconstructed.\n\n## Gaps\nThe requested certificate is not established. Missing are emitted full matrices \\(U_d,V_d,D_d,C_d,L_d,R_d,T_d\\), their machine-checked identities, target-artifact comparison, exit status, and stable digests.\n\n## Next\nRun the specified standalone computation in an explicitly provided sandbox and preserve its complete output."
+}

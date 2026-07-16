@@ -1,0 +1,137 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-284-1",
+	"taskId": "research-plan-task-284",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The basic ideal is \\(J_v=\\operatorname{Span}_{\\mathbb Z}\\{\\sigma_u:u\\ge v\\}\\); Grassmannian cohomology is \\(\\Lambda/I_{r,n-r}\\) with Schur classes indexed by partitions in \\((n-r)^r\\). [doi:10.1112/jlms.12832, lines 197-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 197,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "197: For each basic element of $S_n$, a bigrassmannian permutation\n198: $v$, define the \\emph{basic ideal} of $H^*(X)$ as\n199: \\[J_v\\coloneqq \\mathrm{Span}_\\mathbb{Z}\\left\\{\\sigma_u\\mid u\\geq v\\right\\}.\\]\n200: It is shown in \\cite{RWY} that $I_w$ decomposes into basic ideals. Specifically,\n201: \\begin{equation}\n202: \\label{eqn:thedecompabc}\n203: I_w=\\sum_{v\\in {\\mathcal E}(w)} J_v,\n204: \\end{equation}\n205: where ${\\mathcal E}(w)$ is the set of $u \\in S_n$ which are minimal in the Bruhat order among those not\n206: below $w$. The set ${\\mathcal E}(w)$ is referred to as the \\emph{essential set}, and consists only of bigrassmannian permutations \\cite[Theorem 1.1]{RWY}.\n207: As explained in \\cite[Section~3]{RWY}, the projection\n208: \\[X\\to \\mathrm{Gr}_{r,n}\\]\n209: onto the Grassmannian of $r$-planes in $\\mathbb{C}^n$\n210: induces a split-inclusion $H^*(\\mathrm{Gr}_{r,n})\\xhookrightarrow{\\iota} H^*(X)$. Consequently (see \\cite[Proposition 3.1]{RWY}), elements of $H^*(\\mathrm{Gr}_{r,n})$ generate $J_v$ in $H^*(X)$ if and only if they generate the contraction $J_v\\cap H^*(\\mathrm{Gr}_{r,n})$ inside $H^*(\\mathrm{Gr}_{r,n})$.\n211: In particular, elements of $H^*(\\mathrm{Gr}_{r,n})$ \\emph{minimally} generate $J_v$ in $H^*(X)$ if and only if they \\emph{minimally} generate $J_v\\cap H^*(\\mathrm{Gr}_{r,n})$ in $H^*(\\mathrm{Gr}_{r,n})$. This allows one to study the generation of $J_v$ inside $H^*(\\mathrm{Gr}_{r,n})$ instead of $H^*(X)$ without loss of generality, enabling the use of symmetric function theory.\n212: %It is established in \\cite[Section~3]{RWY} (see specifically Proposition~3.1 and Theorem~3.2) that, without loss, the ideals $J_v$ of $H^*(X)$ can be considered instead in the cohomology ring $H^*(\\mathrm{Gr}_{r,n})$ of the Grassmannian of $r$-planes in $\\mathbb{C}^n$. This allows one to study $J_v$ by working with symmetric functions.\n213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "d7bcfdc6c15a17534c794bea33d6955289d69e78efe4c688c6d3a553bd234c06",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 197-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(v_{r,s,t,n}\\), \\(i=s-t+1\\), \\(j=r-t+1\\), and the lower-adjoined Schur family generates \\(J_v\\). [doi:10.1112/jlms.12832, lines 220-235]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 220,
+							"end": 235
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "220: \\begin{theorem}\\label{thm:main}\n221: Given a bigrassmannian permutation $v=v_{r,s,t,n}\\in S_n$ let\n222: \\begin{align*}\n223: i&\\coloneqq s-t+1,\\\\\n224: j&\\coloneqq r-t+1,\\\\\n225: a&\\coloneqq \\min(n-r-i,r-j),\\\\\n226: b&\\coloneqq \\min(i,j).\n227: \\end{align*}\n228: Then the basic ideal $J_v$, thought of as an ideal of $H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}$, is minimally generated by\n229: \\begin{equation}\n230: \\label{eqn:minimallist}\n231: \\{\\overline{s}_{\\mu} \\mid i^j\\subseteq \\mu \\subseteq (i^j,b^a)\\}.\n232: \\end{equation}\n233: \\end{theorem}\n234: That (\\ref{eqn:minimallist}) generates $J_v$ is \\cite[Theorem 4.8]{RWY}. The conjectural part, which we prove,\n235: is the minimality claim, that is, no generator can be removed without changing the ideal.",
+					"excerptSha256": "03681efb834162e447a4f8b14af35597992976140d7aca839ce6cb674f86557b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 220-235]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "In \\(\\Lambda/I_{r,q}\\), multiplication is truncated Littlewood–Richardson multiplication over partitions in \\(q^r\\). [doi:10.1112/jlms.12832, lines 263-269]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 263,
+							"end": 269
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "263: We briefly recall the basic properties of Schur functions and Littlewood--Richardson coefficients. See, \\emph{e.g.}, \\cite{fultonyt, ECII} for thorough introductions. For a partition $\\lambda$ (which we identify with its Young diagram in English notation), the \\emph{Schur function} $s_\\lambda=s_\\lambda(x_1,x_2,\\ldots)$ is the generating function for semistandard Young tableaux of shape $\\lambda$. Schur functions form a $\\mathbb{Z}$-basis of $\\Lambda$. The \\emph{Littlewood--Richardson coefficients} $c_{\\lambda,\\mu}^{\\nu}$ are the structure constants for the Schur basis:\n264: \\[s_\\lambda s_{\\mu} = \\sum_{\\nu} c_{\\lambda,\\mu}^{\\nu} s_{\\nu}. \\]\n265: The \\emph{Littlewood--Richardson rule} gives an explicit combinatorial description of $c_{\\lambda\\mu}^{\\nu}$\n266: (the version we use is Theorem~\\ref{thm:pictures}).\n267: A fact that we rely on throughout is that Schur functions are homogeneous of degree $|\\lambda|=\\lambda_1+\\lambda_2+\\cdots$. In particular, $c_{\\lambda,\\mu}^{\\nu}$ can only be nonzero if $|\\nu|=|\\lambda|+|\\mu|$. Similarly, it follows from the Littlewood--Richardson rule that $c_{\\lambda,\\mu}^\\nu$ can only be nonzero if $\\lambda,\\mu\\subseteq \\nu$ (identifying partitions with their Young diagrams in English notation).\n268: For the $\\overline{s}_\\lambda$ in $\\overline{\\Lambda}$, the multiplication is the same except partitions $\\rho$ must lie in the box $(n-r)^r$ in order for $\\overline{s}_\\rho$ to be nonzero:\n269: \\[\\overline{s}_\\lambda\\overline{s}_{\\mu} = \\sum_{\\nu\\subseteq (n-r)^r} c_{\\lambda,\\mu}^{\\nu} \\overline{s}_{\\nu}. \\]",
+					"excerptSha256": "eb6549f10ff771accf60656e958f29ab8d452a573e1792fcda258ede05cc2c97",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 263-269]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "For the new specialization \\[ (i,j,p,c)=(2,3,3,2),\\quad q=i+p=5,\\quad r=j+c=5, \\] hence \\(n=r+q=10\\), \\(t=r-j+1=3\\), \\(s=i+t-1=4\\), and \\(v=v_{5,4,3,10}\\) is admissible.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "With \\(A=\\Lambda/I_{5,5}\\), the exact Schur-basis interval ideal is \\[ J=J_v=\\bigoplus_{\\substack{(2,2,2)\\subseteq\\lambda\\subseteq(5,5,5,5,5)}}\\mathbb Z\\,\\bar s_\\lambda . \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "For this specialization, \\[ A_+=(\\bar h_1,\\bar h_2,\\bar h_3,\\bar h_4,\\bar h_5). \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "In every degree \\(d\\), the complete lattice \\((A_+J)_d\\) is the \\(\\mathbb Z\\)-span of precisely the Pieri rows \\[ \\bar h_t\\bar s_\\lambda =\\sum_{\\substack{\\lambda\\subseteq\\mu\\subseteq5^5\\\\ \\mu/\\lambda\\ {\\rm horizontal}\\ t\\text{-strip}}}\\bar s_\\mu , \\quad 1\\le t\\le5,\\quad (2,2,2)\\subseteq\\lambda\\subseteq5^5,\\quad |\\lambda|=d-t. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "42d9ef0df2d63550b1f02e0b3e9ffba6975784ce3e4556e28316ee704665aeba"
+}

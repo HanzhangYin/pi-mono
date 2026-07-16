@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-13-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- Claims 2–5 depend on an unproved identification of the computed cokernel with \\(J_v/\\Lambda_+J_v\\). The Schur basis for \\(J_v\\), box truncation, and sufficiency of the \\(e_k\\)-Pieri relations must be justified or the results marked conditional.\n- The artifact suppresses the complete Smith diagonal and relation-matrix rank; its field `rank` is instead the cokernel free rank. This prevents independent checking of the asserted torsion invariants.\n- The custom Smith routine has no independent certificate or cross-check.\n- Claim 5 is a degenerate \\(n-r>5\\) example with \\(a=0\\) and \\(N=1\\). A representative nontrivial case with \\(n-r>5\\), \\(r\\ge2\\), and \\(N>1\\) remains missing.\n- “Smallest admissible” is not defined by an ordering of parameter tuples. Finite outputs cannot establish the universal conjecture."
+}

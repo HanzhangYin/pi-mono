@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-64-1",
+	"taskId": "research-plan-task-64",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Task-owned artifact `c523b9a65c6908594380392aa237d0d15e3a53c7154d8f26dc0882ce1754659d` (script SHA-256 `b7689eefc9b68455d47d84900619899ea47b0fc296b66414696f4c9167b08df0`) executed self-contained Python partition/horizontal-strip enumeration with exit status \\(0\\). Inputs were \\(i,j=2,\\ldots,6\\), \\(p,c=1,\\ldots,5\\), \\(\\min(p,c)=1\\); captured output reports 225 parameter tuples, 900 checks of \\(h_1x_0=x_1+y_1\\), \\(h_2x_0=\\gamma+z+y_2\\), \\(h_1x_1=\\gamma+x_2+z\\), \\(h_1y_1=z+y_2+\\theta\\), and 25 doubly-boundary checks. It reports matrix \\([[0,1,1],[1,1,0],[0,1,1]]\\) on \\([x_2,z,y_2]\\), minor \\([[1,1],[1,0]]\\) on one-based rows \\([1,2]\\), columns \\([z,y_2]\\), determinant \\(-1\\), and `RESULT: PASS`. [artifact c523b9a65c6908594380392aa237d0d15e3a53c7154d8f26dc0882ce1754659d]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Failed task-owned execution `cba25213fffc4bb931dfb264ddbc95dd73da45bc758cf5434d03adc6b383688f` had exit status \\(1\\), caused by selecting rows \\([2,3]\\) rather than the stated rows \\([1,2]\\) for the minor; it supplies no positive result. [artifact cba25213fffc4bb931dfb264ddbc95dd73da45bc758cf5434d03adc6b383688f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "c0386f09ca71a33f9fa7b34615948bb7f4925574dc2805844102e7f0e2200878"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-161-1",
+	"text": "## Claims\n- [unsupported] Sources `source-30` and `source-29` are not supplied as citable source blocks; therefore the requested complete extraction and status comparison cannot be performed.\n- [source-backed] The supplied auxiliary summary identifies one formal conjecture and one formal open question in arXiv:0809.2981v2, but it is not source-30 or source-29. [source-6, lines 104-110]\n\n## Strategy\nDo not substitute source-6 for the requested source-30/source-29 evidence.\n\n## Gaps\nExact source-30 labelled statements, parameters, and source-29 statuses are missing.\n\n## Next\nRequested target: **not established**."
+}

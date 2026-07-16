@@ -1,0 +1,85 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-305-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-303-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-303-1 · specialist · ARTIFACT 5a4ac611150f201a75efec992c49eb2226ae663a1910867e355b8ef6cbd849a7
+000004	## Claims
+000005	- [computed] The accepted artifact reports quotient free ranks \(1,1,2,1,1\) in degrees \(6,7,8,9,10\), respectively, with no torsion. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]
+000006	- [unsupported] A failed repair computation printed the provisional blocks
+000007	  \[
+000008	  T_6=(1),\quad T_7=(-1),\quad
+000009	  T_8=\begin{pmatrix}0&1\\1&0\end{pmatrix},\quad T_9=(-1),
+000010	  \]
+000011	  in the listed \(G_L\)-row and \(G_R\)-column orders; it did not produce a valid degree-\(10\) block.
+000012	
+000013	## Strategy
+000014	The degree orders are
+000015	\[
+000016	\begin{array}{c|c|c}
+000017	d&G_L&G_R\\\hline
+000018	6&(222)&(222)\\
+000019	7&(2221)&(322)\\
+000020	8&(2222,22211)&(422,332)\\
+000021	9&(22221)&(432)\\
+000022	10&(22222)&(442).
+000023	\end{array}
+000024	\]
+000025	The provisional degree-\(6\) through \(9\) determinants are \(1,-1,-1,-1\), hence their Smith diagonals are respectively \((1),(1),(1,1),(1)\). In the stated orders, \(T_8\) is a permutation matrix, not unitriangular; therefore the natural listed ordering does not give dominance-unitriangularity.
+000026	
+000027	## Gaps
+000028	The requested target is **not established**. The only attempted computation of the degree-\(10\) transition produced nonintegral coordinates under a rational free-variable choice and terminated with an assertion failure. No successful task-owned computation or integral determinant/Smith certificate for \(T_{10}\), and hence no complete global transition matrix or fully certified dominance-unitriangularity test, is available.
+000029	
+000030	## Next
+000031	A successful integral lattice/SNF coordinate computation is required for degree \(10\).
+000032	
+000033	INTERNAL ATTEMPT research-attempt-research-plan-task-303-1 · critic · ARTIFACT eeaa9ecd5d405eabbc03ed2a8b059bf2de6d4a1ec7fa9161a1f15cd1e8f8c704
+000034	## Critique
+000035	- claim-1: Even granting the accepted computation, quotient ranks and absence of torsion do not determine the \(G_L\)-to-\(G_R\) coordinates. They certify only the degreewise quotient structure, not the transition matrices, determinants, or Smith witnesses.
+000036	- claim-2: The displayed blocks are unsupported because they came from a failed computation. Degree \(10\) is missing entirely. Consequently neither the complete transition matrix nor the dominance-unitriangularity test is established. In particular, presentation-matrix Smith data cannot substitute for Smith certificates of the transition blocks.
+000037	
+000038	## Repair certificates
+000039	- [proof-attempt] For degree \(10\), use column order
+000040	  \[
+000041	  (532,5221,442,433,4321,4222,42211,3331,3322,33211,32221,22222).
+000042	  \]
+000043	  Check every complete Pieri row against the primitive functional
+000044	  \[
+000045	  \phi=(0,0,1,0,-1,0,1,0,1,0,-1,1).
+000046	  \]
+000047	  The complete row supports are
+000048	  \[
+000049	  \begin{aligned}
+000050	  h_1:&\ AB,\ ACDE,\ BEFG,\ DH,\ EHIJ,\ FIK,\ GJK,\ KL,\\
+000051	  h_2:&\ ABCEF,\ ADEHI,\ BEFGIJK,\ FKL,\ GK,\\
+000052	  h_3:&\ ABEFI,\ BFGK,\qquad
+000053	  h_4:\ BF .
+000054	  \end{aligned}
+000055	  \]
+000056	  Each has \(\phi\)-value \(0\). The accepted degree-\(10\) Smith data—rank \(11\), all nonzero invariants \(1\)—then imply that the relation lattice is \(\ker\phi\). Hence
+000057	  \[
+000058	  [\bar s_{22222}]=[\bar s_{442}],
+000059	  \]
+000060	  so the missing block is \(T_{10}=(1)\).
+000061	- [computation] Execute a successful exact-integer computation that reconstructs all complete Pieri matrices from artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602`, extracts both family coordinates, and verifies
+000062	  \[
+000063	  T_6=(1),\quad T_7=(-1),\quad
+000064	  T_8=\begin{pmatrix}0&1\\1&0\end{pmatrix},\quad
+000065	  T_9=(-1),\quad T_{10}=(1).
+000066	  \]
+000067	  It must print exact identities in the quotient, determinants
+000068	  \[
+000069	  1,-1,-1,-1,1,
+000070	  \]
+000071	  and Smith witnesses. For the resulting block diagonal \(T\), the candidate certificate is
+000072	  \[
+000073	  T^2=I_6,\qquad U=T,\quad V=I_6,\quad UTV=I_6,
+000074	  \]
+000075	  so \(\det T=-1\) and \(\operatorname{SNF}(T)=I_6\).
+000076	
+000077	## Required revisions
+000078	- State the convention
+000079	  \[
+000080	  [g_{L,r}]=\sum_c(T_d)_{r,c}[g_{R,c}]
+000081	  \]
+000082	  and retain the displayed degreewise orders.
+000083	- Replace the failed provisional computation with a successful task-owned exact artifact.
+000084	- Report the dominance test explicitly: if the candidate blocks are certified, the transition is **not dominance-unitriangular** in the listed dominance-descending orders, since \(T_8\) is the off-diagonal permutation matrix and \(T_7,T_9\) have diagonal entry \(-1\). After conjugate reindexing and odd-degree sign changes it becomes the identity, but that is not ordinary dominance-unitriangularity.
+000085	- The requested target is **not established by the supplied specialist output**.

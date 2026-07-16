@@ -1,0 +1,31 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-313-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-312-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-312-1 · specialist · ARTIFACT dd2ee5d1972123f61a175f801de7184da3c1ffa5e6f065808182c24ecc7002a9
+000004	## Claims
+000005	- [unsupported] The required bordered-matrix Laplace certificate is not supplied here; therefore the requested target is not established by this response.
+000006	- [unsupported] Ordinary Schur notation \(s_{(i^j,\sigma)}\) additionally requires \(b\le i\) (or a stated generalized-Jacobi–Trudi convention).
+000007	
+000008	## Strategy
+000009	The supplied prior attempt asserts, but does not display or derive, its essential bordered determinant. I cannot validly invent the required matrix, Laplace index sets, complementary-minor identifications, or fixed-border sign computation.
+000010	
+000011	## Gaps
+000012	Missing: an explicit \((j+a+b)\times(j+a+b)\) bordered Jacobi–Trudi matrix; definitions of \(R_\sigma,C_\sigma\) and complements; proof that precisely the \(\sigma\subseteq\rho\) minors survive; and the complete sign calculation. Projection to \(A\) and \(J_v/A_+J_v\) also requires prior membership of every \(s_{(i^j,\sigma)}\) in \(J_v\).
+000013	
+000014	## Next
+000015	A valid replacement must provide that explicit determinant certificate before making either projection.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-312-1 · critic · ARTIFACT b95ff09e272e0b52360cffd4f7815f6ddc41e7d65de78e4ab98d5960d5d04968
+000018	## Critique
+000019	- claim-1: Correct as an assessment of the response, but the requested certificate remains unestablished. No bordered matrix, Laplace index sets, complementary minors, vanishing argument, determinant reduction, or complete sign computation is provided.
+000020	- claim-2: Correct for a uniform statement over all \(\rho\subseteq b^a\): ordinary Schur notation requires \(b\le i\). For a fixed \(\rho\), the weaker condition \(\rho_1\le i\) suffices. The intended parameters \(b=\min(i,j)\) satisfy \(b\le i\), but this hypothesis must be stated.
+000021	- The strategy does not reach any acceptance criterion beyond identifying the omissions. It also does not establish membership of all terms in \(J_v\), so projection to \(J_v/A_+J_v\) is unavailable.
+000022	
+000023	## Repair certificates
+000024	- [proof-attempt] Give an explicit ordered \((j+a+b)\times(j+a+b)\) bordered matrix; define \(R_\sigma,C_\sigma\) and their complements; prove exactly the minors indexed by \(\sigma\subseteq\rho\) survive; identify them, including all permutation signs, with \(s_{\rho'/\sigma'}\) and \(s_{(i^j,\sigma)}\); compute \((-1)^{\sum R_\sigma+\sum C_\sigma}\) and the fixed-border sign; reduce the bordered determinant to the target \(j\times j\) Jacobi–Trudi determinant; and cover \(\rho=\varnothing\), \(a=0\), and \(b=j\).
+000025	
+000026	## Required revisions
+000027	- State \(0\le b\le\min(i,j)\), or define generalized Jacobi–Trudi functions explicitly.
+000028	- Supply the missing determinant certificate rather than merely listing its required components.
+000029	- Record \(0\times0\) determinant conventions.
+000030	- Only afterward prove termwise membership in \(J_v\), project first to \(A\), and then derive the relation in \(J_v/A_+J_v\).
+000031	- Conclude explicitly that the requested target is not established by the current specialist output.

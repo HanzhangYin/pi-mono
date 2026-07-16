@@ -1,0 +1,88 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-213-1",
+	"taskId": "research-plan-task-213",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(m\\ge1\\), source-30 sets \\(n=4m\\), \\(r=s=2m\\), \\(i=j=m\\), obtains \\(a=b=m\\), and states the count \\(\\binom{2m}{m}\\) only “according to Conjecture 4.10.” [doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 938,
+							"end": 955
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "938: 4.5. A minimality conjecture\n939: As we shall see in a moment,\n940: our generators for I_{w} are not minimal. However,\n941: we believe the following holds:\n942: Conjecture 4.10 .\n943: The two generating sets for the ideal J_{v_{r,s,t,n}} given in Theorem 4.8\n944: are both minimal.\n945: Via computer, we have verified this conjecture for all bigrassmannian permutations\n946: where r\\leq 4 and n-r\\leq 5.\n947: In fact, Conjecture 4.10 indicates obstructions to short presentations of\n948: H^{\\star}(X_{w}) in general. We now give\n949: a family of ideals that would require a large number of generators if the conjecture is true.\n950: For a positive integer m, let n=4m, and consider in\n951: W=S_{n}=S_{4m} the bigrassmannian v_{r,s,t,n} that corresponds\n952: to r=n-r=2m and i=j=m. Then a=b=m, and J_{v_{r,s,t,n}}(=I_{w_{r,s,t,n}}) requires\n953: (4.9)\n954: \\binom{2m}{m}\\sim\\frac{4^{m}}{\\sqrt{\\pi m}}=\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}\n955: generators according to Conjecture 4.10 .",
+					"excerptSha256": "30163d69bf1f57d525eb7cee4df6bc038724e9b4aa9e38d920a636413b2d6c0e",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For each type-\\(A\\) bigrassmannian \\(v_{r,s,t,n}\\), there is \\(w_{r,s,t,n}\\) with \\(J_v=I_w\\) in the coinvariant algebra. [doi:10.1090/s0002-9947-2010-05163-3, lines 675-683]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 675,
+							"end": 683
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "675: Corollary 4.5 .\n676: In type A_{n-1}, a single Schubert condition C_{r,s,t} on the flags\n677: in G/B cuts out the Schubert variety X_{w_{r,s,t,n}} in G/B, where\n678: w_{r,s,t,n} is the unique element with {\\mathcal{E}}(w_{r,s,t,n})=\\{v_{r,s,t,n}\\}\n679: as in Theorem 4.4 .\n680: Thus in type A_{n-1}, for any bigrassmannian\n681: v_{r,s,t,n}, one has equality of\n682: the two ideals J_{v_{r,s,t,n}}=I_{w_{r,s,t,n}} within the coinvariant algebra\n683: \\Bbbk[V]/(\\Bbbk[V]^{W}_{+}).",
+					"excerptSha256": "748956958f092bdaa51f2f71ded8ede3ac66aaffb42da7169ecc9b90dcdef3d9",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 675-683]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\(A_m=H^\\star(GL_{4m}/B,\\mathbb Z)\\), \\(v_m=v_{2m,2m,m+1,4m}\\), and \\(w_m=w_{2m,2m,m+1,4m}\\). Define \\[ \\mu_{A_m}(L)=\\min\\{|G|:G\\subseteq L\\text{ homogeneous and }L=A_mG\\}. \\] The parameter conditions hold: \\(1\\le m+1\\le2m\\le4m\\) and \\(m+1>2m+2m-4m=0\\). Moreover \\[ i=s-t+1=m,\\quad j=r-t+1=m,\\quad a=b=m. \\] In the *same* graded ring \\(A_m\\), \\[ J_{v_m}=\\mathbb Z\\text{-span}\\{\\sigma_u:u\\ge v_m\\} =\\mathbb Z\\text{-span}\\{\\sigma_u:u\\not\\le w_m\\}=I_{w_m}. \\] Hence a homogeneous set generates \\(J_{v_m}\\) iff it generates \\(I_{w_m}\\), and therefore \\[ \\mu_{A_m}(J_{v_m})=\\mu_{A_m}(I_{w_m}). \\] Thus the source-30 reduction preserves generator number when both ideals are considered in \\(A_m\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "No supplied accepted internal result states the required numerical theorem \\[ \\mu_{A_m}(J_{v_m})=\\binom{2m}{m}\\qquad(m\\ge1). \\] The supplied source instead labels this count conjectural.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "feab2453f4438c938203f9baa1472ce2cb3f6170fec0579a6cdcc7463171a7aa"
+}

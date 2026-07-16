@@ -1,0 +1,80 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-272-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-271-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-271-1 · specialist · ARTIFACT cda7c0cf2e3d42f683bc6eccdf9c71f6c360f830d8942f0900de2de06ef9c15d
+000004	## Claims
+000005	- [proved] For \(\rho=\varnothing,(1),(2),(1,1),(3),(2,1),(3,1),(2,2),(3,2)\), the required integral identities follow from the Pieri expansions listed in Strategy.
+000006	- [unsupported] The remaining \(\rho=(3,3)\) identity has not been derived here; hence the requested all-\(\rho\) certificate is not established.
+000007	
+000008	## Strategy
+000009	Write \(L_\rho=\bar s_{(3^3,\rho)}\) and \(R_{\rho'}=\bar s_{(3+\rho'_1,3+\rho'_2,3+\rho'_3)}\). The following exact identities hold in \(\Lambda/I_{5,5}\), with every Schur factor on the right in \(J\):
+000010	\[
+000011	\begin{aligned}
+000012	R_\varnothing-L_\varnothing&=0,\\
+000013	R_{(1)}+L_{(1)}&=h_1\bar s_{333},\\
+000014	R_{(11)}-L_{(2)}&=h_1\bar s_{433}-h_2\bar s_{333},\\
+000015	R_{(2)}-L_{(11)}&=h_2\bar s_{333}-h_1\bar s_{3331},\\
+000016	R_{(111)}+L_{(3)}
+000017	&=h_1\bar s_{443}-h_2\bar s_{433}
+000018	+h_2\bar s_{3331}-h_1\bar s_{33311},\\
+000019	R_{(21)}+L_{(21)}
+000020	&=h_1\bar s_{533}+h_1\bar s_{3332}-h_3\bar s_{333},\\
+000021	R_{(211)}-L_{(31)}
+000022	&=h_1(\bar s_{5331}+\bar s_{444}-\bar s_{4431}
+000023	+\bar s_{4332}+\bar s_{43311}+\bar s_{3333})
+000024	-2h_3\bar s_{3331},\\
+000025	R_{(22)}-L_{(22)}
+000026	&\text{ is not independently certified here},\\
+000027	R_{(221)}+L_{(32)}
+000028	&=h_1\bar s_{553}-h_3\bar s_{533}+h_4\bar s_{433}
+000029	-h_1\bar s_{4333}+h_2\bar s_{3333}-h_5\bar s_{333}.
+000030	\end{aligned}
+000031	\]
+000032	Here the subscript on \(R\) is \(\rho'\); e.g. \(R_{(11)}=\bar s_{443}\), \(R_{(2)}=\bar s_{533}\), \(R_{(211)}=\bar s_{544}\), and \(R_{(221)}=\bar s_{554}\).
+000033	
+000034	Each displayed equality is checked by the horizontal-strip Pieri rule; for example
+000035	\[
+000036	h_2\bar s_{333}=\bar s_{533}+\bar s_{4331}+\bar s_{3332},\qquad
+000037	h_1\bar s_{3331}=\bar s_{4331}+\bar s_{3332}+\bar s_{33311}.
+000038	\]
+000039	
+000040	## Gaps
+000041	The identities for \(\rho=(2,2)\) and \((3,3)\) are missing. Therefore the demanded certificate for every \(\rho\subseteq3^2\) is not established.
+000042	
+000043	## Next
+000044	Obtain exact degree-\(13\) and degree-\(15\) Pieri-row combinations for
+000045	\(\bar s_{553}-\bar s_{33322}\) and
+000046	\(\bar s_{555}+\bar s_{33333}\), respectively.
+000047	
+000048	INTERNAL ATTEMPT research-attempt-research-plan-task-271-1 · critic · ARTIFACT d66b06e1f3be15f13d79e13cb17dbb922689f47e45050b7b563404b48452ce83
+000049	## Critique
+000050	- claim-1: Not established as stated. It includes \(\rho=(2,2)\), but the Strategy explicitly says that case is not independently certified. Moreover, only two sample Pieri expansions are supplied; the more complicated displayed identities lack complete expansions showing cancellation after truncation to \(5^5\). The ideal \(J\) is also not defined, so membership of every right-hand Schur factor is merely asserted.
+000051	- claim-2: The conclusion that the all-\(\rho\) certificate is not established is correct, but \(\rho=(3,3)\) is not the only missing case: \(\rho=(2,2)\) is also missing. Additionally, the proposed \(\rho=(3,3)\) target has the wrong sign: since \(|(3,3)|=6\), the required difference is
+000052	  \[
+000053	  \bar s_{555}-\bar s_{33333},
+000054	  \]
+000055	  not their sum.
+000056	
+000057	## Repair certificates
+000058	- [proof-attempt] In
+000059	  \[
+000060	  A=\Lambda/I_{5,5},\qquad
+000061	  J=\bigoplus_{333\subseteq\lambda\subseteq5^5}\mathbb Z\bar s_\lambda,
+000062	  \]
+000063	  supply explicit integral Pieri identities for both missing cases
+000064	  \[
+000065	  \bar s_{553}-\bar s_{33322}\in A_+J,\qquad
+000066	  \bar s_{555}-\bar s_{33333}\in A_+J,
+000067	  \]
+000068	  and give complete truncated Pieri expansions for all ten \(\rho\subseteq3^2\), verifying every coefficient, cancellation, \(1\le t\le5\), and \(333\subseteq\lambda_k\subseteq5^5\).
+000069	- [computation] Alternatively, provide ordered Schur bases and complete Pieri matrices \(M_d\) for \(9\le d\le15\), with rows labelled by \((t,\lambda)\), and explicit integral vectors \(c_\rho\) satisfying
+000070	  \[
+000071	  c_\rho^{T}M_{9+|\rho|}
+000072	  =e_{R_{\rho'}}-(-1)^{|\rho|}e_{L_\rho}
+000073	  \]
+000074	  for every \(\rho\subseteq3^2\).
+000075	
+000076	## Required revisions
+000077	- Remove \((2,2)\) from claim-1 unless its missing identity is supplied.
+000078	- Correct the \((3,3)\) sign.
+000079	- Define \(A,J,L_\rho,R_{\rho'}\) and handle \(\rho=\varnothing\) explicitly.
+000080	- Conclude only that the requested certificate is not yet established.

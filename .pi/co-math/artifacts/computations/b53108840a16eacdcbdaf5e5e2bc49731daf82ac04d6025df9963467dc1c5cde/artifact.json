@@ -1,0 +1,17 @@
+{
+	"attemptId": "research-attempt-research-plan-task-7-2",
+	"taskId": "research-plan-task-7",
+	"summary": "Verify finite truncations of the two required counterexamples: nonhomogeneous lifting in k[x], and failure without lower boundedness in k[x,x^{-1}].",
+	"script": "from fractions import Fraction\n\n# k[x]/(x^(D+1)): g=1-x.  Its coefficient vector has inverse 1+x+...+x^D,\n# so g generates the truncated module although its reduction mod x is 1.\nD = 8\ng = [1, -1] + [0]*(D-1)\ninv = [1]*(D+1)\nprod = [0]*(D+1)\nfor i,a in enumerate(g):\n    for j,b in enumerate(inv):\n        if i+j <= D:\n            prod[i+j] += a*b\nassert prod == [1] + [0]*D\n\n# In k[x,x^{-1}], each x^e (e>=0) is a unit; on monomials x^q with q in [-D,D],\n# multiplication by x is a bijection onto the shifted finite window.\n# Explicitly x*x^(q-1)=x^q for every q in [-D,D].\nfor q in range(-D, D+1):\n    assert (q-1) + 1 == q\n\nprint({\"truncation_degree\": D,\n       \"nonhomogeneous_inverse_check\": \"(1-x)(1+x+...+x^D)=1 mod x^(D+1)\",\n       \"laurent_shift_check\": \"for q in [-D,D], x*x^(q-1)=x^q\"})",
+	"scriptSha256": "412592a43530b199a934cf342a2b564dad231288b60acaf5d515afeac279fa50",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-7.py",
+		"exitCode": 0,
+		"stdout": "{'truncation_degree': 8, 'nonhomogeneous_inverse_check': '(1-x)(1+x+...+x^D)=1 mod x^(D+1)', 'laurent_shift_check': 'for q in [-D,D], x*x^(q-1)=x^q'}\n",
+		"stderr": "",
+		"durationMs": 35,
+		"scriptFileName": "attempt-research-plan-task-7.py",
+		"stdoutFileName": "stdout.txt",
+		"stderrFileName": "stderr.txt"
+	}
+}

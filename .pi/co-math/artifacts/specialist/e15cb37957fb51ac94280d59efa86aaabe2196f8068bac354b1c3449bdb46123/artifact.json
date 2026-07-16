@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-289-1",
+	"text": "## Claims\n- [unsupported] The supplied material does not contain the required matrices \\(M_d,U_d,V_d,C_d,L_d,R_d\\) for \\(6\\le d\\le10\\); hence the requested certificate cannot be extracted or verified here.\n\n## Strategy\nThe available internal attempt records only asserted coordinates and the critic explicitly identifies the missing machine-checkable witnesses. No executable artifact contents or sandbox action result supplying them is present.\n\n## Gaps\nThe required captured code/output, exit status, and explicit degreewise matrices from artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602` are absent. Therefore this certificate is **not established**.\n\n## Next\nProvide the artifact’s witness-preserving output or permit an exact sandbox computation."
+}

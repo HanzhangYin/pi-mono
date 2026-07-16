@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-228-1",
+	"taskId": "research-plan-task-228",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Task-owned bounded audit of the parameter-conjugation formulas and all enumerated bigrassmannian, box, family-shape, and valid-tuple inequalities for 2<=n<=12, including the a=0 boundary; this finite audit supplements (and does not replace) the symbolic certificate. Task-owned sandbox artifact `dd8c3f05d598063b3da443dec00d07e26292748e8b66fd64e4cf2300d33856c9` executed with exit status 0. Its persisted executable script has SHA-256 `7652bda02a7e7899ba48976f1e936807c09934c5b9755bdbf3fd5e4c32d1b554`. Captured stdout preview: `INPUT max_n=12 CHECKED bigrassmannian_tuples=1001 positive_a=495 a0_boundary=506 RESULT PASS all asserted inequalities and boundary identities hold in this finite range`. Full captured output is immutable at `artifacts/computations/dd8c3f05d598063b3da443dec00d07e26292748e8b66fd64e4cf2300d33856c9/artifact.json` in JSON fields `fullOutput.stdout.content` (SHA-256 `7e7fd95e579c7c5d70d2584742008c2c4f8696633e8a21941971c5d10445020a`) and `fullOutput.stderr.content` (SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`). [artifact dd8c3f05d598063b3da443dec00d07e26292748e8b66fd64e4cf2300d33856c9]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "This bounded computation does not by itself establish any unchecked all-parameter or parent-theorem claim.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "27c391d75df8d4cfd1414a6ebaf6d83cf63d66ac2d89983cef6a38f1e4ea94e6"
+}

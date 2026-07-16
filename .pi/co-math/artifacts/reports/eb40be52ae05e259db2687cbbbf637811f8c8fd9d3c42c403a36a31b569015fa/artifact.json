@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-216-1",
+	"text": "## Findings\n- claim-1: The requested complete degreewise Pieri matrices, Smith forms, quotient ranks, torsion factors, and complementary unimodular minors for \\((i,j,p,c)=(2,2,4,4)\\) are not available from the supplied evidence.\n## Strategy\nNo executable sandbox artifact or computed tables are supplied. Therefore the requested \\((2,2,4,4)\\) computation is not established.\n\n## Gaps\nMissing: all degreewise bases, Pieri matrices, Smith forms, quotient data, and unimodular-minor witnesses for degrees \\(4,\\ldots,36\\).\n\n## Next\nExecute the specified witness-preserving exact partition-Pieri computation and retain its complete artifact."
+}

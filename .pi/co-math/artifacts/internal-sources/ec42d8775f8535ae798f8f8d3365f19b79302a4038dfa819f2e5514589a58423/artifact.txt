@@ -1,0 +1,27 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-239-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-238-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-238-1 · specialist · ARTIFACT 3ba3db176d119517860863fdd01d714e91e3690daf56f70ab11dbd87a8f55be4
+000004	## Claims
+000005	- [unsupported] The requested three-input audit cannot be executed from supplied material: `persisted. source-39` has no resolvable supplied source block or bytes, and no sandbox action is available here.
+000006	
+000007	## Strategy
+000008	The requested target is **not established**. Missing input prevents a task-owned UTF-8 occurrence audit, resolver manifest, digests, code execution, stdout/stderr capture, and exit status. Existing DOI grounding for `10.1112/jlms.12832` is retained but does not supply this audit.
+000009	
+000010	## Gaps
+000011	No source content or stable locator is supplied for the exact identifier `persisted. source-39`; hence all twelve counts and the requested targeted-query count certificate remain uncomputed.
+000012	
+000013	## Next
+000014	Provide a resolvable persisted-source block for `persisted. source-39` and sandbox execution access.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-238-1 · critic · ARTIFACT 8bf64a31db68e18b1db2db4d69372e3179da1cc00b84cd7aac1949e3428f2f35
+000017	## Critique
+000018	- claim-1: Substantively justified: no supplied resolver manifest maps the exact identifier `persisted. source-39` to raw bytes, and it must not be normalized to another source ID. The provider search did run and returned three candidates, but candidate records do not establish that resolver mapping or provide task-owned sandbox execution. Consequently, the strategy correctly reports the target as **not established**, but it does not satisfy the task: the manifest, twelve labeled counts, targeted-query count \(=3\), code, captured stdout/stderr, exit status, stable locator, and required SHA-256 digests are all absent. Existing DOI grounding should remain explicit, for example [doi:10.1112/jlms.12832, lines 219-235], with retrieved-content SHA-256 `267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd`.
+000019	
+000020	## Repair certificates
+000021	- [source-refresh] Supply a persisted resolver manifest mapping each exact identifier in `["persisted. source-39","persisted:source-29","persisted:source-30"]` to immutable raw UTF-8 bytes, stable locators, and input SHA-256 digests; explicitly preserve the existing DOI `10.1112/jlms.12832` provider grounding.
+000022	- [computation] Execute task-owned code over exactly those resolved bytes, counting overlapping case-sensitive occurrences by advancing one UTF-8 position after each match. Persist all twelve source/phrase-labeled counts, `targeted-query count=3`, code, complete stdout and stderr, exit status, stable artifact locator, and SHA-256 digests for the manifest, every input, code, and each captured output.
+000023	
+000024	## Required revisions
+000025	- Do not treat the blocked report as task completion or substitute candidate full text for unresolved persisted bytes.
+000026	- Preserve the exact malformed-looking identifier `persisted. source-39` unless an authoritative resolver manifest maps it.
+000027	- State again after execution whether the requested audit itself—not an adjacent literature result—was established.

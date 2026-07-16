@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-84-1",
+	"taskId": "research-plan-task-84",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral \\(q^r\\)-box Schur basis and integral Pieri rule, for \\(p=c=1\\), \\(q=i+1\\), \\(r=j+1\\), \\(d=ij\\), and \\(0\\le k\\le b:=\\min(i,j)\\), the degree-\\(d+k\\) columns are exactly \\[ P_{x,k-x}:=s_{((i+1)^x,i^{\\,j-x},\\,k-x)},\\qquad 0\\le x\\le k, \\] with a zero final part omitted. The requested target is established under these presentation hypotheses.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "c363867da1c771cc73c5de91bf11bfeb8fdeb733d60e3de9311c89de8dd3fdc4"
+}

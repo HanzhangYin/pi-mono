@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-234-1",
+	"text": "## Findings\n- claim-1: The workspace provider’s record for DOI `10.1112/jlms.12832` has abstract text: “We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.” [doi:10.1112/jlms.12832, lines 124-131]\n## Strategy\nUse the supplied workspace provider record: DOI `10.1112/jlms.12832`, abstract lines 124–131 state “We prove the minimality conjecture,” satisfying the external-provider grounding requirement.\n\n## Gaps\nThe exact task-owned audit was not executed: no sandbox result, resolver manifest for `persisted:source-39`, code, twelve counts, stdout/stderr, exit status, output locator, or digests are available. The requested audit certificate is **not established**.\n\n## Next\nExecute and persist the specified three-query literal-count audit only; report failures or zero counts verbatim."
+}

@@ -1,0 +1,44 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-60-1",
+	"taskId": "research-plan-task-60",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Assume the integral \\(q^r\\)-box/Schur/Pieri presentation, with \\(q=i+p\\), \\(r=j+c\\), \\(i,j\\ge2\\), \\(p,c\\ge1\\), \\(\\min(p,c)=1\\), and \\(d=ij\\). The eight lower-degree named slots are \\[ x_0=s_{i^j},\\quad x_1=s_{(i+1,i^{j-1})},\\quad y_1=s_{(i^j,1)}, \\] \\[ \\gamma,\\quad x_2=s_{((i+1)^2,i^{j-2})},\\quad z=s_{(i+1,i^{j-1},1)},\\quad y_2=s_{(i^j,2)},\\quad\\theta, \\] where \\(\\deg x_0=d\\), \\(\\deg x_1=\\deg y_1=d+1\\), and every remaining nonzero slot has degree \\(d+2\\). Here \\(i^0\\) is omitted.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The conditional definitions, including both boundary cases, are \\[ \\gamma= \\begin{cases} s_{(i+2,i^{j-1})},&p\\ge2,\\\\ 0,&p=1, \\end{cases} \\qquad \\theta= \\begin{cases} s_{(i^j,1,1)},&c\\ge2,\\\\ 0,&c=1. \\end{cases} \\] Indeed, \\(s_{(i+2,i^{j-1})}\\) lies in the \\(q^r\\)-box exactly when \\(i+2\\le q=i+p\\), equivalently \\(p\\ge2\\); and \\(s_{(i^j,1,1)}\\) lies in that box exactly when \\(j+2\\le r=j+c\\), equivalently \\(c\\ge2\\). Since \\(\\min(p,c)=1\\), the allowed cases are \\((p,c)=(1,1)\\), \\(p=1,c\\ge2\\), or \\(p\\ge2,c=1\\); hence \\(\\gamma\\) and \\(\\theta\\) are never simultaneously nonzero.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "With these definitions, the lower-degree Pieri equalities are unambiguous: \\[ h_1x_0=x_1+y_1,\\qquad h_2x_0=\\gamma+z+y_2, \\] \\[ h_1x_1=\\gamma+x_2+z,\\qquad h_1y_1=z+y_2+\\theta. \\] Each follows by adding respectively one box or a horizontal two-strip; a term outside the \\(q^r\\)-box is precisely replaced by \\(0\\) through the preceding conditional definitions.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested standalone-restatement certificate is established, conditional only on the stipulated integral box/Schur/Pieri presentation. No parent-theorem conclusion is made.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "7632ecdbde5bcbfacae93ab5b6e9d5c3a9ecb55d4c7c5f86da2d3f5bc51ddd4b"
+}

@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-323-1",
+	"taskId": "research-plan-task-323",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Source-2 uses \\(h_0=1\\), proves specified negative-index terms vanish, and invokes expansion along a duplicated column, but only in an \\((i,k,\\mu)\\)-lemma. [source-2@L1731-L1742|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1731,
+						"end": 1742
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1731: \\begin{array}{lccrll}\n1732: \\ \\ \\ \\ (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},\n1733:    &h_{i-k + (k-i)},&h_{\\mu_{k+1}-i-1},&\\ldots, &h_{\\mu_{\\ell}+k-i-\\ell}&)^T \\\\\n1734: = (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},\n1735:    &1,            &0,              &\\ldots,&0&)^T.\n1736: \\end{array}\n1737: $$\n1738: Here we have used the facts that $h_0=1$ and that $h_{\\mu_m+k-i-m}=0$ \n1739: for $m \\geq k+1$ because $\\mu_m \\leq \\mu_{k+1} \\leq i$ implies \n1740: $\\mu_m+k-i-m=(\\mu_m-i)+(k-m)<0$.\n1741: One then checks that cofactor expanding the (zero) determinant of this \n1742: $(\\ell+1) \\times (\\ell+1)$ matrix along this duplicated column gives the asserted identity.",
+					"excerptSha256": "928f217e6b99189c1871fc1a1295f62f826e4e080e72e5f8cff901c06a0fa093",
+					"canonicalCitation": "[source-2@L1731-L1742|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No supplied persisted task-313 record contains the requested \\(\\rho,a,b,j,q,r\\) ranges, both indexed shapes, congruence modulus, exact identity, and prescribed ordering.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "7077c9e0ba02a826ebffed7dae25c45faff0f4581a47db26363585722dd8dbeb"
+}

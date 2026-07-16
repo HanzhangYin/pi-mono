@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-75-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is unsupported: no accessible source text, stable line locators, bounded verbatim excerpt, provenance record, or task-owned artifact digest is supplied.\n- claim-2 is correct: the requested source certificate is not established. The recorded limitation does not itself provide the required artifact.\n\n## Unresolved certificates\n- [proof-attempt] Provide a task-owned artifact containing a bounded verbatim excerpt of `research-attempt-research-plan-task-68-1` covering its opening hypotheses, equation (1), and all fifteen cases of table (4), with immutable source identifier, stable line locators, provenance, and artifact digest."
+}

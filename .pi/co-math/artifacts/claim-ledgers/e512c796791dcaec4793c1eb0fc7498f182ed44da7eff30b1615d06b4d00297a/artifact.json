@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-311-1",
+	"taskId": "research-plan-task-311",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(a\\ge0\\), \\(0\\le b\\le j\\), and \\(\\rho\\subseteq b^a\\), \\[ \\sum_{\\sigma\\subseteq\\rho}(-1)^{|\\rho|-|\\sigma|} \\omega(s_{\\rho/\\sigma})s_{(i^j,\\sigma)} =(-1)^{|\\rho|}s_{(i+\\rho'_1,\\ldots,i+\\rho'_b,i^{j-b})}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The identity remains valid for \\(\\rho=\\varnothing\\), for \\(a=0\\), and for \\(b=j\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Applying \\(\\Lambda\\to A=\\Lambda/I_{r,q}\\), and then \\(J_v\\to J_v/A_+J_v\\), preserves the established identity.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "acb657db80f53216b1e96330baeb528bc962e8dc0fb0460afb4601b477c94060"
+}

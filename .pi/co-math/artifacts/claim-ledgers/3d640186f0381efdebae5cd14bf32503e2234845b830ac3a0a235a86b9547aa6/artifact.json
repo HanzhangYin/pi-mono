@@ -1,0 +1,95 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-144-1",
+	"taskId": "research-plan-task-144",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The source states that Theorem 5.4 gives two generating sets for \\(J_v\\), with \\(a=\\min(n-r-i,r-j)\\) and \\(b=\\min(i,j)\\). [source-6@L14-L21|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 21
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).",
+					"excerptSha256": "87d2f4b6b21db77c8f7f8710b3bca3e5d74ed164e5ced175ca5c4cf9eb18d40f",
+					"canonicalCitation": "[source-6@L14-L21|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(r\\)-Grassmannian data, \\(J_v\\) is generated in \\(\\Lambda/I_{r,n-r}\\) by the Schur classes \\(s_\\mu\\) with \\(i^j\\subseteq\\mu\\subseteq(n-r)^r\\). [source-2@L1365-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1365,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1365: When $u$ and $v$ are $r$-grassmannian and correspond respectively to\n1366: partitions $\\lambda$ and $\\mu$, the Bruhat order relation $u \\geq v$\n1367: is equivalent to inclusion $\\lambda \\supseteq \\mu$ of their Young\n1368: diagrams, meaning that $\\lambda_i \\geq \\mu_i$ for all $i$.  Thus\n1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "dad3797f551adb4a39d8e9f4871f9b7b6f1bbb109ef3c44fec60a1066e794035",
+					"canonicalCitation": "[source-2@L1365-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "In the \\((i,j,p,c)=(2,2,2,3)\\) interval, the complete integral Pieri computation gives \\(J/\\Lambda_+J\\cong\\mathbb Z^6\\), with nonzero free quotient ranks \\(1,1,2,1,1\\) in degrees \\(4,5,6,7,8\\), respectively, and no torsion. [artifact 4d073f3d77472c01e4aab7680d125484749048e7697fdb8e3cd287017c08dc5c]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Both six-element families \\[ \\mathcal F_{\\rm top}=\\{s_{22},s_{32},s_{42},s_{33},s_{43},s_{44}\\}, \\quad \\mathcal F_{\\rm bot}=\\{s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222}\\} \\] are minimal generating sets of \\(J_{2,3}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The requested \\(i=j=p=2,\\ c=3\\) minimality corollary is established.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e7ce642f5b95d6f037436d6364f1238fd577499ac0a7af554186a00c3a53683a"
+}

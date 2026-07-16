@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-233-1",
+	"text": "## Claims\n- [unsupported] No executable audit artifact or occurrence counts were supplied for `persisted:source-39`.\n\n## Strategy\nThe requested three-source task-owned audit was not executable from the supplied material: no sandbox action/result, source-39 text, output locator, or stable digests were available.\n\n## Gaps\nMissing executable code, stdout/stderr, exit status, outputs locator, digests, and all required term counts.\n\n## Next\nRequested target: **not established**."
+}

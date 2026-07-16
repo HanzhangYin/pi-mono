@@ -1,0 +1,30 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-274-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-273-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-273-1 · specialist · ARTIFACT c1a4378037b851592962714e181c7dd0584ccf24129f5093edd5734a0a7291a7
+000004	## Claims
+000005	- [computed] For \(J=[333,5^5]\), \(Q=J/A_+J\) has free ranks \(1,1,2,2,2,1,1\) in degrees \(9,\ldots,15\), vanishes thereafter through degree \(25\), and has no torsion. [artifact b5658ec18b84ad470751544a752f238dadd447fb7b1122a89a299a79e024042f]
+000006	- [source-backed] The lower-adjoined Schur family \(\{\bar s_\mu: i^j\subseteq\mu\subseteq(i^j,b^a)\}\) minimally generates \(J_v\). [doi:10.1112/jlms.12832, lines 220-235]
+000007	- [proved] **Basis criterion.** If homogeneous generators \(F\) generate \(J\), and \(Q=J/A_+J\) is torsion-free with \(\operatorname{rank}Q_d=\#F_d\) for every \(d\), then the images of \(F_d\) are a \(\mathbb Z\)-basis of \(Q_d\). Indeed, they give a surjection \(\mathbb Z^{\#F_d}\twoheadrightarrow Q_d\) between free groups of equal rank, hence an isomorphism.
+000008	- [proved] For the computed case \(i=j=b=3,\ a=2\), the criterion explains the accepted data: the generator enumerator is \(z^9\binom52_z\), so \(\operatorname{Hilb}_Q(z)=z^9\binom52_z\).
+000009	- [proved] Minimality alone cannot imply the basis criterion: for \(A=\mathbb Z[x]\), \(J=(2x,x^2)\), the two generators are minimal, but \(J/A_+J\cong\mathbb Z\{2x\}\oplus(\mathbb Z/2)\{x^2\}\).
+000010	
+000011	## Strategy
+000012	Use the indecomposables basis criterion, rather than further Pieri/SNF computation. The accepted finite ranks and torsion-freeness verify its hypotheses only for \([333,5^5]\).
+000013	
+000014	## Gaps
+000015	The requested general inference from minimality to a torsion-free indecomposables basis is not established; the displayed microcase refutes it. The original finite Hilbert-series target remains established only for its computed input.
+000016	
+000017	## Next
+000018	None.
+000019	
+000020	INTERNAL ATTEMPT research-attempt-research-plan-task-273-1 · critic · ARTIFACT a4ede4789cabdf9af7d2eb04c181c6b9241a83c6e9f6f77e253cc5719c57c31b
+000021	## Critique
+000022	- claim-1: Matches the accepted finite result from `research-attempt-research-plan-task-269-1`. It supports only the specified interval and degrees, not a general pattern.
+000023	- claim-2: Correctly grounded by [doi:10.1112/jlms.12832, lines 220-235], including generation and minimality over \(\mathbb Z\).
+000024	- claim-3: Correct. The surjection is degreewise; its kernel has rank zero and, as a subgroup of a free abelian group, is torsion-free, hence zero.
+000025	- claim-4: Correct for the computed case, using claim-1, claim-2, and the accepted generator enumerator. It does not establish torsion-freeness or the Hilbert-series formula uniformly.
+000026	- claim-5: Correct and gives the precise obstruction: minimality alone does not control integral torsion in indecomposables. It must remain a limitation of the proposed general inference, not a second computational strategy.
+000027	
+000028	## Required revisions
+000029	- Explicitly state: **The requested strategy-pivot target is established via the single indecomposables-basis criterion; the original finite Hilbert-series target remains established only for \([333,5^5]\), while the proposed universal inference from minimality is not established.**
+000030	- Present claim-5 only as the obstruction delimiting that single symbolic-invariant strategy. Do not describe it as an additional strategy or infer any general theorem from claim-1.

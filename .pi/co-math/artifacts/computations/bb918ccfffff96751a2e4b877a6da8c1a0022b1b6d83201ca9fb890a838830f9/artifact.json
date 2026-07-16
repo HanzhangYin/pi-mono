@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-304-1",
+	"taskId": "research-plan-task-304",
+	"summary": "Exact integral Pieri reconstruction for (i,j,p,c)=(2,3,3,2), degrees 6–10; verify G_L-to-G_R quotient identities, degreewise relation Smith data, transition determinants/SNF witnesses, and the corrected degree-10 primitive-functional certificate.",
+	"script": "import itertools\nfrom fractions import Fraction\nfrom sympy import Matrix, eye\nfrom sympy.matrices.normalforms import smith_normal_form\nfrom sympy.polys.domains import ZZ\n\nlower=(2,2,2,0,0); upper=(5,5,5,5,5)\ndef wt(x): return sum(x)\ndef name(x): return ''.join(map(str,[a for a in x if a])) or '0'\ndef parts(d, lo=lower, hi=upper):\n    out=[]\n    def rec(k,prev,cur,left):\n        if k==5:\n            if left==0 and all(lo[i]<=cur[i]<=hi[i] for i in range(5)): out.append(tuple(cur))\n            return\n        for z in range(min(prev,hi[k],left),lo[k]-1,-1): rec(k+1,z,cur+[z],left-z)\n    rec(0,hi[0],[],d)\n    return out\ndef horiz(lam,mu):\n    return all(mu[k]>=lam[k] for k in range(5)) and all(lam[k]>=mu[k+1] for k in range(4))\ndef rows(d,cols):\n    ans=[]\n    for t in range(1,6):\n        for lam in parts(d-t):\n            v=[int(horiz(lam,mu)) for mu in cols]\n            ans.append((t,lam,v))\n    return ans\ndef in_row_lattice(R,v):\n    # find rational row coefficients and require all integral; unit Smith data makes this decisive.\n    A=Matrix(R).T; b=Matrix(v)\n    sol=next(iter(__import__('sympy').linsolve((A,b))))\n    return all(x.q==1 for x in sol), list(sol)\nGL={6:[(2,2,2,0,0)],7:[(2,2,2,1,0)],8:[(2,2,2,2,0),(2,2,2,1,1)],9:[(2,2,2,2,1)],10:[(2,2,2,2,2)]}\nGR={6:[(2,2,2,0,0)],7:[(3,2,2,0,0)],8:[(4,2,2,0,0),(3,3,2,0,0)],9:[(4,3,2,0,0)],10:[(4,4,2,0,0)]}\nT={6:Matrix([[1]]),7:Matrix([[-1]]),8:Matrix([[0,1],[1,0]]),9:Matrix([[-1]]),10:Matrix([[1]])}\nprint('INPUT lower=',lower,' upper=',upper,' hDegrees=[1,2,3,4,5]')\nfor d in range(6,11):\n    C=parts(d); RR=rows(d,C); M=Matrix([r[2] for r in RR])\n    D=smith_normal_form(M,domain=ZZ)\n    diag=[abs(D[i,i]) for i in range(min(D.rows,D.cols)) if D[i,i]!=0]\n    print('DEGREE',d,'COLUMNS',[name(x) for x in C])\n    print('SMITH rank=',len(diag),' diagonal=',diag,' quotientRank=',len(C)-len(diag))\n    for a,L in enumerate(GL[d]):\n        v=[0]*len(C); v[C.index(L)]=1\n        for b,Rg in enumerate(GR[d]): v[C.index(Rg)]-=int(T[d][a,b])\n        ok,coef=in_row_lattice([r[2] for r in RR],v)\n        print('IDENTITY',name(L),'=',[(int(T[d][a,b]),name(GR[d][b])) for b in range(len(GR[d])) if T[d][a,b]],' integralRelation=',ok)\n    print('TRANSITION',T[d].tolist(),'det=',int(T[d].det()),'SNF=',[abs(smith_normal_form(T[d],domain=ZZ)[i,i]) for i in range(T[d].rows)])\n    print('WITNESS U=',T[d].tolist(),' V=I; U*T*V=',(T[d]*T[d]).tolist())\n# corrected d=10 functional check\nC=parts(10)\nrequired=['532','5221','442','433','4321','4222','42211','3331','3322','33211','32221','22222']\nassert [name(x) for x in C]==required,(C,required)\nphi=[0,0,1,0,-1,0,1,0,1,0,-1,1]\nRR=rows(10,C)\nprint('D10_PHI columns=',required,' phi=',phi)\nfor t,lam,v in RR:\n    supp=''.join(chr(65+i) for i,z in enumerate(v) if z)\n    val=sum(a*b for a,b in zip(phi,v))\n    print('D10_ROW h%d source=%s support=%s phi=%d'%(t,name(lam),supp,val))\nassert len(RR)==16 and all(sum(a*b for a,b in zip(phi,r[2]))==0 for r in RR)\n# global witness\nTB=__import__('sympy').diag(*[T[d] for d in range(6,11)])\nprint('GLOBAL T=',TB.tolist(),'det=',int(TB.det()),' T2=',(TB*TB).tolist(),' U=T V=I SNF=I6')\n",
+	"scriptSha256": "a5a4f3c8142322ee226533c1bffac429b6539975518cca3f3749347748da50d8",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-304.py",
+		"exitCode": 1,
+		"stdout": "",
+		"stderr": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-304.py\", line 3, in <module>\n    from sympy import Matrix, eye\nModuleNotFoundError: No module named 'sympy'\n",
+		"durationMs": 132,
+		"scriptFileName": "attempt-research-plan-task-304.py",
+		"stdoutFileName": "attempt-research-plan-task-304.a5a4f3c81423.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-304.a5a4f3c81423.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-304.a5a4f3c81423.stdout.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-304.a5a4f3c81423.stderr.txt",
+			"sha256": "269c61cec4444e782cdc77d23aa3e16cfcf47f55418655697649f7dae3661811",
+			"content": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-304.py\", line 3, in <module>\n    from sympy import Matrix, eye\nModuleNotFoundError: No module named 'sympy'\n"
+		}
+	}
+}

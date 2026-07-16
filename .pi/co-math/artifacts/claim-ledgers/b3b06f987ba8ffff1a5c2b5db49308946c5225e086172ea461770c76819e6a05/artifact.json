@@ -1,0 +1,115 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-308-1",
+	"taskId": "research-plan-task-308",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The full-coordinate Hopf input gives coproduct/antipode identities in \\(\\Lambda\\), with \\(S(s_\\lambda)=(-1)^{|\\lambda|}s_{\\lambda'}\\). [doi:10.1112/jlms.12832, lines 702-735]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 702,
+							"end": 735
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "702: \\begin{lemma}\n703: \\label{lem:hopf-identity}\n704: For any partitions $\\lambda,\\mu$ and any partition $\\nu\\neq \\emptyset$,\n705: \\[\\sum_{\\lambda,\\mu}(-1)^{|\\lambda|}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda'}s_{\\mu}=0.\\]\n706: \\end{lemma}\n707: \\begin{proof}\n708: Recall the Hopf algebra structure on $\\Lambda$ over $\\mathbb{Z}$. This includes\n709: \\begin{itemize}\n710: \\item the usual multiplication map $\\nabla:\\Lambda\\otimes \\Lambda\\to \\Lambda$ with\n711: \\[\\nabla(s_{\\lambda}\\otimes s_{\\mu}) = s_{\\lambda}s_{\\mu};\\]\n712: \\item the coproduct described previously, with $\\Delta:\\Lambda\\to\\Lambda\\otimes\\Lambda$ with\n713: \\[\\Delta(s_\\nu) = \\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda}\\otimes s_{\\nu}; \\]\n714: \\item the unit $\\eta:\\mathbb{Z}\\to \\Lambda$, the ring homomorphism with $1\\mapsto 1$;\n715: \\item the counit $\\epsilon:\\Lambda\\to\\mathbb{Z}$ taking $f\\in \\lambda$ to its constant term $f(0,0,\\ldots)$;\n716: \\item the antipode $S:\\Lambda\\to\\Lambda$ with\n717: \\[S(s_{\\lambda})=(-1)^{|\\lambda|}s_{\\lambda'}.\\]\n718: \\end{itemize}\n719: The antipode $S$ is characterized by the commutative diagram shown in Figure \\ref{fig:diag}.\n720: \\begin{figure}[ht]\n721: \\[\n722: \\begin{tikzcd}[row sep=3.6em,column sep=1em]\n723: & \\Lambda\\otimes \\Lambda \\arrow[rr,\"S\\otimes\\mathrm{id}\"] && \\Lambda\\otimes \\Lambda \\arrow[dr,\"\\nabla\"] \\\\\n724: \\Lambda \\arrow[ur,\"\\Delta\"] \\arrow[rr,\"\\varepsilon\"] \\arrow[dr,\"\\Delta\"'] && \\mathbb{Z} \\arrow[rr,\"\\eta\"] && \\Lambda \\\\\n725: & \\Lambda\\otimes \\Lambda \\arrow[rr,\"\\mathrm{id}\\otimes S\"'] && \\Lambda\\otimes \\Lambda \\arrow[ur,\"\\nabla\"']\n726: \\end{tikzcd}\n727: \\]\n728: \\caption{The Hopf algebra stucture on $\\Lambda$}\n729: \\label{fig:diag}\n730: \\end{figure}\n731: On a Schur function $s_{\\nu}$, we compute\n732: \\begin{align*}\n733: \\eta\\circ\\epsilon(s_{\\nu}) &= \\eta(0) = 0,\\quad\\mbox{and}\\\\\n734: \\nabla\\circ(S\\otimes \\mathrm{id})\\circ\\Delta(s_{\\nu})&=\\nabla\\left( \\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu}S(s_{\\lambda})\\otimes s_{\\nu}\\right) = \\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu} (-1)^{|\\lambda|}s_{\\lambda'}s_\\mu. \\qedhere\n735: \\end{align*}",
+					"excerptSha256": "ea9834165bc95ab3df2b6b8de74087ce240329f366bb76596783bb2440bea64b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 702-735]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The full-coordinate row map is \\(T(A_{\\lambda,\\theta})=\\bar s_\\lambda\\otimes\\bar s_\\theta\\), and decomposable rows map to \\(\\mathrm{CP}(\\bar s_{\\nu_B}\\otimes\\bar s_{\\nu_R})\\). [doi:10.1112/jlms.12832, lines 373-397]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 373,
+							"end": 397
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "373: \\section{The Hopf Algebra of symmetric functions}\\label{sec:Hopf}\n374: Fix a valid tuple $\\varphi=(n,r,i,j,a,b,N)$. View the linear forms $\\linear_{\\varphi}(\\nu)$ as vectors in the ambient vector space $V$ with basis\n375: $\\left\\{A_{\\lambda,\\theta} \\right\\}_{\\lambda,\\theta}$, where $\\lambda,\\theta\\subseteq (n-r)^r$.\n376: Let $T$ be the linear isomorphism $T:V\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ defined by\n377: \\[T(A_{\\lambda,\\theta}) = \\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta}.\\]\n378: We use this isomorphism to give a useful perspective on the vectors $\\linear_{\\varphi}(\\nu)\\in V$ via\n379: the (ring) product structure on $\\overline{\\Lambda}\\otimes\\overline{\\Lambda}$ and\n380: the coproduct map\n381: \\[\\Delta:\\Lambda\\to \\Lambda\\otimes\\Lambda.\\]\n382: Recall the coproduct $\\Delta$ on symmetric functions acts on Schur functions by\n383: \\[\\Delta(s_{\\nu}) = \\sum_{\\lambda,\\mu} c_{\\lambda,\\mu}^\\nu (s_\\lambda\\otimes s_{\\mu}).\\]\n384: Since the projection $\\Lambda\\to\\overline{\\Lambda}$ naturally induces a projection\n385: \\[\\Lambda\\otimes \\Lambda \\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}, \\]\n386: we will also denote the latter with overlines.\n387: \\begin{definition}\n388: \\label{def:cp}\n389: We define a linear endomorphism $\\mathrm{CP}:\\overline{\\Lambda}\\otimes \\overline{\\Lambda}\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ as follows.\n390: For a simple tensor $\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu\\in \\overline{\\Lambda}\\otimes\\overline{\\Lambda}$, define\n391: \\begin{align}\n392: \\mathrm{CP}(\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu) = \\begin{cases}\n393: \\overline{\\Delta(s_{\\lambda})} - (\\overline{s}_{\\lambda}\\otimes 1) &\\mbox{ if $\\overline{s}_\\mu= 1$},\\\\\n394: \\overline{\\Delta(s_{\\lambda})}(1\\otimes \\overline{s}_{\\mu}) &\\mbox{ if $\\overline{s}_\\mu\\neq 1$}.\n395: \\end{cases}\n396: \\end{align}\n397: Define $\\mathrm{CP}$ on all of $\\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ by extending linearly.",
+					"excerptSha256": "42eb25035ed1b7f6dfb031256174bb17485b545c26b4cc93516d7590d51277f2",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 373-397]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The intended statement is: for \\(q=n-r\\), \\(A=\\Lambda/I_{r,q}\\), \\(Q=J_v/A_+J_v\\), and \\(\\rho=(\\rho_1,\\ldots,\\rho_a)\\subseteq b^a\\), \\[ [\\bar s_{(i^j,\\rho)}]=(-1)^{|\\rho|} [\\bar s_{(i+\\rho'_1,\\ldots,i+\\rho'_b,i^{j-b})}]\\quad\\text{in }Q. \\tag{E} \\] Here \\(\\rho'_k=\\#\\{\\ell:\\rho_\\ell\\ge k\\}\\); zero parts are omitted; and \\(i^0\\) is omitted when \\(b=j\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Both partitions in (E) lie in \\(q^r\\): \\((i^j,\\rho)\\) has width at most \\(i\\le q\\) and length at most \\(j+a\\le r\\); the right partition has width at most \\(i+a\\le q\\) and length \\(j\\le r\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Define the two-sided rectangle attachment \\[ \\operatorname{Att}_{i,j}(\\sigma,\\tau) :=(i+\\tau'_1,\\ldots,i+\\tau'_b,i^{j-b},\\sigma), \\qquad \\sigma,\\tau\\subseteq b^a. \\] Then \\(\\operatorname{Att}_{i,j}(\\rho,\\varnothing)=(i^j,\\rho)\\) and \\(\\operatorname{Att}_{i,j}(\\varnothing,\\rho)=(i+\\rho'_1,\\ldots,i+\\rho'_b,i^{j-b})\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "The supplied Hopf identity does not itself supply a termwise identity \\[ s_{(i^j,\\rho)}-(-1)^{|\\rho|}s_{\\operatorname{Att}_{i,j}(\\varnothing,\\rho)} \\in\\sum_{\\sigma\\subsetneq\\rho}\\Lambda_{|\\rho|-|\\sigma|}s_{(i^j,\\sigma)}. \\tag{R} \\] Its terms are tensors/row vectors \\(\\mathrm{CP}(s_\\lambda\\otimes s_{\\mu'})\\), whereas (R) requires a separately defined and proved map from those terms to Schur-function multiples with lower attachment \\(\\sigma\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "No supplied source passage, accepted full-coordinate row identity, or graded-kernel presentation provides the required coefficients \\(F_{\\rho,\\sigma}\\), proves their integrality, or proves that all non-endpoint terms in (R) have \\(\\sigma\\subsetneq\\rho\\).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "30ddef4a9a20922789b02d200d85bc56d7282f9896d296b7f5b049f770dabc78"
+}

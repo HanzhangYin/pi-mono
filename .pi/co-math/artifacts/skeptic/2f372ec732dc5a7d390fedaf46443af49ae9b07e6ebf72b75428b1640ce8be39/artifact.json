@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-21-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- No blocking concern. The two implementations share infrastructure, but the permitted alternative is satisfied by exact unimodular-minor and integral-containment certificates.\n- The result is finite and case-specific; it establishes no uniform statement beyond these two boundary cases."
+}

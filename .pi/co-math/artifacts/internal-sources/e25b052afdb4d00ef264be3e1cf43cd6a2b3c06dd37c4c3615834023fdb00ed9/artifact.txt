@@ -1,0 +1,90 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-229-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-227-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-227-1 · specialist · ARTIFACT 80f24a5ee39be8fd6ce98febf6903f232cdc629f4230557343a273c9d91edfa0
+000004	## Claims
+000005	- [source-backed] Bigrassmannians \(v_{r,s,t,n}\) satisfy \(1\le t\le r,s\le n\) and \(t>r+s-n\); their parameters are \(i=s-t+1\), \(j=r-t+1\), \(a=\min(n-r-i,r-j)\), \(b=\min(i,j)\). [doi:10.1112/jlms.12832, lines 187-235]
+000006	- [source-backed] A valid tuple requires \(n,r,i,j,a,b,N\ge1\), \(r<n\), \(a+j\le r\), \(a+i\le n-r\), \(b\le i,j\), and \(N\le ab\). [doi:10.1112/jlms.12832, lines 300-304]
+000007	- [proved] Put \(q=n-r\) and
+000008	  \[
+000009	  (r^\vee,s^\vee,t^\vee)=(q,n-s,q-s+t).
+000010	  \]
+000011	  Then \(1\le t^\vee\le r^\vee,s^\vee\le n\) and
+000012	  \[
+000013	  t^\vee>r^\vee+s^\vee-n.
+000014	  \]
+000015	  Indeed, \(t^\vee=q-s+t\ge1\) follows from \(t>r+s-n\); \(t^\vee\le q=r^\vee\) follows from \(t\le s\); \(t^\vee\le n-s=s^\vee\) follows from \(t\le r\); and
+000016	  \[
+000017	  t^\vee-(r^\vee+s^\vee-n)=t>0.
+000018	  \]
+000019	  The original inequalities also force \(r,s<n\), hence \(r^\vee,s^\vee\ge1\).
+000020	- [proved] The conjugated parameters are
+000021	  \[
+000022	  i^\vee=s^\vee-t^\vee+1=j,\qquad
+000023	  j^\vee=r^\vee-t^\vee+1=i,
+000024	  \]
+000025	  and consequently
+000026	  \[
+000027	  a^\vee=\min(n-r^\vee-i^\vee,r^\vee-j^\vee)
+000028	         =\min(r-j,q-i)=a,\qquad b^\vee=b.
+000029	  \]
+000030	- [proved] The original core and both family upper shapes lie in the \(q^r\) box:
+000031	  \[
+000032	  i\le q,\quad j\le r,\quad i+a\le q,\quad j+a\le r,\quad b\le i,j.
+000033	  \]
+000034	  Here \(q-i=t^\vee-1\ge0\), \(r-j=t-1\ge0\), and the two inequalities involving \(a\) follow from \(a=\min(q-i,r-j)\). The transformed statements are exactly
+000035	  \[
+000036	  j\le r,\quad i\le q,\quad j+a\le r,\quad i+a\le q,\quad b\le j,i,
+000037	  \]
+000038	  so the transformed lower family is contained in the \(r^q\) box.
+000039	- [proved] Conjugation of partitions gives the exact family correspondence
+000040	  \[
+000041	  \left\{\lambda:j^i\subseteq\lambda\subseteq(j^i,b^a)\right\}'
+000042	  =
+000043	  \left\{\mu:i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\right\}.
+000044	  \]
+000045	  This uses \(b\le i,j\); the transpose of the \(a\times b\) lower adjoinment is an \(a\)-wide right adjoinment in the first \(b\) rows.
+000046	- [proved] If \(a\ge1\) and \(1\le N\le ab\), then both
+000047	  \[
+000048	  (n,r,i,j,a,b,N),\qquad(n,r^\vee,j,i,a,b,N)
+000049	  \]
+000050	  are valid: positivity is clear, \(r^\vee=q<n\), and the transformed containment conditions are
+000051	  \[
+000052	  a+i\le q=r^\vee,\qquad a+j\le r=n-r^\vee.
+000053	  \]
+000054	- [proved] The \(a=0\) boundary is excluded from valid tuples, since validity requires \(a\ge1\). Moreover,
+000055	  \[
+000056	  a=0\iff (q-i=0)\ \text{or}\ (r-j=0)
+000057	       \iff (i=q)\ \text{or}\ (j=r).
+000058	  \]
+000059	  Under parameter conjugation these alternatives interchange. In either case both \(b^a\) adjoinments are empty, so each relevant family is the singleton core; no condition \(1\le N\le ab=0\) can hold.
+000060	
+000061	## Strategy
+000062	Directly verified the parameter involution \((r,s,t)\mapsto(n-r,n-s,n-r-s+t)\), its bigrassmannian inequalities, all box bounds, family transposition, and valid-tuple conditions. The requested standalone admissibility certificate is established. No minimality or parent theorem is inferred.
+000063	
+000064	## Gaps
+000065	None for this admissibility certificate.
+000066	
+000067	## Next
+000068	None.
+000069	
+000070	INTERNAL ATTEMPT research-attempt-research-plan-task-227-1 · critic · ARTIFACT 3efb791a7c651b911c6d14a9f2c095820905b83887871d6ed602a059723c3e00
+000071	## Critique
+000072	- claim-1: Correctly grounded; the cited passage states the original bigrassmannian inequalities and parameter formulas.
+000073	- claim-2: Correctly grounded; the cited definition includes positivity and every validity inequality.
+000074	- claim-3: The conjugated inequalities are algebraically correct. For strict standalone completeness, the omitted justification that \(r,s<n\) should be written explicitly: \(r=n\) would give \(t>s\), and \(s=n\) would give \(t>r\), contradicting \(t\le s,r\).
+000075	- claim-4: Correct. The parameter swap \(i^\vee=j,\ j^\vee=i\) and invariance \(a^\vee=a,\ b^\vee=b\) follow directly.
+000076	- claim-5: The inequalities are correct, but the requested shape-by-shape enumeration is incomplete. It does not explicitly match separate inequalities to the original lower, original right, conjugated lower, and conjugated right upper shapes, nor explicitly conclude that every partition in each interval lies in the relevant box.
+000077	- claim-6: The displayed family correspondence is correct. Standalone symmetry would be clearer if the converse correspondence—original lower family to conjugated right family—were also displayed or derived from involutivity.
+000078	- claim-7: Mathematically correct, but “positivity is clear” does not satisfy the request to enumerate positivity. Positivity of every coordinate in both tuples and both bounds \(1\le N\) and \(N\le ab\) must be stated explicitly.
+000079	- claim-8: Correctly distinguishes the \(a=0\) boundary from valid tuples. The singleton assertion should explicitly address both lower- and right-adjoined upper shapes rather than referring ambiguously to “both \(b^a\) adjoinments.”
+000080	
+000081	The underlying algebra appears correct, but the requested target is **not fully established in the stipulated standalone enumerated form**. No minimality or parent theorem was inferred.
+000082	
+000083	## Repair certificates
+000084	- [proof-attempt] Supply one explicit table covering: original core \(i^j\), original upper shapes \((i^j,b^a)\) and \(((i+a)^b,i^{j-b})\), conjugated core \(j^i\), and conjugated upper shapes \((j^i,b^a)\) and \(((j+a)^b,j^{i-b})\); list for each shape the width, height, partition, core-containment, and ambient-box inequalities. Then enumerate positivity and every validity inequality for both tuples, including \(1\le N\le ab\), followed separately by the \(a=0\) case.
+000085	
+000086	## Required revisions
+000087	- Expand claim-5 into the four family-containment checks and conclude interval-wise box containment.
+000088	- Expand claim-7 into coordinate-by-coordinate positivity and validity checks.
+000089	- Make the second conjugate-family correspondence explicit.
+000090	- State separately that when \(a=0\), both upper shapes equal their respective cores and no valid \(N\) exists.

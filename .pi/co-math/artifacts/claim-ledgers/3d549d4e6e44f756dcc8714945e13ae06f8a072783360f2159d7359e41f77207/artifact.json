@@ -1,0 +1,71 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-143-1",
+	"taskId": "research-plan-task-143",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The 2011 paper states Conjecture 4.10: both Theorem 4.8 generating sets for \\(J_{v_{r,s,t,n}}\\) are minimal; it separately suspects \\(M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}\\). [arxiv:0809.2981, lines 942-975]",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "unknown-source",
+					"message": "External citation [arxiv:0809.2981, lines 942-975] is absent from the active literature source catalog.",
+					"sourceId": "arxiv:0809.2981"
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-1 is source-backed but has no valid exact source locator."
+				}
+			]
+		},
+		{
+			"id": "claim-2",
+			"text": "Candidate 2024 paper is Avery St. Dizier–Alexander Yong, *Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture*, DOI \\(10.1112/jlms.12832\\); its supplied abstract says “We prove the minimality conjecture” using the Hopf algebra of symmetric functions. [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://doi.org/10.1112/jlms.12832"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "No supplied FULL-TEXT SOURCE block or theorem passage for DOI \\(10.1112/jlms.12832\\) gives its precise theorem, hypotheses, coefficient ring, or any integral indecomposables assertion. Thus the exact 2024 theorem-level target is not established.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Minimality alone does not imply free integral indecomposables: for \\(A=\\mathbb Z[x]\\), \\(A_+=(x)\\), and \\(J=(2x,x^2)\\), \\((2x,x^2)\\) is a minimal homogeneous generating set, but \\(J/A_+J\\cong\\mathbb Z\\oplus\\mathbb Z/2\\). Indeed, \\(A_+J=(2x^2,x^3)\\); the degree-one quotient is \\(2\\mathbb Zx\\cong\\mathbb Z\\), and degree two is \\(\\mathbb Zx^2/2\\mathbb Zx^2\\cong\\mathbb Z/2\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "06d26ee5bea55681b6b847220679332626d7197f017b1ff3a075151df43da505"
+}

@@ -1,0 +1,164 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-23-1",
+	"taskId": "research-plan-task-23",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(v=v_{r,s,t,n}\\), the associated rectangle is \\(i^j\\), with \\(i=s-t+1\\) and \\(j=r-t+1\\). [source-2@L1354-L1362|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1354,
+						"end": 1362
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1354: The bigrassmannian $v_{r,s,t,n}$ described explicitly in \\eqref{v-explicitly}\n1355: is $r$-grassmannian, and corresponds to the $j \\times i$ \n1356: rectangular partition $i^j$, where we define\n1357: $$\n1358: \\begin{aligned}\n1359: i&:=s-t+1,\\\\\n1360: j&:=r-t+1.\n1361: \\end{aligned}\n1362: $$",
+					"excerptSha256": "ef241ab3a586e50cfc0ab9f1188ded4b7292eb51143e7ad3574fc50f740ff46c",
+					"canonicalCitation": "[source-2@L1354-L1362|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The nonidentity bigrassmannians are parameterized by \\(1\\le t\\le r,s\\le n\\) and \\(t>r+s-n\\), and \\(v_{r,s,t,n}\\) is explicitly the permutation in lines 987–991. [source-2@L973-L992|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 973,
+						"end": 992
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "973: \\begin{lemma}\n974: The bigrassmannian permutations (other than the identity) are\n975: parameterized by $r,s,t$ with $1\\leq t \\leq r,s \\leq n$ and $t>r+s-n$.\n976: Let $v_{r,s,t,n}$ denote the unique bigrassmannian permutation\n977: $v_1\\ldots v_n\\in S_n$ such that\n978: \\begin{enumerate}\n979: \\item[$\\bullet$] $\\Des(v)=\\{(r\\leftrightarrow r+1)\\}$ \n980: \\item[$\\bullet$] $\\Des(v^{-1})=\\{(s\\leftrightarrow s+1)\\}$, and\n981: \\item[$\\bullet$] $v_t=s+1$.\n982: \\end{enumerate}\n983: Then explicitly we have:\n984: \\begin{equation}\n985: \\label{v-explicitly}\n986: \\begin{aligned}\n987: v_{r,s,t,n}&:=(1, 2, \\ldots,t-1 , \\\\\n988:         & \\qquad s+1, s+2, \\ldots, s+r-t+1, \\\\\n989:         & \\quad \\qquad t, t+1,t+2, \\ldots,s,\\\\\n990:         & \\qquad \\qquad s+r-t+2,s+r-t+3,\\ldots,n).\n991: \\end{aligned}\n992: \\end{equation}",
+					"excerptSha256": "263eff13a13ce47d75254e7178a9f0b4b2064968874e945fc450543a26fb2635",
+					"canonicalCitation": "[source-2@L973-L992|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\(q=n-r\\). The inverse correspondence is \\[ t=r-j+1,\\qquad s=i+r-j,\\qquad n=r+q. \\] The source admissibility conditions are equivalent to \\[ 1\\le i\\le q,\\qquad1\\le j\\le r. \\] Indeed, admissibility gives \\(i,j\\ge1\\), \\(j\\le r\\), and \\(t>r+s-n\\iff q-i+1>0\\iff i\\le q\\). Conversely, these rectangle bounds give \\(1\\le t\\le r\\), \\(t\\le s<n\\), and \\(t-(r+s-n)=q-i+1>0\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "This correspondence is injective: from \\((r,s,t,n)\\), recover \\((q,i,j)=(n-r,s-t+1,r-t+1)\\); from \\((r,q,i,j)\\), recover \\((r,s,t,n)\\) by the preceding inverse formulas.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Each prescribed generating family has \\(\\binom{a+b}{a}\\) elements, where \\(a=\\min(q-i,r-j)\\) and \\(b=\\min(i,j)\\). [source-2@L1382-L1421|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1382,
+						"end": 1421
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1382:   Given a bigrassmannian $v=v_{r,s,t,n}$ in type $A_{n-1}$ with $\\schubp_v = s_{i^j}$, let\n1383: $$\n1384: \\begin{aligned}\n1385: a&:=\\min(n-r-i,r-j)\\\\\n1386: b&:=\\min(i,j).\n1387: \\end{aligned}\n1388: $$\n1389: \n1390: Then $J_v$ is generated as an ideal of \n1391: $H^{\\star}(G/P_J, {\\mathbb Z})\\cong \\Lambda/I_{r,n-r}$ by \n1392: \\begin{equation}\n1393: \\label{generating-set-one}\n1394: \\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq ((i+a)^b,i^{j-b}) \\}.\n1395: \\end{equation}\n1396: \n1397: Alternatively, $J_v$ is generated by \n1398: \\begin{equation}\n1399: \\label{generating-set-two}\n1400: \\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (i^j,b^a) \\}.\n1401: \\end{equation}\n1402: \\end{theorem}\n1403: \n1404: We delay our proof of Theorem~\\ref{J-generators} until Section~\\ref{minconjsection}.\n1405: \n1406: \\noindent\n1407: Note that in both of the asserted generating sets \\eqref{generating-set-one} and \\eqref{generating-set-two} for $J_v$,\n1408: the shapes $\\mu$ indexing the generators $s_\\mu$ run through an interval between\n1409: the $j \\times i$ rectangular shape $i^j$ and the disjoint union of $i^j$ with a \n1410: smaller rectangle of shape $a \\times b$ or $b \\times a$. \n1411: In \\eqref{generating-set-one} the smaller rectangle is to the right\n1412: of the rectangle $i^j$, with both top-justified, while in \\eqref{generating-set-two} the \n1413: smaller rectangle is below the rectangle $i^j$, with both left-justified.  \n1414: Thus in both cases, the generating sets have size $\\binom{a+b}{a}$\n1415: and consist of generators whose multiset of degrees\n1416: have generating function \n1417: $$\n1418: \\sum_\\mu q^{|\\mu|} = q^{ij} \\qbin{a+b}{a},\n1419: $$\n1420: where $\\qbin{a+b}{a}$ is a $q$-{\\it binomial coefficient} or {\\it Gaussian polynomial} \n1421: \\cite[I.2 Exer. 3]{Macdonald}.",
+					"excerptSha256": "0b8b299e5d590d7ee587ee73003cbf1050fa015f6fb93b5800a4470d1a5160d5",
+					"canonicalCitation": "[source-2@L1382-L1421|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "For nonempty rectangles, \\(\\binom{a+b}{a}>1\\) exactly when \\[ 1\\le i\\le q-1,\\qquad1\\le j\\le r-1. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "Under the convention \\[ \\{r\\le5,\\ q\\le6\\}\\setminus\\{r\\le4,\\ q\\le5\\}, \\] the 90 deduplicated bigrassmannian instances with \\(\\binom{a+b}{a}>1\\) are \\[ v_{5,\\,i+5-j,\\,6-j,\\,q+5}, \\quad 2\\le q\\le6,\\ 1\\le i\\le q-1,\\ 1\\le j\\le4, \\] giving \\(4(1+2+3+4+5)=60\\) cases, together with \\[ v_{r,\\,i+r-j,\\,r-j+1,\\,r+6}, \\quad 2\\le r\\le4,\\ 1\\le i\\le5,\\ 1\\le j\\le r-1, \\] giving \\(5(1+2+3)=30\\) cases. The two families are disjoint since their \\(r\\)-values are respectively \\(5\\) and \\(2,3,4\\); injectivity proves there are no further duplicates.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "The paper reports computer verification of minimality only for \\(r\\le4\\) and \\(n-r\\le5\\). [source-2@L1495-L1502|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1495,
+						"end": 1502
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1495: \\begin{conjecture}\n1496: \\label{minimality-conjecture}\n1497: The two generating sets for the ideal $J_{v_{r,s,t,n}}$ given in Theorem~\\ref{J-generators}\n1498: are both minimal. \n1499: \\end{conjecture}\n1500: \n1501: Via computer, we have verified this conjecture for all bigrassmannian permutations\n1502: where $r\\leq 4$ and $n-r\\leq 5$.",
+					"excerptSha256": "0fe2067e6b8b4a232d7ff6ddf1a9049dbf9c0afe480cb7f9a97f8c83819d7797",
+					"canonicalCitation": "[source-2@L1495-L1502|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "6e889af761a56d6d76ada69ff9b77d5ef1f944473121b5642fa972f7227019e5"
+}

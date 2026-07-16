@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-70-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- `research-attempt-research-plan-task-68-1` is absent from the supplied record, so equation/table (4) cannot be transcribed without inference.\n- `source-4@L20-L28` concerns a different TeX source and is correctly not used to reconstruct the missing table.\n- Accordingly, the requested source certificate is explicitly recorded as not established; no parent-theorem claim is made."
+}

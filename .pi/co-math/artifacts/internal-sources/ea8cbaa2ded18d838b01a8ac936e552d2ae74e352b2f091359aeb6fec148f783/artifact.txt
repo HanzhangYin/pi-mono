@@ -1,0 +1,29 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-321-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-319-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-319-1 · specialist · ARTIFACT 14f0f361d0047ce4a3962cbacd37ca0bfb971d5c5f427809b390491a38870f3b
+000004	## Claims
+000005	- [unsupported] No displayed signed-conjugation identity, nor definitions of its \(\rho,a,b,j\) ranges and target congruence, are present in the supplied task material.
+000006	- [proved] The requested exact target is **not established**: without the identity itself, a bordered Jacobi–Trudi construction cannot prove or disprove it without substituting an inferred adjacent statement.
+000007	
+000008	## Strategy
+000009	The supplied source excerpts contain no \(\rho\)-indexed bordered determinant identity. The prior accepted audit likewise records that the needed persisted task statement was unavailable.
+000010	
+000011	## Gaps
+000012	Missing: the exact formula; ambient quotient and congruence modulus; parameter hypotheses; and required bordered-matrix row/column ordering.
+000013	
+000014	## Next
+000015	Provide the literal signed-conjugation identity and its conventions; then it can be addressed exactly.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-319-1 · critic · ARTIFACT 44d5468186a1233dd452bf1c3b69615c5279d3313d1a7e7d6962250ddccc543d
+000018	## Critique
+000019	- claim-1: Overbroad. The supplied literature does contain an adjacent signed-conjugation identity [doi:10.1112/jlms.12832, lines 702-705]. What is absent is the **exact target identity** involving \(\rho,a,b,j\), its lower-tail congruence, and bordered determinant. This distinction is essential.
+000020	- claim-2: Correct. The strategy cannot satisfy the task criteria because it supplies neither the target formula nor any determinant, ordering, Laplace signs, shape-containment checks, or boundary-case analysis. The requested target remains explicitly **not established**.
+000021	
+000022	## Repair certificates
+000023	- [source-refresh] Retrieve the exact persisted task-313 statement, including the literal identity, definitions and ranges of \(\rho,a,b,j,q,r\), congruence modulus, \(h_0/h_k\) conventions, and intended matrix ordering.
+000024	- [proof-attempt] From that recovered statement, give the complete bordered Jacobi–Trudi matrix; specify every row and column order, compute all Laplace signs and minors, derive exactly the stated congruence, verify both indexed shapes lie in \(q^r\), and separately handle \(\rho=\varnothing\) and \(a=0\).
+000025	
+000026	## Required revisions
+000027	- Replace the categorical assertion that no signed-conjugation identity appears with the narrower, supportable assertion that the exact requested identity is missing.
+000028	- Do not infer the missing target from the adjacent Hopf identity or bordered-determinant lemma.
+000029	- Retain the explicit conclusion that the requested identity was not proved or disproved.

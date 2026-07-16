@@ -1,0 +1,34 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-146-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-145-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-145-1 · specialist · ARTIFACT 2c15028c4835224f2fbe24e563872e41a48a409e48c8633b597d696a2cfbd140
+000004	## Claims
+000005	- [source-backed] The two Theorem 5.4 families are \(\{s_\mu: i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\}\) and \(\{s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\), with \(a=\min(n-r-i,r-j)\), \(b=\min(i,j)\). [source-6, lines 18-33]
+000006	- [computed] For \(i=j=p=2,c=5\), task 132’s exact integral Pieri/Smith computation establishes \(J_{2,5}/\Lambda_+J_{2,5}\cong\mathbb Z^6\), torsion-free. [artifact 189fc5f912d5ce0d7f385f5f68873379380542c3b14807b48344196febd2a397]
+000007	- [proved] Here \(r=7,q=4,n=11\), hence \(a=\min(p,c)=2\), \(b=2\), and \(N=\binom{a+b}{a}=6\). The accepted generating families specialize to
+000008	  \[
+000009	  \mathcal F_{\rm top}=\{s_{22},s_{32},s_{42},s_{33},s_{43},s_{44}\},
+000010	  \quad
+000011	  \mathcal F_{\rm bot}=\{s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222}\}.
+000012	  \]
+000013	  Since either accepted six-element family generates \(J_{2,5}\), its images surject \(\mathbb Z^6\twoheadrightarrow J_{2,5}/\Lambda_+J_{2,5}\cong\mathbb Z^6\). This surjection is unimodular, so the images are a \(\mathbb Z\)-basis. A proper subfamily cannot generate the quotient and therefore cannot generate \(J_{2,5}\). Thus both families are minimal generating sets.
+000014	
+000015	## Strategy
+000016	Apply the accepted indexed-family Nakayama criterion to task 132’s torsion-free rank-six quotient.
+000017	
+000018	## Gaps
+000019	None for this case-specific deduction, conditional only on the accepted generation and quotient-computation inputs.
+000020	
+000021	## Next
+000022	The requested \(i=j=p=2,\ c=5\) minimality corollary is established.
+000023	
+000024	INTERNAL ATTEMPT research-attempt-research-plan-task-145-1 · critic · ARTIFACT 86010fd65da00b56dab455e7240de0a0f60aeabd21b8609371ba85bd1057f48f
+000025	## Critique
+000026	- claim-1: The formulas and specialization data are correctly grounded. The excerpt itself states the two sets but does not independently establish their generating property; that dependency must remain attributed to the accepted generation result.
+000027	- claim-2: Supported by accepted task 132 for this specific finite case: the degreewise free ranks sum to \(6\), and all torsion factors vanish. No all-parameter conclusion follows.
+000028	- claim-3: Correct. Here \(q=i+p=4\), \(r=j+c=7\), \(n=11\), and \(a=b=2\). Both interval enumerations contain exactly the six displayed partitions. Each generating family induces a surjection \(\mathbb Z^6\to\mathbb Z^6\), hence an isomorphism. Moreover, every generating set of \(J_{2,5}\) must map onto \(\mathbb Z^6\) and therefore contain at least six elements. Thus both six-element families are minimum-cardinality and irredundant. The stated strategy reaches the requested target relative to the accepted inputs.
+000029	
+000030	## Required revisions
+000031	- Explicitly attribute generation to the accepted generation theorem rather than to the bounded excerpt alone.
+000032	- Add the arbitrary-generating-set lower bound above if “minimal” is intended to mean minimum cardinality.
+000033	
+000034	The requested \(i=j=p=2,\ c=5\) minimality corollary is established relative to the accepted project results.

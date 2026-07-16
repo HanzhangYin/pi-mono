@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-80-1",
+	"taskId": "research-plan-task-80",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4` is not supplied as an independently retrievable byte stream, and no bounded locators for its hypotheses, equation (1), fifteen table-(4) entries, provenance, or digest declaration are available. [artifact 4ccef86682683c442a2ae4a0b5ee182d6c3f9b10f5c4c7095eb317f4780f8141, lines 1-27]",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "789bcfabaf9da4ce2273aab642ea990405cdf8365752db425f1fc1b96bef6fc0"
+}

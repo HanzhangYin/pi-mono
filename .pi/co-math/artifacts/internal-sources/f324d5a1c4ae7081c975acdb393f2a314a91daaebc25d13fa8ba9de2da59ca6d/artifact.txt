@@ -1,0 +1,129 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-90-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-89-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-89-1 · specialist · ARTIFACT 07b703acc458e0dea9f233b8f77583e0d535b8e6af6ac2f31aba42dce12a7dfc
+000004	## Claims
+000005	- [proved] Conditional on the integral interval Schur/Pieri presentation, for \(p=c=1\) and \(\min(i,j)=3\), the degree-\(d+4\) quotient by \(A_+M\) vanishes.
+000006	- [unsupported] The required integral interval presentation and completeness of its \(A_+\)-product rows are invoked here, not independently source-grounded.
+000007	
+000008	## Strategy
+000009	Put
+000010	\[
+000011	P_{x,y}=s_{((i+1)^x,i^{\,j-x},y)},\qquad (y=0\text{ omitted}),
+000012	\]
+000013	and write \(C_x=P_{x,4-x}\). The possible degree-\(d+4\) columns are
+000014	\[
+000015	\begin{aligned}
+000016	C_0&=s_{(i^j,4)} &&(i\ge4),\\
+000017	C_1&=s_{(i+1,i^{j-1},3)},\\
+000018	C_2&=s_{((i+1)^2,i^{j-2},2)},\\
+000019	C_3&=s_{((i+1)^3,i^{j-3},1)},\\
+000020	C_4&=s_{((i+1)^4,i^{j-4})} &&(j\ge4).
+000021	\end{aligned}
+000022	\]
+000023	Thus the complete column lists are
+000024	\[
+000025	\begin{array}{c|c}
+000026	(i,j)&\text{degree-}d+4\text{ columns}\\ \hline
+000027	(3,3)&(C_1,C_2,C_3)\\
+000028	(3,j),\ j\ge4&(C_1,C_2,C_3,C_4)\\
+000029	(i,3),\ i\ge4&(C_0,C_1,C_2,C_3).
+000030	\end{array}
+000031	\]
+000032	
+000033	Since \(q=i+1\ge4\), every relevant homogeneous \(A_+\)-row has form
+000034	\(h_\ell P_{x,4-\ell-x}\), with \(1\le\ell\le4\). The complete list is
+000035	\[
+000036	\begin{array}{c|c}
+000037	\text{product}&\text{Pieri row}\\ \hline
+000038	h_4P_{0,0}&C_0+C_1\\
+000039	h_3P_{0,1}&C_0+C_1\\
+000040	h_3P_{1,0}&C_1+C_2\\
+000041	h_2P_{0,2}&C_0+C_1\\
+000042	h_2P_{1,1}&C_1+C_2\\
+000043	h_2P_{2,0}&C_2+C_3\\
+000044	h_1P_{0,3}&C_0+C_1\\
+000045	h_1P_{1,2}&C_1+C_2\\
+000046	h_1P_{2,1}&C_2+C_3\\
+000047	h_1P_{3,0}&C_3+C_4 .
+000048	\end{array}
+000049	\]
+000050	Here unavailable \(C_0\) (when \(i=3\)) and \(C_4\) (when \(j=3\)) are omitted. Pieri gives these rows because a horizontal strip can either preserve \(x\) or increase it by one; increasing it by more than one repeats column \(i+1\).
+000051	
+000052	Unimodular minors:
+000053	
+000054	\[
+000055	(i,j)=(3,3):
+000056	\quad
+000057	\begin{pmatrix}
+000058	h_4P_{0,0}\\ h_2P_{2,0}\\ h_1P_{3,0}
+000059	\end{pmatrix}_{(C_1,C_2,C_3)}
+000060	=
+000061	\begin{pmatrix}
+000062	1&0&0\\
+000063	0&1&1\\
+000064	0&0&1
+000065	\end{pmatrix},
+000066	\qquad \det=1.
+000067	\]
+000068	
+000069	\[
+000070	i=3,\ j\ge4:
+000071	\quad
+000072	\begin{pmatrix}
+000073	h_4P_{0,0}\\ h_3P_{1,0}\\ h_2P_{2,0}\\ h_1P_{3,0}
+000074	\end{pmatrix}_{(C_1,C_2,C_3,C_4)}
+000075	=
+000076	\begin{pmatrix}
+000077	1&0&0&0\\
+000078	1&1&0&0\\
+000079	0&1&1&0\\
+000080	0&0&1&1
+000081	\end{pmatrix},
+000082	\qquad \det=1.
+000083	\]
+000084	
+000085	\[
+000086	i\ge4,\ j=3:
+000087	\quad
+000088	\begin{pmatrix}
+000089	h_4P_{0,0}\\ h_3P_{1,0}\\ h_2P_{2,0}\\ h_1P_{3,0}
+000090	\end{pmatrix}_{(C_0,C_1,C_2,C_3)}
+000091	=
+000092	\begin{pmatrix}
+000093	1&1&0&0\\
+000094	0&1&1&0\\
+000095	0&0&1&1\\
+000096	0&0&0&1
+000097	\end{pmatrix},
+000098	\qquad \det=1.
+000099	\]
+000100	
+000101	Hence the Pieri-row lattice equals the full degree-\(d+4\) column lattice in every case.
+000102	
+000103	## Gaps
+000104	The conclusion is conditional on the interval-basis and complete-\(A_+\)-row presentation. No claim is made in degree \(>d+4\), nor about minimality.
+000105	
+000106	## Next
+000107	The requested degree-\(d+4\) target is established conditionally.
+000108	
+000109	INTERNAL ATTEMPT research-attempt-research-plan-task-89-1 · critic · ARTIFACT 3b389f7a0733c810e85f9d0fd29723fe3fc4677e1233e8b14ab56f1920ce4770
+000110	## Critique
+000111	- claim-1: The column enumeration, ten generator-Pieri rows, and three displayed minors are mathematically correct conditional on the asserted interval presentation. Each minor has determinant \(1\), so its rows span the complete degree-\(d+4\) column lattice. However, the strategy has not established that presentation in degree \(d+4\). In particular, accepted task 85 only covers \(k\le b=3\), whereas this calculation uses \(k=4\). Also, arbitrary \(A_+M\)-products are not literally all of the displayed form; one must prove that they are spanned by these rows using \(A_+=(h_1,\ldots,h_q)\) and the \(A\)-module structure of \(M\). Thus the requested target is established only conditionally, not unconditionally. The prohibition on higher-degree and minimality conclusions is respected.
+000112	- claim-2: This accurately identifies the decisive missing evidence. Without a precise invocation or proof of the degree-\(d+4\) interval basis and row-completeness statement, the unconditional target remains unresolved.
+000113	
+000114	## Repair certificates
+000115	- [proof-attempt] Prove
+000116	  \[
+000117	  M_{d+4}=\bigoplus_{\substack{i^j\subseteq\mu\subseteq(i+1)^{j+1}\\|\mu|=d+4}}\mathbb Zs_\mu
+000118	  \]
+000119	  and
+000120	  \[
+000121	  (A_+M)_{d+4}=\sum_{\ell=1}^{4}h_\ell M_{d+4-\ell},
+000122	  \]
+000123	  including the reduction of arbitrary \(A_+M\)-products to the ten displayed generator-Pieri rows.
+000124	- [computation] Supply an executed exact partition/horizontal-strip checker for \((i,j)=(3,3),(3,4),(4,3)\) that enumerates all columns and rows, reproduces the three matrices, computes their determinants, and records code, output, exit status, and artifact digest.
+000125	- [source-refresh] Provide a stable source excerpt or accepted-project claim locator proving the integral interval presentation and completeness of the \(A_+\)-product rows specifically in degree \(d+4\).
+000126	
+000127	## Required revisions
+000128	- Replace “every relevant homogeneous \(A_+\)-row has form” by the precise assertion that the displayed rows generate \((A_+M)_{d+4}\), with proof.
+000129	- Either invoke an established presentation valid at \(k=4\), or explicitly report that the requested target remains conditional and therefore is not fully established.

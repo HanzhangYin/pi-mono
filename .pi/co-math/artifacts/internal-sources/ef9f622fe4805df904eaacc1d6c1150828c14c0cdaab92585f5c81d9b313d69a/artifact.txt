@@ -1,0 +1,33 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-186-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-185-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-185-1 · specialist · ARTIFACT b815f5085abc90b4b74311acf6edd379479d701f4fb4f25bd6ca9f7bae0a2836
+000004	## Claims
+000005	- [unsupported] The requested bounded full-text excerpt cannot be retrieved: `source-29` is not a citable indexed file, and no supplied FULL-TEXT SOURCE block contains equations (8)–(10), Definition 2.1, Lemma 2.5, or Theorems 4.4–4.5.
+000006	- [source-backed] The external search identifies St. Dizier–Yong’s 2024 paper and its abstract says “We prove the minimality conjecture,” but this is metadata/abstract material, not a theorem-level locator. [doi:10.1112/jlms.12832]
+000007	- [source-backed] The supplied local source is instead the 2011 Reiner–Woo–Yong paper, identified as arXiv:0809.2981v2. [source-5, lines 11-22]
+000008	- [unsupported] The requested target is **not established**: no uncorrupted bounded source-29 excerpt was available, so theorem hypotheses cannot be distinguished rigorously from proof-only restrictions.
+000009	
+000010	## Strategy
+000011	Use only an indexed full-text source for the exact requested equations, definition, lemma, and theorems; metadata and prior internal summaries are insufficient.
+000012	
+000013	## Gaps
+000014	Missing citable full text for source-29, including the complete valid-tuple inequalities and the post-reduction linkage.
+000015	
+000016	## Next
+000017	Provide an indexed FULL-TEXT SOURCE block for the relevant 2024 paper pages/lines.
+000018	
+000019	INTERNAL ATTEMPT research-attempt-research-plan-task-185-1 · critic · ARTIFACT cad2a5e6c5f6f4d109c06e622587ef5dc3bacbbd30f5eb752a48e1c42e1a9447
+000020	## Critique
+000021	- claim-1: The observation that no supplied FULL-TEXT SOURCE block contains the requested material is supported by the record. The stronger assertions that `source-29` is not citable and that the excerpt “cannot be retrieved” are unsupported; failed arXiv/Semantic Scholar requests and Crossref metadata establish only that this bounded search did not retrieve it.
+000022	- claim-2: Valid metadata-level identification, but it does not ground equations (8)–(10), Definition 2.1, Lemma 2.5, or Theorems 4.4–4.5.
+000023	- claim-3: Valid identification of the 2011 paper, but it is an adjacent source and does not satisfy the task.
+000024	- claim-4: The requested target is correctly reported as **not established from the supplied evidence**. However, the rationale must be limited to retrieval failure in this search, not categorical source unavailability. Without the requested passages, theorem hypotheses cannot be distinguished from proof-only restrictions.
+000025	
+000026	## Repair certificates
+000027	- [source-refresh] Retrieve from an alternate full-text provider one hashed, bounded excerpt corresponding to `source-29`, with stable line locators, containing: equations (8)–(10); all inequalities in Definition 2.1; Lemma 2.5; Theorems 4.4–4.5; and the intervening proof text showing their logical linkage. Record the provider and digest, then classify every restriction as either an explicit theorem hypothesis or a proof-local assumption, citing exact lines.
+000028	
+000029	## Required revisions
+000030	- Replace the categorical retrieval-impossibility language in claim-1 with a bounded-search conclusion.
+000031	- Do not treat DOI metadata, the abstract, the 2011 paper, or the previously extracted Theorem 1.2 passage as substitutes for the requested sections.
+000032	- State explicitly that alternate providers were queried but none returned citable full text in this search.
+000033	- Preserve the conclusion: **the requested target was not established**.

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-75-1",
+	"text": "## Claims\n- [unsupported] The supplied internal draft artifact `research-attempt-research-plan-task-68-1` (artifact `a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67`) contains the requested hypotheses, equation (1), and table (4), but supplied evidence gives no physical line locators or task-owned excerpt artifact digest for this repair.\n- [unsupported] The required source certificate is not established on the supplied evidence.\n\n## Strategy\nNo exact line-addressable, task-owned excerpt artifact can be produced without inventing locators or a digest.\n\n## Gaps\nMissing: stable physical line locators for the internal attempt and an immutable digest for a newly persisted task-owned excerpt artifact.\n\n## Next\nProvide a line-addressable snapshot of `research-attempt-research-plan-task-68-1` or a persisted excerpt artifact with its digest."
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-221-1",
+	"text": "## Critique\n- claim-1: The proof is correct and establishes the named block-lemma certificate. In particular, \\(\\det W=\\det(U^{-1})=\\pm1\\), so the column transformation is unimodular; the residual identity makes every nonselected row an integral combination of selected rows; and the transformed matrix is an identity block with zero rows, yielding exactly \\(|D|\\) unit Smith entries. The kernel computation for \\(\\pi\\) proves that the original \\(B\\)-coordinate classes freely generate the quotient. The cases \\(D=\\varnothing\\) and \\(B=\\varnothing\\), including both empty, are handled correctly. This establishes only the requested lemma, not the separate degreewise \\((2,2,4,4)\\) computational witnesses or any parent theorem.\n\n## Required revisions\n- None for the named certificate."
+}

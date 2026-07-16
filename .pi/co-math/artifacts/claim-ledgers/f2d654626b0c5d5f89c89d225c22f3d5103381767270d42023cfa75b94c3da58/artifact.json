@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-315-1",
+	"taskId": "research-plan-task-315",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The standalone determinant identity from task 313 is not stated in the supplied material; therefore its ordered bordered matrix, Laplace index sets, complementary minors, and target Jacobi–Trudi determinant cannot be identified without invention.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "8dcdad894af2e10807d7537dbff1e635a1dc74acfaec682d756dfb32d628c50c"
+}

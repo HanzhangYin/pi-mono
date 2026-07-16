@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-288-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is supported by the accepted artifact summary.\n- claim-2 and claim-3 are not independently checkable from the supplied artifact excerpt: no quotient maps or Smith witnesses verify the asserted coordinates.\n- The draft correctly states that the requested target is **not established**, so the completion criterion is unmet.\n\n## Unresolved certificates\n- [computation] Provide a witness-preserving extraction for \\(6\\le d\\le10\\) giving ambient column orders, \\(M_d\\), quotient maps \\(C_d\\), and family-selection matrices \\(L_d,R_d\\), with exact checks \\(C_dM_d^{T}=0\\), \\(C_dL_d=I\\), and \\(C_dR_d=T_d\\)."
+}

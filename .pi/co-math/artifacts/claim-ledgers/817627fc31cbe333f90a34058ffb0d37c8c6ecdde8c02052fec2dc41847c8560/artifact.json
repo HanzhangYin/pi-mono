@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-320-1",
+	"taskId": "research-plan-task-320",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Assuming the accepted graded basis \\(Q=\\bigoplus_{\\rho\\subseteq b^2}\\mathbb Z e_\\rho\\) with \\(\\deg e_\\rho=ij+|\\rho|\\), for \\(b\\ge1\\) and \\(0\\le N\\le2b\\), \\[ \\operatorname{rank}Q_{ij+N}= \\begin{cases} \\lfloor N/2\\rfloor+1,&0\\le N\\le b,\\\\ \\lfloor(2b-N)/2\\rfloor+1,&b\\le N\\le2b. \\end{cases} \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Under the same accepted-basis hypothesis, every \\(Q_{ij+N}\\) is torsion-free (indeed free abelian), and \\(Q_{ij+N}=0\\) for \\(N\\notin[0,2b]\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e5713b491448afabdec10d349247094544165fa6f51bef2c019ef3a612cce9d2"
+}

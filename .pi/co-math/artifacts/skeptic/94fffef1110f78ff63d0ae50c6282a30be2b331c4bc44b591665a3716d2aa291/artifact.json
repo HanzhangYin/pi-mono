@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-90-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None for the bounded certificate. Task-owned artifact `f51497de15c833c3f86592fdac0096043cd74ff697bbc1b651f1df03ece3e947` includes executable code, explicit inputs, captured stdout/stderr, exit status \\(0\\), script SHA-256 `5ffb1a94364b75f3da6ea3f3422c6cf4ee58d5407fdc13eda65bb74d3e1cd16c`, and exact checks yielding `RESULT: PASS`.\n- This finite computation establishes only the requested capability certificate, not the parent theorem or the invoked interval presentation."
+}

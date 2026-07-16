@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-56-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is validated but concerns a different paper and does not support the requested certificate.\n- claim-2 is unsupported. No full-text artifact, DOI-bearing bibliographic page, stable artifact identifier, cryptographic digest, indexed passages, or exhaustive search witness was supplied.\n- Consequently, none of the certificate’s affirmative source-ingestion criteria is established.\n\n## Unresolved certificates\n- [proof-attempt] Ingest the complete DOI-specific artifact and provide its stable identifier and cryptographic digest; exact page-and-line-indexed passages for the complete main theorem, coefficient-ring hypotheses, definitions of \\(J_v\\) and \\(A_+\\), and every formulation of \\(J_v/A_+J_v\\); and a reproducible exhaustive search index for all required terms and equivalent notation."
+}

@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-261-1",
+	"taskId": "research-plan-task-261",
+	"summary": "Fresh exact dual non-self-conjugate partition-Pieri computation: enumerate complete relation rows in degrees 6..20 for [222,4^5] with h1..h4 and [33,5^4] with h1..h5, compute Smith diagonals and compare quotient invariants.",
+	"script": "import json, hashlib\nfrom sympy import Matrix\nfrom sympy.matrices.normalforms import smith_normal_form\nfrom sympy.polys.domains import ZZ\n\nCASES = [\n  {\"name\":\"[222,4^5] in Lambda/I_{5,4}\",\"lower\":[2,2,2,0,0],\"upper\":[4,4,4,4,4],\"degrees\":list(range(6,21)),\"hDegrees\":[1,2,3,4]},\n  {\"name\":\"[33,5^4] in Lambda/I_{4,5}\",\"lower\":[3,3,0,0],\"upper\":[5,5,5,5],\"degrees\":list(range(6,21)),\"hDegrees\":[1,2,3,4,5]}\n]\n\ndef weight(p): return sum(p)\ndef contained(a,b): return all(x<=y for x,y in zip(a,b))\ndef conjugate(p):\n    return [sum(x>=c for x in p) for c in range(1,max(p,default=0)+1)]\ndef horizontal(lam,mu):\n    # mu/lam is horizontal iff every conjugate-column increment is 0 or 1.\n    L=max(max(lam,default=0),max(mu,default=0))\n    cl=conjugate(lam)+[0]*L; cm=conjugate(mu)+[0]*L\n    return contained(lam,mu) and all(0 <= cm[c]-cl[c] <= 1 for c in range(L))\ndef all_partitions(length, maximum):\n    def rec(prefix,last,k):\n        if k==0:\n            yield prefix\n        else:\n            for x in range(last,-1,-1):\n                yield from rec(prefix+[x],x,k-1)\n    yield from rec([],maximum,length)\ndef interval_parts(lower,upper,d):\n    ans=[]\n    for p in all_partitions(len(upper),upper[0]):\n        if weight(p)==d and contained(lower,p) and contained(p,upper): ans.append(p)\n    return ans\n\ndef compute(case):\n    lo,up=case['lower'],case['upper']\n    bydeg={d:interval_parts(lo,up,d) for d in case['degrees']}\n    out=[]\n    for d in case['degrees']:\n        cols=bydeg[d]\n        labels=[]; rows=[]\n        for t in case['hDegrees']:\n            srcdeg=d-t\n            # Sources outside the requested degree range are empty since |lower|=6.\n            srcs=interval_parts(lo,up,srcdeg) if srcdeg>=weight(lo) else []\n            for lam in srcs:\n                labels.append([t,lam])\n                rows.append([1 if horizontal(lam,mu) and weight(mu)-weight(lam)==t else 0 for mu in cols])\n        M=Matrix(rows) if rows else Matrix(0,len(cols),[])\n        S=smith_normal_form(M,domain=ZZ)\n        diag=[abs(int(S[i,i])) for i in range(min(S.rows,S.cols)) if S[i,i] != 0]\n        rank=len(diag)\n        torsion=[x for x in diag if x>1]\n        out.append({\"degree\":d,\"columns\":cols,\"rowLabels\":labels,\"M\":rows,\n                    \"shape\":[M.rows,M.cols],\"smithNonzero\":diag,\"rank\":rank,\n                    \"quotientFreeRank\":len(cols)-rank,\"torsionFactors\":torsion})\n    return {\"name\":case['name'],\"lower\":lo,\"upper\":up,\"degrees\":case['degrees'],\"hDegrees\":case['hDegrees'],\"degreeData\":out}\n\nresults=[compute(c) for c in CASES]\ncomparison=[]\nfor a,b in zip(results[0]['degreeData'],results[1]['degreeData']):\n    comparison.append({\"degree\":a['degree'],\"first\":{\"freeRank\":a['quotientFreeRank'],\"torsion\":a['torsionFactors']},\"second\":{\"freeRank\":b['quotientFreeRank'],\"torsion\":b['torsionFactors']},\"equal\":a['quotientFreeRank']==b['quotientFreeRank'] and a['torsionFactors']==b['torsionFactors']})\npayload={\"input\":CASES,\"results\":results,\"comparison\":comparison,\"allComparedInvariantsEqual\":all(x['equal'] for x in comparison)}\ntext=json.dumps(payload,sort_keys=True,separators=(',',':'))\nprint(text)\nprint('STABLE_OUTPUTS_SHA256='+hashlib.sha256(text.encode()).hexdigest())\n",
+	"scriptSha256": "2781cbe96734d743c4c403b1af84e9e27841031361c63362c2f1e4540280baf8",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-261.py",
+		"exitCode": 1,
+		"stdout": "",
+		"stderr": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-261.py\", line 2, in <module>\n    from sympy import Matrix\nModuleNotFoundError: No module named 'sympy'\n",
+		"durationMs": 157,
+		"scriptFileName": "attempt-research-plan-task-261.py",
+		"stdoutFileName": "attempt-research-plan-task-261.2781cbe96734.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-261.2781cbe96734.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-261.2781cbe96734.stdout.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-261.2781cbe96734.stderr.txt",
+			"sha256": "60f6b3d9cba9db6d7a62d1c99f8a2c90e15385c508e86178e5f27f68f8d0d471",
+			"content": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-261.py\", line 2, in <module>\n    from sympy import Matrix\nModuleNotFoundError: No module named 'sympy'\n"
+		}
+	}
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-297-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The mathematical certificate is established internally, but the source-refresh requirement is incomplete: the draft paraphrases several source statements rather than supplying bounded verbatim excerpts, abbreviates the source digest, and makes an ungrounded `source-2` omission claim.\n\n## Unresolved certificates\n- [source-refresh] Provide one bounded source block with the exact full digest and verbatim passages for lines 213–235, 301–304, and 326–344; remove the `source-2` assertion unless independently grounded."
+}

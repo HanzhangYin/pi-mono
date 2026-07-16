@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-101-1",
+	"taskId": "research-plan-task-101",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "From the accepted integral interval/Pieri presentation, the requested target is established for \\(p=c=1\\) and \\(0\\le k\\le b:=\\min(i,j)\\): \\(M_{d+k}\\) has basis \\(P_{x,k-x}\\) \\((0\\le x\\le k)\\), and all positive-degree multiplication relations in degree \\(d+k\\) are exactly \\(\\sum_{x=0}^{k-1}\\mathbb Z(C_x+C_{x+1})\\), where \\(C_x=P_{x,k-x}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "f9e1e7b0f9a6617f734bb9025166159f92526e5e408a0a955248e6acc8bb9dcf"
+}

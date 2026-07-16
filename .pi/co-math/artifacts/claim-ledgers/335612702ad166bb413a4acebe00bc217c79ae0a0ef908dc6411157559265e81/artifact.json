@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-59-1",
+	"taskId": "research-plan-task-59",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral box/Schur-basis/Pieri presentation, let \\(i,j\\ge2\\), \\(\\min(i,j)=2\\), \\(p=q-i\\ge1\\), \\(c=r-j\\ge1\\), and \\(d=ij\\). In degree \\(d+3\\), use the column order \\[ (\\alpha,\\beta,\\gamma,\\delta,\\epsilon,\\phi,\\eta,\\theta,\\iota,\\kappa), \\] deleting columns not fitting the \\(q^r\\)-box, where \\[ \\begin{aligned} \\alpha&=s_{(i+3,i^{j-1})},& \\beta&=s_{(i+2,i+1,i^{j-2})},& \\gamma&=s_{((i+1)^3,i^{j-3})},\\\\ \\delta&=s_{(i+2,i^{j-1},1)},& \\epsilon&=s_{((i+1)^2,i^{j-2},1)},& \\phi&=s_{(i+1,i^{j-1},2)},\\\\ \\eta&=s_{(i+1,i^{j-1},1,1)},& \\theta&=s_{(i^j,3)},& \\iota&=s_{(i^j,2,1)},& \\kappa&=s_{(i^j,1,1,1)}. \\end{aligned} \\] Specifically, delete \\(\\alpha\\) for \\(p<3\\), \\(\\beta,\\delta\\) for \\(p<2\\), \\(\\gamma\\) for \\(j=2\\), \\(\\eta,\\iota\\) for \\(c=1\\), \\(\\kappa\\) for \\(c<3\\), and \\(\\theta\\) for \\(i=2\\). The Pieri rows, with these deletions understood, are \\[ \\begin{aligned} h_3x_0&=\\alpha+\\delta+\\phi+\\theta,\\\\ h_2x_1&=\\alpha+\\beta+\\delta+\\epsilon+\\phi,\\\\ h_2y_1&=\\delta+\\phi+\\eta+\\theta+\\iota,\\\\ h_1u&=\\alpha+\\beta+\\delta,\\\\ h_1x_2&=\\beta+\\gamma+\\epsilon,\\\\ h_1z&=\\delta+\\epsilon+\\phi+\\eta,\\\\ h_1y_2&=\\phi+\\theta+\\iota,\\\\ h_1w&=\\eta+\\iota+\\kappa. \\end{aligned} \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Put \\(R_{\\mathrm{full}}\\) equal to the row-coordinate matrix of all applicable rows in the displayed order \\[ (h_3x_0,h_2x_1,h_2y_1,h_1u,h_1x_2,h_1z,h_1y_2,h_1w), \\] omitting \\(h_1u\\) when \\(p=1\\) and \\(h_1w\\) when \\(c=1\\). Put \\(R_{\\mathrm{selected}}\\) equal to the same ordered list with \\(h_2y_1\\) omitted. Then \\(R_{\\mathrm{full}}=C R_{\\mathrm{selected}}\\), with integral \\(C\\) as follows: \\[ C_{p\\ge2,\\ c\\ge2}= \\begin{pmatrix} 1&0&0&0&0&0&0\\\\ 0&1&0&0&0&0&0\\\\ 0&-1&1&0&1&1&0\\\\ 0&0&1&0&0&0&0\\\\ 0&0&0&1&0&0&0\\\\ 0&0&0&0&1&0&0\\\\ 0&0&0&0&0&1&0\\\\ 0&0&0&0&0&0&1 \\end{pmatrix}, \\] where \\[ R_{\\mathrm{selected}}= (h_3x_0,h_2x_1,h_1u,h_1x_2,h_1z,h_1y_2,h_1w). \\] For \\(p\\ge2,\\ c=1\\), \\[ C_{p\\ge2,\\ c=1}= \\begin{pmatrix} 1&0&0&0&0&0\\\\ 0&1&0&0&0&0\\\\ 0&-1&1&0&1&1\\\\ 0&0&1&0&0&0\\\\ 0&0&0&1&0&0\\\\ 0&0&0&0&1&0\\\\ 0&0&0&0&0&1 \\end{pmatrix}, \\quad R_{\\mathrm{selected}}= (h_3x_0,h_2x_1,h_1u,h_1x_2,h_1z,h_1y_2). \\] For \\(p=1,\\ c\\ge2\\), \\[ C_{p=1,\\ c\\ge2}= \\begin{pmatrix} 1&0&0&0&0&0\\\\ 0&1&0&0&0&0\\\\ 0&-1&0&1&1&0\\\\ 0&0&1&0&0&0\\\\ 0&0&0&1&0&0\\\\ 0&0&0&0&1&0\\\\ 0&0&0&0&0&1 \\end{pmatrix}, \\quad R_{\\mathrm{selected}}= (h_3x_0,h_2x_1,h_1x_2,h_1z,h_1y_2,h_1w). \\] For \\(p=c=1\\), \\[ C_{p=c=1}= \\begin{pmatrix} 1&0&0&0&0\\\\ 0&1&0&0&0\\\\ 0&-1&0&1&1\\\\ 0&0&1&0&0\\\\ 0&0&0&1&0\\\\ 0&0&0&0&1 \\end{pmatrix}, \\quad R_{\\mathrm{selected}}= (h_3x_0,h_2x_1,h_1x_2,h_1z,h_1y_2). \\] The cases \\(p=2\\) and \\(p\\ge3\\), and respectively \\(c=2\\) and \\(c\\ge3\\), use the same matrices above; only the stipulated deleted columns differ.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The nonidentity row of each matrix follows from Pieri expansion: \\[ h_2y_1= \\begin{cases} h_1u+h_1z+h_1y_2-h_2x_1,&p\\ge2,\\\\ h_1z+h_1y_2-h_2x_1,&p=1. \\end{cases} \\] In particular, for \\(c=1,\\ p\\ge3\\), \\[ h_2y_1=h_1u+h_1z+h_1y_2-h_2x_1. \\] All coefficients in every \\(C\\) are integral.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "d4c106343cedb7797b8325c16cf3bba70928b3d6d17f2e161e76447729e06452"
+}

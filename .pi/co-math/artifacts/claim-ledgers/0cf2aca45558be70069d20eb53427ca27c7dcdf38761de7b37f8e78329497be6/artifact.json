@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-303-1",
+	"taskId": "research-plan-task-303",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The accepted artifact reports quotient free ranks \\(1,1,2,1,1\\) in degrees \\(6,7,8,9,10\\), respectively, with no torsion. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "A failed repair computation printed the provisional blocks \\[ T_6=(1),\\quad T_7=(-1),\\quad T_8=\\begin{pmatrix}0&1\\\\1&0\\end{pmatrix},\\quad T_9=(-1), \\] in the listed \\(G_L\\)-row and \\(G_R\\)-column orders; it did not produce a valid degree-\\(10\\) block.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "6c817a8abc8a6c7490fa66172f93c078cd17f217430710bec1a81bc68199ef97"
+}

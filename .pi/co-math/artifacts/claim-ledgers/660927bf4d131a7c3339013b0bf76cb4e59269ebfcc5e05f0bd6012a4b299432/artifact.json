@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-141-1",
+	"taskId": "research-plan-task-141",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The bounded certificate is established: artifact `162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126` (exit \\(0\\)) computes exactly `lower=[2,2,0,0,0,0,0,0]`, `upper=[4,4,4,4,4,4,4,4]`, degrees \\(4,\\ldots,32\\), and \\(h\\)-degrees \\(1,\\ldots,4\\), retaining ordered bases, all labelled Pieri rows including zero rows, exact Smith diagonals, quotient free ranks, and torsion factors degreewise. It verifies \\(U_dM_dV_d=D_d\\) with unimodular witnesses, including \\(M_4=0_{0\\times1}\\). [artifact 162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "ef59845c149383d30c9e286ec78858a85df1a816b00e29f8df630bb5b509dcc5"
+}

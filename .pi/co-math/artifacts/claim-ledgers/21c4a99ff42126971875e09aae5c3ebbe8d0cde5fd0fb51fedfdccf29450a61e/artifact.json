@@ -1,0 +1,56 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-69-1",
+	"taskId": "research-plan-task-69",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "\\(\\Lambda/I_{r,n-r}\\) has the Schur basis indexed by partitions in the \\(r\\times(n-r)\\) box. [source-2@L1318-L1324|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1318,
+						"end": 1324
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1318: The $\\ZZ$-basis for $\\Lambda$ given by the Schur functions $s_\\lambda$ \n1319: has the property that the $\\ZZ$-submodule $I_{r,n-r}$ spanned by all $s_\\lambda$\n1320: with  $\\lambda \\not\\subseteq (n-r)^r$ forms an ideal, and the\n1321: map sending $s_\\lambda$ to $s_\\lambda(x_1,\\ldots,x_r)$ induces an isomorphism\n1322: $$\n1323: \\Lambda/I_{r,n-r} \\quad \\overset{\\sim}{\\longrightarrow} \\quad \\ZZ[\\xx]^{W_J}/\\ZZ[\\xx]^W_+ \\ZZ[\\xx]^{W_J} \n1324:                      \\quad \\left( \\cong H^\\star(G/P_J,\\ZZ) \\right) ",
+					"excerptSha256": "731a124173e7e6bab8a75569eb2a08d6634877d780e310da86d0983fd2dbc7ac",
+					"canonicalCitation": "[source-2@L1318-L1324|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Conditional on the stipulated box/Schur/Pieri presentation, \\(i,j\\ge2\\), \\(q=i+p\\), \\(r=j+c\\), and \\(\\min(p,c)=1\\), the degree enumeration is \\[ J_d=\\mathbb Zx_0,\\quad J_{d+1}=\\mathbb Z\\{x_1,y_1\\},\\quad J_{d+2}=\\mathbb Z\\{\\gamma,x_2,z,y_2,\\theta\\}, \\] omitting \\(\\gamma\\) for \\(p=1\\) and \\(\\theta\\) for \\(c=1\\). Moreover \\[ A_1=\\langle h_1\\rangle,\\quad A_2=\\langle h_2,h_1^2\\rangle,\\quad A_3=\\langle h_3,h_2h_1,h_1^3\\rangle, \\] and, writing \\(r_2=h_2x_1,r_3=h_2y_1,r_4=h_1\\gamma,r_5=h_1x_2,r_6=h_1z,r_7=h_1y_2,r_8=h_1\\theta\\), \\[ h_2h_1x_0=r_2+r_3,\\quad h_1^3x_0=r_4+r_5+2r_6+r_7+r_8, \\] \\[ h_1^2x_1=r_4+r_5+r_6,\\qquad h_1^2y_1=r_6+r_7+r_8. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The supplied material does not define “the fifteen cases in (4),” their column orders, or their intended \\(R_{\\mathrm{full}}\\); therefore fifteen literal products \\(\\mathcal C R_{\\mathrm{selected}}=R_{\\mathrm{full}}\\) cannot be specified without inventing data.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e42d3e34d8e119a004691fc3d81a1e7076ba60ed8882e97659f5ff781aebb696"
+}

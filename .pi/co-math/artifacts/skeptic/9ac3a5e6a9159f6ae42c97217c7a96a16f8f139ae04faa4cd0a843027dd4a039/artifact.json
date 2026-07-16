@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-95-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- Claims 1–4 are adequately grounded; claims 5–6 are elementary and correct, though claim 5 lacks its one-line proof.\n- The proposed next step duplicates accepted task 16’s exact integral presentation of \\(Q\\), contrary to the accepted-task restriction.\n- The draft does not explain why the accepted presentation and coefficient-ring reduction from tasks 16 and 8 fail to yield the desired rank/Smith argument.\n\n## Unresolved certificates\n- [proof-attempt] Starting from the accepted integral presentation of \\(Q\\), identify the precise remaining unproved rank or Smith-normal-form statement, and either prove it or exhibit a rigorous obstruction; do not request reconstruction of the already accepted presentation."
+}

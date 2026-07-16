@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-306-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 correctly identifies that no signed-conjugation formula appears in the supplied task. Consequently, the requested universal statement cannot be identified, proved, or disproved.\n- The acceptance criterion is therefore unmet; the report explicitly establishes only that the target is underspecified.\n\n## Unresolved certificates\n- [proof-attempt] Supply the exact signed-conjugation equation—including both sides, sign, ambient quotient, and partition conventions—and then prove or disprove it for every \\(\\rho\\subseteq b^a\\) using the accepted identities."
+}

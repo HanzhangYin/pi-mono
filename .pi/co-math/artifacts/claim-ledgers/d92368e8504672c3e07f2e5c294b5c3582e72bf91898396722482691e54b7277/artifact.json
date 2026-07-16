@@ -1,0 +1,62 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-53-1",
+	"taskId": "research-plan-task-53",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Under the accepted integral box/Schur/Pieri presentation and \\(A_+=(h_1,\\ldots,h_q)\\), let \\(p=c=1\\), \\(a=1\\), \\(b=3\\). Then \\(q=i+1\\), \\(r=j+1\\), \\(\\min(i,j)=3\\), and \\(d=ij\\). Put \\[ P_{x,y}:=s_{((i+1)^x,i^{\\,j-x},y)}\\quad(y=0\\text{ omitted}). \\] The complete Schur-column sets in degrees \\(d+k\\), \\(0\\le k\\le3\\), are \\(\\{P_{x,y}:x+y=k\\}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Writing \\[ X_k=P_{k,0},\\quad Y_k=P_{0,k},\\quad Z=P_{1,1},\\quad A=P_{2,1},\\quad B=P_{1,2}, \\] the complete Pieri-row lattices are \\[ \\mathcal R_d=0,\\qquad \\mathcal R_{d+1}=\\mathbb Z(X_1+Y_1), \\] \\[ \\mathcal R_{d+2}= \\mathbb Z(Z+Y_2)+\\mathbb Z(X_2+Z), \\] and \\[ \\mathcal R_{d+3}= \\mathbb Z(X_3+A)+\\mathbb Z(A+B)+\\mathbb Z(B+Y_3). \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Retaining the horizontal proposed family \\[ F_X=(X_0,X_1,X_2,X_3), \\] complementary minors in degrees \\(d,d+1,d+2,d+3\\) have determinants \\(1,1,1,1\\), respectively. In degrees \\(d+2,d+3\\), use rows \\((X_2+Z,Z+Y_2)\\) and \\((X_3+A,A+B,B+Y_3)\\), giving \\[ \\begin{pmatrix}1&0\\\\1&1\\end{pmatrix}_{(Z,Y_2)},\\qquad \\begin{pmatrix}1&0&0\\\\1&1&0\\\\0&1&1\\end{pmatrix}_{(A,B,Y_3)}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Retaining the vertical proposed family \\[ F_Y=(X_0,Y_1,Y_2,Y_3), \\] also gives complementary minors of determinant \\(1\\). In degrees \\(d+2,d+3\\), on complementary columns \\((X_2,Z)\\) and \\((X_3,A,B)\\), the same selected rows yield \\[ \\begin{pmatrix}1&1\\\\0&1\\end{pmatrix},\\qquad \\begin{pmatrix}1&1&0\\\\0&1&1\\\\0&0&1\\end{pmatrix}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Consequently, in the truncated quotient through degree \\(d+3\\), \\[ \\bar Y_1=-\\bar X_1,\\qquad \\bar Y_2=\\bar X_2,\\qquad \\bar Y_3=-\\bar X_3, \\] and each of \\(F_X,F_Y\\) is a degreewise integral basis of the truncated quotient.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "The requested target—complete Pieri row lattices in degrees \\(d,\\ldots,d+3\\) and explicit unimodular complementary minors retaining the four proposed generators—is established, conditional on the stated integral presentation hypotheses.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "3dd353d3556c7e11c06ea8beae3b4962b64af9048ceff11fe40080800bf08951"
+}

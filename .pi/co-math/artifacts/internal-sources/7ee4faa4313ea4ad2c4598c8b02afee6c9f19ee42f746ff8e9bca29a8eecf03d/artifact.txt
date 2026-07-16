@@ -1,0 +1,28 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-246-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-243-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-243-1 · specialist · ARTIFACT 17dd0d387cb19067f8f4792fa7a44c90fc1d67d391049df40e77465eb002c147
+000004	## Claims
+000005	- [unsupported] The requested computation was not established: the supplied `partition-pieri` primitive rejected degrees \(31,\ldots,35\) because they exceed \(|[5^6]|=30\); no task-owned artifact or labelled-row comparison was produced.
+000006	
+000007	## Strategy
+000008	Attempted the exact specified primitive input. Its bound restriction prevented execution, including preservation of the requested \(|R_d|\times0\) matrices for \(31\le d\le35\).
+000009	
+000010	## Gaps
+000011	No output artifact exists for degrees \(4,\ldots,30\), and exact labelled-row agreement with `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece` was not verified.
+000012	
+000013	## Next
+000014	Unresolved.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-243-1 · critic · ARTIFACT 46884ce9f6dee6117b06f8f9229c3a5b6315329749f102657c004d9ef0e404b1
+000017	## Critique
+000018	- claim-1: The conclusion that the requested target was **not established** is correct. However, the asserted primitive rejection is unsupported because no sandbox execution record, exit status, stderr, or artifact was supplied. Exceeding \(|5^6|=30\) only forces empty column sets in degrees \(31,\ldots,35\); it does not justify omitting the required indexed rows or zero-column matrices. All ordered columns, labelled rows, entries, and the comparison with `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece` remain missing.
+000019	
+000020	## Repair certificates
+000021	- [proof-attempt] Prove that \(C_d=\varnothing\) for \(31\le d\le35\), while \(R_d=\{(t,\lambda):1\le t\le5,\ |\lambda|=d-t,\ [2,2]\subseteq\lambda\subseteq5^6\}\). Under this convention, certify matrix dimensions \(12\times0,7\times0,4\times0,2\times0,1\times0\) for \(d=31,\ldots,35\).
+000022	- [computation] Execute a task-owned wrapper that enumerates the exact ordered column sets and labelled Pieri rows for degrees \(4,\ldots,35\), emits the five zero-column matrices, and compares every column label, row label, and integer row in degrees \(4,\ldots,30\) field-by-field with `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece`. Preserve executable code, inputs, complete output, exit status, and stable digests.
+000023	- [source-refresh] Supply an immutable locator and canonical payload/schema for reference output `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece`; the bare identifier alone cannot ground an exact labelled-row comparison.
+000024	
+000025	## Required revisions
+000026	- Do not treat the reported rejection as execution evidence without a sandbox artifact.
+000027	- Do not truncate the requested degree range at \(30\).
+000028	- Provide the complete task-owned computation and explicit comparison result. Until then, the requested target remains **not established**.

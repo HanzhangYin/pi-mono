@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-47-1",
+	"taskId": "research-plan-task-47",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For boundary case \\((p,c)=(1,1)\\), with row order \\((2),(3),(4)\\) and column order \\((x_2,z,y_2)\\), the boundary matrix is \\[ B_{1,1}= \\begin{pmatrix} 0&1&1\\\\ 1&1&0\\\\ 0&1&1 \\end{pmatrix}_{(x_2,z,y_2)}. \\] Rows \\((2),(3)\\) restricted to columns \\((z,y_2)\\) are \\[ \\begin{pmatrix}1&1\\\\1&0\\end{pmatrix}, \\qquad \\det=(1)(0)-(1)(1)=-1\\in\\mathbb Z^\\times. \\] Moreover rows \\((2)\\) and \\((4)\\) are equal, both being \\((0,1,1)\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "1e72c1a7e13e1047231477aa3268db3a37c002d1fd2df6c0c600c91cbd970c79"
+}

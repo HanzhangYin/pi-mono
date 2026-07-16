@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-42-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- Claims 1–4 are supported by the cited formal-document excerpts and correctly establish integral ideal generation, not the requested Schur-span equality.\n- Claim 5’s DOI abstract contains neither a theorem locator nor coefficient hypotheses for \\(J_v\\); it cannot ground the requested identification.\n- Claim 6 is a valid negative conclusion only for the narrowly supplied records. No external literature or arXiv search was executed, so the task’s required search was not completed.\n- No verified arXiv identifier, full-text statement locator, or exact integral Littlewood–Richardson citation was obtained.\n- The proposed equality is plausibly derivable from integral ideal generation plus LR closure of the indicated Schur span, but that reduction remains unsupported by the requested exact external locator."
+}

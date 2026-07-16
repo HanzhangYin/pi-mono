@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-61-1",
+	"text": "## Critique\n- claim-1: The conditional proof reaches the named certificate. Commutativity and the two lower-degree Pieri identities give \\(r_2=-r_1+r_3+r_5+r_6\\). Substituting the appropriate zero boundary row yields each displayed integral matrix \\(C\\); dimensions and row orders agree in all three exhaustive regimes. The common lexicographically decreasing Schur-column order is explicit.\n- claim-2: The identity follows directly from the same relation because \\(p\\ge3\\) gives \\(\\gamma=u\\) and \\(c=1\\) gives \\(\\theta=0\\). The claim remains correctly conditional on the stipulated presentation.\n\n## Required revisions\n- None for the bounded certificate. No parent-theorem conclusion follows."
+}

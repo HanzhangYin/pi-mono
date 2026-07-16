@@ -1,0 +1,101 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-194-1",
+	"taskId": "research-plan-task-194",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "**Definition 2.1.** “Call an integer tuple \\(\\varphi=(n,r,i,j,a,b,N)\\) valid if \\(n,r,i,j,a,b,N\\ge1\\)” and \\[ r<n,\\quad a+j\\le r,\\quad a+i\\le n-r,\\quad b\\le i,j,\\quad N\\le ab. \\] [doi:10.1112/jlms.12832, lines 300-304]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 300,
+							"end": 304
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "300: The following definition records the assumptions on the parameters used in the preceding considerations.\n301: \\begin{definition}\n302: Call an integer tuple $\\varphi=(n,r,i,j,a,b,N)$ \\emph{valid} if $n,r,i,j,a,b,N\\geq 1$ with\n303: \\[r<n,\\quad a+j\\leq r,\\quad a+i\\leq n-r,\\quad b\\leq i,j,\\quad\\mbox{and}\\quad N\\leq ab. \\]\n304: \\end{definition}",
+					"excerptSha256": "45d7e130876ad0ce9de69dcc082dec781ce02e68d63d2b8c9bc6254367ff96a6",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 300-304]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "**Lemma 2.5.** For valid \\(\\varphi\\), a homogeneous degree-\\(N\\) syzygy \\[ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}}\\bar s_{(i^j,\\lambda)}f_\\lambda =\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N}}f_\\lambda\\bar s_{(i^j,\\lambda)} \\] with nonzero left side implies consistency of the decomposable equations, whose right side is \\(f_{\\nu_B}\\) for tall \\(\\nu\\) and \\(0\\) for wide \\(\\nu\\). [doi:10.1112/jlms.12832, lines 326-341]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 326,
+							"end": 341
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "326: \\begin{lemma}\n327: \\label{lem:implication-of-syzygy}\n328: Suppose for some valid $\\varphi=(n,r,i,j,a,b,N)$ there is a homogeneous syzygy of degree $N$ in $\\overline{\\Lambda}$ of the form\n329: \\[\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}}\\overline{s}_{(i^j,\\lambda)}f_{\\lambda}=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}f_{\\lambda}\\overline{s}_{(i^j,\\lambda)}\\]\n330: with the left-hand side nonzero.\n331: Then the decomposable equations\n332: \\begin{equation}\n333: \\label{eqn:decomposable}\n334: \\biggr\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu} \\, A_{\\lambda,\\theta}=\\chi(\\nu)\\,\\biggr| \\,\\nu\\in \\decomp_{\\varphi} \\biggr\\}\n335: \\end{equation}\n336: are consistent, where $\\chi(\\nu)\\in\\mathbb{Z}$ is defined for $\\nu\\in \\decomp_{\\varphi}$ by\n337: \\[\\chi(\\nu)=\\begin{cases}\n338: f_{\\nu_B} &\\mbox{ if $\\nu$ is tall,}\\\\\n339: 0 &\\mbox{ if $\\nu$ is wide.}\n340: \\end{cases} \\]\n341: \\end{lemma}",
+					"excerptSha256": "5df8c99b62bbc1ec699c1122260de3f48b635db181989014545b75592c3a559b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 326-341]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The proof of Lemma 2.5 adds no restriction beyond its stated valid-tuple and syzygy hypotheses: it obtains consistency by deleting equations from the larger system. [doi:10.1112/jlms.12832, lines 342-344]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 342,
+							"end": 344
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "342: \\begin{proof}\n343: The above considerations show that the lemma is true if we replace (\\ref{eqn:decomposable}) with the superset (\\ref{eqn:eqs}). Clearly, removing equations from a consistent linear system yields a consistent linear system.\n344: \\end{proof}",
+					"excerptSha256": "8a751aaf3ee877b76b319bd56fc5f8babbfd3a64099f3d21d4c1cfae1508e942",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 342-344]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "0f627480d1d64146d832226b39b6cd3e7fcc2a5e53bbb0ebc7c606a6c90450c7"
+}

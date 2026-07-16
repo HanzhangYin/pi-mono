@@ -1,0 +1,28 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-88-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-87-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-87-1 · specialist · ARTIFACT e1177cddb627f6603f6a594964d06d44ce88d64f51d6a0db4d42b731e24bb632
+000004	## Claims
+000005	- [source-backed] In `sources/0809.2981v2.tex` (revision `source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281`, SHA256 `9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02`), the quotient \(\Lambda/I_{r,n-r}\) has \(\mathbb Z\)-basis \(\{s_\lambda:\lambda\subseteq(n-r)^r\}\). Exact excerpt: “the \(\mathbb Z\)-submodule \(I_{r,n-r}\) spanned by all \(s_\lambda\) with \(\lambda\not\subseteq(n-r)^r\) forms an ideal” and “\(H^\star(G/P_J,\mathbb Z)\) has \(\mathbb Z\)-basis … \(=\{s_\lambda:\lambda\subseteq(n-r)^r\}\).” [source-2, lines 1318-1330; excerpt SHA256 `5ea49be8975fcf47dfbe83a685d04a273e108ae6e8a6a6565dd2d1c00791711c`]
+000006	- [source-backed] For the bigrassmannian corresponding to \(i^j\), the source states that \(J_{v_{r,s,t,n}}\) is generated as an ideal of \(\Lambda/I_{r,n-r}\) by the interval-indexed set \(\{s_\mu:i^j\subseteq\mu\subseteq(n-r)^r\}\). Exact excerpt: “\(J_{v_{r,s,t,n}}\) is generated as an ideal of \(\Lambda/I_{r,n-r}\) by … \(=\{ s_{\mu}: i^j \subseteq \mu \subseteq (n-r)^r \}\).” [source-2, lines 1365-1375; excerpt SHA256 `f9b834a1ed060a90ea37ffff1aefb255b7251862c2f48b412314866ea866aefb`]
+000007	- [unsupported] The supplied formal-source excerpts do not state that the degree-\(d+k\) columns are the direct-sum interval component \(\bigoplus_{i^j\subseteq\mu\subseteq q^r,\ |\mu|=d+k}\mathbb Zs_\mu\), nor that the *complete* \(h_1\)-row set is exactly \(\{h_1s_\lambda\}\) for all interval-indexed degree-\(d+k-1\) \(\lambda\). They also contain no bounded explicit Pieri-rule excerpt identifying those products as the requested rows.
+000008	
+000009	## Strategy
+000010	Separate what the primary source explicitly supplies—ambient Schur basis and interval-indexed ideal generators—from the stronger column-completeness and Pieri-row-completeness presentation facts required by the repair.
+000011	
+000012	## Gaps
+000013	The source certificate is **not established**: the source grounds interval-indexed generators inside the \(q^r=(n-r)^r\) box, but the supplied excerpts omit the asserted complete column presentation and complete \(h_1\)-Pieri-row statement.
+000014	
+000015	## Next
+000016	A further source excerpt explicitly stating the relevant module’s graded interval basis and its Pieri multiplication rule is required.
+000017	
+000018	INTERNAL ATTEMPT research-attempt-research-plan-task-87-1 · critic · ARTIFACT d223bd68c79778731757bd5dfc05a756198aff0be6ea3060361de04787312df2
+000019	## Critique
+000020	- claim-1: The excerpt grounds only the ambient Schur basis of \(\Lambda/I_{r,n-r}\). It does not identify the columns of the relevant presentation.
+000021	- claim-2: The excerpt grounds the interval-indexed ideal generating set, but ideal generation does not establish that these are the columns of a specified free presentation or that all relations are the corresponding \(h_1\)-Pieri rows.
+000022	- claim-3: Correctly identifies the missing evidence and avoids inference. Therefore the requested source certificate is **not established** from the inspected excerpts.
+000023	
+000024	## Repair certificates
+000025	- [source-refresh] Supply a stable, bounded excerpt explicitly defining the presentation’s columns by \(i^j\subseteq\mu\subseteq q^r\) and stating that its complete \(h_1\)-relation rows are \(h_1s_\lambda\) for every corresponding interval-indexed \(\lambda\); otherwise record that the inspected source contains no such statement.
+000026	
+000027	## Required revisions
+000028	- Conclude explicitly that `source-2@L1318-L1330` and `source-2@L1365-L1375` establish ambient basis and ideal generation only, not the exact presentation certificate.

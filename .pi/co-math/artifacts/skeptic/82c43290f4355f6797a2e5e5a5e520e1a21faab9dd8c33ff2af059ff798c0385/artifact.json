@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-207-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The supplied artifact `e41bdda5bdbc546ba4f92d447eb4b84c58e83833d2a7aaec6f7d620cc99d4090` now contains the complete hit table and zero counts, contrary to the draft’s Gaps section.\n- The bounded source citations cover every mathematically substantive hit; line 1247 is only a bibliography-title occurrence.\n- The draft must therefore replace its obsolete “not established” conclusion with the accurate certificate-level conclusion. No parent theorem follows.\n\n## Unresolved certificates\n- [source-refresh] Issue the corrected source certificate incorporating artifact `e41bdda5bdbc546ba4f92d447eb4b84c58e83833d2a7aaec6f7d620cc99d4090` for all counts and zero counts, retaining the bounded `source-30` citations for substantive content, and explicitly conclude that this certificate—not the parent theorem—is established."
+}

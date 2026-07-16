@@ -1,0 +1,17 @@
+{
+	"attemptId": "research-attempt-research-plan-task-108-1",
+	"taskId": "research-plan-task-108",
+	"summary": "Compute complete integral Pieri relation matrices and Smith forms for the finite interval (2,2)⊆λ⊆(5^5), corresponding to i=j=2 and p=c=3; test the resulting indecomposable quotient and the two 10-element endpoint families.",
+	"script": "from itertools import product\nfrom sympy import Matrix, ZZ\nfrom sympy.matrices.normalforms import smith_normal_form\n\nLOW=(2,2,0,0,0)\nUP=(5,5,5,5,5)\n\ndef deg(x): return sum(x)\ndef partstr(x):\n    y=tuple(a for a in x if a)\n    return ''.join(map(str,y)) if y else '0'\ndef contains(x,y): return all(a>=b for a,b in zip(x,y))\ndef horiz(lam,nu):\n    # nu/lam is a horizontal strip iff nu_k >= lam_k >= nu_{k+1}.\n    return contains(nu,lam) and all(lam[k] >= (nu[k+1] if k+1<len(nu) else 0) for k in range(len(lam)))\n\nparts=[]\nfor x in product(range(6), repeat=5):\n    if all(x[k]>=x[k+1] for k in range(4)) and contains(x,LOW):\n        parts.append(x)\nparts.sort(key=lambda z:(deg(z),z), reverse=False)\nbydeg={e:[x for x in parts if deg(x)==e] for e in range(4,26)}\nfree_total=0\nall_unit=True\nprint('parameters i=j=2, p=c=3, lower=22, upper=55555')\nfor e in range(4,26):\n    cols=bydeg[e]\n    rows=[]\n    for t in range(1,6):\n        for lam in bydeg.get(e-t,[]):\n            row=[1 if horiz(lam,nu) and deg(nu)-deg(lam)==t else 0 for nu in cols]\n            if any(row): rows.append(row)\n    if rows:\n        S=smith_normal_form(Matrix(rows), domain=ZZ)\n        diag=[abs(int(S[k,k])) for k in range(min(S.rows,S.cols)) if S[k,k]!=0]\n        rank=len(diag)\n    else:\n        diag=[]; rank=0\n    unit=all(z==1 for z in diag)\n    all_unit=all_unit and unit\n    qrank=len(cols)-rank\n    free_total += qrank\n    print('e=%2d cols=%2d rows=%3d rank=%2d snf=%s qrank=%d' % (e,len(cols),len(rows),rank,diag,qrank))\nprint('TOTAL_Q_RANK=%d ALL_NONZERO_SNF_UNITS=%s' % (free_total,all_unit))\nF1=['22','32','42','52','33','43','53','44','54','55']\nF2=['22','221','222','2211','2221','2222','22111','22211','22221','22222']\nactual={partstr(x) for x in parts}\nprint('F1_SIZE=%d F1_IN_INTERVAL=%s' % (len(F1),all(z in actual for z in F1)))\nprint('F2_SIZE=%d F2_IN_INTERVAL=%s' % (len(F2),all(z in actual for z in F2)))\nprint('RESULT: PASS')",
+	"scriptSha256": "ff626b7c41a8e95b98cb3c2ded175864467098ec16ecab585f33f033f11f1715",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-108.py",
+		"exitCode": 1,
+		"stdout": "",
+		"stderr": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-108.py\", line 2, in <module>\n    from sympy import Matrix, ZZ\nModuleNotFoundError: No module named 'sympy'\n",
+		"durationMs": 138,
+		"scriptFileName": "attempt-research-plan-task-108.py",
+		"stdoutFileName": "attempt-research-plan-task-108.ff626b7c41a8.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-108.ff626b7c41a8.stderr.txt"
+	}
+}

@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-328-1",
+	"taskId": "research-plan-task-328",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(p_a(t)=[z^t]\\prod_{k=1}^a(1-z^k)^{-1}\\), with \\(p_a(t)=0\\) for \\(t<0\\), \\[ \\#\\{\\rho\\subseteq b^a:|\\rho|=N\\} =\\sum_{S\\subseteq\\{1,\\ldots,a\\}}(-1)^{|S|} p_a\\!\\left(N-|S|b-\\sum_{s\\in S}s\\right). \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Complementation \\(\\rho^\\vee=(b-\\rho_a,\\ldots,b-\\rho_1)\\) gives \\[ \\#\\{\\rho\\subseteq b^a:|\\rho|=N\\} =\\#\\{\\rho\\subseteq b^a:|\\rho|=ab-N\\}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Conditional on the accepted graded integral basis \\(Q=\\bigoplus_{\\rho\\subseteq b^a}\\mathbb Z e_\\rho\\), \\(\\deg e_\\rho=ij+|\\rho|\\), \\[ \\operatorname{rank}Q_{ij+N} =\\sum_{S\\subseteq[a]}(-1)^{|S|} p_a\\!\\left(N-|S|b-\\sum_{s\\in S}s\\right), \\] and \\(Q_{ij+N}\\) is free abelian, vanishing unless \\(0\\le N\\le ab\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "b65b2a8bcb44e9bbfac5d988b1586943ab3487de7dbc9e6eefd85145ee5d384f"
+}

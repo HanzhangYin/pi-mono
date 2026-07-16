@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-56-1",
+	"taskId": "research-plan-task-56",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied local documentation identifies arXiv:0809.2981v2 as a different paper, published in *Transactions of the American Mathematical Society* 363 (2011), 521–543. [source-6@L3-L8|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 3,
+						"end": 8
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "3: ## Bibliographic identification\n4: \n5: - **Title:** Presenting the cohomology of a Schubert variety\n6: - **Authors:** Victor Reiner, Alexander Woo, Alexander Yong\n7: - **arXiv:** [0809.2981v2](https://arxiv.org/abs/0809.2981v2)\n8: - **Journal:** *Transactions of the American Mathematical Society* 363 (2011), 521–543",
+					"excerptSha256": "d1f65461563ce14b35db3c9254bfe0744367a5b0dc92d6e9c09772918d6df992",
+					"canonicalCitation": "[source-6@L3-L8|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No supplied citable full-text artifact has a bibliographic page recording DOI \\(10.1112/jlms.12832\\), nor is any stable artifact identifier, digest, page/line text, or exhaustive search output for that DOI supplied.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "db49d9e9ffcec132201e5b1cdaf45a9c68ea33c0373fd54507e8e6c377336f11"
+}

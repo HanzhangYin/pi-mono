@@ -1,0 +1,77 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-175-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-174-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-174-1 · specialist · ARTIFACT 0a555be60c76338a58b934b3361c27bb2775365f14663d6934c30b0bff0f5da8
+000004	## Claims
+000005	- [source-backed] For \(q=n-r\), \(J_v\subset\Lambda/I_{r,q}\) has Schur basis \(\{\bar s_\lambda:i^j\subseteq\lambda\subseteq q^r\}\). [source-2, lines 1365-1375]
+000006	- [proved] Let \(v=v_{r,s,t,n}\) satisfy \(1\le t\le r,s\le n\) and \(t>r+s-n\). Put \(i=s-t+1\), \(j=r-t+1\), \(q=n-r\), and
+000007	  \[
+000008	  v^\vee=v_{q,n-s,q-s+t,n}=v_{q,\ q-i+j,\ q-i+1,\ n}.
+000009	  \]
+000010	  Then \(v^\vee\) is bigrassmannian: \(q-i\ge0\) follows from \(t>r+s-n\); hence \(1\le q-i+1\le q\), \(q-i+1\le q-i+j=n-s\), and
+000011	  \[
+000012	  (q-i+1)-\bigl(q+(n-s)-n\bigr)=t>0.
+000013	  \]
+000014	  Its parameters are \(i^\vee=j,\ j^\vee=i,\ a^\vee=a=\min(q-i,r-j)\), and \(b^\vee=b=\min(i,j)\).
+000015	- [proved] Writing \(\omega(s_\lambda)=s_{\lambda'}\), the integral Schur involution induces
+000016	  \[
+000017	  \bar\omega:\Lambda/I_{r,q}\xrightarrow{\sim}\Lambda/I_{q,r},
+000018	  \qquad\bar s_\lambda\mapsto\bar s_{\lambda'},
+000019	  \]
+000020	  because \(\lambda\subseteq q^r\iff\lambda'\subseteq r^q\). Basiswise,
+000021	  \[
+000022	  \bar\omega(J_v)
+000023	   =\bigoplus_{j^i\subseteq\nu\subseteq r^q}\mathbb Z\bar s_\nu
+000024	   =J_{v^\vee}.
+000025	  \]
+000026	- [source-backed] The 2024 theorem assumes precisely a bigrassmannian \(v_{r,s,t,n}\), defines \(i,j,a,b\), works in the integral quotient \(\Lambda/I_{r,n-r}\), and proves minimality of \(\{\bar s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\). [doi:10.1112/jlms.12832, lines 68-110]
+000027	- [proved] Applying Theorem 1.2 to \(v^\vee\) gives minimality of
+000028	  \[
+000029	  \{\bar s_\nu:j^i\subseteq\nu\subseteq(j^i,b^a)\}\subset J_{v^\vee}.
+000030	  \]
+000031	  Pullback under \(\bar\omega^{-1}\) is the minimally generating family
+000032	  \[
+000033	  \boxed{\{\bar s_\mu:i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\}}
+000034	  \subset J_v,
+000035	  \]
+000036	  since \((j^i,b^a)'=((i+a)^b,i^{j-b})\). Thus the transposed family is minimal, including degenerate \(a=0\) cases (with zero-length blocks omitted).
+000037	- [unsupported] No independent critic or skeptic review record was supplied; therefore no post-review horizontal continuation can be certified.
+000038	
+000039	## Strategy
+000040	1. Fix \(q=n-r\).
+000041	2. Identify \(J_v\)’s interval basis.
+000042	3. Define \(v^\vee\).
+000043	4. Verify every transformed admissibility condition.
+000044	5. Compute transformed \(i,j,a,b\).
+000045	6. Define the integral Schur involution.
+000046	7. Descend it to Grassmannian quotients.
+000047	8. Prove \(J_v\) and \(J_{v^\vee}\) correspond basiswise.
+000048	9. Apply Theorem 1.2 to \(v^\vee\).
+000049	10. Pull back its minimal family to obtain the original transposed family.
+000050	
+000051	## Gaps
+000052	Independent critic/skeptic review and hence the requested post-review horizontal step are unavailable in the supplied state.
+000053	
+000054	## Next
+000055	The requested transposed-family target is established; obtain independent review before any further continuation.
+000056	
+000057	INTERNAL ATTEMPT research-attempt-research-plan-task-174-1 · critic · ARTIFACT 3e769cfffdbf4d517fb66bd7fc6028160cc9ae4631b47f13424cf233387e9ba0
+000058	## Critique
+000059	- claim-1: The cited passage states ideal generation, not directly an additive Schur-basis decomposition. The claimed basis formula requires the quotient Schur basis and the LR containment property to prove
+000060	  \[
+000061	  J_v=\bigoplus_{i^j\subseteq\lambda\subseteq q^r}\mathbb Z\bar s_\lambda.
+000062	  \]
+000063	- claim-2: The formulas are correct, but the admissibility audit is incomplete. Explicitly verify \(i,j\ge1\), \(q-i,r-j\ge0\), \(1\le q,n-s\le n\), and every inequality \(1\le t^\vee\le r^\vee,s^\vee\le n\), as well as the strict condition.
+000064	- claim-3: Correct conditional on claim-1, but it must define \(\omega\) as an integral ring involution, prove \(\omega(I_{r,q})=I_{q,r}\), and explicitly state both interval decompositions before proving their basiswise equality.
+000065	- claim-4: Adequately grounded by [doi:10.1112/jlms.12832, lines 68-110].
+000066	- claim-5: The deduction is mathematically correct once claims 1–3 are repaired. The transpose identity should be justified by column heights, and preservation of minimal generation under the ring isomorphism should be stated explicitly. The \(a=0\) convention is valid.
+000067	- claim-6: Correctly identifies a workflow deficiency. The specialist established only the transposed-family argument provisionally; it did not complete the requested independent skeptic review or post-review horizontal continuation. Listing ten proof stages does not satisfy that requirement.
+000068	
+000069	## Repair certificates
+000070	- [proof-attempt] Give one standalone certificate proving both additive interval formulas, every transformed admissibility inequality, \(\omega(I_{r,q})=I_{q,r}\), the basiswise equality \(\bar\omega(J_v)=J_{v^\vee}\), and transfer of Theorem 1.2 minimality back to the transposed family, including \(a=0\).
+000071	- [source-refresh] Without a new search, ground the interval argument using [source-2@L1365-L1375|claim=formal-document], the quotient Schur basis from [doi:10.1112/jlms.12832, lines 89-94], and LR containment/truncation from [doi:10.1112/jlms.12832, lines 136-142].
+000072	
+000073	## Required revisions
+000074	- Replace the unsupported “has Schur basis” inference with the explicit direct-sum proof.
+000075	- State and verify all original and transformed hypotheses.
+000076	- Make the integral involution and minimality-transfer arguments explicit.
+000077	- State separately: the transposed-family target is established after these repairs, but the full requested ten-step, post-critic-and-skeptic continuation is **not established**.

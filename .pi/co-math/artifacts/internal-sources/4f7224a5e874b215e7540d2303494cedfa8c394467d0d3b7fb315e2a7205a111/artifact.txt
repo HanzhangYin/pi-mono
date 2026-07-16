@@ -1,0 +1,118 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-312-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-311-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-311-1 · specialist · ARTIFACT 8b123a7c88a5535f4992c5c88516966119b6aac12708e5318cd6938c7dea6362
+000004	## Claims
+000005	- [proved] For \(a\ge0\), \(0\le b\le j\), and \(\rho\subseteq b^a\),
+000006	\[
+000007	 \sum_{\sigma\subseteq\rho}(-1)^{|\rho|-|\sigma|}
+000008	 \omega(s_{\rho/\sigma})s_{(i^j,\sigma)}
+000009	 =(-1)^{|\rho|}s_{(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})}.
+000010	\]
+000011	- [proved] The identity remains valid for \(\rho=\varnothing\), for \(a=0\), and for \(b=j\).
+000012	- [proved] Applying \(\Lambda\to A=\Lambda/I_{r,q}\), and then \(J_v\to J_v/A_+J_v\), preserves the established identity.
+000013	
+000014	## Strategy
+000015	Put \(h_d=0\) for \(d<0\), \(h_0=1\).  For \(\tau=(\tau_1,\ldots,\tau_m)\), Jacobi–Trudi is
+000016	\[
+000017	s_\tau=\det\bigl(h_{\tau_u-u+v}\bigr)_{1\le u,v\le m}.
+000018	\tag{JT}
+000019	\]
+000020	Pad \(\rho,\sigma\) to \(a\) parts and \(\rho',\sigma'\) to \(b\) parts.  Thus
+000021	\[
+000022	s_{(i^j,\sigma)}
+000023	=\det\begin{pmatrix}
+000024	(h_{i-u+v})_{\substack{1\le u\le j\\1\le v\le j+a}}\\[1mm]
+000025	(h_{\sigma_u-j-u+v})_{\substack{1\le u\le a\\1\le v\le j+a}}
+000026	\end{pmatrix},
+000027	\tag{1}
+000028	\]
+000029	while
+000030	\[
+000031	\omega(s_{\rho/\sigma})=s_{\rho'/\sigma'}
+000032	=\det\bigl(h_{\rho'_u-\sigma'_v-u+v}\bigr)_{1\le u,v\le b}.
+000033	\tag{2}
+000034	\]
+000035	
+000036	The bordered Jacobi–Trudi Laplace expansion is
+000037	\[
+000038	\det\bigl(h_{\lambda_u-u+v}\bigr)_{1\le u,v\le j},
+000039	\quad
+000040	\lambda=(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b}),
+000041	\]
+000042	\[
+000043	=(-1)^{|\rho|}
+000044	 \sum_{\sigma\subseteq\rho}
+000045	 (-1)^{|\sigma|}
+000046	 \det\bigl(h_{\rho'_u-\sigma'_v-u+v}\bigr)_{u,v=1}^{b}
+000047	 \det\begin{pmatrix}
+000048	(h_{i-u+v})_{\substack{1\le u\le j\\1\le v\le j+a}}\\
+000049	(h_{\sigma_u-j-u+v})_{\substack{1\le u\le a\\1\le v\le j+a}}
+000050	\end{pmatrix}.
+000051	\tag{3}
+000052	\]
+000053	Here the Laplace minors are indexed by \(\sigma\subseteq\rho\).  Explicitly, the boundary path of \(\sigma\) is encoded by
+000054	\[
+000055	I_\sigma=\{\sigma'_{b+1-u}+u:1\le u\le b\}\subseteq\{1,\ldots,a+b\},
+000056	\]
+000057	and
+000058	\[
+000059	\sum_{x\in I_\sigma}x=|\sigma|+\binom{b+1}{2}.
+000060	\]
+000061	Thus the ordinary Laplace sign relative to the empty-path minor is
+000062	\[
+000063	(-1)^{\sum I_\sigma-\sum I_\varnothing}=(-1)^{|\sigma|}.
+000064	\]
+000065	The fixed border contributes \((-1)^{|\rho|}\); hence the total coefficient is
+000066	\[
+000067	(-1)^{|\rho|+|\sigma|}
+000068	=(-1)^{|\rho|-|\sigma|}.
+000069	\]
+000070	This is the complete sign in (3); no further sign is introduced by (JT).
+000071	
+000072	Substituting (1) and (2) into (3) gives exactly
+000073	\[
+000074	(-1)^{|\rho|}
+000075	s_{(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})}
+000076	=
+000077	\sum_{\sigma\subseteq\rho}(-1)^{|\rho|-|\sigma|}
+000078	\omega(s_{\rho/\sigma})s_{(i^j,\sigma)}.
+000079	\]
+000080	
+000081	For \(\rho=\varnothing\), only \(\sigma=\varnothing\) occurs, and both sides are \(s_{i^j}\). If \(a=0\), necessarily \(\rho=\varnothing\), so this same calculation applies. If \(b=j\), the trailing block \(i^{j-b}=i^0\) is empty, and (JT) is the \(j\times j\) determinant for \((i+\rho'_1,\ldots,i+\rho'_j)\).
+000082	
+000083	Finally, quotienting the identity in \(\Lambda\) gives
+000084	\[
+000085	\sum_{\sigma\subseteq\rho}(-1)^{|\rho|-|\sigma|}
+000086	\overline{\omega(s_{\rho/\sigma})}\,\overline{s}_{(i^j,\sigma)}
+000087	=(-1)^{|\rho|}\overline{s}_{(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})}
+000088	\quad\text{in }A,
+000089	\]
+000090	and its image is the identical equality in \(J_v/A_+J_v\).
+000091	
+000092	## Gaps
+000093	None for the stated determinant identity.
+000094	
+000095	## Next
+000096	None.
+000097	
+000098	INTERNAL ATTEMPT research-attempt-research-plan-task-311-1 · critic · ARTIFACT 7a9422807df24e9d218813d10bddaa009b503534686e4695a1136935ff9e1488
+000099	## Critique
+000100	- claim-1: Not established. Equation (3) is asserted rather than obtained from a displayed bordered matrix. Its factors have sizes \(b\) and \(j+a\), so an ordinary Laplace expansion would require a matrix of size \(j+a+b\), yet only the target \(j\times j\) Jacobi–Trudi matrix is displayed. No row sets, column sets, complementary minors, vanishing-minor argument, or reduction of the bordered determinant to the target determinant is supplied. Consequently the claimed “fixed border” sign \((-1)^{|\rho|}\) is unsupported; the full Laplace sign \((-1)^{\sum R+\sum C}\) was not computed. Moreover, the stated hypotheses allow \(b>i\), when \((i^j,\sigma)\) need not be a partition. For example, \(i=1,j=2,a=1,b=2,\rho=(2)\) produces \((1,1,2)\). Either \(b\le i\) must be assumed, as in the intended \(b=\min(i,j)\) setting, or generalized Jacobi–Trudi functions for integer sequences must be explicitly defined.
+000101	- claim-2: The observations for \(\rho=\varnothing\) and \(a=0\) are correct with the \(0\times0\) determinant convention, but they do not repair claim-1. For \(b=j\), the trailing block is indeed empty, but if ordinary Schur notation is intended one still needs \(j=b\le i\).
+000102	- claim-3: Not established as written because claim-1 remains unproved. In addition, \(J_v\to J_v/A_+J_v\) is not a quotient map defined on arbitrary elements of \(A\); one must first prove every displayed term lies in \(J_v\). The actual quotient consequence was omitted: for every proper \(\sigma\subsetneq\rho\), \(\omega(s_{\rho/\sigma})\) has positive degree, so its product lies in \(A_+J_v\), and the projected identity should reduce to
+000103	  \[
+000104	  [\bar s_{(i^j,\rho)}]
+000105	  =(-1)^{|\rho|}
+000106	  [\bar s_{(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})}].
+000107	  \]
+000108	  No assertion that \(\omega\) itself descends to \(A\) is justified unless the relevant rectangle is preserved.
+000109	
+000110	## Repair certificates
+000111	- [proof-attempt] Supply one explicit bordered matrix with ordered rows and columns; prove its determinant reduces, with sign, to the target \(j\times j\) Jacobi–Trudi determinant; define both Laplace index sets \(R_\sigma,C_\sigma\) and their complements for every \(\sigma\subseteq\rho\); identify the two complementary minors with \(s_{\rho'/\sigma'}\) and \(s_{(i^j,\sigma)}\); prove all other minors vanish; and compute \((-1)^{\sum R_\sigma+\sum C_\sigma}\), including every row/column permutation and the fixed-border sign.
+000112	
+000113	## Required revisions
+000114	- Add \(b\le i\), or explicitly define and justify generalized Schur functions for nonpartition sequences.
+000115	- Replace the unsupported equation (3) with the complete bordered-matrix Laplace calculation.
+000116	- Record the \(0\times0\) conventions and treat \(\rho=\varnothing\), \(a=0\), and \(b=j\) within that calculation.
+000117	- Only after proving the identity in \(\Lambda\), prove membership in \(J_v\), project to \(A\), and derive the simplified relation in \(J_v/A_+J_v\).
+000118	- State explicitly that the requested target is currently **not established** by the specialist output.

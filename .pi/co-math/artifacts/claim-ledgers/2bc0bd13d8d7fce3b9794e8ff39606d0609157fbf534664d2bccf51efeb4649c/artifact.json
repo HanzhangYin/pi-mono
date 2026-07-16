@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-66-1",
+	"taskId": "research-plan-task-66",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral \\(q^r\\)-box Schur/Pieri presentation and \\(A_+=(h_1,\\ldots,h_q)\\), the exhaustive degree-\\(d+3\\) Pieri table and the coordinate-matrix identity \\(R_{\\mathrm{full}}=CR_{\\mathrm{selected}}\\) below are established. No parent-theorem conclusion follows.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5a757139f885497da70bdce2fe0e715127883e16c1d8c1418bdd170068568628"
+}

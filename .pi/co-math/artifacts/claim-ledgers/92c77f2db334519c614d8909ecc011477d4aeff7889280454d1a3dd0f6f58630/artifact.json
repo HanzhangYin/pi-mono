@@ -1,0 +1,163 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-192-1",
+	"taskId": "research-plan-task-192",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Equation **(8)** is \\[ \\left\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N}} \\sum_{\\substack{\\theta\\subseteq(n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu}A_{\\lambda,\\theta} =\\chi(\\nu)\\ \\middle|\\ \\nu\\in\\decomp_{\\varphi} \\right\\}, \\qquad \\chi(\\nu)= \\begin{cases} f_{\\nu_B}&\\text{if \\(\\nu\\) is tall},\\\\ 0&\\text{if \\(\\nu\\) is wide}. \\end{cases} \\] [doi:10.1112/jlms.12832, lines 332-340]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 332,
+							"end": 340
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "332: \\begin{equation}\n333: \\label{eqn:decomposable}\n334: \\biggr\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu} \\, A_{\\lambda,\\theta}=\\chi(\\nu)\\,\\biggr| \\,\\nu\\in \\decomp_{\\varphi} \\biggr\\}\n335: \\end{equation}\n336: are consistent, where $\\chi(\\nu)\\in\\mathbb{Z}$ is defined for $\\nu\\in \\decomp_{\\varphi}$ by\n337: \\[\\chi(\\nu)=\\begin{cases}\n338: f_{\\nu_B} &\\mbox{ if $\\nu$ is tall,}\\\\\n339: 0 &\\mbox{ if $\\nu$ is wide.}\n340: \\end{cases} \\]",
+					"excerptSha256": "138508a73d4a03f3089eca5f3386a53d6e1a431a6424ab5414e23e3366392826",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 332-340]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Equation **(9)** is \\[ \\mathrm{CP}(\\overline{s}_\\lambda\\otimes\\overline{s}_\\mu)= \\begin{cases} \\overline{\\Delta(s_\\lambda)}-(\\overline{s}_\\lambda\\otimes1) &\\text{if \\(\\overline{s}_\\mu=1\\)},\\\\ \\overline{\\Delta(s_\\lambda)}(1\\otimes\\overline{s}_\\mu) &\\text{if \\(\\overline{s}_\\mu\\neq1\\)}. \\end{cases} \\] [doi:10.1112/jlms.12832, lines 387-397]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 387,
+							"end": 397
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "387: \\begin{definition}\n388: \\label{def:cp}\n389: We define a linear endomorphism $\\mathrm{CP}:\\overline{\\Lambda}\\otimes \\overline{\\Lambda}\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ as follows.\n390: For a simple tensor $\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu\\in \\overline{\\Lambda}\\otimes\\overline{\\Lambda}$, define\n391: \\begin{align}\n392: \\mathrm{CP}(\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu) = \\begin{cases}\n393: \\overline{\\Delta(s_{\\lambda})} - (\\overline{s}_{\\lambda}\\otimes 1) &\\mbox{ if $\\overline{s}_\\mu= 1$},\\\\\n394: \\overline{\\Delta(s_{\\lambda})}(1\\otimes \\overline{s}_{\\mu}) &\\mbox{ if $\\overline{s}_\\mu\\neq 1$}.\n395: \\end{cases}\n396: \\end{align}\n397: Define $\\mathrm{CP}$ on all of $\\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ by extending linearly.",
+					"excerptSha256": "26fced89ae359a33706a06424b08d3b196087bc3d255b2483756dee94022c004",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 387-397]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Equation **(10)** is \\[ \\xi^{(m)}=\\xi^{(m-1)} -\\gamma\\mathrm{CP}\\!\\left( \\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots\\overline{s}_{\\mu^{(k)}}) \\right). \\] [doi:10.1112/jlms.12832, lines 625-632]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 625,
+							"end": 632
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "625: \\begin{proof}It follows from Proposition~\\ref{clm:2} that during the algorithm, the only cancellation that occurs in an update\n626: \\begin{equation}\n627: \\label{eqn:theupdate}\n628: \\xi^{(m)}=\\xi^{(m-1)}-\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))\n629: \\end{equation}\n630: is the cancellation of the term $\\gamma\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})$ in $\\xi^{(m-1)}$, and its negative in $\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))$. Moreover, the algorithm only can\n631: eliminate a term $\\gamma\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})$ with $|\\lambda|>1$ by the update step\n632: (\\ref{eqn:theupdate}). Therefore the order in which we compute the update steps (\\ref{eqn:theupdate}) does not effect the output.\\end{proof}",
+					"excerptSha256": "9b99ec668e8b9c106163da621da8ad0f4b6099a0cc3e5995c476abaf5386f008",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 625-632]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "**Theorem 4.4.** For any valid \\(\\varphi=(n,r,i,j,a,b,N)\\), the equations \\[ \\left\\{\\linear_{\\varphi}(\\nu)=d_{\\nu}\\mid \\nu\\in\\decomp_{\\varphi}\\right\\} \\] are inconsistent whenever \\(d_\\nu=0\\) for all wide \\(\\nu\\), and \\(d_\\rho\\neq0\\) for some tall \\(\\rho\\). Its proof first uses \\(N\\leq\\min(j,n-r-i)\\) and Lemma 4.2, then enlarges to \\(\\widehat n=4^qn,\\widehat r=2^qr,\\widehat j=2^qj\\) when necessary and applies Lemma 4.3. [doi:10.1112/jlms.12832, lines 790-818]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 790,
+							"end": 818
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "790: \\begin{theorem}\n791: \\label{thm:inconsistent}\n792: For any valid $\\varphi=(n,r,i,j,a,b,N)$, the equations\n793: \\begin{equation}\n794: \\label{eqn:all-equations}\n795: \\left\\{ \\linear_{\\varphi}(\\nu) = d_{\\nu}\\mid \\nu\\in \\decomp_{\\varphi} \\right\\}\n796: \\end{equation}\n797: are inconsistent whenever $d_{\\nu}=0$ for all wide $\\nu$, and $d_{\\rho}\\neq 0$ for some tall $\\rho$.\n798: \\end{theorem}\n799: \\begin{proof}\n800: Suppose first that\n801: \\[N\\leq \\min(j,n-r-i).\\] By Lemma \\ref{lem:tall-dependent-on-wide}, we have $\\linear_{\\varphi}(\\rho) \\in W$.\n802: The restriction $d_\\nu=0$ when $\\nu$ is wide would then force $d_{\\rho}=0$, contradicting the hypothesis. Thus the equations (\\ref{eqn:all-equations}) are inconsistent.\n803: Now suppose that\n804: \\[N>\\min(j,n-r-i).\\]\n805: Choose $q$ so that $N\\leq \\min(2^qj,4^qn-2^qr-i)$. Let\n806: \\[\\widehat{\\varphi} = (\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N),\\quad \\mbox{where} \\quad \\widehat{n}=4^qn,\\quad \\widehat{r}=2^qr,\\quad\\mbox{and}\\quad \\widehat{j}=2^qj.\\]\n807: For each $\\nu\\in \\decomp_{\\varphi}$, let $\\widehat{\\nu}\\in\\decomp_{\\widehat{\\varphi}}$ be the partition with $\\widehat{\\nu}_B=\\nu_B$ and $\\widehat{\\nu}_R=\\nu_R$. For $\\tau\\in\\decomp_{\\widehat{\\varphi}}$, define\n808: \\[e_{\\tau} = \\begin{cases}\n809: d_\\nu &\\mbox{ if } \\tau=\\widehat{\\nu} \\mbox{ for some } \\nu\\in\\decomp_{\\varphi},\\\\\n810: 0 &\\mbox{ otherwise.}\n811: \\end{cases} \\]\n812: By the previous argument, the equations\n813: \\begin{equation}\n814: \\label{eqn:bigger_m}\n815: \\left\\{ \\linear_{\\widehat{\\varphi}}(\\tau) = e_{\\tau}\\mid \\tau\\in \\decomp_{\\widehat{\\varphi}} \\right\\}\n816: \\end{equation}\n817: are inconsistent. By Lemma \\ref{lem:restricting-equations}, the equations (\\ref{eqn:all-equations}) can be obtained by setting certain variables to zero in (\\ref{eqn:bigger_m}). Setting variables to zero in an inconsistent linear system produces the same.\n818: \\end{proof}",
+					"excerptSha256": "b689ee2314d72fec3bc8e9eb81bcad1ecd347aee2c5caea578d042e0dbf4babd",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 790-818]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "**Theorem 4.5.** For any valid \\(\\varphi=(n,r,i,j,a,b,N)\\), there is no syzygy \\[ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}} \\overline{s}_{(i^j,\\lambda)}f_\\lambda = \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N}} f_\\lambda\\overline{s}_{(i^j,\\lambda)} \\] with nonzero left-hand side. The proof invokes Lemma 2.1 and Theorem 4.4. [doi:10.1112/jlms.12832, lines 819-826]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 819,
+							"end": 826
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "819: \\begin{theorem}\n820: For any valid $\\varphi=(n,r,i,j,a,b,N)$, there is no syzygy of the form\n821: \\[\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}}\\overline{s}_{(i^j,\\lambda)}f_{\\lambda}=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}f_{\\lambda}\\overline{s}_{(i^j,\\lambda)}\\]\n822: with the left-hand side nonzero.\n823: \\end{theorem}\n824: \\begin{proof}\n825: By Lemma \\ref{lem:implication-of-syzygy}, the existence of such a syzygy would contradict Theorem \\ref{thm:inconsistent}.\n826: \\end{proof}",
+					"excerptSha256": "2f335e06c1946f204938b352945ea7a2a09ea937220769d57dd11bfda66d2fe0",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 819-826]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "63caf880c6db89c3cd9250c7b66b0cac28565d110129cfc492c00469af56df35"
+}

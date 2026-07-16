@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-218-1",
+	"taskId": "research-plan-task-218",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The available sandbox execution timed out with exit status \\(124\\); it produced no successful computation output. [artifact c92ec4a98f257b90ee978ebb3ea9de390c24dfdb165f55a74f8ac5e651e295af]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "44d80684fdc39badabc89cdf454822c186692dee31480170cef8db48d1f19ec1"
+}

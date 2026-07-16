@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-1-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The alleged \\(u/w\\) typo at `[source-2@L1294-L1307|claim=formal-document]` is unsupported by any supplied excerpt or validated claim. Remove it or provide the exact source text.\n- In Findings, the isomorphism \\(H^\\star(G/P_J,\\mathbb Z)\\cong\\Lambda/I_{r,n-r}\\) should cite `[source-2@L1380-L1402|claim=formal-document]`; the listed claim-2 locators do not display that isomorphism.\n- The absence of a supplied definition of \\(\\Lambda_+\\) is correctly recorded and must remain explicitly unresolved."
+}

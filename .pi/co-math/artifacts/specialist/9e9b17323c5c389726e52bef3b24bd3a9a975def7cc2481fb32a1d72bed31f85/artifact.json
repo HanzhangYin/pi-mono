@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-80-1",
+	"text": "## Claims\n- [unsupported] Artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4` is not supplied as an independently retrievable byte stream, and no bounded locators for its hypotheses, equation (1), fifteen table-(4) entries, provenance, or digest declaration are available. [artifact 4ccef86682683c442a2ae4a0b5ee182d6c3f9b10f5c4c7095eb317f4780f8141, lines 1-27]\n\n## Strategy\nNo reconstruction is possible: a SHA-256 digest can be checked only against supplied exact bytes, which are absent.\n\n## Gaps\nMissing target bytes, retrieval location, encoding and line-ending convention, component locators, embedded-artifact provenance, and digest declaration.\n\n## Next\nThe requested source certificate is not established."
+}

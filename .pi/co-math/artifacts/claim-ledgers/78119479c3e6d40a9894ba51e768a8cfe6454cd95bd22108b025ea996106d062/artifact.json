@@ -1,0 +1,97 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-292-1",
+	"taskId": "research-plan-task-292",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The original linear system has variables \\(A_{\\lambda,\\theta}\\) with \\(\\lambda\\subseteq b^a\\), \\(|\\lambda|<N\\), and \\(\\theta\\subseteq(n-r)^r\\), \\(|\\theta|=N-|\\lambda|\\). [doi:10.1112/jlms.12832, lines 285-303]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 285,
+							"end": 303
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "285: Since $f_{\\lambda}\\in \\overline{\\Lambda}$, we can expand in the Schur basis to obtain\n286: \\[f_{\\lambda} = \\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}}A_{\\lambda,\\theta}\\overline{s}_{\\theta}. \\]\n287: Then\n288: \\begin{align*}\n289: \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}f_{\\lambda}\\overline{s}_{(i^j,\\lambda)}\n290: &=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}}A_{\\lambda,\\theta}\\overline{s}_{(i^j,\\lambda)}\\overline{s}_\\theta\\\\\n291: &=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}}A_{\\lambda,\\theta}\\sum_{\\nu\\subseteq (n-r)^r} c_{(i^j,\\lambda),\\theta}^{\\nu}\\, \\overline{s}_{\\nu}\\\\\n292: &=\\sum_{\\nu\\subseteq (n-r)^r}\\biggr( \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu} \\, A_{\\lambda,\\theta}\\biggr) \\overline{s}_{\\nu}.\n293: \\end{align*}\n294: Viewing the parameters $A_{\\lambda,\\theta}$ as indeterminates, a syzygy of the form (\\ref{eqn:syzygy}) for some $n,r,i,j,a,b,N$ is equivalent to a solution of the simultaneous linear equations\n295: \\begin{equation}\n296: \\label{eqn:eqs}\n297: \\biggr\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu} \\, A_{\\lambda,\\theta}=\\chi(\\nu)\\,\\biggr| \\,\\nu\\subseteq (n-r)^r \\biggr\\},\n298: \\end{equation}\n299: where $\\chi(\\nu)=f_\\rho$ when $\\nu=(i^j,\\rho)$ for some $\\rho\\subseteq b^a$ with $|\\rho|=N$, and $\\chi(\\nu)=0$ otherwise.\n300: The following definition records the assumptions on the parameters used in the preceding considerations.\n301: \\begin{definition}\n302: Call an integer tuple $\\varphi=(n,r,i,j,a,b,N)$ \\emph{valid} if $n,r,i,j,a,b,N\\geq 1$ with\n303: \\[r<n,\\quad a+j\\leq r,\\quad a+i\\leq n-r,\\quad b\\leq i,j,\\quad\\mbox{and}\\quad N\\leq ab. \\]",
+					"excerptSha256": "7b40f0dbcf4576cf037cefbac40920e080f1009983c02c4252e337cf620cbce6",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 285-303]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The published large-\\(N\\) step enlarges \\(\\varphi\\), then asserts that setting selected enlarged variables to zero recovers the original equations. [doi:10.1112/jlms.12832, lines 777-818]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 777,
+							"end": 818
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "777: \\begin{lemma}\n778: \\label{lem:restricting-equations}\n779: Suppose $\\varphi=(n,r,i,j,a,b,N)$ be valid. Set $\\widehat{\\varphi}=(\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N)$ where $\\widehat{n}=4^qn$, $\\widehat{r}=2^q r$, and $\\widehat{j}=2^q j$ for $q\\in {\\mathbb N}$. Fix any $\\nu\\in \\decomp_{\\varphi}$, and let $\\widehat{\\nu}\\in\\decomp_{\\widehat{\\varphi}}$ be the partition with\n780: \\[\\widehat{\\nu}_B=\\nu_B \\quad\\mbox{and}\\quad \\widehat{\\nu}_R=\\nu_R.\\]\n781: Then setting the variables\n782: \\[\\{A_{\\lambda,\\theta} \\mid \\lambda\\nsubseteq b^a \\mbox{ or } \\theta\\nsubseteq (n-r-i)^j \\}\\]\n783: to zero in $\\linear_{\\widehat{\\varphi}}(\\widehat{\\nu})$ yields exactly $\\linear_{\\varphi}(\\nu)$.\n784: \\end{lemma}\n785: \\begin{proof}\n786: It suffices to note that\n787: \\[c_{(i^j,\\lambda),\\theta}^{\\nu}= c_{(i^{\\widehat{j}}\\lambda),\\theta}^{\\widehat{\\nu}}\\]\n788: by Theorem \\ref{thm:pictures}, since the skew shapes $\\nu/(i^j,\\lambda)$ and $\\widehat{\\nu}/(i^{\\widehat{j}}\\lambda)$ are (essentially) the same.\n789: \\end{proof}\n790: \\begin{theorem}\n791: \\label{thm:inconsistent}\n792: For any valid $\\varphi=(n,r,i,j,a,b,N)$, the equations\n793: \\begin{equation}\n794: \\label{eqn:all-equations}\n795: \\left\\{ \\linear_{\\varphi}(\\nu) = d_{\\nu}\\mid \\nu\\in \\decomp_{\\varphi} \\right\\}\n796: \\end{equation}\n797: are inconsistent whenever $d_{\\nu}=0$ for all wide $\\nu$, and $d_{\\rho}\\neq 0$ for some tall $\\rho$.\n798: \\end{theorem}\n799: \\begin{proof}\n800: Suppose first that\n801: \\[N\\leq \\min(j,n-r-i).\\] By Lemma \\ref{lem:tall-dependent-on-wide}, we have $\\linear_{\\varphi}(\\rho) \\in W$.\n802: The restriction $d_\\nu=0$ when $\\nu$ is wide would then force $d_{\\rho}=0$, contradicting the hypothesis. Thus the equations (\\ref{eqn:all-equations}) are inconsistent.\n803: Now suppose that\n804: \\[N>\\min(j,n-r-i).\\]\n805: Choose $q$ so that $N\\leq \\min(2^qj,4^qn-2^qr-i)$. Let\n806: \\[\\widehat{\\varphi} = (\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N),\\quad \\mbox{where} \\quad \\widehat{n}=4^qn,\\quad \\widehat{r}=2^qr,\\quad\\mbox{and}\\quad \\widehat{j}=2^qj.\\]\n807: For each $\\nu\\in \\decomp_{\\varphi}$, let $\\widehat{\\nu}\\in\\decomp_{\\widehat{\\varphi}}$ be the partition with $\\widehat{\\nu}_B=\\nu_B$ and $\\widehat{\\nu}_R=\\nu_R$. For $\\tau\\in\\decomp_{\\widehat{\\varphi}}$, define\n808: \\[e_{\\tau} = \\begin{cases}\n809: d_\\nu &\\mbox{ if } \\tau=\\widehat{\\nu} \\mbox{ for some } \\nu\\in\\decomp_{\\varphi},\\\\\n810: 0 &\\mbox{ otherwise.}\n811: \\end{cases} \\]\n812: By the previous argument, the equations\n813: \\begin{equation}\n814: \\label{eqn:bigger_m}\n815: \\left\\{ \\linear_{\\widehat{\\varphi}}(\\tau) = e_{\\tau}\\mid \\tau\\in \\decomp_{\\widehat{\\varphi}} \\right\\}\n816: \\end{equation}\n817: are inconsistent. By Lemma \\ref{lem:restricting-equations}, the equations (\\ref{eqn:all-equations}) can be obtained by setting certain variables to zero in (\\ref{eqn:bigger_m}). Setting variables to zero in an inconsistent linear system produces the same.\n818: \\end{proof}",
+					"excerptSha256": "42504d7180171f47b928710fb1512c8b168d004dbd9f8125168914c347a99bc1",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 777-818]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The proposed projected-wide-row repair that discards \\(\\theta\\nsubseteq(q-i)^j\\) is false: it discards an original variable \\(A_{\\varnothing,(2)}\\). Take \\[ (n,r,i,j,a,b,N)=(6,3,2,2,1,2,2),\\qquad q=n-r=3. \\] This is valid since \\[ a+j=3=r,\\quad a+i=3=q,\\quad b=2\\le i,j,\\quad N=2=ab. \\] The original variables are exactly \\[ x=A_{\\varnothing,(2)},\\qquad y=A_{\\varnothing,(1,1)},\\qquad z=A_{(1),(1)}. \\] Since \\((q-i)^j=(1,1)\\), the original variable \\(x\\) is excluded by the proposed projection. The original decomposable partitions of weight \\(ij+N=6\\) are \\[ (3,3),\\quad(3,2,1)\\quad\\text{(wide)},\\qquad(2,2,2)\\quad\\text{(tall)}. \\] Pieri gives their rows, in column order \\((x,y,z)\\), \\[ \\operatorname{Lin}(3,3)=(0,1,0),\\quad \\operatorname{Lin}(3,2,1)=(1,1,1),\\quad \\operatorname{Lin}(2,2,2)=(1,0,1). \\] Hence the original wide-row lattice is \\[ W=\\mathbb Z(0,1,0)+\\mathbb Z(1,1,1). \\] For the first enlargement \\[ (\\widehat n,\\widehat r,\\widehat j)=(24,6,4), \\] the partition \\[ \\tau=(4,2,2,2) \\] is enlarged-wide and decomposable. Retaining **all** original variables in its row gives \\[ P_{\\rm all}\\bigl(\\operatorname{Lin}_{\\widehat\\varphi}(\\tau)\\bigr) =(1,0,0), \\] because \\[ c_{(2^4),(2)}^{(4,2,2,2)}=1,\\qquad c_{(2^4),(1,1)}^{(4,2,2,2)}=0,\\qquad c_{(2^4,1),(1)}^{(4,2,2,2)}=0. \\] But \\((1,0,0)\\notin W\\): if \\[ (1,0,0)=u(0,1,0)+v(1,1,1), \\] then the first coordinate gives \\(v=1\\), whereas the third gives \\(v=0\\), a contradiction.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Therefore the asserted alternative “every enlarged wide row projects to an original wide row or zero” fails once every original variable is retained. In particular, the required extension-of-solutions argument is not supplied by the cited enlargement procedure.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "No alternative all-valid-parameter proof of the original large-\\(N\\) inconsistency is provided here.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "74a22180c0cc3e0945d7deb2ad58abecf19c634ea2a96a2dc3004790b3d5b2e1"
+}

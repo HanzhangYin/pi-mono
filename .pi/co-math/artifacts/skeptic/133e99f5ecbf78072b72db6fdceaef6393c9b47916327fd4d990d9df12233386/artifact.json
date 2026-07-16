@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-94-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-4 is false as stated and contradicts the Strategy. Given the integral surjection \\(\\mathbb Z^N\\twoheadrightarrow Q\\) from the specified generators, proving \\(\\dim_{\\mathbb Q}(Q\\otimes\\mathbb Q)=N\\) forces the kernel to have rank \\(0\\); as a subgroup of \\(\\mathbb Z^N\\), it is torsion-free and hence zero. The examples in claim-4 lack this aligned \\(N\\)-generator surjection and do not obstruct the argument.\n\n## Unresolved certificates\n- [proof-attempt] Replace claim-4 by the precise aligned-surjection lemma above, distinguishing it from an unaligned rational-rank calculation, and reconcile the Findings with the Strategy."
+}

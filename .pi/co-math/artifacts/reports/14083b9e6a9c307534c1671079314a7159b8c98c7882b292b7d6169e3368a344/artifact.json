@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-165-1",
+	"text": "## Findings\n- claim-1: The requested source-refresh certificate is not established: source-30 is reported non-citable, and no citable source-29 text or bounded passages were supplied.\n- claim-2: Consequently, exhaustive labelled-item coverage in source-30 and itemwise source-29 status excerpts cannot be certified without substituting other sources.\n## Strategy\nNo source-29/source-30 persisted full texts or canonical identity mappings are supplied here. Do not substitute the arXiv 2011 text or 2024 metadata for either source.\n\n## Gaps\nThe requested exhaustive source-refresh certificate is **not established**: no bounded excerpts, token-coverage scan, source digests, or itemwise source-29 status passages for the specified sources are available.\n\n## Next\nProvide canonical persisted texts for source-30 and source-29, with stable locators or an authorized scan artifact."
+}

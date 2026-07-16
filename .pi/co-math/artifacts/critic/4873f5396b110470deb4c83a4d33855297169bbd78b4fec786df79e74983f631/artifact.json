@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-134-1",
+	"text": "## Critique\n- claim-1: Supported by [artifact 9e5b4b2dd4a1f0c42f4222765f0ba2a0da3446c58ff90226ee2c370f85bb7322, lines 1-27]. The required support range is \\(4,\\ldots,32\\), but the degree summaries stop at \\(25\\) and report `enumeratedAllSupportDegrees:false`. The omitted degrees are exactly \\(\\{26,27,28,29,30,31,32\\}\\).\n- claim-2: Follows directly from claim-1. No ordered bases, labelled rows, or Smith forms for those seven degrees occur in the recorded computation. The named missingness certificate is established; no parent theorem is implicated.\n\n## Required revisions\n- None for this bounded certificate."
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-14-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-4 correctly identifies the decisive gap: no exact integral presentation of \\(J_v/\\Lambda_+J_v\\) or proof of exactness is supplied.\n- The required admissible nondegenerate cases beyond \\(r\\le4,\\ n-r\\le5\\) are not specified.\n- No sandboxed Smith-normal-form computations were executed, so no casewise ranks, torsion invariant factors, or \\(\\mu_{\\mathbb Z}(Q)\\) values were produced.\n- claim-3 should explicitly account for unit Smith entries, or state that the presentation has already been reduced by removing them; otherwise its rank formula is not general.\n- claims-1 and claim-2 are grounded contextual facts, but they do not satisfy the requested presentation proof or finite computation.\n- Consequently, the main task remains unperformed rather than merely unresolved by the resulting finite evidence."
+}

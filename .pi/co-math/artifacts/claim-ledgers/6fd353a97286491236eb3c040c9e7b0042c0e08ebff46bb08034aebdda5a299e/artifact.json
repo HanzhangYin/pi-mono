@@ -1,0 +1,52 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-126-1",
+	"taskId": "research-plan-task-126",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The catalog abstract for St. Dizier–Yong, *Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture* (2024), says: “We prove the minimality conjecture.” [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No supplied full-text passage gives the 2024 theorem number, exact statement, coefficient ring, hypotheses, or a statement about \\(J/\\Lambda_+J\\).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The abstract is silent on the stronger assertion \\(J_{v_{r,s,t,n}}/\\Lambda_+J_{v_{r,s,t,n}}\\cong\\mathbb Z^{\\binom{a+b}{a}}\\); therefore it cannot establish or refute that assertion.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "0ca72b6a89411ba92386a8e6b740a07541176b3b4f387548f81e58ea1a29fe27"
+}

@@ -1,0 +1,103 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-123-1",
+	"taskId": "research-plan-task-123",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The original paper conjectures that the two Theorem 5.4 generating sets for \\(J_{v_{r,s,t,n}}\\) are minimal, verified computationally only for \\(r\\le4\\) and \\(n-r\\le5\\). [source-2@L1495-L1502|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1495,
+						"end": 1502
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1495: \\begin{conjecture}\n1496: \\label{minimality-conjecture}\n1497: The two generating sets for the ideal $J_{v_{r,s,t,n}}$ given in Theorem~\\ref{J-generators}\n1498: are both minimal. \n1499: \\end{conjecture}\n1500: \n1501: Via computer, we have verified this conjecture for all bigrassmannian permutations\n1502: where $r\\leq 4$ and $n-r\\leq 5$.",
+					"excerptSha256": "0fe2067e6b8b4a232d7ff6ddf1a9049dbf9c0afe480cb7f9a97f8c83819d7797",
+					"canonicalCitation": "[source-2@L1495-L1502|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Its proposed stronger form is \\(J_{v_{r,s,t,n}}/\\Lambda_+J_{v_{r,s,t,n}}\\cong\\mathbb Z^{\\binom{a+b}{a}}\\), explicitly stated as unproved there. [source-2@L1536-L1552|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1536,
+						"end": 1552
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1536: In our setting, the well-definedness follows by setting\n1537: $\\Lambda=\\oplus_{n\\geq 0}\\Lambda_{n}$ to be the graded ring of\n1538: symmetric functions with ${\\mathbb Z}$ coefficients and setting\n1539: $M=J_{v_{r,s,t,n}}$, so that the ${\\mathbb Z}$-module $M/\\Lambda_{+}M$\n1540: is a finitely generated abelian group.\n1541: %\n1542: %Thus in view of (\\ref{eqn:badlowerbnd}), for $w\\in S_n$, the worst case for the\n1543: %number of generators needed in $I_w$ has an {\\it exponential}  \n1544: %lower bound that accompanies the exponential upper bound of $2^n$ \n1545: %from Theorem~\\ref{general-bound}. \n1546: %\n1547: % It is plausible to try to apply Proposition~\\ref{prop:commalgfact} to prove \n1548: % Conjecture~\\ref{minimality-conjecture}, by instead showing that for $M=J_{v_{r,s,t,n}}$,\n1549: Thus we conjecture that this abelian group $M/ \\Lambda_+ M$ requires\n1550: $\\binom{a+b}{a}$ generators, and in fact, we suspect that\n1551: $M/\\Lambda_{+}M\\cong {\\mathbb Z}^{\\binom{a+b}{a}}$.  So far a proof\n1552: has eluded us.",
+					"excerptSha256": "ded6476716787ebd317f08414382d6613c1c8782099c60b934e1a1632d1ae269",
+					"canonicalCitation": "[source-2@L1536-L1552|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The targeted later candidate is Avery St. Dizier–Alexander Yong, *Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture* (2024); its supplied abstract says “We prove the minimality conjecture” and attributes the proof to the Hopf-algebra structure of symmetric functions. [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://doi.org/10.1112/jlms.12832"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "No exact theorem statement, locator, or hypotheses from the 2024 paper were supplied. Therefore its applicability to the current integral \\(J_{v_{r,s,t,n}}\\), its two specified generating families, and the stronger free-abelian indecomposables statement is unverified.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "3acc4a4e858554044af4fd80bbaa1c79cb7c1c2ca7bc907ee984055325849beb"
+}

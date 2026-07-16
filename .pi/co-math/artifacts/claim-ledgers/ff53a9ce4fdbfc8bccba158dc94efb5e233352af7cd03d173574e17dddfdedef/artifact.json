@@ -1,0 +1,57 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-263-1",
+	"taskId": "research-plan-task-263",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "\\(\\Lambda/I_{r,n-r}\\) has integral Schur basis \\(\\{\\bar s_\\lambda:\\lambda\\subseteq(n-r)^r\\}\\), and \\(\\omega(s_\\lambda)=s_{\\lambda'}\\) is a ring involution preserving Littlewood–Richardson multiplication under conjugation. [doi:10.1112/jlms.12832, lines 213-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For the conjugate non-self-conjugate inputs \\([222,4^5]\\subseteq\\Lambda/I_{5,4}\\) and \\([33,5^4]\\subseteq\\Lambda/I_{4,5}\\), complete \\(A_+J\\)-relation matrices and quotient Smith data in degrees \\(6,\\ldots,20\\) agree: free-rank sequence \\((1,1,2,1,1,0,\\ldots,0)\\) and no torsion in either case. [artifact 5b6e59b74af1b386568e8d3014cdef276ec80f89225cf5ba2367c73fa3b0a993]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Conditional on the accepted ideal correspondence \\(\\omega(J_v)=J_{v^\\vee}\\), conjugation induces a graded integral isomorphism \\[ J_v/A_+J_v\\;\\xrightarrow{\\sim}\\;J_{v^\\vee}/A^\\vee_+J_{v^\\vee}. \\] Consequently it preserves every degreewise torsion subgroup and free rank.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "3c9831ffe63fdebef3e89724bf529c9862f3fd481fd03a4a1a62f3df844b210d"
+}

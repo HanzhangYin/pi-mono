@@ -1,0 +1,65 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-215-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-214-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-214-1 · specialist · ARTIFACT 9a43dbbe05489788eabc402addc398e07aa72c19d4e525d0e8d7a4e7347b7a55
+000004	## Claims
+000005	- [source-backed] For \(m\ge1\), the source takes \(n=4m\), \(r=n-r=2m\), \(i=j=m\), hence \(a=b=m\), but states that \(J_v\) requires \(\binom{2m}{m}\) generators only “according to Conjecture 4.10.” [doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]
+000006	- [proved] Let \(A_m=H^\star(GL_{4m}/B,\mathbb Z)\), \(v_m=v_{2m,2m,m+1,4m}\), and let \(w_m\) be the unique dissector partner of \(v_m\). Then
+000007	  \[
+000008	  J_{v_m}^{A_m}=I_{w_m}^{A_m},\qquad
+000009	  \mu_{A_m}(J_{v_m}^{A_m})=\mu_{A_m}(I_{w_m}^{A_m}),
+000010	  \]
+000011	  where \(\mu_A(L)\) is the minimum cardinality of a homogeneous \(A\)-generating set of \(L\).
+000012	- [unsupported] No supplied internal theorem, with durable locator, proves
+000013	  \[
+000014	  \mu_{A_m}(J_{v_m}^{A_m})=\binom{2m}{m}\quad(m\ge1).
+000015	  \]
+000016	  The supplied primary source instead makes this numerical assertion conditional on its conjecture.
+000017	
+000018	## Strategy
+000019	For \(m\ge1\), \(1\le m+1\le2m\) and \(m+1>0=2m+2m-4m\), so \(v_m\) is admissible. Its parameters are
+000020	\[
+000021	i=s-t+1=m,\quad j=r-t+1=m,\quad
+000022	a=\min(2m-m,2m-m)=m,\quad b=m.
+000023	\]
+000024	
+000025	Define
+000026	\[
+000027	J_{v_m}^{A_m}:=\mathbb Z\text{-span}\{\sigma_u:u\ge v_m\},\qquad
+000028	I_{w_m}^{A_m}:=\mathbb Z\text{-span}\{\sigma_u:u\not\le w_m\}.
+000029	\]
+000030	Integral Schubert classes \(\{\sigma_u:u\in S_{4m}\}\) are a \(\mathbb Z\)-basis of \(A_m\). [doi:10.1090/s0002-9947-2010-05163-3, lines 61-66] In type \(A\), every bigrassmannian is a dissector, so the defining property of \(w_m\) is
+000031	\[
+000032	S_{4m}=\{u:u\ge v_m\}\sqcup\{u:u\le w_m\}.
+000033	\]
+000034	[doi:10.1090/s0002-9947-2010-05163-3, lines 643-648, 664-683]
+000035	Hence \(u\ge v_m\iff u\not\le w_m\). Taking the identical \(\mathbb Z\)-spans in the integral Schubert basis gives
+000036	\[
+000037	J_{v_m}^{A_m}=I_{w_m}^{A_m}
+000038	\]
+000039	as homogeneous ideals in the same graded ring \(A_m\). Therefore their homogeneous generating subsets coincide, proving equality of \(\mu_{A_m}\).
+000040	
+000041	The internal snapshot also records this preservation argument and the absence of the required numerical theorem. [artifact ba093e9698dcd534de3dc53890f1b8d8396115df56ecc3710605037120fde810, lines 1-62]
+000042	
+000043	## Gaps
+000044	The requested numerical premise in \(A_m\) is absent: no exact internal theorem or indecomposables certificate establishing \(\mu_{A_m}(J_{v_m})=\binom{2m}{m}\) was supplied. Thus only generator-number preservation under \(J_{v_m}=I_{w_m}\) is proved; the full requested certificate is not established.
+000045	
+000046	## Next
+000047	An exact theorem or proof in the full integral coinvariant ring \(A_m\) establishing the numerical equality is required.
+000048	
+000049	INTERNAL ATTEMPT research-attempt-research-plan-task-214-1 · critic · ARTIFACT 468901997216630d1710c9892ad9fbae1d009fa4f3b55f7bb22d598d90d30097
+000050	## Critique
+000051	- claim-1: Correctly grounded. Source-30 presents the numerical equality only as a consequence of Conjecture 4.10, not as a theorem [doi:10.1090/s0002-9947-2010-05163-3, lines 938-955].
+000052	- claim-2: The supplied argument proves this preservation statement. The integral Schubert basis [doi:10.1090/s0002-9947-2010-05163-3, lines 61-66] and dissector decomposition [doi:10.1090/s0002-9947-2010-05163-3, lines 643-648, 664-683] give \(u\ge v_m\iff u\not\le w_m\). Thus the two integral spans are literally the same homogeneous ideal in \(A_m\), so their homogeneous generating sets—and hence their \(\mu_{A_m}\)-values—coincide. This does not transfer minimality from the Grassmannian subring.
+000053	- claim-3: Correctly identifies the decisive gap. No supplied internal theorem with a durable locator establishes the numerical equality in \(A_m\); the internal audit records this absence at `artifacts/internal-sources/ba093e9698dcd534de3dc53890f1b8d8396115df56ecc3710605037120fde810/artifact.txt@L1-L62`.
+000054	
+000055	## Repair certificates
+000056	- [source-refresh] Supply a verbatim accepted internal theorem and immutable locator asserting, for every \(m\ge1\), with \(A_m=H^\star(GL_{4m}/B,\mathbb Z)\) and \(v_m=v_{2m,2m,m+1,4m}\),
+000057	  \[
+000058	  \mu_{A_m}\!\left(\mathbb Z\text{-span}\{\sigma_u:u\ge v_m\}\right)=\binom{2m}{m},
+000059	  \]
+000060	  where \(\mu_{A_m}\) counts homogeneous \(A_m\)-generators. A theorem only about inclusion-minimality in \(\Lambda/I_{2m,2m}\) is insufficient.
+000061	
+000062	## Required revisions
+000063	- Insert the missing numerical theorem, all hypotheses, and its durable locator.
+000064	- Retain the integral Schubert-basis proof that \(J_{v_m}^{A_m}=I_{w_m}^{A_m}\).
+000065	- Until the missing theorem is supplied, conclude that generator-number preservation is proved but the requested numerical certificate is not established.

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-243-1",
+	"text": "## Claims\n- [unsupported] The requested computation was not established: the supplied `partition-pieri` primitive rejected degrees \\(31,\\ldots,35\\) because they exceed \\(|[5^6]|=30\\); no task-owned artifact or labelled-row comparison was produced.\n\n## Strategy\nAttempted the exact specified primitive input. Its bound restriction prevented execution, including preservation of the requested \\(|R_d|\\times0\\) matrices for \\(31\\le d\\le35\\).\n\n## Gaps\nNo output artifact exists for degrees \\(4,\\ldots,30\\), and exact labelled-row agreement with `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece` was not verified.\n\n## Next\nUnresolved."
+}

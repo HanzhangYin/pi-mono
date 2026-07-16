@@ -1,0 +1,57 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-214-1",
+	"taskId": "research-plan-task-214",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(m\\ge1\\), the source takes \\(n=4m\\), \\(r=n-r=2m\\), \\(i=j=m\\), hence \\(a=b=m\\), but states that \\(J_v\\) requires \\(\\binom{2m}{m}\\) generators only “according to Conjecture 4.10.” [doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 938,
+							"end": 955
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "938: 4.5. A minimality conjecture\n939: As we shall see in a moment,\n940: our generators for I_{w} are not minimal. However,\n941: we believe the following holds:\n942: Conjecture 4.10 .\n943: The two generating sets for the ideal J_{v_{r,s,t,n}} given in Theorem 4.8\n944: are both minimal.\n945: Via computer, we have verified this conjecture for all bigrassmannian permutations\n946: where r\\leq 4 and n-r\\leq 5.\n947: In fact, Conjecture 4.10 indicates obstructions to short presentations of\n948: H^{\\star}(X_{w}) in general. We now give\n949: a family of ideals that would require a large number of generators if the conjecture is true.\n950: For a positive integer m, let n=4m, and consider in\n951: W=S_{n}=S_{4m} the bigrassmannian v_{r,s,t,n} that corresponds\n952: to r=n-r=2m and i=j=m. Then a=b=m, and J_{v_{r,s,t,n}}(=I_{w_{r,s,t,n}}) requires\n953: (4.9)\n954: \\binom{2m}{m}\\sim\\frac{4^{m}}{\\sqrt{\\pi m}}=\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}\n955: generators according to Conjecture 4.10 .",
+					"excerptSha256": "30163d69bf1f57d525eb7cee4df6bc038724e9b4aa9e38d920a636413b2d6c0e",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Let \\(A_m=H^\\star(GL_{4m}/B,\\mathbb Z)\\), \\(v_m=v_{2m,2m,m+1,4m}\\), and let \\(w_m\\) be the unique dissector partner of \\(v_m\\). Then \\[ J_{v_m}^{A_m}=I_{w_m}^{A_m},\\qquad \\mu_{A_m}(J_{v_m}^{A_m})=\\mu_{A_m}(I_{w_m}^{A_m}), \\] where \\(\\mu_A(L)\\) is the minimum cardinality of a homogeneous \\(A\\)-generating set of \\(L\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "No supplied internal theorem, with durable locator, proves \\[ \\mu_{A_m}(J_{v_m}^{A_m})=\\binom{2m}{m}\\quad(m\\ge1). \\] The supplied primary source instead makes this numerical assertion conditional on its conjecture.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "a0f700c4a068877d981f62d3fe4b3e0bdba7c304f68fe17f5242c1422750307c"
+}

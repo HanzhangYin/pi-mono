@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-47-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. Claim claim-1 explicitly supplies the matrix, row and column orders, the required minor, determinant \\(-1\\in\\mathbb Z^\\times\\), and equality of rows (2) and (4). No parent-theorem claim is made."
+}

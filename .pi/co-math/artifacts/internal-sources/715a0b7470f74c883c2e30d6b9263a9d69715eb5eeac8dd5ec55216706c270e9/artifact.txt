@@ -1,0 +1,130 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-173-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-172-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-172-1 · specialist · ARTIFACT ab19e4f40b281f425a5a6b56a9152233c9a3e307468e4e5fac3b66878375155a
+000004	## Claims
+000005	- [source-backed] The recorded two families are \(\{\bar s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\) and \(\{\bar s_\mu:i^j\subseteq\mu\subseteq((i+a)^b,i^{j-b})\}\), where \(a=\min(q-i,r-j)\) and \(b=\min(i,j)\), with \(q=n-r\). [source-6, lines 18-42]
+000006	- [proved] The requested standalone integral transpose-reduction lemma is established: it identifies the theorem-displayed first family at \((r,q;i,j)\) with the Remark 4.7 second family at \((q,r;j,i)\), descends to Grassmannian quotients, and preserves minimality.
+000007	
+000008	## Strategy
+000009	Let
+000010	\[
+000011	A_{r,q}:=\Lambda/I_{r,q},\qquad
+000012	I_{r,q}:=\bigoplus_{\lambda\nsubseteq q^r}\mathbb Zs_\lambda .
+000013	\]
+000014	The integral Schur involution \(\omega:\Lambda\to\Lambda\), defined by
+000015	\(\omega(h_d)=e_d\), satisfies \(\omega(s_\lambda)=s_{\lambda'}\).
+000016	Since
+000017	\[
+000018	\lambda\nsubseteq q^r\iff \lambda'\nsubseteq r^q,
+000019	\]
+000020	one has \(\omega(I_{r,q})=I_{q,r}\). Hence \(\omega\) descends to an
+000021	integral graded ring isomorphism
+000022	\[
+000023	\bar\omega_{r,q}:A_{r,q}\xrightarrow{\sim}A_{q,r},
+000024	\qquad \bar s_\lambda\longmapsto\bar s_{\lambda'}.
+000025	\]
+000026	
+000027	Assume \(0\le i\le q\), \(0\le j\le r\), and set
+000028	\[
+000029	a=\min(q-i,r-j),\qquad b=\min(i,j).
+000030	\]
+000031	Define
+000032	\[
+000033	\mathcal B_{r,q;i,j}
+000034	=\{\bar s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\},
+000035	\]
+000036	\[
+000037	\mathcal T_{r,q;i,j}
+000038	=\{\bar s_\mu:i^j\subseteq\mu
+000039	 \subseteq((i+a)^b,i^{\,j-b})\}.
+000040	\]
+000041	All partitions involved lie in \(q^r\): \(a\le q-i,r-j\) and
+000042	\(b\le i,j\).
+000043	
+000044	Put
+000045	\[
+000046	(r',q';i',j')=(q,r;j,i).
+000047	\]
+000048	Then
+000049	\[
+000050	a'=\min(q'-i',r'-j')=\min(r-j,q-i)=a,\qquad
+000051	b'=\min(i',j')=b.
+000052	\]
+000053	Moreover,
+000054	\[
+000055	(i^j,b^a)'=((j+a)^b,j^{\,i-b}),
+000056	\]
+000057	so partition containment and transposition give
+000058	\[
+000059	\bar\omega_{r,q}\bigl(\mathcal B_{r,q;i,j}\bigr)
+000060	=
+000061	\mathcal T_{q,r;j,i}.
+000062	\]
+000063	Thus the theorem-displayed family \(\mathcal B\) is carried exactly to
+000064	the Remark 4.7 family \(\mathcal T\) with the stated transformed
+000065	parameters. Conversely,
+000066	\[
+000067	((i+a)^b,i^{j-b})'=(j^i,b^a),
+000068	\]
+000069	so \(\bar\omega_{r,q}(\mathcal T_{r,q;i,j})
+000070	=\mathcal B_{q,r;j,i}\).
+000071	
+000072	For bigrassmannian parameters
+000073	\[
+000074	v=v_{r,s,t,n},\qquad q=n-r,
+000075	\]
+000076	the same transformation is
+000077	\[
+000078	(r',s',t',n')=(q,n-s,q-s+t,n).
+000079	\]
+000080	Indeed,
+000081	\[
+000082	i'=s'-t'+1=r-t+1=j,\qquad
+000083	j'=r'-t'+1=s-t+1=i.
+000084	\]
+000085	The usual inequalities \(1\le t\le r,s\) and \(t>r+s-n\) imply
+000086	\(1\le t'\le r',s'\), so the transformed data are admissible.
+000087	
+000088	Finally, if \(J_{r,q;i,j}\) denotes the corresponding interval ideal,
+000089	then \(\bar\omega_{r,q}(J_{r,q;i,j})=J_{q,r;j,i}\). A ring isomorphism
+000090	takes a generating subfamily to a generating subfamily, and its inverse
+000091	takes proper subfamilies to proper subfamilies. Therefore a family is
+000092	minimal as an ideal generating family if and only if its transpose image
+000093	is minimal. In particular, minimality of the theorem family for the
+000094	dual parameters implies minimality of the Remark 4.7 family for the
+000095	original parameters.
+000096	
+000097	## Gaps
+000098	The lemma is a reduction only; it does not independently prove the
+000099	minimality theorem used as its input.
+000100	
+000101	## Next
+000102	No further step is required for the requested transpose-reduction lemma.
+000103	
+000104	INTERNAL ATTEMPT research-attempt-research-plan-task-172-1 · critic · ARTIFACT 782e07dc35901b9c61ca774f99885e0fdaeac8712e521d7d65d31161ff959a90
+000105	## Critique
+000106	- claim-1: The cited passage supports the two family formulas and the definitions of \(a,b\). It does not by itself identify which is Theorem 1.2’s family and which is Remark 4.7’s family, though that distinction is available from accepted task 170.
+000107	- claim-2: The transpose formulas and parameter transformation are correct. However, the proof merely asserts \(\bar\omega_{r,q}(J_{r,q;i,j})=J_{q,r;j,i}\) without explicitly defining the interval ideal and proving this equality basiswise. It also declares the transformed bigrassmannian data admissible without checking the required strict inequality \(t'>r'+s'-n\). Thus the requested fully standalone lemma is not yet established as written.
+000108	
+000109	## Repair certificates
+000110	- [proof-attempt] State
+000111	  \[
+000112	  J_{r,q;i,j}:=\bigoplus_{i^j\subseteq\lambda\subseteq q^r}\mathbb Z\bar s_\lambda
+000113	  \]
+000114	  and prove basiswise that \(\bar\omega_{r,q}(J_{r,q;i,j})=J_{q,r;j,i}\), using
+000115	  \(i^j\subseteq\lambda\iff j^i\subseteq\lambda'\). For
+000116	  \[
+000117	  (r',s',t',n')=(q,n-s,q-s+t,n),
+000118	  \]
+000119	  verify every admissibility condition, including
+000120	  \[
+000121	  t'=q-s+t>q-s=r'+s'-n,
+000122	  \]
+000123	  as well as \(1\le t'\le r',s'\le n\). Then explicitly apply
+000124	  \(\bar\omega_{q,r}\) to the theorem family at \((q,r;j,i)\) to obtain the Remark 4.7 family at \((r,q;i,j)\), and use the isomorphism and its inverse to preserve generation and irredundancy.
+000125	
+000126	## Required revisions
+000127	- Add the missing basiswise proof for the interval ideals.
+000128	- Complete the transformed-parameter admissibility check.
+000129	- Cite the accepted theorem/Remark distinction rather than relying only on source-6’s unordered list.
+000130	- State that the target becomes established only after these repairs.

@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-85-1",
+	"taskId": "research-plan-task-85",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The primary source states that \\(J_{v_{r,s,t,n}}\\) is generated as an ideal of \\(\\Lambda/I_{r,n-r}\\) by \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq(n-r)^r\\}\\). [source-2@L1365-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1365,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1365: When $u$ and $v$ are $r$-grassmannian and correspond respectively to\n1366: partitions $\\lambda$ and $\\mu$, the Bruhat order relation $u \\geq v$\n1367: is equivalent to inclusion $\\lambda \\supseteq \\mu$ of their Young\n1368: diagrams, meaning that $\\lambda_i \\geq \\mu_i$ for all $i$.  Thus\n1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "dad3797f551adb4a39d8e9f4871f9b7b6f1bbb109ef3c44fec60a1066e794035",
+					"canonicalCitation": "[source-2@L1365-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "**Conditional presentation-and-Pieri certificate.** Assume the integral interval presentation for \\(p=c=1\\), namely \\(q=i+1\\), \\(r=j+1\\), \\(d=ij\\), \\(b=\\min(i,j)\\), and \\[ M_{d+k}=\\bigoplus_{\\substack{i^j\\subseteq\\mu\\subseteq(i+1)^{j+1}\\\\|\\mu|=d+k}}\\mathbb Zs_\\mu \\quad(0\\le k\\le b), \\] with complete \\(h_1\\)-row set \\[ \\{h_1s_\\lambda:i^j\\subseteq\\lambda\\subseteq(i+1)^{j+1},\\ |\\lambda|=d+k-1\\}. \\] Then, for \\(1\\le k\\le b\\), putting \\[ P_{x,y}:=s_{((i+1)^x,i^{\\,j-x},y)} \\quad(y=0\\text{ omitted}), \\] one has \\[ M_{d+k}=\\bigoplus_{x=0}^{k}\\mathbb ZP_{x,k-x}, \\] and its complete \\(h_1\\)-row set is precisely \\[ h_1P_{x,k-1-x}=P_{x+1,k-1-x}+P_{x,k-x} \\qquad(0\\le x\\le k-1). \\] Thus the row lattice is \\[ L_k=\\sum_{x=0}^{k-1}\\mathbb Z(C_x+C_{x+1}),\\qquad C_x=P_{x,k-x}. \\] Deleting \\(C_0\\), respectively \\(C_k\\), gives lower-, respectively upper-, unitriangular \\(k\\times k\\) matrices, both of determinant \\(1\\). For \\(k=0\\), \\(M_d=\\mathbb Zs_{i^j}\\), the row set is empty, and the empty complementary determinant is \\(1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "911bb3ac31079cc95a3b861202bbae6942f8cdff230cd514c873ad9db8a6809b"
+}

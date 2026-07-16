@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-104-1",
+	"text": "## Critique\n- claim-1: Correct. Inclusion of the smaller rectangle in the larger rectangle reverses inclusion of the corresponding Schur-basis complements, proving the ideal inclusion. The argument actually holds for all \\(p,c\\ge1\\).\n- claim-2: Correct. The quotient map retains precisely the interval basis elements lying in the smaller box and kills the others, so its restriction is surjective. Its \\(\\Lambda\\)-linearity and that surjectivity give the stated equality of positive-degree submodules and hence the surjection on indecomposable quotients.\n\n## Required revisions\n- None. Under the stated Schur-basis definitions of \\(I_{r,q}\\), \\(J_{p,c}\\), and \\(Q_{p,c}\\), the requested target is established."
+}

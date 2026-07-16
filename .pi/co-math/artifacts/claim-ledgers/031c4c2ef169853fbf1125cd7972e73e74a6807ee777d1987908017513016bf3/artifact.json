@@ -1,0 +1,252 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-1-1",
+	"taskId": "research-plan-task-1",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(1\\le t\\le r,s\\le n\\) with \\(t>r+s-n\\), \\(v_{r,s,t,n}\\) is the unique nonidentity bigrassmannian in \\(S_n\\) with \\(\\Des(v)=\\{(r\\leftrightarrow r+1)\\}\\), \\(\\Des(v^{-1})=\\{(s\\leftrightarrow s+1)\\}\\), \\(v_t=s+1\\), explicitly \\[ (1,\\ldots,t-1,\\ s+1,\\ldots,s+r-t+1,\\ t,\\ldots,s,\\ s+r-t+2,\\ldots,n). \\] [source-2@L973-L993|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 973,
+						"end": 993
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "973: \\begin{lemma}\n974: The bigrassmannian permutations (other than the identity) are\n975: parameterized by $r,s,t$ with $1\\leq t \\leq r,s \\leq n$ and $t>r+s-n$.\n976: Let $v_{r,s,t,n}$ denote the unique bigrassmannian permutation\n977: $v_1\\ldots v_n\\in S_n$ such that\n978: \\begin{enumerate}\n979: \\item[$\\bullet$] $\\Des(v)=\\{(r\\leftrightarrow r+1)\\}$ \n980: \\item[$\\bullet$] $\\Des(v^{-1})=\\{(s\\leftrightarrow s+1)\\}$, and\n981: \\item[$\\bullet$] $v_t=s+1$.\n982: \\end{enumerate}\n983: Then explicitly we have:\n984: \\begin{equation}\n985: \\label{v-explicitly}\n986: \\begin{aligned}\n987: v_{r,s,t,n}&:=(1, 2, \\ldots,t-1 , \\\\\n988:         & \\qquad s+1, s+2, \\ldots, s+r-t+1, \\\\\n989:         & \\quad \\qquad t, t+1,t+2, \\ldots,s,\\\\\n990:         & \\qquad \\qquad s+r-t+2,s+r-t+3,\\ldots,n).\n991: \\end{aligned}\n992: \\end{equation}\n993: \\end{lemma}",
+					"excerptSha256": "765f4ab4f0cab4126b1b9cd0843a663a62f99c1d231ed671aa7d8511141e42ad",
+					"canonicalCitation": "[source-2@L973-L993|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "\\(J_v:=\\Bbbk\\text{-span}\\{\\sigma_u:u\\ge v\\}\\); in the type-\\(A\\) integral setting, \\(J_{v_{r,s,t,n}}\\) is treated as an ideal of \\(\\Lambda/I_{r,n-r}\\cong H^\\star(G/P_J,\\mathbb Z)\\). [source-2@L334-L348|claim=formal-document] [source-2@L1344-L1350|claim=formal-document] [source-2@L1369-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 334,
+						"end": 348
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "334: \\begin{equation}\n335: \\label{eqn:J_vgenset}\n336: J_v:=\\Bbbk\\text{-span of }\\{ \\sigma_u: u \\geq v \\}\n337: \\end{equation}\n338: in type $A$ that is smaller than the one used as a general\n339: step (Theorem~\\ref{general-J-generators}) in the proof of Theorem~\\ref{general-bound}\n340: for arbitrary finite Coxeter groups $W$.  Our proof of \n341: Theorem~\\ref{J-generators} is based on symmetric function identities that we devise for this\n342: purpose.\n343: \n344: Therefore, concatenating these generating sets for $J_v$ gives a generating set for\n345: \\begin{equation}\n346: \\label{eqn:I_wconcat}\n347: I_w = \\sum_{v \\in \\Ess(w)} J_v\n348: \\end{equation}",
+					"excerptSha256": "b1de337a63c7202c7512b81fc7fe1551aa3f636fdee869cf6f062091490a6840",
+					"canonicalCitation": "[source-2@L334-L348|claim=formal-document]"
+				},
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1344,
+						"end": 1350
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1344: First note that even though our proof of Theorem~\\ref{general-J-generators}\n1345: for all finite Coxeter groups was done\n1346: in $\\Bbbk[V]/(\\Bbbk[V]^W_+)$ where the field $\\Bbbk$ has characteristic zero,\n1347: the same proof works in type $A$ more generally for the {\\it integral}\n1348: coinvariant algebra $H^\\star(G/B,\\ZZ)$. This follows since\n1349: the Schubert polynomials $\\{\\schubp_w\\}$ satisfy the integer\n1350: coefficient versions of all of the requisite properties (a)-(g) used in Section~\\ref{Hiller-section}.",
+					"excerptSha256": "7036ed68576f931360cccb3f46193fce3f0e8d97519271601baed1e15910afcc",
+					"canonicalCitation": "[source-2@L1344-L1350|claim=formal-document]"
+				},
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1369,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "1a69e30bf323def18dcab1b2e254ff687d128b103eb5249d0f51b87edf413e20",
+					"canonicalCitation": "[source-2@L1369-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The \\(r\\)-grassmannian \\(v_{r,s,t,n}\\) corresponds to the rectangle \\(i^j\\), where \\(i=s-t+1\\) and \\(j=r-t+1\\). [source-2@L1354-L1362|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1354,
+						"end": 1362
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1354: The bigrassmannian $v_{r,s,t,n}$ described explicitly in \\eqref{v-explicitly}\n1355: is $r$-grassmannian, and corresponds to the $j \\times i$ \n1356: rectangular partition $i^j$, where we define\n1357: $$\n1358: \\begin{aligned}\n1359: i&:=s-t+1,\\\\\n1360: j&:=r-t+1.\n1361: \\end{aligned}\n1362: $$",
+					"excerptSha256": "ef241ab3a586e50cfc0ab9f1188ded4b7292eb51143e7ad3574fc50f740ff46c",
+					"canonicalCitation": "[source-2@L1354-L1362|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "With \\(\\mathfrak S_v=s_{i^j}\\), set \\(a=\\min(n-r-i,r-j)\\) and \\(b=\\min(i,j)\\). Theorem 5.4 states that \\(J_v\\) is generated by either \\[ \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\} \\quad\\text{or}\\quad \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}. \\] [source-2@L1380-L1402|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1380,
+						"end": 1402
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1380: \\begin{theorem}\n1381: \\label{J-generators}\n1382:   Given a bigrassmannian $v=v_{r,s,t,n}$ in type $A_{n-1}$ with $\\schubp_v = s_{i^j}$, let\n1383: $$\n1384: \\begin{aligned}\n1385: a&:=\\min(n-r-i,r-j)\\\\\n1386: b&:=\\min(i,j).\n1387: \\end{aligned}\n1388: $$\n1389: \n1390: Then $J_v$ is generated as an ideal of \n1391: $H^{\\star}(G/P_J, {\\mathbb Z})\\cong \\Lambda/I_{r,n-r}$ by \n1392: \\begin{equation}\n1393: \\label{generating-set-one}\n1394: \\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq ((i+a)^b,i^{j-b}) \\}.\n1395: \\end{equation}\n1396: \n1397: Alternatively, $J_v$ is generated by \n1398: \\begin{equation}\n1399: \\label{generating-set-two}\n1400: \\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (i^j,b^a) \\}.\n1401: \\end{equation}\n1402: \\end{theorem}",
+					"excerptSha256": "625de1f8a5773acfb23d48fc357ccaa7291d903bae7f59590085620b79ff0855",
+					"canonicalCitation": "[source-2@L1380-L1402|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The formal conjecture is: “The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.” The authors report computer verification for all bigrassmannian permutations with \\(r\\le4\\) and \\(n-r\\le5\\). [source-2@L1489-L1502|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1489,
+						"end": 1502
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1489: \\subsection{A minimality conjecture}\n1490: \\label{minconj}\n1491: As we shall see in a moment, \n1492: our generators for $I_w$ are not minimal. However,\n1493: we believe the following holds:\n1494: \n1495: \\begin{conjecture}\n1496: \\label{minimality-conjecture}\n1497: The two generating sets for the ideal $J_{v_{r,s,t,n}}$ given in Theorem~\\ref{J-generators}\n1498: are both minimal. \n1499: \\end{conjecture}\n1500: \n1501: Via computer, we have verified this conjecture for all bigrassmannian permutations\n1502: where $r\\leq 4$ and $n-r\\leq 5$.",
+					"excerptSha256": "2789fb553f62e76bd4781e1eed16f89e3d7bd1407bf72b58899edfd6476b4033",
+					"canonicalCitation": "[source-2@L1489-L1502|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "Taking \\(M=J_{v_{r,s,t,n}}\\), the source conjectures that \\(M/\\Lambda_+M\\) requires \\(\\binom{a+b}{a}\\) generators and suspects the stronger isomorphism \\[ J_{v_{r,s,t,n}}/\\Lambda_+J_{v_{r,s,t,n}}\\cong\\mathbb Z^{\\binom{a+b}{a}}. \\] [source-2@L1536-L1552|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1536,
+						"end": 1552
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1536: In our setting, the well-definedness follows by setting\n1537: $\\Lambda=\\oplus_{n\\geq 0}\\Lambda_{n}$ to be the graded ring of\n1538: symmetric functions with ${\\mathbb Z}$ coefficients and setting\n1539: $M=J_{v_{r,s,t,n}}$, so that the ${\\mathbb Z}$-module $M/\\Lambda_{+}M$\n1540: is a finitely generated abelian group.\n1541: %\n1542: %Thus in view of (\\ref{eqn:badlowerbnd}), for $w\\in S_n$, the worst case for the\n1543: %number of generators needed in $I_w$ has an {\\it exponential}  \n1544: %lower bound that accompanies the exponential upper bound of $2^n$ \n1545: %from Theorem~\\ref{general-bound}. \n1546: %\n1547: % It is plausible to try to apply Proposition~\\ref{prop:commalgfact} to prove \n1548: % Conjecture~\\ref{minimality-conjecture}, by instead showing that for $M=J_{v_{r,s,t,n}}$,\n1549: Thus we conjecture that this abelian group $M/ \\Lambda_+ M$ requires\n1550: $\\binom{a+b}{a}$ generators, and in fact, we suspect that\n1551: $M/\\Lambda_{+}M\\cong {\\mathbb Z}^{\\binom{a+b}{a}}$.  So far a proof\n1552: has eluded us.",
+					"excerptSha256": "ded6476716787ebd317f08414382d6613c1c8782099c60b934e1a1632d1ae269",
+					"canonicalCitation": "[source-2@L1536-L1552|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "The related, formally posed type-\\(A_{n-1}\\) open question asks for a minimal generating set of \\(I_w\\), including for varieties defined by inclusions (avoiding \\(4231,35142,42513,351624\\)) and smooth varieties (avoiding \\(3412,4231\\)). [source-2@L1913-L1929|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1913,
+						"end": 1929
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1913: \\begin{question}\n1914: Can one find a {\\it minimal} generating set for the ideal $I_w$ in type $A_{n-1}$?\n1915: \n1916: Can this at least be done for some of the \n1917: recently-studied subclasses \\cite{GasharovReiner, HultmanLinussonShareshianSjostrand, OhPostnikovYoo}\n1918: where $I_w$ can be generated by $n^2$ elements, such as\n1919: \\begin{enumerate}\n1920: \\item[$\\bullet$]\n1921: when $X_w$  is {\\it defined by inclusions}, which occurs when $w$ avoids the\n1922: patterns \n1923: $$\\{4231, 35142, 42513, 351624\\},$$\n1924: \\item[$\\bullet$]\n1925: or more restrictively, when  $X_w$ is {\\it smooth}, which occurs when $w$ avoids the\n1926: patterns \n1927: $$\\{3412,4231\\}?$$\n1928: \\end{enumerate}\n1929: \\end{question}",
+					"excerptSha256": "02a63e35058e3c835f7e5fdc7dae0d3bbd6acd2ab1f254a9465623d97a2d6396",
+					"canonicalCitation": "[source-2@L1913-L1929|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e23f65eb32c9ffdb69d97e723991c12b686f9a3beefc9574c43a13dd33cfd51d"
+}

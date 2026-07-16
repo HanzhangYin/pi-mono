@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-217-1",
+	"taskId": "research-plan-task-217",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Two task-owned sandbox executions for the specified \\((2,2,4,4)\\) computation timed out (exit status \\(124\\)); neither produced matrices, Smith data, or minors. [artifact a0468ee387c57b44f37f131d0980e1487ec29d0998bbd1e2865c94761575bc6f; artifact 4cf117f029f16b069773ab564b589e10252c84158d61713f28167fb34b06dec7]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Complete integral Pieri matrices, Smith forms, quotient ranks, torsion factors, and complementary unimodular minors for \\([2,2,0,0,0,0]\\subseteq\\lambda\\subseteq(6^6)\\), degrees \\(4,\\ldots,36\\), and \\(h\\)-degrees \\(1,\\ldots,6\\) remain unavailable.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "4ded1369c2a01258252095813cef7444c25ea8235f711bb483d54919b08badf3"
+}

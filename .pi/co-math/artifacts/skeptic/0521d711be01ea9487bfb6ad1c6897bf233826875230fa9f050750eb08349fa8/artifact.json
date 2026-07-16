@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-79-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- `claim-1` is unsupported: no retrievable source, bounded locator, or exact excerpt establishes what snapshot `6f334d54dae132cc21b3cdc3474c8db8e2ed295b141f404fd92ab293199f96d8` contains.\n- The target artifact’s exact bytes, stable retrieval location, and required component-level line locators are unavailable. Therefore the named source certificate is not established.\n\n## Unresolved certificates\n- [proof-attempt] Provide an independently retrievable, byte-preserving copy of artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, with bounded exact line locators for provenance, all opening hypotheses, equation (1), all fifteen entries of table (4), and the immutable digest declaration."
+}

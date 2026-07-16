@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-195-1",
+	"text": "## Claims\n- [source-backed] Source-29 states that it resolves RWY Conjecture 4.10 and proves minimality of \\(\\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\). [doi:10.1112/jlms.12832, lines 219-235]\n- [source-backed] Source-29 describes the transposed generating set and says its minimality could be proved by transposing the arguments; this passage is not itself a theorem proving it. [doi:10.1112/jlms.12832, lines 833-841]\n\n## Strategy\nThe requested target was **not established**: source-30 is not a citable indexed file, so no bounded source-30 text is available from which to extract every conjecture, question, or problem.\n\n## Gaps\nNo source-30 locators or text are supplied. Therefore an exhaustive source-30 list and itemwise classification as settled, open, or expository cannot be given.\n\n## Next\nProvide a citable bounded source-30 excerpt or corrected source ID."
+}

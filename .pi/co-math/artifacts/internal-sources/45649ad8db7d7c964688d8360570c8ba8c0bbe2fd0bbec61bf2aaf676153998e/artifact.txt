@@ -1,0 +1,25 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-316-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-315-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-315-1 · specialist · ARTIFACT b2f281b1380d006f4b88bb31e79a843edef2146fec26f30c0a995eb73e462a2f
+000004	## Claims
+000005	- [unsupported] The standalone determinant identity from task 313 is not stated in the supplied material; therefore its ordered bordered matrix, Laplace index sets, complementary minors, and target Jacobi–Trudi determinant cannot be identified without invention.
+000006	
+000007	## Strategy
+000008	No proof is supplied because the requested identity and task-313 definitions are absent.
+000009	
+000010	## Gaps
+000011	The exact determinant identity, definitions of \(\rho,a,b,j\), and the intended bordered-matrix ordering are missing.
+000012	
+000013	## Next
+000014	The requested target was **not established**.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-315-1 · critic · ARTIFACT 7b6ea8e958dbef5db09620283e9b3865261c99e5dd2e023d792adc134e090e58
+000017	## Critique
+000018	- claim-1: Correctly identifies the decisive deficiency: neither task 313 nor its determinant identity appears in the supplied material. The literature excerpts define \(a,b,j\) [doi:10.1112/jlms.12832, lines 221-227], but they do not specify the requested bordered matrix, Laplace expansion, or target Jacobi–Trudi determinant. Thus no proof can be reconstructed without invention. The strategy does not satisfy the task criteria, and the requested target was **not established**.
+000019	
+000020	## Repair certificates
+000021	- [source-refresh] Supply the exact persisted statement of task 313, including the determinant identity, definitions and ranges for \(\rho,a,b,j\), conventions such as \(h_0=1\) and \(h_k=0\) for \(k<0\), and the intended row/column ordering of the bordered matrix.
+000022	
+000023	## Required revisions
+000024	- After restoring task 313, provide the explicit ordered matrix, every Laplace index set and complementary minor, all zero-minor and sign computations, reduction to the specified Jacobi–Trudi determinant, and separate treatments of \(\rho=\varnothing\), \(a=0\), and \(b=j\).
+000025	- Do not infer or state any parent theorem.

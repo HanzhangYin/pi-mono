@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-126-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- `claim-1` is supported only at abstract level and does not supply the requested theorem statement or hypotheses.\n- `claim-2` and `claim-3` correctly identify missing evidence, but the task required obtaining the missing bounded full-text passages.\n- The independent comparison between minimality and the stronger integral indecomposables statement cannot be completed from the supplied abstract.\n\n## Unresolved certificates\n- [proof-attempt] Retrieve bounded verbatim passages from arXiv `2209.02011v2` or DOI `10.1112/jlms.12832`, with stable theorem/section/page locators, stating the 2024 theorem, hypotheses, coefficient ring, and relevant definitions; then determine separately whether they prove only minimality or also \\(J/\\Lambda_+J\\cong\\mathbb Z^{\\binom{a+b}{a}}\\), including freeness and torsion claims."
+}

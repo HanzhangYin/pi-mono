@@ -1,0 +1,57 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-241-1",
+	"taskId": "research-plan-task-241",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(I_{r,n-r}=\\operatorname{Span}_{\\mathbb Z}\\{s_\\lambda:\\lambda\\nsubseteq(n-r)^r\\}\\), \\(\\Lambda/I_{r,n-r}\\) has Schur basis \\(\\{\\bar s_\\lambda:\\lambda\\subseteq(n-r)^r\\}\\), and multiplication is LR multiplication truncated to that box. [doi:10.1112/jlms.12832, lines 213-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(A=\\Lambda/I_{6,5}\\), \\(A_+=(\\bar h_1,\\ldots,\\bar h_5)\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "In each degree \\(d\\), the complete Pieri rows \\(h_t\\bar s_\\lambda\\), \\(1\\le t\\le5\\), with \\(22\\subseteq\\lambda\\subseteq5^6\\) and \\(|\\lambda|=d-t\\), present \\((A_+J)_d\\) and are exactly the rows used by the artifact’s `lower=[2,2,0,0,0,0]`, `upper=[5,5,5,5,5,5]`, `hDegrees=[1,2,3,4,5]` construction.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "7fb931d956af449aa976a96d059c6c12302ffc437df94ac73d7586146004f3f6"
+}

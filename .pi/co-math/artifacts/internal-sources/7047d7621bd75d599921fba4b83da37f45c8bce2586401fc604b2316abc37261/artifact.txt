@@ -1,0 +1,34 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-231-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-230-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-230-1 · specialist · ARTIFACT 3638fc52c34574b442053629173f55187da191c11fe3ff6759dbc32b9879a4ae
+000004	## Claims
+000005	- [source-backed] RWY Theorem 4.8 works integrally in \(\Lambda/I_{r,n-r}\) and gives two Schur generating families for \(J_v\), with \(a=\min(n-r-i,r-j)\) and \(b=\min(i,j)\). [doi:10.1090/s0002-9947-2010-05163-3, lines 864-892]
+000006	- [source-backed] RWY uses the vertical-strip Pieri rule \(e_k s_\lambda=\sum_\mu s_\mu\) and an induction with three shape-reduction steps to prove generation; the cited argument does not state Smith forms or determinantal-divisor certificates. [doi:10.1090/s0002-9947-2010-05163-3, lines 1009-1041; 1068-1142]
+000007	- [source-backed] St. Dizier–Yong prove minimality of the lower-adjoined family \(\{\bar s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\) in \(H^*(\mathrm{Gr}_{r,n})\cong\Lambda/I_{r,n-r}\), under \(v=v_{r,s,t,n}\), \(i=s-t+1\), \(j=r-t+1\), \(a=\min(n-r-i,r-j)\), \(b=\min(i,j)\). [doi:10.1112/jlms.12832, lines 213-235]
+000008	- [source-backed] Their proof reformulates possible syzygies using Littlewood–Richardson coefficient linear systems and a terminating coproduct-tensor reduction algorithm for valid \((n,r,i,j,a,b,N)\); it is not stated as a degreewise Pieri-matrix Smith-form or unimodular-minor procedure. [doi:10.1112/jlms.12832, lines 294-340; 494-516; 598-632]
+000009	
+000010	## Strategy
+000011	Compared the current integral Schur-interval/Pieri-matrix objects with the two inspected full texts. RWY matches the coefficient ring, quotient \(\Lambda/I_{r,n-r}\), Schur generators, and Pieri background. St. Dizier–Yong matches the lower-family minimality target but uses LR-equation and Hopf-algebra reductions rather than degreewise integer presentation matrices.
+000012	
+000013	## Gaps
+000014	The requested target—an external theorem or literature reduction supplying Smith forms, determinantal divisors, unimodular complementary minors, or a Pieri-matrix certificate for the current objects—was **not established**. The inspected sources provide adjacent generation/minimality results only. This is a bounded negative result for RWY (2011) and St. Dizier–Yong (2024), not a claim about all literature.
+000015	
+000016	## Next
+000017	An internal derivation of the required integral Pieri matrices and their Smith or unimodular-minor certificates remains necessary.
+000018	
+000019	INTERNAL ATTEMPT research-attempt-research-plan-task-230-1 · critic · ARTIFACT 67772ea14cfc4a0f0764928d4f71b059e803436ff43c5d1b3d59b6e2c6b33bd7
+000020	## Critique
+000021	- claim-1: Correctly grounded, but it establishes only integral generation by two Schur families, not Smith forms, determinantal divisors, or unimodular minors.
+000022	- claim-2: Supports a bounded method comparison for RWY. Absence of the requested certificates in the inspected passages cannot establish their absence elsewhere in RWY or the wider literature.
+000023	- claim-3: Correctly grounded but adjacent: minimality of the lower-adjoined family is not the requested integral Pieri-matrix or Smith-form certificate.
+000024	- claim-4: Correctly distinguishes the LR/coproduct reduction from a degreewise Pieri-matrix procedure. It does not yield Smith invariants or unimodular complementary minors.
+000025	
+000026	The requested target was **not established**. The strategy justifies a bounded negative result for two distinct inspected works. However, the recorded search inspected known project sources and a duplicate rendering; it does not evidence targeted keyword searches across external literature/arXiv for “Smith normal form,” “determinantal divisors,” “unimodular minors,” and “Pieri matrices.” Thus the literature-search task remains incomplete despite the valid source comparisons.
+000027	
+000028	## Repair certificates
+000029	- [source-refresh] Execute and preserve targeted external/arXiv searches for combinations of `"Smith normal form"`, `"determinantal divisors"`, or `"unimodular minors"` with `"Pieri matrix"`, `"Schur functions"`, and `"Littlewood-Richardson"`. For every plausible result, record full-text theorem statements, exact locators, coefficient-ring and matrix hypotheses, and a comparison with the current integral Schur-interval Pieri matrices; otherwise report the resulting bounded negative scope.
+000030	
+000031	## Required revisions
+000032	- Explicitly distinguish the executed inspection of two known works from the still-missing targeted topic search.
+000033	- Retain the conclusion that no requested theorem was established; do not substitute RWY generation or St. Dizier–Yong minimality.
+000034	- State the negative conclusion only for the sources and queries actually inspected.

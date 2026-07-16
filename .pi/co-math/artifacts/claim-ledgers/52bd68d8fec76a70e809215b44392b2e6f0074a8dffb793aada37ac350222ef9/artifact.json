@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-155-1",
+	"taskId": "research-plan-task-155",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied accepted-task record contains no artifact for task 124 that preserves unimodular witnesses \\(U_dM_dV_d=D_d\\) for \\(4\\le d\\le24\\).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Therefore the requested \\(c=4\\) quotient and minimality certificate is not established from the supplied evidence.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "a9a1cf5b2e86014ce9410b4e26d18ae71b45889452b17871c71e4c3a1fd7eb65"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-255-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 verifies the exact bounds, all degrees \\(6,\\ldots,24\\), \\(h\\)-degrees \\(1,\\ldots,4\\), complete Pieri rows, and Smith diagonals.\n- However, artifact `108741000333b9f58bd30f6bcdbbd9ada5309c8f820d3793b7a9a7ff0bb0c5a3` used `requireSmithWitnesses:false`. It therefore provides no verified unimodular \\(U_d,V_d\\) satisfying \\(U_dM_dV_d=D_d\\).\n- Consequently, the requested target was **not established**.\n\n## Unresolved certificates\n- [computation] Re-execute the exact case with `requireSmithWitnesses:true` and persist, for every \\(6\\le d\\le24\\), complete ordered bases and Pieri rows together with verified \\(U_dM_dV_d=D_d\\) and \\(\\det U_d,\\det V_d=\\pm1\\), including the \\(0\\times1\\) degree-\\(6\\) boundary witness."
+}

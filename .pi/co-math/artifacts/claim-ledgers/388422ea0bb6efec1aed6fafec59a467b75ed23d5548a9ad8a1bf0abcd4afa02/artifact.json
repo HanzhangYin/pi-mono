@@ -1,0 +1,57 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-277-1",
+	"taskId": "research-plan-task-277",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "In \\(\\Lambda/I_{5,5}\\), Schur multiplication is truncated Littlewood–Richardson multiplication. [doi:10.1112/jlms.12832, lines 263-269]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 263,
+							"end": 269
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "263: We briefly recall the basic properties of Schur functions and Littlewood--Richardson coefficients. See, \\emph{e.g.}, \\cite{fultonyt, ECII} for thorough introductions. For a partition $\\lambda$ (which we identify with its Young diagram in English notation), the \\emph{Schur function} $s_\\lambda=s_\\lambda(x_1,x_2,\\ldots)$ is the generating function for semistandard Young tableaux of shape $\\lambda$. Schur functions form a $\\mathbb{Z}$-basis of $\\Lambda$. The \\emph{Littlewood--Richardson coefficients} $c_{\\lambda,\\mu}^{\\nu}$ are the structure constants for the Schur basis:\n264: \\[s_\\lambda s_{\\mu} = \\sum_{\\nu} c_{\\lambda,\\mu}^{\\nu} s_{\\nu}. \\]\n265: The \\emph{Littlewood--Richardson rule} gives an explicit combinatorial description of $c_{\\lambda\\mu}^{\\nu}$\n266: (the version we use is Theorem~\\ref{thm:pictures}).\n267: A fact that we rely on throughout is that Schur functions are homogeneous of degree $|\\lambda|=\\lambda_1+\\lambda_2+\\cdots$. In particular, $c_{\\lambda,\\mu}^{\\nu}$ can only be nonzero if $|\\nu|=|\\lambda|+|\\mu|$. Similarly, it follows from the Littlewood--Richardson rule that $c_{\\lambda,\\mu}^\\nu$ can only be nonzero if $\\lambda,\\mu\\subseteq \\nu$ (identifying partitions with their Young diagrams in English notation).\n268: For the $\\overline{s}_\\lambda$ in $\\overline{\\Lambda}$, the multiplication is the same except partitions $\\rho$ must lie in the box $(n-r)^r$ in order for $\\overline{s}_\\rho$ to be nonzero:\n269: \\[\\overline{s}_\\lambda\\overline{s}_{\\mu} = \\sum_{\\nu\\subseteq (n-r)^r} c_{\\lambda,\\mu}^{\\nu} \\overline{s}_{\\nu}. \\]",
+					"excerptSha256": "eb6549f10ff771accf60656e958f29ab8d452a573e1792fcda258ede05cc2c97",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 263-269]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Put \\(J=\\bigoplus_{333\\subseteq\\lambda\\subseteq5^5}\\mathbb Z\\bar s_\\lambda\\), \\(L_\\rho=\\bar s_{(333,\\rho)}\\), and \\(R_{\\rho'}=\\bar s_{(3+\\rho'_1,3+\\rho'_2,3+\\rho'_3)}\\). The following nine exact Pieri identities lie in \\(A_+J\\): \\[ \\begin{aligned} R_\\varnothing-L_\\varnothing&=0,\\\\ R_{1}+L_{1}&=h_1L_\\varnothing,\\\\ R_{2}-L_{2}&=h_1R_1-h_2L_\\varnothing,\\\\ R_{11}-L_{11}&=h_2L_\\varnothing-h_1L_1,\\\\ R_{3}+L_{3}&=h_1R_2-h_2R_1+h_3L_\\varnothing,\\\\ R_{21}+L_{21}&=h_1R_{11}+h_1L_2-h_3L_\\varnothing,\\\\ R_{31}-L_{31} &=h_1R_3+h_1R_{11}-h_1R_{21}+h_1L_3+h_1L_{21} +h_1L_3-2h_3L_1,\\\\ R_{22}-L_{22} &=h_1R_{21}-h_1R_3-2h_1R_{11}+h_1R_{21} -h_1L_3-h_1L_{21}\\\\ &\\quad-2h_1L_3-h_2L_2-h_2L_{11}+4h_3L_1,\\\\ R_{32}+L_{32} &=h_1R_{22}-h_3R_{11}+h_4R_1-h_1R_3+h_5L_\\varnothing+h_1L_{31}. \\end{aligned} \\] Here repeated terms are intentional as written; every displayed Schur factor is in \\(J\\), and every \\(h_t\\) has \\(1\\le t\\le5\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "No exact identity for the remaining boundary partition \\(\\rho=(3,3)\\), \\[ R_{33}-L_{33}=\\bar s_{555}-\\bar s_{33333}, \\] is supplied by the available material.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "92f2ed347d2cf1ac119561555a2c19bc3e7bff08ae10393f5a3c78d2eac8702d"
+}

@@ -1,0 +1,56 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-49-1",
+	"taskId": "research-plan-task-49",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The paper formally conjectures that both Theorem 5.4 generating sets for \\(J_{v_{r,s,t,n}}\\) are minimal. [source-6@L14-L16|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 16
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.",
+					"excerptSha256": "3eac2c5a4ef78922457b15e092cf3a82d013664bf19827171b581877bc309163",
+					"canonicalCitation": "[source-6@L14-L16|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Conditional on the integral box/Schur/Pieri presentation, in the boundary subcase \\[ p=q-i=1,\\qquad c=r-j\\ge2,\\qquad \\min(i,j)=2, \\] the degree-\\(\\le d+2\\) quotient of \\(Q=J/A_+J\\), \\(d=ij\\), is \\[ Q_d\\oplus Q_{d+1}\\oplus Q_{d+2} \\cong \\mathbb Z\\bar x_0\\oplus\\mathbb Z\\bar x_1\\oplus\\mathbb Z\\bar x_2. \\] Moreover \\(\\bar y_1=-\\bar x_1\\) and \\(\\bar y_2=\\bar x_2\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "This low-degree certificate alone does not imply \\(Q\\cong\\mathbb Z^3\\): a graded abelian group may agree through degree \\(d+2\\) and have an additional nonzero summand in degree \\(d+3\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "1b8b0564140e27b034282ca8ec524c13fb3b7e14b98f260c33cfadb6d2877534"
+}

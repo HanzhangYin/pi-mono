@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-290-1",
+	"taskId": "research-plan-task-290",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The required degreewise matrices and successful executable certificate were not produced; the available sandbox runs failed (artifacts `d402d4da86bdf8215640b2264a43c42d460f7321c39dd4db3111a41ef9b6eef4` and `20f9687d0419b4a002ccb572ea282368b7bec658625e68e4b5879f57c10b6343`).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Therefore the requested quotient-coordinate and unimodular-transition certificate for \\(G_L,G_R\\) in degrees \\(6,\\ldots,10\\) is not established.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "403cb9a084fa3e3e5fbf08d1795b0192c2821ded8e20d5aa9baaa631624096b0"
+}

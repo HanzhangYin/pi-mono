@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-256-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 does not satisfy explicit witness persistence: artifact `e4fc47f3922256c6c42246975f40ffc6894f31d042bf76d1691cdcac46288d54` records `U:null` and `V:null` for every \\(d\\ge7\\). Operation logs and successful replay checks do not substitute for the required persisted matrices \\(U_d,V_d\\).\n- The draft correctly states that the exact requested target was not established; no adjacent or parent result is substituted.\n\n## Unresolved certificates\n- [computation] Produce a task-owned witness-preserving computation for the exact stated inputs that explicitly persists every \\(U_d\\) and \\(V_d\\), \\(6\\le d\\le24\\), and exactly verifies their unimodularity and \\(U_dM_dV_d=D_d\\), retaining \\(M_6=D_6=0_{0\\times1}\\), \\(U_6=I_0\\), and \\(V_6=[1]\\)."
+}

@@ -1,0 +1,90 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-292-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-291-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-291-1 · specialist · ARTIFACT 46e8bb6e76535e1656fe3f6b78cb1ec9875bb4ee488999c4622ee531ef662701
+000004	## Claims
+000005	- [source-backed] The lower-adjoined family generates \(J_v\), and the 2024 theorem proves its minimality over \(\mathbb Z\). [doi:10.1112/jlms.12832, lines 213-235]
+000006	- [source-backed] The claimed no-syzygy theorem is deduced from Theorem 4.4; it is the essential input used to upgrade minimal generation to integral independence. [doi:10.1112/jlms.12832, lines 790-831]
+000007	- [proved] Assuming that no-syzygy theorem, the lower-adjoined residues are an integral homogeneous basis of \(J_v/A_+J_v\): a homogeneous kernel relation is exactly a prohibited syzygy; hence no torsion remains. The grading is Schur degree (ordinary cohomological degrees are twice these).
+000008	- [proved] The first missing certificate is the large-\(N\) descent in Theorem 4.4: one needs
+000009	  \[
+000010	  P\bigl(\operatorname{Lin}_{\widehat\varphi}(\tau)\bigr)\in
+000011	  \operatorname{Span}_{\mathbb Z}\{\operatorname{Lin}_{\varphi}(\nu):
+000012	  \nu\in\operatorname{Dec}_{\varphi}\text{ wide}\}
+000013	  \]
+000014	  for every wide \(\tau\in\operatorname{Dec}_{\widehat\varphi}\), where \(P\) kills the enlarged variables. This is not supplied.
+000015	- [proved] Lemma 4.3 verifies only
+000016	  \(P(\operatorname{Lin}_{\widehat\varphi}(\widehat\nu))
+000017	   =\operatorname{Lin}_{\varphi}(\nu)\)
+000018	  for originally indexed \(\nu\); it does not control the additional wide enlarged equations. Therefore inconsistency of the enlarged system does not, by itself, imply inconsistency of the original subsystem. [doi:10.1112/jlms.12832, lines 777-818]
+000019	- [proved] Conditional on the lower integral-basis result, conjugation is otherwise sound: \(\omega(s_\lambda)=s_{\lambda'}\) sends \(I_{r,q}\) to \(I_{q,r}\), preserves Schur degree and \(A_+\), and sends the interval above \(i^j\) to that above \(j^i\). The parameter translation
+000020	  \[
+000021	  v^\vee=v_{q,\ q+j-i,\ q-i+1,\ n},\qquad
+000022	  (i^\vee,j^\vee,a^\vee,b^\vee)=(j,i,a,b)
+000023	  \]
+000024	  satisfies the bigrassmannian inequalities.
+000025	- [proved] Under that conditional quotient isomorphism, conjugating
+000026	  \((j^i,\rho)\), \(\rho\subseteq b^a\), gives
+000027	  \[
+000028	  (j^i,\rho)'=(i+\rho'_1,\ldots,i+\rho'_b,i^{\,j-b}),
+000029	  \]
+000030	  exactly the right-adjoined family. Its generation follows from graded Nakayama since \(A_+\) is nilpotent in \(\Lambda/I_{r,q}\).
+000031	
+000032	## Strategy
+000033	The audit passes the parameter translation, conjugation map, grading, and the conditional Nakayama/torsion arguments. It fails first at the cited proof’s enlargement-and-restriction step: the required projected-wide-row certificate is absent. No repair can be derived from the supplied excerpt because the needed control of all additional \(\widehat\varphi\)-wide rows is neither stated nor proved.
+000034	
+000035	## Gaps
+000036	The requested target is **not established** by this audit. The lower integral-basis theorem remains unsupported until the projected-wide-row certificate above is proved; consequently the quotient-conjugation and right-adjoined theorems remain conditional. No counterexample to the theorems themselves is exhibited.
+000037	
+000038	## Next
+000039	Prove the displayed projected-wide-row certificate, including an explicit classification of every enlarged wide row surviving \(P\).
+000040	
+000041	INTERNAL ATTEMPT research-attempt-research-plan-task-291-1 · critic · ARTIFACT 439055353f6e70847d85af06fb3eacdd85ceb27d9eb4e295071a62540e16ef57
+000042	## Critique
+000043	- claim-1: Correctly grounded as a theorem statement over \(\mathbb Z\), but minimal generation alone does not imply an integral basis of indecomposables.
+000044	- claim-2: The no-syzygy statement is source-backed, but its large-\(N\) proof uses the invalid general principle that specializing variables in an inconsistent system preserves inconsistency [doi:10.1112/jlms.12832, lines 790-825].
+000045	- claim-3: The conditional argument is correct. Homogeneous generation converts a kernel element in \(J_v/A_+J_v\) into the prohibited syzygy; injectivity of the free residue map excludes torsion. Schur weight is preserved, with ordinary cohomological degree doubled.
+000046	- claim-4: This is the decisive missing certificate. It is repaired below.
+000047	- claim-5: Correct. Lemma 4.3 controls only embedded rows, not all enlarged equations [doi:10.1112/jlms.12832, lines 777-818].
+000048	- claim-6: Passes audit after the lower theorem is repaired. Conjugation sends \(q^r\) to \(r^q\), \(i^j\) to \(j^i\), preserves Schur weight and integral coefficients, and maps \(A_+\) onto \(A^\vee_+\). The displayed transformed parameters satisfy all bigrassmannian inequalities and give \((i^\vee,j^\vee,a^\vee,b^\vee)=(j,i,a,b)\).
+000049	- claim-7: Passes audit. The conjugate-shape formula is exact, and nilpotence of \(A_+\) in the finite graded Grassmannian quotient makes the graded Nakayama argument valid.
+000050	
+000051	## Repair certificates
+000052	- [proof-attempt] Let \(q=n-r\), \(C=(q-i)^j\), and let \(P\) kill every enlarged variable except \(A_{\lambda,\theta}\) with \(\lambda\subseteq b^a\) and \(\theta\subseteq C\). For a wide \(\tau\in\operatorname{Dec}_{\widehat\varphi}\), write
+000053	  \[
+000054	  B=\tau_B\subseteq b^a,\qquad
+000055	  R=\tau_R=(\tau_1-i,\ldots,\tau_{\widehat j}-i),
+000056	  \]
+000057	  deleting trailing zeroes. Then \(R\ne\varnothing\) and \(|B|+|R|=N\).
+000058	
+000059	  If \(R\subseteq C\), define
+000060	  \[
+000061	  \nu=(i+R_1,\ldots,i+R_j,B_1,\ldots,B_a),
+000062	  \]
+000063	  with zero padding. Since \(R_1\le q-i\), \(\ell(R)\le j\), \(B_1\le b\le i\), and \(j+a\le r\), this is a wide member of \(\operatorname{Dec}_\varphi\), and \(\tau=\widehat\nu\). Lemma 4.3 therefore gives
+000064	  \[
+000065	  P(\operatorname{Lin}_{\widehat\varphi}(\tau))
+000066	  =\operatorname{Lin}_\varphi(\nu).
+000067	  \]
+000068	
+000069	  If \(R\nsubseteq C\), Proposition 3.3’s wide-row formula expresses every retained coefficient as
+000070	  \[
+000071	  \sum_\mu c_{\lambda,\mu}^{B}c_{\mu,R}^{\theta},
+000072	  \qquad \theta\subseteq C.
+000073	  \]
+000074	  A nonzero \(c_{\mu,R}^{\theta}\) requires \(R\subseteq\theta\), impossible because \(\theta\subseteq C\) while \(R\nsubseteq C\). Hence
+000075	  \[
+000076	  P(\operatorname{Lin}_{\widehat\varphi}(\tau))=0.
+000077	  \]
+000078	  Thus every enlarged wide row projects either to an original wide row or to zero:
+000079	  \[
+000080	  P(\operatorname{Lin}_{\widehat\varphi}(\tau))
+000081	  \in
+000082	  \operatorname{Span}_{\mathbb Z}
+000083	  \{\operatorname{Lin}_\varphi(\nu):
+000084	  \nu\in\operatorname{Dec}_\varphi\text{ wide}\}.
+000085	  \]
+000086	  There are no additional tall rows: \(R=\varnothing\) and \(B\subseteq b^a\) uniquely give the embedded original tall row. Consequently any solution of the original system, extended by zero on discarded variables, would solve every enlarged equation, contradicting enlarged inconsistency. This repairs the large-\(N\) descent.
+000087	
+000088	## Required revisions
+000089	- Replace the unsupported specialization assertion at [doi:10.1112/jlms.12832, lines 817-818] with the certificate above.
+000090	- **Requested target established:** after this repair, the lower-adjoined integral-basis theorem follows, and the audited quotient-conjugation isomorphism and right-adjoined theorem follow integrally, grading-preservingly, and without torsion.

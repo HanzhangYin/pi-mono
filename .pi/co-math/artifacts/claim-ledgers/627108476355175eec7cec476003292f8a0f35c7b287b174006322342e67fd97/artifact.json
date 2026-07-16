@@ -1,0 +1,131 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-175-1",
+	"taskId": "research-plan-task-175",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(q=n-r\\), the original source presents \\(J_v\\) using the interval generators \\(\\{\\bar s_\\lambda:i^j\\subseteq\\lambda\\subseteq q^r\\}\\). [source-2@L1365-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1365,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1365: When $u$ and $v$ are $r$-grassmannian and correspond respectively to\n1366: partitions $\\lambda$ and $\\mu$, the Bruhat order relation $u \\geq v$\n1367: is equivalent to inclusion $\\lambda \\supseteq \\mu$ of their Young\n1368: diagrams, meaning that $\\lambda_i \\geq \\mu_i$ for all $i$.  Thus\n1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "dad3797f551adb4a39d8e9f4871f9b7b6f1bbb109ef3c44fec60a1066e794035",
+					"canonicalCitation": "[source-2@L1365-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The 2024 source works integrally with \\(\\Lambda=\\bigoplus_\\lambda\\mathbb Zs_\\lambda\\), \\(I_{r,q}=\\bigoplus_{\\lambda\\nsubseteq q^r}\\mathbb Zs_\\lambda\\), and \\(\\Lambda/I_{r,q}\\); its LR argument gives \\(c_{\\lambda\\nu}^{\\rho}\\ne0\\Rightarrow\\lambda\\subseteq\\rho\\), with terms \\(\\rho\\nsubseteq q^r\\) zero in the quotient. [doi:10.1112/jlms.12832, lines 89-94] [doi:10.1112/jlms.12832, lines 136-142]",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "unknown-source",
+					"message": "External citation [doi:10.1112/jlms.12832, lines 89-94] is absent from the active literature source catalog.",
+					"sourceId": "doi:10.1112/jlms.12832"
+				},
+				{
+					"code": "unknown-source",
+					"message": "External citation [doi:10.1112/jlms.12832, lines 136-142] is absent from the active literature source catalog.",
+					"sourceId": "doi:10.1112/jlms.12832"
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-2 is source-backed but has no valid exact source locator."
+				}
+			]
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\(A_{r,q}:=\\Lambda/I_{r,q}\\). The actual interval ideals are \\[ J_v=\\bigoplus_{i^j\\subseteq\\lambda\\subseteq q^r}\\mathbb Z\\bar s_\\lambda,\\qquad J_{v^\\vee}=\\bigoplus_{j^i\\subseteq\\nu\\subseteq r^q}\\mathbb Z\\bar s_\\nu . \\] Indeed, each displayed interval span contains the respective source-given generators. LR containment makes it an ideal, since every surviving product term still contains the lower rectangle. Hence it contains the generated ideal; conversely its basis elements are generators, giving equality. The quotient Schur basis makes both sums direct.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Assume \\(v=v_{r,s,t,n}\\) is bigrassmannian: \\(1\\le t\\le r,s\\le n\\) and \\(t>r+s-n\\). Let \\(q=n-r\\), \\(i=s-t+1\\), \\(j=r-t+1\\), and \\[ v^\\vee:=v_{q,n-s,q-s+t,n}=v_{q,q-i+j,q-i+1,n}. \\] Then \\(i,j\\ge1\\), \\(q-i=t-(r+s-n)-1\\ge0\\), and \\(r-j=t-1\\ge0\\). Thus \\(q\\ge1\\), \\(1\\le t^\\vee=q-i+1\\le q\\), and \\[ t^\\vee\\le n-s\\iff t\\le r. \\] Therefore \\(1\\le t^\\vee\\le r^\\vee=q,s^\\vee=n-s\\le n\\), and \\[ t^\\vee-(r^\\vee+s^\\vee-n) =(q-i+1)-(q-s)=t>0. \\] Hence \\(v^\\vee\\) is bigrassmannian. Its parameters satisfy \\[ i^\\vee=j,\\quad j^\\vee=i,\\quad a^\\vee=\\min(r-j,q-i)=a,\\quad b^\\vee=\\min(j,i)=b. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The integral Schur involution \\(\\omega(s_\\lambda)=s_{\\lambda'}\\) is a ring involution of \\(\\Lambda\\). Since \\(\\lambda\\subseteq q^r\\iff\\lambda'\\subseteq r^q\\), it sends \\(I_{r,q}\\) onto \\(I_{q,r}\\), inducing \\[ \\bar\\omega:A_{r,q}\\xrightarrow{\\sim}A_{q,r}. \\] Moreover \\(i^j\\subseteq\\lambda\\iff j^i\\subseteq\\lambda'\\); hence \\(\\bar\\omega\\) bijects the two displayed interval Schur bases and \\[ \\bar\\omega(J_v)=J_{v^\\vee}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "Theorem 1.2 applies to every bigrassmannian \\(v_{r,s,t,n}\\), defines \\(i,j,a,b\\) as above, and states minimality of \\(\\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\) in the integral quotient. [doi:10.1112/jlms.12832, lines 68-78] [doi:10.1112/jlms.12832, lines 95-110]",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "unknown-source",
+					"message": "External citation [doi:10.1112/jlms.12832, lines 68-78] is absent from the active literature source catalog.",
+					"sourceId": "doi:10.1112/jlms.12832"
+				},
+				{
+					"code": "unknown-source",
+					"message": "External citation [doi:10.1112/jlms.12832, lines 95-110] is absent from the active literature source catalog.",
+					"sourceId": "doi:10.1112/jlms.12832"
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-6 is source-backed but has no valid exact source locator."
+				}
+			]
+		},
+		{
+			"id": "claim-7",
+			"text": "Applying Theorem 1.2 to \\(v^\\vee\\) gives a minimal generating family bounded above by \\((j^i,b^a)\\). Since \\[ (j^i,b^a)'=((i+a)^b,i^{\\,j-b}), \\] its pullback under \\(\\bar\\omega^{-1}\\) is \\[ \\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}. \\] Ring isomorphisms preserve generation and minimality: a proper generating subfamily after pullback would map to a proper generating subfamily before pullback. This includes \\(a=0\\), with empty blocks omitted.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "The broader requested ten-step continuation, independent skeptic review, and post-review horizontal step are not evidenced in the supplied state; only this source certificate is established.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "4d06158e26d3c6fd9efd523107dc6ab6bffbfdfa5cddb69e3a2f21fe99c6759c"
+}

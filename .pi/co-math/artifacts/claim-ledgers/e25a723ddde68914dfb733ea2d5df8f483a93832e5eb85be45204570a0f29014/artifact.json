@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-102-1",
+	"taskId": "research-plan-task-102",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral interval/Schur/Pieri presentation for \\(p=c=1\\), the literal all-degree certificate is established: for every \\(0\\le k\\le i+j+1\\), the admissible \\(P_{x,k-x}\\), including the terminal class, and all one- and two-term Pieri rows are classified below, and their lattice equals \\((A_+M)_{d+k}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "2ced9f634b292d35f0a23c7e98ce1422756aa2f825c11f86dd32582ad85d3c1c"
+}

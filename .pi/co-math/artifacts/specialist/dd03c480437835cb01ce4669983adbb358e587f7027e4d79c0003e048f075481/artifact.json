@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-81-1",
+	"text": "## Claims\n- [unsupported] The supplied record contains no retrievable raw byte stream for artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`; therefore its length, encoding, line endings, SHA-256 verification, provenance, and requested locators cannot be certified. [artifact a739eee4c9253c3d38fbd3463d22edf21f622707d712ea269bbe57cf21fccab8, lines 1-26]\n\n## Strategy\nNo reconstruction from a digest or prior summary was attempted.\n\n## Gaps\nMissing raw bytes, stable retrieval locator, detached manifest, digest-declaration location, and bounded excerpts/line ranges for hypotheses, equation (1), and fifteen table-(4) entries.\n\n## Next\nThis source certificate is not established."
+}

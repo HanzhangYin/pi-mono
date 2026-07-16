@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-70-1",
+	"taskId": "research-plan-task-70",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied records identify `sources/0809.2981v2.tex` as the primary TeX source and give its relevant paper locations as lines 1380–1421 and 1489–1552. [source-4@L20-L28|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-4"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-4",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 20,
+						"end": 28
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "README.md",
+					"sourceFileSha256": "95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac",
+					"regionKind": "ordinary-document",
+					"excerpt": "20: In the TeX source:\n21: \n22: - Theorem defining the two generating sets: lines 1380–1421.\n23: - Formally labeled minimality conjecture and computational evidence: lines 1489–1502.\n24: - Exponential lower-bound consequence: lines 1504–1515.\n25: - Stronger quotient-module formulation: lines 1517–1552.\n26: - Related open question: lines 1897–1935.\n27: \n28: The line references above apply to the archived file `sources/0809.2981v2.tex` in this directory.",
+					"excerptSha256": "5942a9e6aa9c828b5b8fce34ec1fd860e81d186516c9f418f41c9a97bb6bf75b",
+					"canonicalCitation": "[source-4@L20-L28|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The supplied excerpts do not contain `research-attempt-research-plan-task-68-1` or an equation/table labeled (4); hence its fifteen cases, column orders, selected-row convention, and intended \\(R_{\\mathrm{full}}\\) cannot be transcribed without inference.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "8dc0cd95e5ebd61d498159d7c6da40a349f515d419ab66a01a18918ed62859dc"
+}

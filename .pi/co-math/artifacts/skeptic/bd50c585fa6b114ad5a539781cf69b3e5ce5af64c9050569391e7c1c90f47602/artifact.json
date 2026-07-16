@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-87-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 and claim-2 are grounded by exact excerpts.\n- claim-3 establishes only that the two supplied excerpts omit the requested presentation facts. It does not document inspection of the other identified relevant source ranges or establish that the available source itself omits them.\n\n## Unresolved certificates\n- [source-refresh] Inspect the remaining relevant ranges of `sources/0809.2981v2.tex` and provide bounded exact excerpts grounding both presentation facts, or stable locators and a precise source-wide omission finding if they are absent."
+}

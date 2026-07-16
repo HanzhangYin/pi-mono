@@ -1,0 +1,26 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-115-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-114-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-114-1 · specialist · ARTIFACT 96415057804fdf32476f64ebbcd8bcb643dd0fc6afc766068e8adbc4177ac46a
+000004	## Claims
+000005	- [unsupported] No successful task-owned computation artifact for the specified five-row interval is supplied; all three supplied executions exited nonzero.
+000006	
+000007	## Strategy
+000008	The requested certificate requires a successful exact computation with complete output. The supplied artifacts `d1a7675d91f3fb31a85fcca73b98d02e19723fc79a2e4382db1bf51b3ce7efb0`, `23e9ef1280fa2e247cbb7443adc6d9c54cc879b4c3faa5170aa02faa4bc9a5fb`, and `28c3dbb2f4b8f375c6d4f9643f29a1987bac2b24439b69663488289aa6f94bd5` all failed, so none certifies bases, rows, Smith data, or torsion.
+000009	
+000010	## Gaps
+000011	The exact ordered bases, complete Pieri rows, Smith diagonals, quotient ranks, torsion decompositions, and boundary vanishing for \((2,2)\subseteq\lambda\subseteq(4^5)\) remain uncomputed in a successful task-owned artifact.
+000012	
+000013	## Next
+000014	This certificate is not established.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-114-1 · critic · ARTIFACT bb034d29128d7d38d021e2bbe914c3ba9b0598bdbeee2af3e9199e71743f920c
+000017	## Critique
+000018	- claim-1: The conclusion that the certificate is not established is correct. No successful \(4^5\) computation or complete output is supplied. However, the assertion that the three named executions exited nonzero is itself unsupported here because their execution logs and exit statuses are absent. The available successful artifact computes the wrong \(4^4\) interval and cannot certify this task.
+000019	
+000020	## Repair certificates
+000021	- [computation] Execute the exact `partition-pieri` primitive with `lower=[2,2,0,0,0]`, `upper=[4,4,4,4,4]`, `degrees=[4,5,...,20]`, and `hDegrees=[1,2,3,4]`. Preserve a successful task-owned artifact containing, degreewise, every ordered partition basis, every Pieri row with its source and coefficient vector, matrix dimensions, exact rank, determinantal divisors, Smith diagonal, quotient free rank, and torsion summands.
+000022	
+000023	## Required revisions
+000024	- Supply the successful execution record, captured complete output, exit status \(0\), and stable artifact digest.
+000025	- Explicitly record that the interval module and relation lattice vanish in degrees \(e<4\) and \(e>20\), and include the empty-row boundary at \(e=4\).
+000026	- Conclude only whether this bounded \(4^5\) certificate is established; make no parent-theorem inference.

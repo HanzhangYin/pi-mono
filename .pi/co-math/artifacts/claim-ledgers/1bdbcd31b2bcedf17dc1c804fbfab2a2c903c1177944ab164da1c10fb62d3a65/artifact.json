@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-93-1",
+	"taskId": "research-plan-task-93",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on task 85’s interval presentation and complete \\(h_1\\)-row hypothesis, for \\(0\\le k\\le b=\\min(i,j)\\), \\[ M_{d+k}/L_k\\cong\\mathbb Z,\\qquad [C_x]=(-1)^x[C_0]\\quad(0\\le x\\le k), \\] where \\(C_x=P_{x,k-x}\\). The isomorphism sends \\([C_0]\\) to \\(1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Put \\[ X_k=P_{k,0}=s_{((i+1)^k,i^{j-k})},\\qquad Y_k=P_{0,k}=s_{(i^j,k)}. \\] Then degreewise \\[ [X_k]=(-1)^k[Y_k],\\qquad [Y_k]=(-1)^k[X_k]. \\] Thus the change-of-basis matrix from the horizontal endpoint basis \\(([X_k])\\) to the vertical endpoint basis \\(([Y_k])\\) is the \\(1\\times1\\) matrix \\(\\bigl((-1)^k\\bigr)\\), for every \\(0\\le k\\le b\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The requested truncated conditional target is established; no globalization claim is made.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "155a9a46bc94fc3e29ccef20d02bfd5d61d237cdc5cae35b84e35f4ad09d3d7e"
+}

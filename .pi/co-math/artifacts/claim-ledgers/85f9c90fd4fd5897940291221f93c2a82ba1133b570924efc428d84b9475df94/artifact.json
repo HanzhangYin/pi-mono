@@ -1,0 +1,40 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-82-1",
+	"taskId": "research-plan-task-82",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For target digest `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, the supplied record provides no raw byte stream, detached manifest, stable retrieval locator, bounded target excerpts, provenance record, digest-declaration classification, or executable successful SHA-256 verification. Therefore the named source certificate is not established.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The only supplied stable locator concerning the failed prior attempt is the immutable draft snapshot `artifacts/internal-sources/583d92a25db99e366502908ec694c6edd5968aa717c67c7bca340e909b3ae12d/artifact.txt@L1-L26`; it is expressly a bounded snapshot of draft artifacts, not the target byte stream. [artifact 583d92a25db99e366502908ec694c6edd5968aa717c67c7bca340e909b3ae12d, lines 1-26]",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-2 is source-backed but has no valid exact source locator."
+				}
+			]
+		},
+		{
+			"id": "claim-3",
+			"text": "The opening hypotheses, equation (1), and fifteen table-(4) entries of the intended target are unavailable here; no exact excerpts or content reconstruction is justified.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5b470832d46f8a97100afa66b4ede93e7f53ecf271fcbc89217b8bcfe63cebd7"
+}

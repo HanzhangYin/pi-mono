@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-274-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-4: The partition table is incorrect at \\(|\\rho|=5\\). For \\(\\rho\\subseteq3^2\\), only \\((3,2)\\) occurs; \\((2,2,1)\\) has three nonzero parts and is not contained in \\(3^2\\). The stated coefficient sequence is otherwise consistent with the corrected table.\n\n## Unresolved certificates\n- [proof-attempt] Correct the \\(|\\rho|=5\\) row to \\(\\{(3,2)\\}\\), then restate the exact requested certificate without changing its bounded conclusions."
+}

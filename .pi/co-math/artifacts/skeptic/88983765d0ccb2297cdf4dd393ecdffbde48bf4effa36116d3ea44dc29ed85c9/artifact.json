@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-48-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- No blocking concerns. Claim-1 is established within the stipulated integral box/Pieri presentation by exhaustive partition enumeration and homogeneous-component equalities.\n- Claim-2 correctly incorporates the accepted boundary matrix and unit determinant \\(-1\\).\n- The certificate does not establish any higher-degree or parent-theorem conclusion."
+}

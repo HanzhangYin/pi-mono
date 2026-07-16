@@ -1,0 +1,77 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-213-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-212-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-212-1 · specialist · ARTIFACT 4867fd3decca24923090450119aa823db5ebe739ba269eb788390e03ad9d649c
+000004	## Claims
+000005	- [source-backed] For \(v_{r,s,t,n}\), \(i=s-t+1\), \(j=r-t+1\), and Theorem 4.8 gives the lower-adjoined generating family \(\{s_\mu:i^j\subseteq\mu\subseteq(i^j,b^a)\}\), of cardinality \(\binom{a+b}{a}\). [doi:10.1090/s0002-9947-2010-05163-3, lines 847-891]
+000006	- [source-backed] For \(n=4m\), \(r=n-r=2m\), and \(i=j=m\), one has \(a=b=m\) and \(J_{v_{r,s,t,n}}=I_{w_{r,s,t,n}}\). [doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]
+000007	- [proved] Assuming the accepted internal minimality theorem in its numerical form, the ideal
+000008	  \[
+000009	  I_{w_{2m,2m,m+1,4m}}
+000010	  \]
+000011	  requires at least \(\binom{2m}{m}\) homogeneous generators; hence it has an exponential generator lower bound.
+000012	
+000013	## Strategy
+000014	Let
+000015	\[
+000016	v_m=v_{2m,2m,m+1,4m}.
+000017	\]
+000018	It is admissible, and
+000019	\[
+000020	i=s-t+1=m,\qquad j=r-t+1=m,\qquad
+000021	a=\min(2m-m,2m-m)=m,\quad b=m.
+000022	\]
+000023	The lower-adjoined family is therefore
+000024	\[
+000025	\mathcal F_m=\{\bar s_\mu:m^m\subseteq\mu\subseteq m^{2m}\}.
+000026	\]
+000027	Its members correspond to partitions inside an \(m\times m\) rectangle, hence
+000028	\[
+000029	|\mathcal F_m|=\binom{2m}{m}.
+000030	\]
+000031	The accepted internal minimality theorem gives
+000032	\[
+000033	\mu(J_{v_m})=|\mathcal F_m|=\binom{2m}{m}.
+000034	\]
+000035	The cited reduction gives \(J_{v_m}=I_{w_{2m,2m,m+1,4m}}\), so
+000036	\[
+000037	\mu(I_{w_{2m,2m,m+1,4m}})=\binom{2m}{m}.
+000038	\]
+000039	Finally,
+000040	\[
+000041	\binom{2m}{m}\ge \frac{4^m}{2m+1}
+000042	=\frac{2^{n/2}}{n/2+1}\qquad(n=4m),
+000043	\]
+000044	which is exponential in \(n\). The sharper asymptotic is
+000045	\[
+000046	\binom{2m}{m}\sim\frac{4^m}{\sqrt{\pi m}}
+000047	=\frac{\sqrt2^{\,n+2}}{\sqrt{\pi n}}.
+000048	\]
+000049	
+000050	## Gaps
+000051	The deduction requires the internal minimality theorem to assert a numerical lower bound (or equivalent indecomposable-rank statement), not merely inclusion-irredundancy of \(\mathcal F_m\).
+000052	
+000053	## Next
+000054	The requested exponential lower-bound corollary is established relative to that accepted internal theorem.
+000055	
+000056	INTERNAL ATTEMPT research-attempt-research-plan-task-212-1 · critic · ARTIFACT fe49a1c3d33e037d339a124473d8f0334d3d8f5ac48fc7c8f06cd0f76be8516f
+000057	## Critique
+000058	- claim-1: Correctly grounded. The parameter formulas, generating family, and cardinality \(\binom{a+b}{a}\) are supported by the cited passage.
+000059	- claim-2: Correctly grounded for \(a=b=m\) and \(J_v=I_w\). The strategy also correctly derives \(s=2m\) and \(t=m+1\), so \(v=v_{2m,2m,m+1,4m}\); admissibility should be stated explicitly for \(m\ge1\). The conjectural generator count in lines 942–955 must not itself be used as proof.
+000060	- claim-3: Not established as written. The argument assumes, without identifying an accepted theorem with the required numerical conclusion, that
+000061	  \[
+000062	  \mu(J_{v_m})=\binom{2m}{m}.
+000063	  \]
+000064	  Inclusion-minimality of the displayed family alone does not imply that no smaller homogeneous generating family exists over \(\mathbb Z\). A numerical generator theorem, an indecomposables-rank statement, or an equivalent graded Nakayama certificate is required. The ambient ring must also be fixed: if minimality is proved in \(\Lambda/I_{2m,2m}\) while \(I_w\) is considered in the full coinvariant algebra, equality of the underlying ideals does not by itself establish preservation of generator number without the precise reduction. Conditional on those two points, the parameter calculation, cardinality, and bound
+000065	  \[
+000066	  \binom{2m}{m}\ge \frac{4^m}{2m+1}
+000067	  \]
+000068	  are correct.
+000069	
+000070	## Repair certificates
+000071	- [proof-attempt] State and invoke the exact internal theorem asserting that \(J_{v_m}\) requires \(\binom{2m}{m}\) homogeneous generators—not merely that the displayed family is inclusion-minimal—and prove that the source-30 \(J_{v_m}\)-to-\(I_{w_{2m,2m,m+1,4m}}\) reduction preserves this generator number in the specified ambient graded ring.
+000072	
+000073	## Required revisions
+000074	- Define the homogeneous generator number and coefficient/ambient ring.
+000075	- Replace “assuming the accepted internal minimality theorem in its numerical form” with an exact theorem invocation and hypotheses.
+000076	- Separate the proved equality \(J_v=I_w\) from source-30’s conjectural lower-bound language.
+000077	- Explicitly state: **the requested standalone lower-bound corollary is not yet established by the supplied proof; only a conditional deduction is established.**

@@ -1,0 +1,74 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-176-1",
+	"taskId": "research-plan-task-176",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The inspected formal source calls \\(\\omega\\) a “ring involution” and specifies \\(s_\\lambda\\mapsto s_{\\lambda'}\\); it also states that this sends \\(I_{r,n-r}\\) to \\(I_{n-r,r}\\). [source-2@L1758-L1767|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1758,
+						"end": 1767
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1758:   The proof of the second statement will follow from the first, via the\n1759: well-known ring involution $\\omega$ on symmmetric functions defined by\n1760: $$\n1761: \\begin{aligned}\n1762: \\Lambda &\\overset{\\omega}{\\rightarrow} \\Lambda \\\\\n1763: s_\\lambda &\\longmapsto s_{\\lambda'}\n1764: \\end{aligned}\n1765: $$\n1766: where $\\lambda'$ is the conjugate partition to $\\lambda$.  This means\n1767: that $\\omega$ sends the ideal $I_{r,n-r}$ to the ideal $I_{n-r,r}$.",
+					"excerptSha256": "8a176cc0562526b264b31ada1c5c64d2cb0420c621e38bbdf851872a80b08502",
+					"canonicalCitation": "[source-2@L1758-L1767|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "In the integral model \\(\\Lambda=\\mathbb Z[h_1,h_2,\\ldots]\\), define \\(e_m\\) by \\(H(z)E(-z)=1\\), where \\(H(z)=\\sum_{m\\ge0}h_mz^m\\), \\(E(z)=\\sum_{m\\ge0}e_mz^m\\). The coefficient recurrence shows each \\(e_m\\in\\mathbb Z[h_1,\\ldots,h_m]\\); hence \\(h_m\\mapsto e_m\\) defines an integral ring endomorphism \\(\\omega\\). Applying \\(\\omega\\) to \\(H(z)E(-z)=1\\) gives \\(\\omega(e_m)=h_m\\), so \\(\\omega^2=\\mathrm{id}_\\Lambda\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Jacobi–Trudi and dual Jacobi–Trudi give \\[ s_\\lambda=\\det(h_{\\lambda_a-a+b}),\\qquad s_{\\lambda'}=\\det(e_{\\lambda_a-a+b}). \\] Therefore \\(\\omega(s_\\lambda)=s_{\\lambda'}\\) for every partition \\(\\lambda\\). Thus the source’s displayed assignment is an integral ring involution, not merely a \\(\\mathbb Z\\)-linear basis permutation.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "For \\(r,q\\ge0\\), with \\[ I_{r,q}=\\bigoplus_{\\lambda\\nsubseteq q^r}\\mathbb Zs_\\lambda, \\] rectangle transposition gives \\(\\lambda\\subseteq q^r\\iff\\lambda'\\subseteq r^q\\); hence \\(\\omega(I_{r,q})=I_{q,r}\\) and induces an integral ring isomorphism \\[ \\bar\\omega_{r,q}:\\Lambda/I_{r,q}\\xrightarrow{\\sim}\\Lambda/I_{q,r}, \\qquad \\bar s_\\lambda\\mapsto\\bar s_{\\lambda'}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "For interval ideals \\[ J_{r,q;i,j}:=\\bigoplus_{\\,i^j\\subseteq\\lambda\\subseteq q^r}\\mathbb Z\\bar s_\\lambda \\quad(0\\le i\\le q,\\ 0\\le j\\le r), \\] one has \\(i^j\\subseteq\\lambda\\iff j^i\\subseteq\\lambda'\\). Hence, basiswise, \\[ \\bar\\omega_{r,q}(J_{r,q;i,j}) =\\bigoplus_{\\,j^i\\subseteq\\nu\\subseteq r^q}\\mathbb Z\\bar s_\\nu =J_{q,r;j,i}. \\] The equivalence also holds when \\(i=0\\) or \\(j=0\\), since both rectangles are empty.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e56394145a09e32a546563314e65f2e6905c5830e8562f4c34b744232df60295"
+}

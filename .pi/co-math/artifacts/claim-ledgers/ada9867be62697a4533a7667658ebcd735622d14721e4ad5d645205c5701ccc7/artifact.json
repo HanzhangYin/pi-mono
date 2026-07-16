@@ -1,0 +1,199 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-32-1",
+	"taskId": "research-plan-task-32",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The formal conjecture is that both Theorem 5.4 generating sets for \\(J_{v_{r,s,t,n}}\\) are minimal. [source-6@L10-L16|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 10,
+						"end": 16
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "10: ## 1. The formally stated conjecture\n11: \n12: ### Minimality conjecture\n13: \n14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.",
+					"excerptSha256": "b3a1f3f0d3483b7a90e2f598daf35a06ce13f30d053db6dc7e8b472699d1bc79",
+					"canonicalCitation": "[source-6@L10-L16|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The stronger suspected statement is \\(J_v/\\Lambda_+J_v\\cong\\mathbb Z^{\\binom{a+b}{a}}\\), where \\(a=\\min(n-r-i,r-j)\\) and \\(b=\\min(i,j)\\). [source-6@L18-L21|claim=ordinary-document] [source-6@L56-L70|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 18,
+						"end": 21
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).",
+					"excerptSha256": "e8e6b40d323eadcd3478d6a6cb65fb14a94524b2baf17e55949822c71efd1ade",
+					"canonicalCitation": "[source-6@L18-L21|claim=ordinary-document]"
+				},
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 56,
+						"end": 70
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "56: ## 3. Stronger suspected formulation\n57: \n58: Set \\(M=J_{v_{r,s,t,n}}\\), and let \\(\\Lambda_+\\) denote the positive-degree part of the ring of symmetric functions. The authors further conjecture that\n59: \n60: \\[\n61: M/\\Lambda_+M\n62: \\]\n63: \n64: requires \\(\\binom{a+b}{a}\\) generators. They suspect the stronger structural statement\n65: \n66: \\[\n67: M/\\Lambda_+M\\cong\\mathbb Z^{\\binom{a+b}{a}}.\n68: \\]\n69: \n70: This is presented in prose rather than as a second numbered conjecture. The authors write that a proof had eluded them.",
+					"excerptSha256": "afa1647d3d1ea7882118913c77de6fe917f975092477e0e412d487c7c59f5e08",
+					"canonicalCitation": "[source-6@L56-L70|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The authors report computational verification only for \\(r\\le4\\) and \\(q=n-r\\le5\\). [source-6@L46-L54|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 46,
+						"end": 54
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "46: ## 2. Evidence reported by the authors\n47: \n48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]\n53: \n54: **Primary-source location:** lines 1501–1502.",
+					"excerptSha256": "9fe1db2374940bdad6459339c8767cafd54e7f1ea4a5ba5b4bb8710ff9de4109",
+					"canonicalCitation": "[source-6@L46-L54|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "A separate open question asks for minimal generating sets for general type-\\(A\\) ideals \\(I_w\\). [source-6@L88-L102|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 88,
+						"end": 102
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "88: ## 5. Related open question\n89: \n90: The final section asks:\n91: \n92: > Can one find a minimal generating set for the ideal \\(I_w\\) in type \\(A_{n-1}\\)?\n93: \n94: The authors ask whether this can at least be done for subclasses already known to admit generating sets of size \\(n^2\\), including:\n95: \n96: 1. Schubert varieties defined by inclusions, characterized there by avoidance of\n97:    \\(\\{4231,35142,42513,351624\\}\\);\n98: 2. smooth Schubert varieties, characterized by avoidance of \\(\\{3412,4231\\}\\).\n99: \n100: This is an open question, not another formally labeled conjecture.\n101: \n102: **Primary-source location:** lines 1897–1935.",
+					"excerptSha256": "af003cd81d1f5cefbfa36c69a11204931ae9d0667ab7921c7bde0f40cf2829dd",
+					"canonicalCitation": "[source-6@L88-L102|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "For \\(i=j=1\\), \\(a=\\min(q-1,r-1)\\), \\(b=1\\), and \\(N=\\binom{a+1}{a}=\\min(r,q)\\); the two displayed families specialize to \\(\\{h_1,\\ldots,h_{\\min(r,q)}\\}\\) and \\(\\{e_1,\\ldots,e_{\\min(r,q)}\\}\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "If \\(a=0\\), equivalently \\(i=q\\) or \\(j=r\\) under \\(1\\le i\\le q,\\ 1\\le j\\le r\\), then \\(N=1\\); both proposed families are the singleton \\(\\{s_{i^j}\\}\\). These are trivial minimality cases provided \\(s_{i^j}\\ne0\\) and Theorem 5.4’s generation assertion is used.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "The smallest interior case with \\(b>1\\) is \\((r,q,i,j)=(3,3,2,2)\\), where \\(a=1\\), \\(b=2\\), \\(N=3\\), and the two families are \\((22,32,33)\\) and \\((22,221,222)\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "The prior finite certificate for \\((r,q,i,j)=(5,6,2,2)\\) gives \\(N=10\\), quotient \\(\\mathbb Z^{10}\\), and basis candidates \\(F_1=(22,32,33,42,43,52,44,53,54,55)\\) and \\(F_2=(22,221,2211,222,22111,2221,22211,2222,22221,22222)\\); it supports the conjecture conditionally on the Pieri presentation and generation hypotheses. [artifact 0b05e147fd3b8f028a0683ee0de19704b04f214954cc0d8c387547f8371d7299]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-9",
+			"text": "The attempted fresh computation timed out after 10 seconds, producing no new example, counterexample, or independent verification. [artifact a52fff03e3b77fa37fcd06e5d5f57b064ca0a2f89b10901aaa4bb057bfd6006b]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-10",
+			"text": "No counterexample to minimality is supplied or obtained here.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "dc42e4bf1c59ca51e01aa3d1697323df7a2aa05d104076d0c132162f308de581"
+}

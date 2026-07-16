@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-288-1",
+	"taskId": "research-plan-task-288",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "From artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602`, \\(Q_d\\) is torsion-free of ranks \\(1,1,2,1,1\\) in degrees \\(6,7,8,9,10\\), respectively. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "With quotient bases \\[ B_6=(222),\\ B_7=(2221),\\ B_8=(2222,22211),\\ B_9=(22221),\\ B_{10}=(22222), \\] the coordinates of \\(G_L\\) are the identity degreewise, while those of \\(G_R\\) are \\[ [222]_{B_6}=(1),\\quad [322]_{B_7}=(-1), \\] \\[ ([422]_{B_8},[332]_{B_8})= \\begin{pmatrix}0&1\\\\1&0\\end{pmatrix}, \\quad [432]_{B_9}=(-1),\\quad[442]_{B_{10}}=(1). \\] [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Thus the degreewise transition matrices \\(T_d\\), defined by \\([G_R]_Q=[G_L]_Q\\,T_d\\), are \\[ T_6=(1),\\quad T_7=(-1),\\quad T_8=\\begin{pmatrix}0&1\\\\1&0\\end{pmatrix},\\quad T_9=(-1),\\quad T_{10}=(1), \\] each unimodular. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "cd8b8f938288de72e501ffa6933ad7daa6a953b2b54d9ae5653d51e5244ed224"
+}

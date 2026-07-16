@@ -1,0 +1,112 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-44-1",
+	"taskId": "research-plan-task-44",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The later-paper candidate is Avery St. Dizier–Alexander Yong, *Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture*, DOI \\(10.1112/jlms.12832\\); its abstract states that it proves the minimality conjecture using the Hopf-algebra structure of symmetric functions. [doi:10.1112/jlms.12832]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://doi.org/10.1112/jlms.12832"
+					},
+					"excerpt": "Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture\nAbstract A minimal presentation of the cohomology ring of the flag manifold was given in A. Borel (1953). This presentation was extended by E. Akyildiz–A. Lascoux–P. Pragacz (1992) to a nonminimal one for all Schubert varieties. Work of V. Gasharov–V. Reiner (2002) gave a short, that is, polynomial‐size, presentation for a subclass of Schubert varieties that includes the smooth ones. In V. Reiner–A. Woo–A. Yong (2011), a general shortening was found; it implies an exponential upper bound of on the number of generators required. That work states a minimality conjecture whose significance would be an exponential lower bound of on the number of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.",
+					"excerptSha256": "76d12393d0988cbc5ab837a74aad77818d23fcf7f1af68207547be075f3c5c77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The supplied exact text defines the earlier paper’s \\(J_v\\) by \\(J_v:=\\Bbbk\\text{-span}\\{\\sigma_u:u\\ge v\\}\\). [source-2@L328-L337|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 328,
+						"end": 337
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "328: flags satisfying certain specific conditions derived from $w$ of the\n329: form $\\dim_\\CC (V_r \\cap \\CC^s)\\geq t$.  The bigrassmannians $v$\n330: comprising $\\Ess(w)$ correspond to Fulton's {\\it essential Schubert\n331:   conditions}, a minimal list of such conditions defining the Schubert\n332: variety $X_w$.  Our second main result (Theorem~\\ref{J-generators})\n333: provides for each bigrassmannian $v$ in $W=S_n$ a generating set for the ideal\n334: \\begin{equation}\n335: \\label{eqn:J_vgenset}\n336: J_v:=\\Bbbk\\text{-span of }\\{ \\sigma_u: u \\geq v \\}\n337: \\end{equation}",
+					"excerptSha256": "69037c638aa8350ebafa87b7d68c97b688891c03e0c8743d9bd4be2c6c058f5c",
+					"canonicalCitation": "[source-2@L328-L337|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The earlier paper introduces \\(\\Bbbk\\) as a field of characteristic zero in its Borel-presentation setup. [source-2@L125-L139|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 125,
+						"end": 139
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "125: The cohomology of the generalized flag manifold $G/B$, for any complex\n126: semisimple algebraic group $G$ and Borel subgroup $B$, has a classical\n127: presentation due to Borel \\cite{Borel}.  Pick a maximal torus\n128: $T\\subset B\\subset G$, choose a field $\\Bbbk$ of characteristic zero, and let\n129: $V=\\Bbbk\\otimes_{\\ZZ} X(T)$, where $X(T)$ is the coweight lattice of\n130: $T$.  Let $\\Bbbk[V]:=\\Sym(V^{\\star})$ be the symmetric algebra for\n131: $V^{\\star}$; it naturally carries an action of the Weyl group $W :=\n132: N_G(T)/T$.  Furthermore let $\\Bbbk[V]^W$ be the ring of $W$-invariants\n133: of $\\Bbbk[V]$, and $\\Bbbk[V]^W_+$ the ideal of $\\Bbbk[V]$ generated by\n134: the $W$-invariants of positive degree.  A classical theorem of Borel\n135: \\cite{Borel} states that\n136: \\begin{equation}\n137: \\label{Borel-presentation}\n138: H^*(G/B,\\Bbbk) \\cong \\Bbbk[V]/(\\Bbbk[V]^W_+).\n139: \\end{equation}",
+					"excerptSha256": "9ee472ed79a5688896b1d01772f1fc1393530687d0dac0eac36723cc8947d442",
+					"canonicalCitation": "[source-2@L125-L139|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "No indexed full-text passage from the later paper is supplied; therefore its exact definitions, theorem number(s), coefficient ring, and the precise map relating its \\(J_v\\) to \\(\\Lambda/I_{r,n-r}\\) cannot be recorded.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The DOI abstract alone does not establish an integral Schur-span description of \\(J_v\\), an integral box-algebra identification, or hypotheses under which such an identification holds.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "46c453c2eda479f6013a17c3b58bbadf41dd2a503ff6455783e0b98cbe9433d4"
+}

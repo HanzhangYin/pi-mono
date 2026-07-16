@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-323-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is adjacent source-2 material and does not satisfy the task.\n- claim-2 establishes only that the supplied materials lack the task-313 statement; the required retrieval and bounded stable excerpt were not produced.\n- The draft correctly states that the requested target is **not established**, but therefore does not meet the retrieval acceptance criterion.\n\n## Unresolved certificates\n- [source-refresh] Retrieve the persisted `research-plan-task-313` record and preserve one bounded stable excerpt, with immutable identifier, locator, and digest, containing the exact identity; ranges for \\(\\rho,a,b,j,q,r\\); both indexed shapes; congruence modulus; \\(h_0=1\\); \\(h_k=0\\) for \\(k<0\\); and the prescribed row/column ordering."
+}

@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-166-1",
+	"taskId": "research-plan-task-166",
+	"summary": "Persist a task-owned certificate reproducing the supplied arXiv provider-record identifier and exact title/summary fields for arXiv:0809.2981v2; no network or file access.",
+	"script": "record = {\n  'provider': 'arXiv',\n  'stableExternalIdentifier': 'arXiv:0809.2981v2',\n  'providerRecordIdField': 'http://arxiv.org/abs/0809.2981v2',\n  'titleField': 'Presenting the cohomology of a Schubert variety',\n  'summaryField': \"We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.\"\n}\nassert record['stableExternalIdentifier'] == 'arXiv:0809.2981v2'\nassert record['providerRecordIdField'] == 'http://arxiv.org/abs/0809.2981v2'\nassert record['titleField'] == 'Presenting the cohomology of a Schubert variety'\nprint(record)",
+	"scriptSha256": "8e4005ae6e647b137b4b95785d676b2521f17b7a45c208b24edff99f30500887",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-166.py",
+		"exitCode": 0,
+		"stdout": "{'provider': 'arXiv', 'stableExternalIdentifier': 'arXiv:0809.2981v2', 'providerRecordIdField': 'http://arxiv.org/abs/0809.2981v2', 'titleField': 'Presenting the cohomology of a Schubert variety', 'summaryField': \"We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.\"}\n",
+		"stderr": "",
+		"durationMs": 26,
+		"scriptFileName": "attempt-research-plan-task-166.py",
+		"stdoutFileName": "attempt-research-plan-task-166.8e4005ae6e64.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-166.8e4005ae6e64.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-166.8e4005ae6e64.stdout.txt",
+			"sha256": "37b87a2ed89802dfec0060303bae2a662bfd0e3ec250172b8028b9ff17b6a422",
+			"content": "{'provider': 'arXiv', 'stableExternalIdentifier': 'arXiv:0809.2981v2', 'providerRecordIdField': 'http://arxiv.org/abs/0809.2981v2', 'titleField': 'Presenting the cohomology of a Schubert variety', 'summaryField': \"We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.\"}\n"
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-166.8e4005ae6e64.stderr.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		}
+	}
+}

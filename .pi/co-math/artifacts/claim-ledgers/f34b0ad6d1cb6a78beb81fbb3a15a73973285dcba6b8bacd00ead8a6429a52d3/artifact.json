@@ -1,0 +1,465 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-204-1",
+	"taskId": "research-plan-task-204",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Case-insensitive fixed-substring audit count: `conjecture` has 9 hits, at lines 202, 206, 938, 942, 945, 947, 955, 978, 1247. [doi:10.1090/s0002-9947-2010-05163-3, lines 202-206]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 202,
+							"end": 206
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "202: Actually, we conjecture that this smaller generating set for J_{v} in\n203: type A is minimal (although the generating set ( 1.6 )\n204: for I_{w} obtained by concatenation is not always minimal; see\n205: Example 4.12 .) The significance of this\n206: minimality conjecture, as explained in Section 4.5 , is that",
+					"excerptSha256": "8a0098599980d1c74443219b9314f7216b66de0626a7178abe4111be5698715a",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 202-206]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "L202: “we conjecture” informally asserts minimality of the smaller type-\\(A\\) generating set for \\(J_v\\); no additional hypotheses occur there. [doi:10.1090/s0002-9947-2010-05163-3, lines 202-205]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 202,
+							"end": 205
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "202: Actually, we conjecture that this smaller generating set for J_{v} in\n203: type A is minimal (although the generating set ( 1.6 )\n204: for I_{w} obtained by concatenation is not always minimal; see\n205: Example 4.12 .) The significance of this",
+					"excerptSha256": "d7c08929eb54fcbddc781bc6ea9624a1dd9179a0d286ca2e4a853d8f79f7133f",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 202-205]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "L206: “minimality conjecture” is cited for the conditional consequence that, if true, it gives an exponential lower bound on generators for \\(I_w\\) in type \\(A\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 206-211]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 206,
+							"end": 211
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "206: minimality conjecture, as explained in Section 4.5 , is that\n207: it implies an exponential lower bound of at least\n208: \\binom{n/2}{n/4}\\sim\\frac{{\\sqrt{2}}^{n+2}}{\\sqrt{\\pi n}}\n209: on the number of generators needed for I_{w}, accompanying our\n210: exponential upper bound of 2^{n}. Thus one would not be able to expect\n211: short presentations for H^{*}(X_{w}) in general, at least in type A.",
+					"excerptSha256": "606ac06d726193c2b1b82dc107dfdcd233cc218129e3552506e709c24010cf58",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 206-211]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "L938 is the section heading “A minimality conjecture”; it states no separate assertion or hypotheses. [doi:10.1090/s0002-9947-2010-05163-3, lines 938-941]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 938,
+							"end": 941
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "938: 4.5. A minimality conjecture\n939: As we shall see in a moment,\n940: our generators for I_{w} are not minimal. However,\n941: we believe the following holds:",
+					"excerptSha256": "f015fe01bcb9a44bf774f688d86196dd4451d8a70787af5b5e6dc17aa51a850b",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 938-941]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "L942, “Conjecture 4.10,” asserts: for a type-\\(A\\) bigrassmannian \\(v=v_{r,s,t,n}\\), both Theorem 4.8 families \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\\) and \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\) minimally generate \\(J_v\\), where \\(a=\\min(n-r-i,r-j)\\) and \\(b=\\min(i,j)\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 864-876]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 864,
+							"end": 876
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "864: Theorem 4.8 .\n865: Given a bigrassmannian v=v_{r,s,t,n} in type A_{n-1} with \\mathfrak{S}_{v}=s_{i^{j}}, let\n866: \\displaystyle a\n867: \\displaystyle:=\\min(n-r-i,r-j)\n868: \\displaystyle b\n869: \\displaystyle:=\\min(i,j).\n870: Then J_{v} is generated as an ideal of\n871: H^{\\star}(G/P_{J},{\\mathbb{Z}})\\cong\\Lambda/I_{r,n-r} by\n872: (4.5)\n873: \\{s_{\\mu}:i^{j}\\subseteq\\mu\\subseteq((i+a)^{b},i^{j-b})\\}.\n874: Alternatively, J_{v} is generated by\n875: (4.6)\n876: \\{s_{\\mu}:i^{j}\\subseteq\\mu\\subseteq(i^{j},b^{a})\\}.",
+					"excerptSha256": "bd2ea17c526ac1ce0df597464f646d25356b6dda09a4189f6808d6dc10c5cfd9",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 864-876]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "L945, “this conjecture,” reports finite computer verification only for bigrassmannian permutations with \\(r\\le4\\) and \\(n-r\\le5\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 942-946]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 942,
+							"end": 946
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "942: Conjecture 4.10 .\n943: The two generating sets for the ideal J_{v_{r,s,t,n}} given in Theorem 4.8\n944: are both minimal.\n945: Via computer, we have verified this conjecture for all bigrassmannian permutations\n946: where r\\leq 4 and n-r\\leq 5.",
+					"excerptSha256": "2637c54f2da45b9d95f2b844850f88cdb665a2ae8ab37534082e847319410af9",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 942-946]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "L947, “Conjecture 4.10,” invokes the same conditional minimality assertion for \\(n=4m\\), \\(r=n-r=2m\\), \\(i=j=m\\), hence \\(a=b=m\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 947-955]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 947,
+							"end": 955
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "947: In fact, Conjecture 4.10 indicates obstructions to short presentations of\n948: H^{\\star}(X_{w}) in general. We now give\n949: a family of ideals that would require a large number of generators if the conjecture is true.\n950: For a positive integer m, let n=4m, and consider in\n951: W=S_{n}=S_{4m} the bigrassmannian v_{r,s,t,n} that corresponds\n952: to r=n-r=2m and i=j=m. Then a=b=m, and J_{v_{r,s,t,n}}(=I_{w_{r,s,t,n}}) requires\n953: (4.9)\n954: \\binom{2m}{m}\\sim\\frac{4^{m}}{\\sqrt{\\pi m}}=\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}\n955: generators according to Conjecture 4.10 .",
+					"excerptSha256": "2f14555bea22e3e3cf178f8d691c833bab7dea6917d5f24fe1989a43ed3d1c2d",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 947-955]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "L955, “according to Conjecture 4.10,” gives the conditional generator count \\(\\binom{2m}{m}\\sim4^m/\\sqrt{\\pi m}=\\sqrt2^{\\,n+2}/\\sqrt{\\pi n}\\) under the preceding \\(m\\ge1\\) specialization. [doi:10.1090/s0002-9947-2010-05163-3, lines 950-955]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 950,
+							"end": 955
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "950: For a positive integer m, let n=4m, and consider in\n951: W=S_{n}=S_{4m} the bigrassmannian v_{r,s,t,n} that corresponds\n952: to r=n-r=2m and i=j=m. Then a=b=m, and J_{v_{r,s,t,n}}(=I_{w_{r,s,t,n}}) requires\n953: (4.9)\n954: \\binom{2m}{m}\\sim\\frac{4^{m}}{\\sqrt{\\pi m}}=\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}\n955: generators according to Conjecture 4.10 .",
+					"excerptSha256": "fd4e6c1bed5c4fc5bb74c15aa0dd688eaa174987fa5443747fd9de96be32eb4a",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 950-955]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-9",
+			"text": "L978, “we have conjectured,” repeats the minimality claim for the Theorem 4.8 families while explaining that their concatenation for \\(I_w=\\sum_{v\\in\\mathcal E(w)}J_v\\) need not be minimal. [doi:10.1090/s0002-9947-2010-05163-3, lines 977-994]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 977,
+							"end": 994
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "977: Since I_{w}=\\sum_{v\\in{\\mathcal{E}}(w)}J_{v}, and since we have\n978: conjectured that the generating sets provided by Theorem 4.8\n979: for J_{v} are minimal, one might wonder whether their\n980: concatentation gives a minimal generating set of I_{w}. As mentioned above, this turns\n981: out to be false in general.\n982: The smallest counterexample is given by w=1243, which has\n983: {\\mathcal{E}}(w)=\\{v_{1}=2134,v_{2}=1324\\}\n984: The generating sets given in Theorem 4.8 for the ideals J_{v_{1}} and J_{v_{2}} are\n985: \\displaystyle J_{v_{1}}\n986: \\displaystyle=\\langle s_{(1)}(x_{1})\\rangle=\\langle x_{1}\\rangle\n987: \\displaystyle J_{v_{2}}\n988: \\displaystyle=\\langle s_{(1)}(x_{1},x_{2}),\\quad s_{(2)}(x_{1},x_{2})\\rangle\\quad\\text{ or }\\quad\\langle s_{(1)}(x_{1},x_{2}),\\quad s_{(1,1)}(x_{1},x_{2})\\rangle\n989: \\displaystyle=\\langle x_{1}+x_{2},\\quad x_{1}^{2}+x_{1}x_{2}+x_{2}^{2}\\rangle\\text{ or }\\langle x_{1}+x_{2},\\quad x_{1}x_{2}\\rangle,\n990: and in each case they minimally generate their ideals J_{v_{i}}.\n991: However, concatenating them gives non-minimal generating sets for I_{w}, namely\n992: \\displaystyle I_{w}=J_{v_{1}}+J_{v_{2}}\n993: \\displaystyle=\\langle x_{1},\\quad x_{1}+x_{2},\\quad x_{1}^{2}+x_{1}x_{2}+x_{2}^{2}\\rangle\\quad\\text{ or }\\quad\\langle x_{1},\\quad x_{1}+x_{2},\\quad x_{1}x_{2}\\rangle\n994: \\displaystyle\\left(=\\langle x_{1},\\quad x_{1}+x_{2}\\rangle\\right).",
+					"excerptSha256": "43055a59cb1e42fbf1a09d47641334d81c2f129e7cb1a1d447286686b2336bd4",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 977-994]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-10",
+			"text": "L1247 contains the bibliographic title “a conjecture of Postnikov”; no assertion or hypotheses of that conjecture are given. [doi:10.1090/s0002-9947-2010-05163-3, lines 1245-1248]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 1245,
+							"end": 1248
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "1245: [HLSS07]\n1246: A. Hultman, S. Linusson, J. Shareshian, and J. Sjöstrand,\n1247: From Bruhat intervals to intersection lattices and a conjecture of Postnikov.\n1248: math arXiv:0710.1220 .",
+					"excerptSha256": "0965a385916e9eff97c09cf63d1b95ec7c42044b30a24206344f83ae13b65702",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 1245-1248]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-11",
+			"text": "Case-insensitive fixed-substring audit count: `question` has 3 hits, at lines 104, 1143, 1144. [doi:10.1090/s0002-9947-2010-05163-3, lines 104-106]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 104,
+							"end": 106
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "104: The question of finding\n105: simple presentations of I_{w} for other root systems appears to\n106: have been less studied.",
+					"excerptSha256": "1ecbb75016f14896e4d650736193b8e8e35177175b0ab95aec3bfc7fbb36ff3b",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 104-106]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-12",
+			"text": "L104 says that finding simple presentations of \\(I_w\\) for root systems other than type \\(A\\) “appears to have been less studied”; it is commentary, not a formally posed question. [doi:10.1090/s0002-9947-2010-05163-3, lines 104-106]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 104,
+							"end": 106
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "104: The question of finding\n105: simple presentations of I_{w} for other root systems appears to\n106: have been less studied.",
+					"excerptSha256": "1ecbb75016f14896e4d650736193b8e8e35177175b0ab95aec3bfc7fbb36ff3b",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 104-106]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-13",
+			"text": "L1143 is the heading “A question,” with no standalone assertion or hypotheses. [doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1144]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 1143,
+							"end": 1144
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "1143: 5. A question\n1144: Question 5.1 .",
+					"excerptSha256": "9cd0801b3df6b80e395e7ea396056017b34632417ce8f4a9a3fe66da5a4b5602",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1144]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-14",
+			"text": "L1144, “Question 5.1,” asks for a minimal generating set of \\(I_w\\) in type \\(A_{n-1}\\), at least for \\(n^2\\)-generated subclasses: inclusion-defined \\(X_w\\) avoiding \\(\\{4231,35142,42513,351624\\}\\), or smooth \\(X_w\\) avoiding \\(\\{3412,4231\\}\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 1144-1161]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 1144,
+							"end": 1161
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "1144: Question 5.1 .\n1145: Can one find a minimal generating set for the ideal I_{w} in type A_{n-1}?\n1146: Can this at least be done for some of the\n1147: recently-studied subclasses [ GR02 , HLSS07 , OPY07 ]\n1148: where I_{w} can be generated by n^{2} elements, such as\n1149: \\bullet\n1150: when X_{w} is defined by inclusions , which occurs when w avoids the\n1151: patterns\n1152: \\{4231,35142,42513,351624\\},\n1153: \\bullet\n1154: or more restrictively, when X_{w} is smooth , which occurs when w avoids the\n1155: patterns\n1156: \\{3412,4231\\}?\n1157: It was mentioned in the introduction that for\n1158: a special subclass of smooth Schubert varieties X_{w} originally considered by Ding [ D97 , D01 ] ,\n1159: there is a known minimal (in fact, complete intersection) presentation for H^{*}(X_{w},{\\mathbb{Z}}) with n\n1160: relations that was exploited in [ DMR07 ] . Short presentations would be\n1161: useful to extend that work further.",
+					"excerptSha256": "2c111d3a1af3ba907adf8319d3d309bbccf05260420ef2b1da0c630bdb457d67",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 1144-1161]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-15",
+			"text": "The fixed-string counts for `problem`, `we ask`, and `remains open` are each \\(0\\). [doi:10.1090/s0002-9947-2010-05163-3, lines 1-1299]",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "invalid-range",
+					"message": "External citation [doi:10.1090/s0002-9947-2010-05163-3, lines 1-1299] has an invalid or over-200-line range.",
+					"sourceId": "literature-candidate-1",
+					"lines": {
+						"start": 1,
+						"end": 1299
+					}
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-15 is source-backed but has no valid exact source locator."
+				}
+			]
+		}
+	],
+	"sha256": "c48a0510a105752495fd32cc9187351e7ef307fd60e8c0ef2dec5728f959b4be"
+}

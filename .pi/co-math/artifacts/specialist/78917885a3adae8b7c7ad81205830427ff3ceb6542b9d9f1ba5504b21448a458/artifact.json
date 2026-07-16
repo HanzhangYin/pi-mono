@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-56-1",
+	"text": "## Claims\n- [source-backed] The supplied local documentation identifies arXiv:0809.2981v2 as a different paper, published in *Transactions of the American Mathematical Society* 363 (2011), 521–543. [source-6, lines 3-8]\n- [unsupported] No supplied citable full-text artifact has a bibliographic page recording DOI \\(10.1112/jlms.12832\\), nor is any stable artifact identifier, digest, page/line text, or exhaustive search output for that DOI supplied.\n\n## Strategy\nThe requested certificate requires a distinct DOI-identified full-text artifact. The supplied citable excerpts concern arXiv:0809.2981v2, not an ingested full text for DOI \\(10.1112/jlms.12832\\).\n\n## Gaps\nMissing: eligible full-text artifact; bibliographic DOI page; stable artifact identifier; cryptographic digest; line-indexed theorem and definitions; exhaustive search index.\n\n## Next\nCertificate not established."
+}

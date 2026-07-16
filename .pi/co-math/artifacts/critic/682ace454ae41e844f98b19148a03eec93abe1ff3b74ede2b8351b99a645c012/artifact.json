@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-47-1",
+	"text": "## Critique\n- claim-1: The finite certificate is complete and internally checkable. With row order \\((2),(3),(4)\\) and column order \\((x_2,z,y_2)\\), the stated restriction gives \\(\\begin{pmatrix}1&1\\\\1&0\\end{pmatrix}\\), whose determinant is \\(-1\\), a unit in \\(\\mathbb Z\\). Rows \\((2)\\) and \\((4)\\) are explicitly equal to \\((0,1,1)\\). The strategy establishes exactly the named certificate and makes no parent-theorem claim.\n\n## Required revisions\n- None for this bounded certificate."
+}

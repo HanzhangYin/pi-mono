@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-115-1",
+	"taskId": "research-plan-task-115",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The specified `partition-pieri` execution failed with exit status \\(1\\): `ValueError(\"unit-minor search exceeds the certified minor bound\")`. [artifact d272ad758a969084cf65e9295531bfa1696964265e931363e1a339ff5f16952f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "A second supplied execution failed identically with exit status \\(1\\). [artifact d05ff74175533541ec5fc597bb269e1e53b6441f8a8e32a6c13345828a600a6b]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "No successful task-owned artifact supplies the required ordered bases, complete Pieri rows, Smith data, quotient ranks, torsion decompositions, or boundary vanishing for \\([2,2,0,0,0]\\subseteq\\lambda\\subseteq[4,4,4,4,4]\\).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "f10167b4dc031d3ec41082740e5730e58374d86b5880e45b55c875ca516157ee"
+}

@@ -1,0 +1,77 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-55-1",
+	"taskId": "research-plan-task-55",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied formal text defines \\(J_v:=\\Bbbk\\text{-span}\\{\\sigma_u:u\\ge v\\}\\); it does not identify \\(J_v/A_+J_v\\). [source-2@L328-L337|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 328,
+						"end": 337
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "328: flags satisfying certain specific conditions derived from $w$ of the\n329: form $\\dim_\\CC (V_r \\cap \\CC^s)\\geq t$.  The bigrassmannians $v$\n330: comprising $\\Ess(w)$ correspond to Fulton's {\\it essential Schubert\n331:   conditions}, a minimal list of such conditions defining the Schubert\n332: variety $X_w$.  Our second main result (Theorem~\\ref{J-generators})\n333: provides for each bigrassmannian $v$ in $W=S_n$ a generating set for the ideal\n334: \\begin{equation}\n335: \\label{eqn:J_vgenset}\n336: J_v:=\\Bbbk\\text{-span of }\\{ \\sigma_u: u \\geq v \\}\n337: \\end{equation}",
+					"excerptSha256": "69037c638aa8350ebafa87b7d68c97b688891c03e0c8743d9bd4be2c6c058f5c",
+					"canonicalCitation": "[source-2@L328-L337|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The supplied archive identifies its paper as *Presenting the cohomology of a Schubert variety*, arXiv:0809.2981v2, published in *Transactions of the American Mathematical Society* 363 (2011). [source-4@L3-L16|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-4"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-4",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 3,
+						"end": 16
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "README.md",
+					"sourceFileSha256": "95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac",
+					"regionKind": "ordinary-document",
+					"excerpt": "3: This directory records the conjectural and open-problem content of:\n4: \n5: Victor Reiner, Alexander Woo, and Alexander Yong, **“Presenting the cohomology of a Schubert variety.”**  \n6: [arXiv:0809.2981v2](https://arxiv.org/abs/0809.2981v2), published in *Transactions of the American Mathematical Society* **363** (2011), 521–543.\n7: \n8: ## Contents\n9: \n10: - [`conjectures.md`](conjectures.md): precise statement, stronger formulation, evidence, consequence, and related open question.\n11: - [`sources/0809.2981v2.pdf`](sources/0809.2981v2.pdf): paper PDF downloaded from arXiv.\n12: - [`sources/0809.2981v2.tex`](sources/0809.2981v2.tex): decompressed TeX source from arXiv.\n13: - [`sources/0809.2981v2-source.gz`](sources/0809.2981v2-source.gz): original arXiv source download.\n14: - [`sources/arxiv-metadata.xml`](sources/arxiv-metadata.xml): arXiv API metadata.\n15: - [`sources/CITATION.bib`](sources/CITATION.bib): BibTeX entries for the arXiv and journal versions.\n16: - [`sources/SHA256SUMS`](sources/SHA256SUMS): checksums for source-material integrity.",
+					"excerptSha256": "4f0dfb4a344a13127a390ee26e8ff34bcd10d02e745d59862bb769c41a5e95ba",
+					"canonicalCitation": "[source-4@L3-L16|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The required certificate is not established from the supplied materials: no verifiable full-text copy associated with DOI \\(10.1112/jlms.12832\\), nor any indexed passage from such a copy stating its main theorem, coefficient hypotheses, or a description of \\(J_v/A_+J_v\\), is present.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "51c33600356c45a47c8627d5ce457cc8c09b8d3c7a258f9e7970e3a4da9feee1"
+}

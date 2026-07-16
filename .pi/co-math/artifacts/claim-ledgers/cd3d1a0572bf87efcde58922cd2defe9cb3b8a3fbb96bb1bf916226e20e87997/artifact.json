@@ -1,0 +1,48 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-235-1",
+	"taskId": "research-plan-task-235",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The workspace provider’s DOI `10.1112/jlms.12832` abstract says: “We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.” [doi:10.1112/jlms.12832, lines 124-131]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 124,
+							"end": 131
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "124: \\begin{abstract}\n125: A minimal presentation of the cohomology ring of the flag manifold $GL_n/B$ was given in [A.~Borel, 1953]. This presentation was extended\n126: by [E.~Akyildiz--A.~Lascoux--P.~Pragacz, 1992] to a non-minimal one for all Schubert varieties. Work of [V.~Gasharov--V.~Reiner, 2002] gave a short, \\emph{i.e.} polynomial-size,\n127: presentation for a subclass of Schubert varieties that includes the smooth ones. In [V.~Reiner--A.~Woo--A.~Yong, 2011], a general shortening was found; it implies an exponential upper bound of $2^n$ on the number of generators required. That work states\n128: a minimality\n129: conjecture whose significance would be an exponential lower bound of $\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}$ on the number\n130: of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.\n131: \\end{abstract}",
+					"excerptSha256": "01307f2e7ec8d49bd4d3cd7fde4a6f4a8e10457e138adb65ba4bf9005e47a556",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 124-131]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The exact requested audit attempted the three queries, but all three persisted byte streams were unavailable; each of the twelve required literal counts is `null`, not zero, and exit status is \\(2\\). [artifact 4c7e35abc20c97bff76a740a17bbdfb78234a2efbc0f0e6d90e80f3e4f5dd35e]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "319d1b94576a3643f41ab582a905c4ed0ec8c936482a5cfff6519a56edab1276"
+}

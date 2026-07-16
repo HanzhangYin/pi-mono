@@ -1,0 +1,89 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-242-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-241-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-241-1 · specialist · ARTIFACT 23f682578a3956c9a005e9aa0b511071b1c0184c579d26aeda70eb910bc9660c
+000004	## Claims
+000005	- [source-backed] For \(I_{r,n-r}=\operatorname{Span}_{\mathbb Z}\{s_\lambda:\lambda\nsubseteq(n-r)^r\}\), \(\Lambda/I_{r,n-r}\) has Schur basis \(\{\bar s_\lambda:\lambda\subseteq(n-r)^r\}\), and multiplication is LR multiplication truncated to that box. [doi:10.1112/jlms.12832, lines 213-218; 263-269]
+000006	- [proved] For \(A=\Lambda/I_{6,5}\), \(A_+=(\bar h_1,\ldots,\bar h_5)\).
+000007	- [proved] In each degree \(d\), the complete Pieri rows \(h_t\bar s_\lambda\), \(1\le t\le5\), with \(22\subseteq\lambda\subseteq5^6\) and \(|\lambda|=d-t\), present \((A_+J)_d\) and are exactly the rows used by the artifact’s `lower=[2,2,0,0,0,0]`, `upper=[5,5,5,5,5,5]`, `hDegrees=[1,2,3,4,5]` construction.
+000008	
+000009	## Strategy
+000010	Write \(h_t=s_{(t)}\). Jacobi–Trudi expresses every \(s_\lambda\) as a polynomial in the \(h_t\); hence
+000011	\[
+000012	\Lambda=\mathbb Z[h_1,h_2,\ldots].
+000013	\]
+000014	For \(t>5\), \((t)\nsubseteq5^6\), so \(\bar h_t=\bar s_{(t)}=0\) in \(A\). Therefore every positive-degree homogeneous element of \(A\) is a \(\mathbb Z\)-linear combination of positive-degree monomials in \(\bar h_1,\ldots,\bar h_5\), each divisible by one \(\bar h_t\). Thus
+000015	\[
+000016	A_+\subseteq(\bar h_1,\ldots,\bar h_5).
+000017	\]
+000018	The reverse inclusion holds since each \(\bar h_t\) has positive degree. Hence
+000019	\[
+000020	A_+=(\bar h_1,\ldots,\bar h_5). \tag{1}
+000021	\]
+000022	
+000023	Let
+000024	\[
+000025	J_d=\bigoplus_{\substack{22\subseteq\lambda\subseteq5^6\\|\lambda|=d}}
+000026	\mathbb Z\bar s_\lambda .
+000027	\]
+000028	The LR containment condition says every nonzero \(\bar s_\alpha\bar s_\lambda\) is a sum of \(\bar s_\nu\) with \(\lambda\subseteq\nu\subseteq5^6\). Thus \(22\subseteq\lambda\) implies \(22\subseteq\nu\), so \(AJ=J\). From (1),
+000029	\[
+000030	A_+J=\sum_{t=1}^5\bar h_tJ. \tag{2}
+000031	\]
+000032	Taking degree \(d\),
+000033	\[
+000034	(A_+J)_d=\sum_{t=1}^5\ \sum_{\substack{22\subseteq\lambda\subseteq5^6\\|\lambda|=d-t}}
+000035	\mathbb Z\,\bar h_t\bar s_\lambda. \tag{3}
+000036	\]
+000037	
+000038	Order the degree-\(d\) column basis by the artifact convention:
+000039	\[
+000040	C_d=\{\mu:22\subseteq\mu\subseteq5^6,\ |\mu|=d\},
+000041	\]
+000042	in reverse lexicographic partition order. Order rows first by \(t=1,\ldots,5\), then by the same order on
+000043	\[
+000044	\lambda\in C_{d-t}.
+000045	\]
+000046	Pieri gives, in this column basis,
+000047	\[
+000048	\bar h_t\bar s_\lambda
+000049	 =\sum_{\substack{\mu\in C_d\\\mu/\lambda\text{ a horizontal }t\text{-strip}}}
+000050	 \bar s_\mu. \tag{4}
+000051	\]
+000052	Thus the row indexed by \((t,\lambda)\) has entry
+000053	\[
+000054	M_d[(t,\lambda),\mu]=
+000055	\begin{cases}
+000056	1,&\mu/\lambda\text{ is a horizontal }t\text{-strip},\\
+000057	0,&\text{otherwise}.
+000058	\end{cases}
+000059	\]
+000060	This is precisely the complete bounded partition-Pieri row specified by the artifact. Equation (3) proves that its row lattice is exactly \((A_+J)_d\).
+000061	
+000062	Boundary cases are explicit: \(J_d=0\) for \(d<4\) and \(d>30\); for \(d=4\), \(C_4=\{22\}\) and there are no source rows. In degrees \(4\le d\le30\), the rows are exactly those in (4), including any zero rows caused by box truncation. Outside this range the target module is zero.
+000063	
+000064	No determinant, unit, or Smith witness is used in this certificate.
+000065	
+000066	## Gaps
+000067	None for this certificate. It establishes only the positive-degree-generator and complete-row presentation facts, not any parent minimality claim.
+000068	
+000069	## Next
+000070	The requested certificate is established.
+000071	
+000072	INTERNAL ATTEMPT research-attempt-research-plan-task-241-1 · critic · ARTIFACT 8df5019cddf715fca26d743429ac75ca0154e4ddc9bf547afcb399c6444b4d10
+000073	## Critique
+000074	- claim-1: The Schur-basis statement is grounded at [doi:10.1112/jlms.12832, lines 213-218], while truncated Littlewood–Richardson multiplication additionally uses the supplied lines 263-269. This suffices for the algebraic argument.
+000075	- claim-2: The proof is correct once \(A_+=\bigoplus_{d>0}A_d\) and \(h_t\) denotes \(\bar h_t\) in \(A\). Jacobi–Trudi gives \(\Lambda=\mathbb Z[h_1,h_2,\ldots]\), and \(\bar h_t=0\) for \(t>5\), proving \(A_+=(\bar h_1,\ldots,\bar h_5)\).
+000076	- claim-3: The argument correctly proves the row-lattice equality
+000077	  \[
+000078	  (A_+J)_d=\sum_{t=1}^5\sum_{|\lambda|=d-t}\mathbb Z\,\bar h_t\bar s_\lambda
+000079	  \]
+000080	  and the stated Pieri entries. It also matches the recorded row and column conventions for \(4\le d\le30\). However, the literal all-degree identification with the artifact is incomplete. The artifact was executed only for degrees \(4,\ldots,30\). For each \(31\le d\le35\), the complete indexed row family is nonempty—for example \((t,\lambda)=(d-30,5^6)\)—although every such row is zero because \(J_d=0\). Thus an empty omitted matrix has the same row lattice but is not literally the complete indexed row set. The response also fails to identify artifact `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece` when asserting exact implementation agreement. Consequently, the named certificate is not fully established as written.
+000081	
+000082	## Repair certificates
+000083	- [proof-attempt] Classify the boundary row families explicitly: prove that they are empty for \(d<4\) and \(d>35\), nonempty but identically zero for \(31\le d\le35\), and distinguish equality of indexed rows from equality of their row lattices.
+000084	- [computation] Extend the same partition-Pieri construction to `degrees=[4,...,35]` with the unchanged lower, upper, and \(h\)-degrees, preserving all ordered row labels and zero-column rows, and verify agreement with artifact `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece` in degrees \(4,\ldots,30\).
+000085	
+000086	## Required revisions
+000087	- Use \(\bar h_t\) consistently for elements of \(A\), and define \(A_+\) explicitly.
+000088	- Cite the stable artifact ID and connect its executable row predicate to the displayed Pieri formula.
+000089	- Resolve degrees \(31,\ldots,35\); equality merely of row lattices does not prove literal completeness of the artifact’s rows.

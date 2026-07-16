@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-162-1",
+	"taskId": "research-plan-task-162",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "`source-30` is not a citable indexed source, and `source-29` has no supplied citable source block; thus the requested exhaustive extraction and status comparison cannot be performed.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No bounded primary-source excerpts establish the complete list of explicitly labelled “Conjecture,” “Question,” or “Problem” in `source-30`, nor the status of any such item in `source-29`.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "46680c92a60d25ab88e37761aa49de6111ee8999affa9b2f568c464d3efde395"
+}

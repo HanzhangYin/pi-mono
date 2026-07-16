@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-319-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 and claim-2 correctly identify that the literal target is absent and explicitly report it as not established.\n- The main acceptance criterion remains unmet: no bordered determinant, expansion signs, lower-tail congruence, \\(q^r\\)-containment checks, or edge-case treatment is provided.\n- The draft appropriately avoids substituting an adjacent identity.\n\n## Unresolved certificates\n- [source-refresh] Retrieve the exact persisted task-313 statement, including the signed-conjugation identity, modulus, parameter ranges, conventions, and intended matrix ordering."
+}

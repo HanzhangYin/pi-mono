@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-194-1",
+	"text": "## Critique\n- claim-1: Correctly and completely extracts the valid-tuple hypotheses with a bounded stable locator.\n- claim-2: Correctly extracts Lemma 2.5. The homogeneous degree-\\(N\\) syzygy and nonzero left-hand side are lemma-specific hypotheses, not part of tuple validity.\n- claim-3: Correctly identifies that the proof merely deletes equations from a consistent system and imposes no proof-only parameter restriction. In particular, no later restriction such as \\(N\\le\\min(j,n-r-i)\\) should be imported here.\n\n## Required revisions\n- None. The requested target is established from persisted source-29; no adjacent or broader result is substituted."
+}

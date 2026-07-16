@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-238-1",
+	"taskId": "research-plan-task-238",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested three-input audit cannot be executed from supplied material: `persisted. source-39` has no resolvable supplied source block or bytes, and no sandbox action is available here.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "2cb1731024cd79224f0803b4df672c18aece1d98b7952b0e968cff4148474cf0"
+}

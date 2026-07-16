@@ -1,0 +1,213 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-337-1",
+	"taskId": "research-plan-task-337",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The original conjecture asserts minimality of both Theorem 5.4 families for each type-\\(A\\) bigrassmannian \\(v_{r,s,t,n}\\), with \\(a=\\min(n-r-i,r-j)\\), \\(b=\\min(i,j)\\). [source-6@L14-L21|claim=ordinary-document] [source-6@L24-L33|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 14,
+						"end": 21
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "14: For a type-\\(A_{n-1}\\) bigrassmannian permutation \\(v=v_{r,s,t,n}\\), Theorem 5.4 supplies two generating sets for the ideal \\(J_v\\). The authors conjecture:\n15: \n16: > **Conjecture.** The two generating sets for the ideal \\(J_{v_{r,s,t,n}}\\) given in Theorem 5.4 are both minimal.\n17: \n18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).",
+					"excerptSha256": "87d2f4b6b21db77c8f7f8710b3bca3e5d74ed164e5ced175ca5c4cf9eb18d40f",
+					"canonicalCitation": "[source-6@L14-L21|claim=ordinary-document]"
+				},
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 24,
+						"end": 33
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.",
+					"excerptSha256": "e50fcef8606b387384c09d858c50e84c7ce5ab6372c941a66b6b2c61a4f9a041",
+					"canonicalCitation": "[source-6@L24-L33|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Bigrassmannians satisfy \\(1\\le t\\le r,s\\le n\\), \\(t>r+s-n\\); \\(\\Lambda/I_{r,n-r}\\) is the integral Grassmannian presentation, and the lower-adjoined family generates \\(J_v\\). [doi:10.1112/jlms.12832, lines 187-195] [doi:10.1112/jlms.12832, lines 213-235]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 187,
+							"end": 195
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "187: The bigrassmannian permutations (besides the identity) are indexed by integers $r,s,t$ such that\n188: $1\\leq t\\leq r,s\\leq n$ and $t>r+s-n$. Let $v_{r,s,t,n}\\in S_n$ be the bigrassmannian permutation uniquely\n189: characterized by having unique descent at $r$, $v^{-1}_{r,s,t,n}$ having descent at $s$ and $v_{r,s,t,n}(t)=s+1$.\n190: In one-line notation, one explicitly has\n191: \\begin{multline}\\nonumber\n192: v_{r,s,t,n}=1,2,\\ldots,t-1,\\ s+1,s+2,\\ldots,s+r-t+1,\\\\\n193: t,t+1,\\ldots,s, \\\n194: s+r-t+2,s+r-t+3,\\ldots,n;\n195: \\end{multline}",
+					"excerptSha256": "defe85661ed30b4e7e7d01b3c43c4760163cace4a020859d375a80887a12d44e",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 187-195]"
+				},
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 235
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.\n219: We resolve the minimality conjecture \\cite[Conjecture~4.10]{RWY} about the basic ideals $J_v$:\n220: \\begin{theorem}\\label{thm:main}\n221: Given a bigrassmannian permutation $v=v_{r,s,t,n}\\in S_n$ let\n222: \\begin{align*}\n223: i&\\coloneqq s-t+1,\\\\\n224: j&\\coloneqq r-t+1,\\\\\n225: a&\\coloneqq \\min(n-r-i,r-j),\\\\\n226: b&\\coloneqq \\min(i,j).\n227: \\end{align*}\n228: Then the basic ideal $J_v$, thought of as an ideal of $H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}$, is minimally generated by\n229: \\begin{equation}\n230: \\label{eqn:minimallist}\n231: \\{\\overline{s}_{\\mu} \\mid i^j\\subseteq \\mu \\subseteq (i^j,b^a)\\}.\n232: \\end{equation}\n233: \\end{theorem}\n234: That (\\ref{eqn:minimallist}) generates $J_v$ is \\cite[Theorem 4.8]{RWY}. The conjectural part, which we prove,\n235: is the minimality claim, that is, no generator can be removed without changing the ideal.",
+					"excerptSha256": "22b6a57bb5cb6a0808d0dc0d72a62ccd4dfab5caec0f5ad5e25148a6f50c7683",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-235]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\(q=n-r\\), \\(i=s-t+1\\), \\(j=r-t+1\\), \\(a=\\min(q-i,r-j)\\), \\(b=\\min(i,j)\\). Then \\(q\\ge i\\ge1\\), \\(r\\ge j\\ge1\\), \\(q-i=n-r-s+t-1\\ge0\\), and \\(r-j=t-1\\ge0\\). For \\[ (r^\\vee,s^\\vee,t^\\vee,n)=(q,q-i+j,q-i+1,n)=(n-r,n-s,n-r-s+t,n), \\] one has \\[ 1\\le t^\\vee\\le r^\\vee,s^\\vee\\le n,\\qquad t^\\vee>r^\\vee+s^\\vee-n, \\] and \\[ (i^\\vee,j^\\vee,a^\\vee,b^\\vee)=(j,i,a,b). \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "For \\(\\omega(s_\\lambda)=s_{\\lambda'}\\), \\[ \\omega(I_{r,q})=I_{q,r} \\] integrally: \\(\\lambda\\subseteq q^r\\) iff \\(\\lambda'\\subseteq r^q\\). Thus \\(\\omega\\) induces a graded integral ring isomorphism \\[ \\Lambda/I_{r,q}\\xrightarrow{\\sim}\\Lambda/I_{q,r}. \\] [doi:10.1112/jlms.12832, lines 213-218] [doi:10.1112/jlms.12832, lines 481-485]",
+			"classification": "proved",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				},
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 481,
+							"end": 485
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "481: Hence it suffices to show that\n482: \\[c_{(i^j,\\lambda),\\theta}^\\nu=\\sum_{\\mu\\subseteq \\nu_B}c_{\\lambda,\\mu}^{\\nu_B} \\, c_{\\mu,\\nu_R}^{\\theta}\\]\n483: for all $\\lambda,\\theta\\subseteq (n-r)^r$ with $\\lambda\\subseteq \\nu_B$, $|\\lambda|<N$, and $|\\theta|=N-|\\lambda|$.\n484: Denote the conjugate of a partition $\\tau$ by $\\tau'$. The map $\\omega:\\Lambda\\to\\Lambda$ defined by $\\omega(s_\\rho)=s_{\\rho'}$ for each partition $\\rho$ is known to be ring involution (see for instance \\cite[Chapter 6.2]{fultonyt}). This implies that $c_{\\alpha,\\beta}^{\\gamma}=c_{\\alpha',\\beta'}^{\\gamma'}$ for any $\\alpha,\\beta,\\gamma$. Thus, the proof is complete if we can show\n485: \\[c^{\\nu'}_{(i^j,\\lambda)',\\theta'} = \\sum_{\\mu\\subseteq \\nu_B} c_{\\lambda',\\mu'}^{(\\nu_B)'}\\, c_{\\mu',(\\nu_R)'}^{\\theta'}. \\]",
+					"excerptSha256": "1fe6dfad15c6bc023eebccc8c4215ca98f7b937ba437d28c2443b611ca26e90b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 481-485]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "With the accepted interval descriptions, \\[ \\omega(J_v)=J_{v^\\vee},\\qquad \\omega(G_R(v))=G_L(v^\\vee). \\] Indeed, \\[ ((i+a)^b,i^{j-b})'=(j^i,b^a), \\] so conjugation maps \\[ \\{\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\} \\] bijectively to \\[ \\{\\nu:j^i\\subseteq\\nu\\subseteq(j^i,b^a)\\}. \\] If \\(a=0\\), these are respectively the singleton shapes \\(i^j\\) and \\(j^i\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "The induced map \\[ J_v/A_+J_v\\ \\xrightarrow{\\sim}\\ J_{v^\\vee}/A_+J_{v^\\vee} \\] is integral and graded, since \\(\\omega(A_+)=A_+\\). The accepted lower-family basis certificate `research-attempt-research-plan-task-296-1` therefore transfers to an integral basis represented by \\(G_R(v)\\). Hence no proper subfamily of \\(G_L(v)\\) or \\(G_R(v)\\) generates \\(J_v\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "Minimal generation in the Grassmannian contraction is equivalent to minimal generation of the original flag-variety basic ideal \\(J_v\\). [doi:10.1112/jlms.12832, lines 207-211]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 207,
+							"end": 211
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "207: As explained in \\cite[Section~3]{RWY}, the projection\n208: \\[X\\to \\mathrm{Gr}_{r,n}\\]\n209: onto the Grassmannian of $r$-planes in $\\mathbb{C}^n$\n210: induces a split-inclusion $H^*(\\mathrm{Gr}_{r,n})\\xhookrightarrow{\\iota} H^*(X)$. Consequently (see \\cite[Proposition 3.1]{RWY}), elements of $H^*(\\mathrm{Gr}_{r,n})$ generate $J_v$ in $H^*(X)$ if and only if they generate the contraction $J_v\\cap H^*(\\mathrm{Gr}_{r,n})$ inside $H^*(\\mathrm{Gr}_{r,n})$.\n211: In particular, elements of $H^*(\\mathrm{Gr}_{r,n})$ \\emph{minimally} generate $J_v$ in $H^*(X)$ if and only if they \\emph{minimally} generate $J_v\\cap H^*(\\mathrm{Gr}_{r,n})$ in $H^*(\\mathrm{Gr}_{r,n})$. This allows one to study the generation of $J_v$ inside $H^*(\\mathrm{Gr}_{r,n})$ instead of $H^*(X)$ without loss of generality, enabling the use of symmetric function theory.",
+					"excerptSha256": "c83b18c1aa5686c3a9e47560166f1b623c0061f80497f6e5e128eb8c44029167",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 207-211]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "ca4aa0c1f6de2fdd49d898c002e905c311d0fb626361d4c2dbec3cc6e53a110f"
+}

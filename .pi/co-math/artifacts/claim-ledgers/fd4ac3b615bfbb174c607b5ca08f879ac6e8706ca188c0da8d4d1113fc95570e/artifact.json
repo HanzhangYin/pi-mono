@@ -1,0 +1,57 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-321-1",
+	"taskId": "research-plan-task-321",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied full text contains the Hopf identity \\(\\sum_{\\lambda,\\mu}(-1)^{|\\lambda|}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda'}s_\\mu=0\\) for \\(\\nu\\ne\\varnothing\\); it does not state the requested \\((\\rho,a,b,j,q,r)\\)-indexed bordered-determinant congruence. [doi:10.1112/jlms.12832, lines 702-705]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 702,
+							"end": 705
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "702: \\begin{lemma}\n703: \\label{lem:hopf-identity}\n704: For any partitions $\\lambda,\\mu$ and any partition $\\nu\\neq \\emptyset$,\n705: \\[\\sum_{\\lambda,\\mu}(-1)^{|\\lambda|}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda'}s_{\\mu}=0.\\]",
+					"excerptSha256": "8ac62cd9e1c27d992745dd1cccb1614cd4b37af38052e73cd9b34ea8c575b588",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 702-705]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The exact recovered statement required to determine the bordered matrix, its target congruence modulus, and its \\(\\rho,a,b,j,q,r\\) hypotheses is absent from the supplied material.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Therefore no checkable bordered Jacobi–Trudi certificate, Laplace-sign computation, shape-containment verification, or separate \\(\\rho=\\varnothing\\) and \\(a=0\\) analysis for the unnamed target can be given without inventing the target statement.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "2cf24cff2e254e9bc0a76e764d468a911c3776579f962f964cfd17ab0a8f4caf"
+}

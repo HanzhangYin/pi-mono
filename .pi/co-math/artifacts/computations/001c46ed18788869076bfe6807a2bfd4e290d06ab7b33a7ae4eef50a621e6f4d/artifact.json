@@ -1,0 +1,17 @@
+{
+	"attemptId": "research-attempt-research-plan-task-106-1",
+	"taskId": "research-plan-task-106",
+	"summary": "Compute the bounded Schur/Pieri presentation for i=j=p=c=2 (lower (2,2), upper (4,4)), enumerate all complete positive-degree Pieri relation matrices, and calculate exact Smith normal forms degreewise.",
+	"script": "from itertools import combinations\nfrom collections import defaultdict\nfrom sympy import Matrix, ZZ\nfrom sympy.matrices.normalforms import smith_normal_form\n\nLOW=(2,2,0,0); UP=(4,4,4,4)\ndef norm(a):\n    return tuple(x for x in a if x)\ndef size(a): return sum(a)\ndef parts_box():\n    out=[]\n    def rec(prev,k,a):\n        if k==4:\n            b=tuple(a)\n            if b[0]>=2 and b[1]>=2: out.append(b)\n            return\n        for x in range(min(prev,4),-1,-1): rec(x,k+1,a+[x])\n    rec(4,0,[])\n    return sorted(out,key=lambda z:(size(z),z), reverse=False)\nP=parts_box()\nbydeg=defaultdict(list)\nfor x in P: bydeg[size(x)].append(x)\n# horizontal t-strip test mu/lambda, with mu subset lambda; conjugate differences at most 1\ndef pieri(mu,la,t):\n    m=mu+(0,)*(4-len(mu)); l=la+(0,)*(4-len(la))\n    if any(m[i]>l[i] for i in range(4)) or size(la)-size(mu)!=t:return False\n    # conjugate column increments <=1\n    for col in range(1,5):\n        if sum(z>=col for z in l)-sum(z>=col for z in m)>1:return False\n    return True\n\ndef sdiag(A):\n    if not A: return []\n    D=smith_normal_form(Matrix(A),domain=ZZ)\n    return [abs(int(D[i,i])) for i in range(min(D.rows,D.cols)) if D[i,i]!=0]\nprint('CASE i=j=p=c=2; q=r=4; J basis: (2,2) subset lambda subset (4,4,4,4).')\nfor d in range(4,17):\n    cols=bydeg[d]\n    rows=[]; labels=[]\n    for t in range(1,5):\n        for mu in bydeg[d-t]:\n            row=[int(pieri(mu,la,t)) for la in cols]\n            if any(row): rows.append(row); labels.append((t,mu))\n    A=Matrix(rows) if rows else Matrix(0,len(cols),[])\n    D=smith_normal_form(A,domain=ZZ) if rows else Matrix(0,len(cols),[])\n    diag=sdiag(rows)\n    rank=len(diag)\n    qdiag=diag + [0]*(len(cols)-rank)\n    print('\\nDEGREE',d)\n    print('COLUMNS', [norm(x) for x in cols])\n    print('ROWS', [(t,norm(mu),row) for (t,mu),row in zip(labels,rows)])\n    print('SHAPE',len(rows),'x',len(cols),'RANK',rank,'SNF',diag,'Q_SNF',qdiag)\n",
+	"scriptSha256": "9f56204b8d211ec0edef9ac3ada5021e0270c89d58daab50135d49ab995a44d5",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-106.py",
+		"exitCode": 1,
+		"stdout": "",
+		"stderr": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-106.py\", line 3, in <module>\n    from sympy import Matrix, ZZ\nModuleNotFoundError: No module named 'sympy'\n",
+		"durationMs": 115,
+		"scriptFileName": "attempt-research-plan-task-106.py",
+		"stdoutFileName": "attempt-research-plan-task-106.9f56204b8d21.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-106.9f56204b8d21.stderr.txt"
+	}
+}

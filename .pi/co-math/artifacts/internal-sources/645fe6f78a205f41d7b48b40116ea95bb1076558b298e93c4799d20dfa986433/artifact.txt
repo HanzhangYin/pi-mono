@@ -1,0 +1,30 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-325-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-323-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-323-1 · specialist · ARTIFACT 17cbe6b4c1f58029efe81900696e95c031121a84042147fe2a874f55a90bad26
+000004	## Claims
+000005	- [source-backed] Source-2 uses \(h_0=1\), proves specified negative-index terms vanish, and invokes expansion along a duplicated column, but only in an \((i,k,\mu)\)-lemma. [source-2, lines 1731-1742]
+000006	- [unsupported] No supplied persisted task-313 record contains the requested \(\rho,a,b,j,q,r\) ranges, both indexed shapes, congruence modulus, exact identity, and prescribed ordering.
+000007	
+000008	## Strategy
+000009	The available excerpt is adjacent material and cannot replace the requested task-313 statement.
+000010	
+000011	## Gaps
+000012	The requested bounded stable excerpt is absent; hence the target was **not established**.
+000013	
+000014	## Next
+000015	Retrieve the persisted task-313 record itself.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-323-1 · critic · ARTIFACT 5242c3dd3568b98975c478bc297fcc5d4e5c35eb1264fc1bcbf3c955fb12cfdb
+000018	## Critique
+000019	- claim-1: Validly grounded, but concerns only the adjacent \((i,k,\mu)\)-lemma and does not supply task 313’s identity, parameter ranges, indexed shapes, congruence modulus, or ordering.
+000020	- claim-2: Correctly identifies the evidentiary gap, but remains unsupported as an exhaustive absence claim. No supplied persisted task-313 record establishes the requested content.
+000021	
+000022	The strategy does not meet the task criteria. The requested target was **not established**; no adjacent lemma or broader theorem may substitute for it.
+000023	
+000024	## Repair certificates
+000025	- [source-refresh] Retrieve the persisted research-plan-task-313 record and preserve one bounded exact excerpt, with stable locator and immutable digest, containing the exact identity; ranges for \(\rho,a,b,j,q,r\); both indexed shapes; congruence modulus; \(h_0=1\); \(h_k=0\) for \(k<0\); and the prescribed row/column ordering.
+000026	
+000027	## Required revisions
+000028	- Supply the task-313 excerpt itself rather than reconstructing it from source-2.
+000029	- Cite its durable record identifier, exact bounded locator, and digest.
+000030	- Explicitly verify that every required item appears verbatim in the preserved excerpt.

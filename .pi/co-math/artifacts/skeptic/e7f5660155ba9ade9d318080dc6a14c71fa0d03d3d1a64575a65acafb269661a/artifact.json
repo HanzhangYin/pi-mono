@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-176-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. [source-2@L1758-L1767|claim=formal-document] explicitly identifies \\(\\omega\\) as a ring involution and states \\(s_\\lambda\\mapsto s_{\\lambda'}\\), establishing the exact missing source certificate. No parent theorem is claimed."
+}

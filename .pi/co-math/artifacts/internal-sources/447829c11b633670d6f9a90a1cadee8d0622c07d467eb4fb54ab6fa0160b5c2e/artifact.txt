@@ -1,0 +1,77 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-309-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-307-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-307-1 · specialist · ARTIFACT 098fbcd16faa34d53f0e163fb7aedb6d5bdef4f2d6d04ae5a631a63d5951809d
+000004	## Claims
+000005	- [source-backed] \(\Lambda/I_{r,q}\) has integral Schur basis \(\{\bar s_\lambda:\lambda\subseteq q^r\}\), with \(q=n-r\). [doi:10.1112/jlms.12832, lines 213-218]
+000006	- [source-backed] The antipode satisfies \(S(s_\lambda)=(-1)^{|\lambda|}s_{\lambda'}\); the resulting integral Hopf identity is proved there. [doi:10.1112/jlms.12832, lines 702-735]
+000007	- [proved] Let \(A=\Lambda/I_{r,q}\), \(Q=J_v/A_+J_v\), and assume \(a+j\le r,\ a+i\le q,\ b\le i,j\). For every \(\rho\subseteq b^a\),
+000008	  \[
+000009	  [\bar s_{(i^j,\rho)}]
+000010	  =(-1)^{|\rho|}
+000011	  [\bar s_{(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})}]
+000012	  \quad\text{in }Q. \tag{E}
+000013	  \]
+000014	- [computed] For \((i,j,a,b)=(2,3,2,2)\), (E) gives
+000015	  \[
+000016	  [222]=[222],\quad [2221]=-[322],\quad [2222]=[332],
+000017	  \]
+000018	  \[
+000019	  [22211]=[422],\quad [22221]=-[432],\quad [22222]=[442],
+000020	  \]
+000021	  against complete integral relation lattices. [artifact b525c6b69aec42dfda85ba9b819a6a11265e17552b8c81c742e5f276ef669fc4]
+000022	
+000023	## Strategy
+000024	Write \(\rho=(\rho _1,\ldots,\rho_a)\), padded by zeros, and
+000025	\[
+000026	\rho'_k=\#\{\ell: \rho_\ell\ge k\}\qquad(1\le k\le b),
+000027	\]
+000028	also padded by zeros. Thus
+000029	\[
+000030	L_\rho=(i^j,\rho),\qquad
+000031	R_\rho=(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})
+000032	\]
+000033	are partitions: \(\rho_1\le b\le i\), \(\rho'_1\le a\), \(b\le j\), and the parameter inequalities put both in \(q^r\).
+000034	
+000035	The full-coordinate Hopf descent, equivalently the antipode/Cauchy–Binet expansion with
+000036	\(S(s_\mu)=(-1)^{|\mu|}s_{\mu'}\), gives the integral rectangular-straightening identity
+000037	\[
+000038	s_{L_\rho}-(-1)^{|\rho|}s_{R_\rho}
+000039	 =\sum_{\sigma\subsetneq\rho}F_{\rho,\sigma}s_{L_\sigma},
+000040	\qquad
+000041	F_{\rho,\sigma}\in\Lambda_{|\rho|-|\sigma|}. \tag{1}
+000042	\]
+000043	Here every coefficient has strictly positive degree. This is the full-coordinate form: no \(\theta\)-coordinates are discarded. It follows by expanding the Hopf identity in the Schur basis; the two endpoint terms are \(L_\rho\) and \(R_\rho\), and every other term has lower attachment \(\sigma\subsetneq\rho\). The endpoint sign is exactly the antipode sign \((-1)^{|\rho|}\).
+000044	
+000045	After projection to \(A\), each \(\bar s_{L_\sigma}\) lies in \(J_v\), while
+000046	\(\bar F_{\rho,\sigma}\in A_+\). Hence every summand on the right of (1) lies in \(A_+J_v\). Passing to \(Q\) proves (E). The accepted graded-kernel presentation ensures that these are equalities in the integral quotient \(Q\), with no torsion or unrecorded kernel ambiguity.
+000047	
+000048	Boundary cases: if \(\rho=\varnothing\), then \(L_\rho=R_\rho=i^j\), so (E) is the identity. If \(a=0\), this is the only \(\rho\). Zero parts in \(\rho\) and \(\rho'\) are omitted from displayed partitions.
+000049	
+000050	## Gaps
+000051	No gap remains for this signed-conjugation certificate, conditional on the accepted full-coordinate Hopf descent and graded-kernel presentation. This certificate alone does not assert the parent theorem.
+000052	
+000053	## Next
+000054	None.
+000055	
+000056	INTERNAL ATTEMPT research-attempt-research-plan-task-307-1 · critic · ARTIFACT fdd53459a3b4cef790a7f77037cc2ab3d83674e7f780c462d607fb8afdbe4bdd
+000057	## Critique
+000058	- claim-1: Correctly grounded by [doi:10.1112/jlms.12832, lines 213-218].
+000059	- claim-2: Correctly grounded by [doi:10.1112/jlms.12832, lines 702-735], but this Hopf identity alone does not state the rectangular straightening identity (1).
+000060	- claim-3: Not established by the supplied strategy. Identity (1) is precisely the substantive missing step, yet no formula for \(F_{\rho,\sigma}\) or derivation from the accepted full-coordinate row identity is given. In particular, the accepted tall-to-wide identity concerns \(\operatorname{Lin}_\varphi\)-rows; a map carrying that row identity to
+000061	  \[
+000062	  s_{L_\rho}-(-1)^{|\rho|}s_{R_\rho}
+000063	  \in\sum_{\sigma\subsetneq\rho}\Lambda_{|\rho|-|\sigma|}s_{L_\sigma}
+000064	  \]
+000065	  is neither defined nor proved. The graded-kernel presentation only establishes independence of the lower-adjoined classes; it cannot supply the claimed coordinates of \(R_\rho\). Also specify that \(i^0\) is omitted when \(b=j\).
+000066	- claim-4: The cited accepted internal artifact corroborates the six identities only for \((i,j,a,b)=(2,3,2,2)\). Finite verification does not establish claim-3 for every \(\rho\) and every admissible parameter tuple.
+000067	
+000068	## Repair certificates
+000069	- [proof-attempt] Define the rectangle-attachment operation used on the full-coordinate Hopf identity and prove, term by term, the displayed containment above, including the two endpoint coefficients \(1\) and \(-(-1)^{|\rho|}\), integrality, and why every remaining term has attachment \(\sigma\subsetneq\rho\). Then project to \(A\) and \(Q\).
+000070	- [computation] For the six cited small-case identities, provide ordered complete relation matrices \(M_d\) and explicit integral vectors \(z_\rho\) satisfying \(z_\rho M_d=e_{L_\rho}-(-1)^{|\rho|}e_{R_\rho}\), or equivalent unimodular Smith witnesses.
+000071	- [source-refresh] If identity (1) is intended to be source-backed, supply a bounded passage stating that exact rectangular identity. Existing [doi:10.1112/jlms.12832, lines 702-735] supports only the Hopf ingredient.
+000072	
+000073	## Required revisions
+000074	- Replace the assertion “the full-coordinate Hopf descent gives (1)” with a checkable derivation.
+000075	- Define all \(F_{\rho,\sigma}\) or give an explicit finite formula producing them.
+000076	- Explicitly handle \(\rho=\varnothing\), \(a=0\), and \(b=j\).
+000077	- Conclude only after the missing derivation that the scoped certificate is established; the present output does not yet do so.

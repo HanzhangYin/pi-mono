@@ -1,0 +1,23 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-141-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-134-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-134-1 · specialist · ARTIFACT 7e367548964b23753b285ecc3c8cc5191ec246cc8f7d839c2f841a32baaec858
+000004	## Claims
+000005	- [proved] For lower \(=(2,2,0,0,0,0,0,0)\), upper \(=(4,4,4,4,4,4,4,4)\), and \(h\)-degrees \(1,2,3,4\), the required certificate range is \(4,5,\ldots,32\). The recorded computation enumerates only degrees \(4,\ldots,25\), while declaring support range \(4,\ldots,32\) and `enumeratedAllSupportDegrees:false`; hence it contains no ordered bases, complete labelled Pieri rows (zero rows included), ranks, or Smith diagonals for degrees \(26,27,28,29,30,31,32\). [artifact 9e5b4b2dd4a1f0c42f4222765f0ba2a0da3446c58ff90226ee2c370f85bb7322, lines 1-27]
+000006	- [proved] Therefore complete labelled rows, ordered bases, and exact Smith forms are missing for degrees \(26,\ldots,32\).
+000007	
+000008	## Strategy
+000009	Compare the explicitly required endpoint \(32\) with the recorded output endpoint \(25\); the seven omitted degrees are exactly \(26,\ldots,32\).
+000010	
+000011	## Gaps
+000012	No data for any of the seven omitted degrees is supplied; this certificate does not compute them.
+000013	
+000014	## Next
+000015	Certificate established.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-134-1 · critic · ARTIFACT 4873f5396b110470deb4c83a4d33855297169bbd78b4fec786df79e74983f631
+000018	## Critique
+000019	- claim-1: Supported by [artifact 9e5b4b2dd4a1f0c42f4222765f0ba2a0da3446c58ff90226ee2c370f85bb7322, lines 1-27]. The required support range is \(4,\ldots,32\), but the degree summaries stop at \(25\) and report `enumeratedAllSupportDegrees:false`. The omitted degrees are exactly \(\{26,27,28,29,30,31,32\}\).
+000020	- claim-2: Follows directly from claim-1. No ordered bases, labelled rows, or Smith forms for those seven degrees occur in the recorded computation. The named missingness certificate is established; no parent theorem is implicated.
+000021	
+000022	## Required revisions
+000023	- None for this bounded certificate.

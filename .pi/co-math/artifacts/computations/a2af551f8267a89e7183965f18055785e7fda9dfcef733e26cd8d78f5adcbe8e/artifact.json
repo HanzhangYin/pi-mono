@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-136-1",
+	"taskId": "research-plan-task-136",
+	"summary": "Exact partition-Pieri certificate for lower=[2,2,0,0,0,0,0,0], upper=[4,4,4,4,4,4,4,4], degrees=4..32, hDegrees=[1,2,3,4], including all ordered bases, labelled (including zero) rows, and exact Smith data; custom computation is required because partition-pieri rejects degrees above 25.",
+	"script": "import json\nfrom itertools import product\nfrom sympy import Matrix\nfrom sympy.matrices.normalforms import smith_normal_form\nfrom sympy.polys.domains import ZZ\n\nlower=(2,2,0,0,0,0,0,0)\nupper=(4,4,4,4,4,4,4,4)\ndegrees=list(range(4,33))\nhdegrees=[1,2,3,4]\n\ndef valid(p):\n    return all(p[i]>=p[i+1] for i in range(7))\nparts=[]\nfor p in product(*[range(lower[i],upper[i]+1) for i in range(8)]):\n    if valid(p): parts.append(p)\nparts.sort(reverse=True)\nbydeg={d:[p for p in parts if sum(p)==d] for d in degrees}\n\ndef horizontal(lam,mu):\n    # mu/lam is a horizontal strip iff mu_i >= lam_i >= mu_{i+1}.\n    return all(mu[i]>=lam[i]>=(mu[i+1] if i<7 else 0) for i in range(8))\n\nout={\n  'input':{'lower':list(lower),'upper':list(upper),'degrees':degrees,'hDegrees':hdegrees},\n  'enumeratedAllSupportDegrees':True,\n  'supportDegreeRange':[min(map(sum,parts)),max(map(sum,parts))],\n  'columnOrder':'reverse lexicographic partition order',\n  'rowOrder':'hDegrees input order, then source partition reverse lexicographic',\n  'degrees':[]\n}\nfor d in degrees:\n    basis=bydeg[d]\n    col={p:i for i,p in enumerate(basis)}\n    rows=[]\n    for h in hdegrees:\n        sources=[p for p in parts if sum(p)==d-h]\n        for lam in sources:\n            targets=[mu for mu in basis if horizontal(lam,mu)]\n            vec=[0]*len(basis)\n            for mu in targets: vec[col[mu]]=1\n            rows.append({'hDegree':h,'source':list(lam),'targets':[list(x) for x in targets],'coordinates':vec,'isZero':not targets})\n    A=Matrix([r['coordinates'] for r in rows]) if rows else Matrix.zeros(0,len(basis))\n    S=smith_normal_form(A,domain=ZZ)\n    diagonal=[]\n    for i in range(min(S.rows,S.cols)):\n        x=int(S[i,i])\n        if x: diagonal.append(abs(x))\n    rank=len(diagonal)\n    torsion=[x for x in diagonal if x>1]\n    out['degrees'].append({\n      'degree':d,\n      'orderedBasis':[list(p) for p in basis],\n      'labelledRows':rows,\n      'matrixShape':[A.rows,A.cols],\n      'smithDiagonal':diagonal,\n      'rank':rank,\n      'quotientFreeRank':len(basis)-rank,\n      'torsionInvariantFactors':torsion,\n      'zeroRowCount':sum(r['isZero'] for r in rows)\n    })\nprint(json.dumps(out,separators=(',',':')))\n",
+	"scriptSha256": "2ac97f2c2bd9ceb575c84b230915e788ebc18fa23ca03cb19a3b55fd215bf329",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-136.py",
+		"exitCode": 1,
+		"stdout": "",
+		"stderr": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-136.py\", line 3, in <module>\n    from sympy import Matrix\nModuleNotFoundError: No module named 'sympy'\n",
+		"durationMs": 153,
+		"scriptFileName": "attempt-research-plan-task-136.py",
+		"stdoutFileName": "attempt-research-plan-task-136.2ac97f2c2bd9.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-136.2ac97f2c2bd9.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-136.2ac97f2c2bd9.stdout.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-136.2ac97f2c2bd9.stderr.txt",
+			"sha256": "00dcc667fed1cbf9f3ceee55624b6ad5bcb8e9f9fadd907697df6d22055b9a7b",
+			"content": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-136.py\", line 3, in <module>\n    from sympy import Matrix\nModuleNotFoundError: No module named 'sympy'\n"
+		}
+	}
+}

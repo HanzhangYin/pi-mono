@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-104-1",
+	"taskId": "research-plan-task-104",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(p,c\\ge1\\), hence in particular for \\(\\min(p,c)=1\\), \\[ I_{j+c,i+p}\\subseteq I_{j+1,i+1}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The induced quotient map restricts surjectively as \\[ J_{p,c}\\twoheadrightarrow J_{1,1}, \\] and induces a surjection \\[ Q_{p,c}=J_{p,c}/\\Lambda_+J_{p,c}\\twoheadrightarrow J_{1,1}/\\Lambda_+J_{1,1}=Q_{1,1}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e43a1eab42797bc92a25a239e00e70e80c2f92f36c5bff43899380d0e4eef1cc"
+}

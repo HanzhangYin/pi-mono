@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-218-1",
+	"text": "## Claims\n- [computed] The available sandbox execution timed out with exit status \\(124\\); it produced no successful computation output. [artifact c92ec4a98f257b90ee978ebb3ea9de390c24dfdb165f55a74f8ac5e651e295af]\n\n## Strategy\nNo successful task-owned artifact with executable code, complete matrices, Smith data, or minor witnesses is available.\n\n## Gaps\nThe requested \\((i,j,p,c)=(2,2,4,4)\\) certificate is **not established**. Hence degreewise consistency among ranks, Smith forms, quotient decompositions, and complementary-minor sizes is unverified.\n\n## Next\nUnavailable: the sole supplied sandbox execution failed by timeout."
+}

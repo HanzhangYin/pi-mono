@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-254-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. Claim-1 is established by artifact `95a87b639502f667a31bb8f483b5027ea51c4091beb1b799e02e87f230c8a433`, including all degrees \\(6\\le d\\le20\\), both strip conditions, exact unimodular witnesses, and \\(M_6=D_6=0_{0\\times1}\\), \\(U_6=I_0\\), \\(V_6=[1]\\).\n- Claim-2 correctly limits the result to this finite certificate; no parent theorem is inferred."
+}

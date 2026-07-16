@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-216-1",
+	"taskId": "research-plan-task-216",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested complete degreewise Pieri matrices, Smith forms, quotient ranks, torsion factors, and complementary unimodular minors for \\((i,j,p,c)=(2,2,4,4)\\) are not available from the supplied evidence.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "a95f9e0c1b15c7e1b19b927f7c18782a287762b6c1699ee549b464d1de2ff398"
+}

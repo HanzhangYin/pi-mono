@@ -1,0 +1,1115 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-86-1",
+	"taskId": "research-plan-task-86",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For specified positive integers \\(i,j\\), the following executable checker tests all \\(0\\le k\\le b:=\\min(i,j)\\). It exhaustively enumerates partitions in \\((i+1)^{j+1}\\) containing \\(i^j\\), compares them with \\(C_x=((i+1)^x,i^{j-x},k-x)\\) (\\(0\\le x\\le k\\), omitting a zero last part), exhaustively enumerates every one-box extension of each degree-\\(k-1\\) column, and verifies the two complementary determinants. At \\(k=0\\), it uses the empty determinant convention \\(\\det(\\varnothing)=1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "#!/usr/bin/env python3",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-2 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-3",
+			"text": "import sys",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-3 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-4",
+			"text": "def parts(n, cap, slots):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-4 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-5",
+			"text": "if n == 0:",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-5 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-6",
+			"text": "yield ()",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-6 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-7",
+			"text": "elif slots:",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-7 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-8",
+			"text": "for a in range(min(n, cap), 0, -1):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-8 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-9",
+			"text": "for tail in parts(n-a, a, slots-1):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-9 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-10",
+			"text": "yield (a,) + tail",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-10 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-11",
+			"text": "def contains(mu, lam):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-11 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-12",
+			"text": "return all((mu[t] if t < len(mu) else 0) >= a",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-12 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-13",
+			"text": "for t, a in enumerate(lam))",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-13 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-14",
+			"text": "def P(i, j, x, y):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-14 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-15",
+			"text": "return tuple([i+1]*x + [i]*(j-x) + ([y] if y else []))",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-15 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-16",
+			"text": "def det(A):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-16 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-17",
+			"text": "n = len(A)",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-17 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-18",
+			"text": "if n == 0: return 1",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-18 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-19",
+			"text": "A, sign, prev = [r[:] for r in A], 1, 1",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-19 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-20",
+			"text": "for k in range(n-1):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-20 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-21",
+			"text": "pivot = next((t for t in range(k, n) if A[t][k]), None)",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-21 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-22",
+			"text": "if pivot is None: return 0",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-22 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-23",
+			"text": "if pivot != k:",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-23 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-24",
+			"text": "A[k], A[pivot] = A[pivot], A[k]",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-24 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-25",
+			"text": "sign = -sign",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-25 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-26",
+			"text": "p = A[k][k]",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-26 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-27",
+			"text": "for u in range(k+1, n):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-27 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-28",
+			"text": "for v in range(k+1, n):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-28 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-29",
+			"text": "A[u][v] = (A[u][v]*p - A[u][k]*A[k][v]) // prev",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-29 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-30",
+			"text": "for u in range(k+1, n): A[u][k] = 0",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-30 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-31",
+			"text": "prev = p",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-31 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-32",
+			"text": "return sign*A[-1][-1]",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-32 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-33",
+			"text": "def check(i, j, emit=False):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-33 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-34",
+			"text": "assert i >= 1 and j >= 1",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-34 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-35",
+			"text": "q, r, d, b, base = i+1, j+1, i*j, min(i, j), (i,)*j",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-35 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-36",
+			"text": "ext_checks = 0",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-36 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-37",
+			"text": "for k in range(b+1):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-37 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-38",
+			"text": "C = [P(i, j, x, k-x) for x in range(k+1)]",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-38 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-39",
+			"text": "got_cols = sorted(mu for mu in parts(d+k, q, r) if contains(mu, base))",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-39 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-40",
+			"text": "assert got_cols == sorted(C)                 # complete column list",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-40 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-41",
+			"text": "rows = []",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-41 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-42",
+			"text": "for x in range(k):",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-42 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-43",
+			"text": "lam = P(i, j, x, k-1-x)",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-43 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-44",
+			"text": "got = sorted(nu for nu in parts(d+k, q, r) if contains(nu, lam))",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-44 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-45",
+			"text": "want = sorted([C[x], C[x+1]])",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-45 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-46",
+			"text": "assert got == want                        # complete one-box list",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-46 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-47",
+			"text": "rows.append([int(C[t] in got) for t in range(k+1)])",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-47 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-48",
+			"text": "ext_checks += 1",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-48 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-49",
+			"text": "left  = [row[1:] for row in rows]             # retain C_0",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-49 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-50",
+			"text": "right = [row[:-1] for row in rows]            # retain C_k",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-50 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-51",
+			"text": "assert det(left) == 1 and det(right) == 1",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-51 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-52",
+			"text": "if emit:",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-52 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-53",
+			"text": "mid = \"rows=[] \" if k == 0 else f\"extensions={[(P(i,j,x,k-1-x), sorted([C[x],C[x+1]])) for x in range(k)]} \"",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-53 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-54",
+			"text": "print(f\"k={k} columns={C} {mid}\"",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-54 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-55",
+			"text": "f\"det_retain_C0={det(left)} det_retain_Ck={det(right)}\")",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-55 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-56",
+			"text": "return b+1, ext_checks",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-56 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-57",
+			"text": "if len(sys.argv) == 3:",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-57 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-58",
+			"text": "check(int(sys.argv[1]), int(sys.argv[2]), True)",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-58 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-59",
+			"text": "print(\"RESULT: PASS\")",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-59 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-60",
+			"text": "else:",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-60 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-61",
+			"text": "raise SystemExit(\"usage: checker.py i j\")",
+			"classification": "unsupported",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Every ## Claims bullet requires a [classification] label."
+				},
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-61 has no valid classification."
+				}
+			]
+		},
+		{
+			"id": "claim-62",
+			"text": "Sandbox artifact `1ff47efb26bd9ca338a95d087e267404242f4bcfe6cfe418af310dee116c26b7` exited \\(0\\), checked all \\(36\\) pairs \\((i,j)\\in\\{1,\\ldots,6\\}^2\\), \\(127\\) values of \\(k\\), and \\(196\\) one-box-extension lists. Its explicit witness \\((i,j)=(3,2)\\) reported determinants \\(1,1\\) for \\(k=0,1,2\\) and `RESULT: PASS`. [artifact `1ff47efb26bd9ca338a95d087e267404242f4bcfe6cfe418af310dee116c26b7`]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-63",
+			"text": "The requested executable finite-corroboration certificate is established. It makes no presentation, quotient, minimality, or parent-theorem conclusion.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "0e07a2c523bd3a38c4af9f232f3ab5bd609db2ec41b9ae0c5889e9e917006ebb"
+}

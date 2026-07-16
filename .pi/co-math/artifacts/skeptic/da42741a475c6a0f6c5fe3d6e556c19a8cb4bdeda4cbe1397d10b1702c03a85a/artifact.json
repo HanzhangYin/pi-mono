@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-124-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- claim-1 is supported by artifact `159e99e0f7817df8322bc0d772e94151ace89d8573a0825fd38cc478867578ef`: it covers all degrees \\(4\\)–\\(24\\), all \\(h_1,\\ldots,h_4\\) source rows, and retains all 102 labelled zero rows.\n- Every computed nonzero Smith invariant is \\(1\\); quotient free ranks are \\(1,1,2,1,1\\) in degrees \\(4,\\ldots,8\\) and zero thereafter.\n- The requested finite target is established computationally only; claim-2 correctly disclaims any broader theorem."
+}

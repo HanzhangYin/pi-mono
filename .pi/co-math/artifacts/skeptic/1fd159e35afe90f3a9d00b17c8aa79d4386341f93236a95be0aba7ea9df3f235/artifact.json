@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-182-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-4 relies on corrupted lines 149–160; equations (8)–(9) and their exact index conditions are not extractable.\n- claim-5 depends on the definition of a “valid” tuple, but Definition 2.1 is corrupted. Thus all proof-level parameter hypotheses are not recorded.\n- claim-3 correctly shows that source-29 states generation but attributes its proof to [12, Theorem 4.8]; source-29’s proof itself establishes only irredundance.\n- claim-7 explicitly confirms the requested target is not fully established.\n\n## Unresolved certificates\n- [source-refresh] Retrieve an uncorrupted bounded excerpt from source-29 containing the post-\\(i=n-r\\) restrictions, equations (8)–(10), Definition 2.1’s complete valid-tuple inequalities, and the linkage through Lemma 2.5 and Theorems 4.4–4.5."
+}

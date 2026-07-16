@@ -1,0 +1,40 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-318-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-306-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-306-1 · specialist · ARTIFACT 8dcacee9cfd6993befc3baab33819b1e9e4de77cee3fb0778855fbee769718fb
+000004	## Claims
+000005	- [proved] The supplied task does not state any signed-conjugation equation, so no determinate proposition indexed by \(\rho\subseteq b^a\) is available to prove or disprove.
+000006	
+000007	## Strategy
+000008	The accepted Hopf identity and graded-kernel presentation cannot identify an unspecified formula; distinct sign conventions and conjugated shapes yield different claims.
+000009	
+000010	## Gaps
+000011	The requested target is **not established**: the exact displayed formula is absent. Missing data include its two sides, the sign exponent, and the conjugated partition convention.
+000012	
+000013	## Next
+000014	Provide the exact formula to be tested.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-306-1 · critic · ARTIFACT d37da9c1b2dd3586107173030b302145a43c9636172bccf79d62f199a27797fe
+000017	## Critique
+000018	- claim-1: Correct as a prompt-completeness diagnosis: no signed-conjugation equation is displayed in the supplied task. The cited Hopf identity [doi:10.1112/jlms.12832, lines 667-705] and transposed generating family [doi:10.1112/jlms.12832, lines 833-840] do not uniquely determine the omitted equality, sign exponent, or indexing convention. Consequently, the strategy cannot meet the task criterion of proving or disproving that exact formula. The requested target was explicitly and correctly reported as **not established**.
+000019	
+000020	## Repair certificates
+000021	- [proof-attempt] State the intended equation explicitly—possibly, if intended,
+000022	  \[
+000023	  [\bar s_{(i^j,\rho)}]
+000024	  =(-1)^{|\rho|}
+000025	  [\bar s_{(i+\rho'_1,\ldots,i+\rho'_b,i^{j-b})}]
+000026	  \quad\text{in }Q,
+000027	  \]
+000028	  with padding and partition conventions—and then prove or disprove precisely that equation for every \(\rho\subseteq b^a\) from the accepted full-coordinate Hopf identity and graded-kernel presentation.
+000029	- [computation] Check the convention in the case \(i=2,j=3,a=b=2\) by certifying
+000030	  \[
+000031	  [222]=[222],\ [2221]=-[322],\ [2222]=[332],\ [22211]=[422],\
+000032	  [22221]=-[432],\ [22222]=[442]
+000033	  \]
+000034	  against the complete integral relation lattices.
+000035	- [source-refresh] Supply a bounded locator containing the exact displayed signed-conjugation formula. Existing source passages establish only the Hopf signed-conjugation ingredient and the transposed family, not the requested quotient equality.
+000036	
+000037	## Required revisions
+000038	- Insert the omitted formula, including both sides, ambient quotient, sign exponent, conjugation notation, padding, and concatenation conventions.
+000039	- Prove or disprove that exact formula rather than an inferred adjacent statement.
+000040	- Retain the explicit status: until the formula is supplied, the requested target is not established.

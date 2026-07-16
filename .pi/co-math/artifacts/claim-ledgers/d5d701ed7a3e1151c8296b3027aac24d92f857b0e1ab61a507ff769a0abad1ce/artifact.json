@@ -1,0 +1,88 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-265-1",
+	"taskId": "research-plan-task-265",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "\\(\\Lambda/I_{r,n-r}\\) has the integral Schur basis indexed by \\(\\lambda\\subseteq(n-r)^r\\), and truncated Littlewood–Richardson multiplication. [doi:10.1112/jlms.12832, lines 213-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The involution \\(\\omega(s_\\lambda)=s_{\\lambda'}\\) is a ring involution. [doi:10.1112/jlms.12832, lines 481-485]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 481,
+							"end": 485
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "481: Hence it suffices to show that\n482: \\[c_{(i^j,\\lambda),\\theta}^\\nu=\\sum_{\\mu\\subseteq \\nu_B}c_{\\lambda,\\mu}^{\\nu_B} \\, c_{\\mu,\\nu_R}^{\\theta}\\]\n483: for all $\\lambda,\\theta\\subseteq (n-r)^r$ with $\\lambda\\subseteq \\nu_B$, $|\\lambda|<N$, and $|\\theta|=N-|\\lambda|$.\n484: Denote the conjugate of a partition $\\tau$ by $\\tau'$. The map $\\omega:\\Lambda\\to\\Lambda$ defined by $\\omega(s_\\rho)=s_{\\rho'}$ for each partition $\\rho$ is known to be ring involution (see for instance \\cite[Chapter 6.2]{fultonyt}). This implies that $c_{\\alpha,\\beta}^{\\gamma}=c_{\\alpha',\\beta'}^{\\gamma'}$ for any $\\alpha,\\beta,\\gamma$. Thus, the proof is complete if we can show\n485: \\[c^{\\nu'}_{(i^j,\\lambda)',\\theta'} = \\sum_{\\mu\\subseteq \\nu_B} c_{\\lambda',\\mu'}^{(\\nu_B)'}\\, c_{\\mu',(\\nu_R)'}^{\\theta'}. \\]",
+					"excerptSha256": "1fe6dfad15c6bc023eebccc8c4215ca98f7b937ba437d28c2443b611ca26e90b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 481-485]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "For \\([222,4^5]\\subset\\Lambda/I_{5,4}\\) and its conjugate \\([33,5^4]\\subset\\Lambda/I_{4,5}\\), complete Pieri relation lattices and quotient Smith data agree in weights \\(6,\\ldots,20\\): ranks \\((1,1,2,1,1,0,\\ldots,0)\\) and no torsion factors. [artifact 5b6e59b74af1b386568e8d3014cdef276ec80f89225cf5ba2367c73fa3b0a993]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Under the accepted quotient-conjugation and ideal-correspondence premises, partition conjugation induces an integral graded isomorphism \\[ J_v/A_+J_v\\cong J_{v^\\vee}/A^\\vee_+J_{v^\\vee}. \\] Consequently it preserves each degree’s torsion subgroup, invariant factors, and free rank.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "9307f924d4f3145b85562a1d43c035728d6da197329ccfcbc897823ec6bed4b5"
+}

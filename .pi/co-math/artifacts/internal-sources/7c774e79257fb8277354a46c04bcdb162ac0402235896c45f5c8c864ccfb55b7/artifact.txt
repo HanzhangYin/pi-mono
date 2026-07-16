@@ -1,0 +1,96 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-299-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-298-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-298-1 · specialist · ARTIFACT dc0f1c836d415311b5f59722203e1c894e95389d325cbfdbca0eeceb06231d11
+000004	## Claims
+000005	- [source-backed] \(H^*(\mathrm{Gr}_{r,n})\cong\Lambda/I_{r,q}\), \(q=n-r\), where \(I_{r,q}\) is spanned integrally by \(s_\lambda\) with \(\lambda\nsubseteq q^r\); truncated Schur multiplication is integral. [doi:10.1112/jlms.12832, lines 207-218; 263-269]
+000006	- [source-backed] For \(v_{r,s,t,n}\), \(i=s-t+1,\ j=r-t+1\), and \(a=\min(q-i,r-j),\ b=\min(i,j)\). [doi:10.1112/jlms.12832, lines 219-235]
+000007	- [proved] Partition conjugation induces an integral graded algebra isomorphism
+000008	  \[
+000009	  \omega_{r,q}:A_{r,q}:=\Lambda/I_{r,q}\xrightarrow{\sim}A_{q,r},
+000010	  \qquad \bar s_\lambda\mapsto\bar s_{\lambda'},
+000011	  \]
+000012	  with inverse \(\omega_{q,r}\).
+000013	- [proved] Under the Grassmannian interval presentation
+000014	  \[
+000015	  J_v=\bigoplus_{i^j\subseteq\lambda\subseteq q^r}\mathbb Z\bar s_\lambda,
+000016	  \]
+000017	  one has \(\omega_{r,q}(J_v)=J_{v^\vee}\), where
+000018	  \[
+000019	  v^\vee=v_{q,\ q+j-i,\ q-i+1,\ n},
+000020	  \quad (i^\vee,j^\vee,a^\vee,b^\vee)=(j,i,a,b).
+000021	  \]
+000022	- [proved] Conjugation preserves positive degree and hence descends integrally to
+000023	  \[
+000024	  J_v/A_{r,q,+}J_v\ \xrightarrow{\sim}\
+000025	  J_{v^\vee}/A_{q,r,+}J_{v^\vee}.
+000026	  \]
+000027	  It preserves every partition-weight degree, all torsion orders, and degreewise free ranks.
+000028	
+000029	## Strategy
+000030	Let \(\omega(s_\lambda)=s_{\lambda'}\), a ring involution. [doi:10.1112/jlms.12832, lines 484-485] Since
+000031	\[
+000032	\lambda\nsubseteq q^r\iff\lambda'\nsubseteq r^q,
+000033	\]
+000034	\(\omega(I_{r,q})=I_{q,r}\), proving quotient well-definedness and the inverse statement.
+000035	
+000036	For the parameter check, original bigrassmannian admissibility gives
+000037	\[
+000038	1\le i\le q,\qquad1\le j\le r.
+000039	\]
+000040	Thus \(t^\vee=q-i+1\) and \(s^\vee=q+j-i\) satisfy
+000041	\[
+000042	1\le t^\vee\le q,\quad t^\vee\le s^\vee\le n,\quad
+000043	t^\vee-(q+s^\vee-n)=r-j+1>0.
+000044	\]
+000045	Direct substitution gives \((i^\vee,j^\vee,a^\vee,b^\vee)=(j,i,a,b)\).
+000046	
+000047	Conjugation sends \(\lambda\supseteq i^j\) exactly to \(\lambda'\supseteq j^i\), so it carries the interval ideal for \(v\) to that for \(v^\vee\). Since \(|\lambda'|=|\lambda|\), it maps \(A_+\) onto \(A^\vee_+\), yielding the displayed quotient isomorphism. Its Schur-coordinate matrix is a permutation matrix over \(\mathbb Z\), so no rationalization or torsion-freeness assumption is used.
+000048	
+000049	Boundary cases are included: \(r,q\ge1\); \(i=q\) or \(j=r\) forces \(a=0\) when appropriate, and then both interval families have the single core shape. Also \(b=\min(i,j)\ge1\), while \(j-b\) and \(i-b\) may be \(0\); the corresponding zero-part conventions cause no exception.
+000050	
+000051	The requested quotient-conjugation target is established. No unsupported premise was encountered, so no repair certificate is required. No \(G_L\)-to-\(G_R\) finite transition computation was used.
+000052	
+000053	## Gaps
+000054	None for this quotient-conjugation statement. This does not independently assert a new minimality theorem.
+000055	
+000056	## Next
+000057	None.
+000058	
+000059	INTERNAL ATTEMPT research-attempt-research-plan-task-298-1 · critic · ARTIFACT 458a31c1c79aeb47cab05aef64a8d37c89c70775410fe55a2609bb471fbf5ec1
+000060	## Critique
+000061	- claim-1: Supported by [doi:10.1112/jlms.12832, lines 207-218; 263-269]. The Schur basis is integral, and truncation to \(q^r\) introduces no rationalization.
+000062	- claim-2: Supported by [doi:10.1112/jlms.12832, lines 219-235]. Admissibility also gives \(1\le i\le q\) and \(1\le j\le r\).
+000063	- claim-3: The proof is complete. The source-backed ring involution \(\omega(s_\lambda)=s_{\lambda'}\) and
+000064	  \[
+000065	  \lambda\nsubseteq q^r\iff\lambda'\nsubseteq r^q
+000066	  \]
+000067	  imply \(\omega(I_{r,q})=I_{q,r}\). Hence the map descends over \(\mathbb Z\), preserves partition weight, and has inverse \(\omega_{q,r}\).
+000068	- claim-4: Under the accepted interval presentation, conjugation sends the basis interval exactly to
+000069	  \[
+000070	  \bigoplus_{j^i\subseteq\mu\subseteq r^q}\mathbb Z\bar s_\mu.
+000071	  \]
+000072	  The parameter calculation is correct:
+000073	  \[
+000074	  t^\vee=q-i+1,\qquad s^\vee=q+j-i,
+000075	  \]
+000076	  and
+000077	  \[
+000078	  (i^\vee,j^\vee,a^\vee,b^\vee)=(j,i,a,b).
+000079	  \]
+000080	  The inequalities
+000081	  \[
+000082	  1\le t^\vee\le q,\quad t^\vee\le s^\vee\le n,\quad
+000083	  t^\vee-(q+s^\vee-n)=r-j+1>0
+000084	  \]
+000085	  establish transformed admissibility.
+000086	- claim-5: The descent is valid because the graded algebra isomorphism maps \(A_{r,q,+}\) onto \(A_{q,r,+}\), so
+000087	  \[
+000088	  \omega(A_{r,q,+}J_v)=A_{q,r,+}J_{v^\vee}.
+000089	  \]
+000090	  The induced inverse is obtained from \(\omega_{q,r}\). Its degreewise matrices are integral permutation matrices; therefore torsion subgroups, element orders, and degreewise free ranks are preserved. Partition weight and ordinary cohomological degree \(2|\lambda|\) are both preserved.
+000091	- Boundary audit: nonidentity bigrassmannian admissibility forces \(r,q\ge1\); \(i,j\ge1\), \(a\ge0\), and \(b\ge1\). Cases \(r=1\), \(q=1\), \(i=q\), \(j=r\), \(a=0\), \(j-b=0\), and \(i-b=0\) introduce no exception. If \(i=q\) or \(j=r\), the auxiliary lower/right generator-index intervals collapse when \(a=0\), but the additive ideal interval \(i^j\subseteq\lambda\subseteq q^r\) need not be a singleton. If \(i=q\) and \(j=r\), it is the singleton top class and \(A_+J_v=0\).
+000092	- No finite \(G_L\)-to-\(G_R\) transition computation was used.
+000093	
+000094	## Required revisions
+000095	- Clarify that the “single core shape” assertion for \(a=0\) concerns the auxiliary generator families, not the additive Schur-basis interval for \(J_v\).
+000096	- The requested quotient-conjugation target was established; no repair certificate is required.

@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-168-1",
+	"taskId": "research-plan-task-168",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested \\(c=7\\) complete Pieri matrices and exact Smith witnesses were not produced: the supplied partition-Pieri action rejected the \\(33\\)-degree range, and the subsequent witness computation failed (artifact `396414c3a7250f05216a3bbfb3249dc38ae511542e100ec97dd744c8565397ed`, exit \\(1\\)).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Therefore the requested \\(i=j=p=2,c=7\\) target is **not established**.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "3be9bed7dd1009abc284ce5679964ba4e65d3b099494e8eb6d136c7a51fba9c0"
+}

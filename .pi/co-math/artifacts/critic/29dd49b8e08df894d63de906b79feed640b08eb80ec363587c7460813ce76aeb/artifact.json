@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-141-1",
+	"text": "## Critique\n- claim-1: Supported by accepted child-repair artifact `162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126`. Its exact inputs, complete degree range \\(4,\\ldots,32\\), labelled rows, ordered bases, Smith data, unimodular witnesses, and \\(0\\times1\\) boundary case match the requested bounded certificate. The requested target is established; no parent theorem or adjacent claim follows.\n\n## Required revisions\n- None for this bounded certificate."
+}

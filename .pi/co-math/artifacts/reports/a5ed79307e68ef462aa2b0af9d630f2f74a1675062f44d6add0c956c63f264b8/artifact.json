@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-161-1",
+	"text": "## Findings\n- claim-1: Sources `source-30` and `source-29` are not supplied as citable source blocks; therefore the requested complete extraction and status comparison cannot be performed.\n- claim-2: The supplied auxiliary summary identifies one formal conjecture and one formal open question in arXiv:0809.2981v2, but it is not source-30 or source-29. [source-6@L104-L110|claim=ordinary-document]\n## Strategy\nNo direct extraction is possible: source-30 and source-29 have no supplied citable excerpts. Do not substitute source-6’s adjacent summary.\n\n## Gaps\nThe requested exhaustive list, precise statements, parameters, and source-29 statuses are missing. Thus the target is **not established**.\n\n## Next\nSupply bounded source-30 excerpts covering all labelled Conjectures, Questions, and Problems, plus source-29 excerpts addressing their statuses."
+}

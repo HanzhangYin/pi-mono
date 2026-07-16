@@ -1,0 +1,26 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-81-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-80-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-80-1 · specialist · ARTIFACT 9e9b17323c5c389726e52bef3b24bd3a9a975def7cc2481fb32a1d72bed31f85
+000004	## Claims
+000005	- [unsupported] Artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4` is not supplied as an independently retrievable byte stream, and no bounded locators for its hypotheses, equation (1), fifteen table-(4) entries, provenance, or digest declaration are available. [artifact 4ccef86682683c442a2ae4a0b5ee182d6c3f9b10f5c4c7095eb317f4780f8141, lines 1-27]
+000006	
+000007	## Strategy
+000008	No reconstruction is possible: a SHA-256 digest can be checked only against supplied exact bytes, which are absent.
+000009	
+000010	## Gaps
+000011	Missing target bytes, retrieval location, encoding and line-ending convention, component locators, embedded-artifact provenance, and digest declaration.
+000012	
+000013	## Next
+000014	The requested source certificate is not established.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-80-1 · critic · ARTIFACT 4a8c6ed9c7aa493c64cf3d0ecc31a80d736c0323576f14fe97bb00d0891e438a
+000017	## Critique
+000018	- claim-1: This correctly identifies a record-level evidentiary gap, but it does not establish the requested certificate. The cited artifact `4ccef86682683c442a2ae4a0b5ee182d6c3f9b10f5c4c7095eb317f4780f8141` does not supply the target bytes or independently checkable locators. The absence claim is justified only relative to the supplied record, not as a universal nonexistence claim. Consequently, neither the target SHA-256 digest nor the required hypotheses, equation (1), fifteen table-(4) entries, provenance, or digest declaration can be verified. The strategy explains why reconstruction is invalid but does not reach the acceptance criteria.
+000019	
+000020	## Repair certificates
+000021	- [source-refresh] Supply one stable retrieval bundle containing the unmodified byte stream for artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4` and a detached manifest recording its byte length, encoding and line-ending convention, provenance, inclusive line ranges for all opening hypotheses, equation (1), each of the fifteen table-(4) entries separately, and the immutable digest declaration. The manifest must distinguish whether that declaration is internal or detached and include an executable verifier that reads the raw bytes and checks their SHA-256 equals exactly `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`.
+000022	
+000023	## Required revisions
+000024	- Replace the unsupported negative report with the retrievable byte stream, manifest, bounded locators, and captured successful digest verification.
+000025	- Do not reconstruct missing text from the digest or prior summaries.
+000026	- Conclude only whether this source certificate is established; make no parent-theorem claim.

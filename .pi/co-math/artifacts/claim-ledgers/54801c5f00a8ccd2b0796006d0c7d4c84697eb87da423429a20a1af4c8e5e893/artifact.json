@@ -1,0 +1,77 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-87-1",
+	"taskId": "research-plan-task-87",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "In `sources/0809.2981v2.tex` (revision `source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281`, SHA256 `9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02`), the quotient \\(\\Lambda/I_{r,n-r}\\) has \\(\\mathbb Z\\)-basis \\(\\{s_\\lambda:\\lambda\\subseteq(n-r)^r\\}\\). Exact excerpt: “the \\(\\mathbb Z\\)-submodule \\(I_{r,n-r}\\) spanned by all \\(s_\\lambda\\) with \\(\\lambda\\not\\subseteq(n-r)^r\\) forms an ideal” and “\\(H^\\star(G/P_J,\\mathbb Z)\\) has \\(\\mathbb Z\\)-basis … \\(=\\{s_\\lambda:\\lambda\\subseteq(n-r)^r\\}\\).” [source-2@L1318-L1330|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1318,
+						"end": 1330
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1318: The $\\ZZ$-basis for $\\Lambda$ given by the Schur functions $s_\\lambda$ \n1319: has the property that the $\\ZZ$-submodule $I_{r,n-r}$ spanned by all $s_\\lambda$\n1320: with  $\\lambda \\not\\subseteq (n-r)^r$ forms an ideal, and the\n1321: map sending $s_\\lambda$ to $s_\\lambda(x_1,\\ldots,x_r)$ induces an isomorphism\n1322: $$\n1323: \\Lambda/I_{r,n-r} \\quad \\overset{\\sim}{\\longrightarrow} \\quad \\ZZ[\\xx]^{W_J}/\\ZZ[\\xx]^W_+ \\ZZ[\\xx]^{W_J} \n1324:                      \\quad \\left( \\cong H^\\star(G/P_J,\\ZZ) \\right) \n1325: $$\n1326: Thus $H^\\star(G/P_J,\\ZZ)$ has $\\ZZ$-basis given by \n1327: $$\n1328: \\{ \\sigma_w: w \\in W^J \\}\n1329: %  =   \\{ \\schubp_w: w \\in W \\text{ is }r-\\text{grassmannian} \\}\n1330:   = \\{s_\\lambda: \\lambda \\subseteq (n-r)^r \\}.",
+					"excerptSha256": "ed587f95e3cf0c51a3dd92e755a3eea23a28e897f121ad4e34ac7b6c03a8949b",
+					"canonicalCitation": "[source-2@L1318-L1330|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For the bigrassmannian corresponding to \\(i^j\\), the source states that \\(J_{v_{r,s,t,n}}\\) is generated as an ideal of \\(\\Lambda/I_{r,n-r}\\) by the interval-indexed set \\(\\{s_\\mu:i^j\\subseteq\\mu\\subseteq(n-r)^r\\}\\). Exact excerpt: “\\(J_{v_{r,s,t,n}}\\) is generated as an ideal of \\(\\Lambda/I_{r,n-r}\\) by … \\(=\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}\\).” [source-2@L1365-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1365,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1365: When $u$ and $v$ are $r$-grassmannian and correspond respectively to\n1366: partitions $\\lambda$ and $\\mu$, the Bruhat order relation $u \\geq v$\n1367: is equivalent to inclusion $\\lambda \\supseteq \\mu$ of their Young\n1368: diagrams, meaning that $\\lambda_i \\geq \\mu_i$ for all $i$.  Thus\n1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "dad3797f551adb4a39d8e9f4871f9b7b6f1bbb109ef3c44fec60a1066e794035",
+					"canonicalCitation": "[source-2@L1365-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The supplied formal-source excerpts do not state that the degree-\\(d+k\\) columns are the direct-sum interval component \\(\\bigoplus_{i^j\\subseteq\\mu\\subseteq q^r,\\ |\\mu|=d+k}\\mathbb Zs_\\mu\\), nor that the *complete* \\(h_1\\)-row set is exactly \\(\\{h_1s_\\lambda\\}\\) for all interval-indexed degree-\\(d+k-1\\) \\(\\lambda\\). They also contain no bounded explicit Pieri-rule excerpt identifying those products as the requested rows.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "a7199e5912c2a30ec92355aaba60a8afad966e15acf64fde3193fbad64bec8e1"
+}

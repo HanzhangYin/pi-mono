@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-46-1",
+	"taskId": "research-plan-task-46",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Let \\(q=n-r\\), \\(R=i^j\\), \\(d=ij\\), \\(p=q-i\\), \\(c=r-j\\), and assume \\(\\min(i,j)=2\\), \\(\\min(p,c)=1\\). In the truncated Schur/Pieri presentation for shapes in the \\(q^r\\)-box containing \\(R\\), the columns and Pieri rows in degrees \\(d+1,d+2\\) are exactly those listed below; all boundary deletions are explicit.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "d6ff659891e7dc68c7298eec9689cfe0e524e4415bd25ea54979ca215b09937c"
+}

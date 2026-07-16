@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-103-1",
+	"taskId": "research-plan-task-103",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the accepted all-degree integral interval/Schur/Pieri presentation for \\(p=c=1\\), the missing \\(k>b:=\\min(i,j)\\) certificate is established: \\((A_+M)_{d+k}=M_{d+k}\\) for every \\(b<k\\le i+j+1\\), and \\(M_{d+k}=0\\) for \\(k>i+j+1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "ab78cc3cea74bdeaed39fb77171c2a6bed477d554772e91af26a756c51e74ef0"
+}

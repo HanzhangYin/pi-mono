@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-205-1",
+	"text": "## Claims\n- [source-backed] Conjecture 4.10 states that both generating sets of Theorem 4.8 for \\(J_{v_{r,s,t,n}}\\) are minimal. [doi:10.1090/s0002-9947-2010-05163-3, lines 938-946]\n- [source-backed] Question 5.1 asks for a minimal generating set for \\(I_w\\) in type \\(A_{n-1}\\), including specified \\(n^2\\)-generator subclasses. [doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1156]\n\n## Strategy\nThe requested whole-source fixed-literal audit could not run: `source-30` is not a citable indexed file. No external search was initiated.\n\n## Gaps\nNo task-owned computed artifact, complete hit table, or verified zero counts exists for the five requested literals. Therefore the requested target is **not established**.\n\n## Next\nA citable/indexed representation of source-30 is required before the exact audit can be performed."
+}

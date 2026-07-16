@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-150-1",
+	"taskId": "research-plan-task-150",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "No sandbox execution result or new task-owned artifact was returned for the requested computation; the capability certificate is not established.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Therefore neither \\(Q\\cong\\mathbb Z^6\\) nor the \\(i=j=p=2,c=6\\) minimality corollary is established in this repair.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5ce79842420baa063e016ad02c5ee156f027ccc9cfba483ddff1cf9cc54b8e4a"
+}

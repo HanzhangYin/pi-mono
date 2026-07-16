@@ -1,0 +1,44 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-136-1",
+	"taskId": "research-plan-task-136",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested complete partition-Pieri computation for lower=[2,2,0,0,0,0,0,0], upper=[4,4,4,4,4,4,4,4], degrees=[4,...,32], and hDegrees=[1,2,3,4] was not obtained.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No exit-status-0 task-owned artifact containing every ordered basis, every labelled (including zero) row, exact Smith diagonals, ranks, quotient free ranks, torsion lists, and `enumeratedAllSupportDegrees:true` is available.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The supplied partition-pieri primitive rejected the requested degree range because it permits only degrees 1 through 25.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The attempted custom computation failed with exit status 1 because `sympy` was unavailable; artifact `a2af551f8267a89e7183965f18055785e7fda9dfcef733e26cd8d78f5adcbe8e` is not successful computation evidence.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "9ef3329d2d7390248efda348271307cb7eaa7c52c450940e0879462ac1a4ea9f"
+}

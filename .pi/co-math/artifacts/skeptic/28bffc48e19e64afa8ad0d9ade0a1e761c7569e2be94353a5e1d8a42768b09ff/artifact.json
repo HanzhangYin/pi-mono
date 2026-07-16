@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-80-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 confirms that the target byte stream and required bounded locators are unavailable; it does not establish the requested certificate.\n- No raw-byte SHA-256 verification against `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4` is supplied.\n- The opening hypotheses, equation (1), all fifteen table-(4) entries, provenance, and immutable digest declaration cannot be checked.\n\n## Unresolved certificates\n- [proof-attempt] Supply an independently retrievable, byte-preserving copy of artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, with bounded exact line locators for every required item and an executable raw-byte SHA-256 check yielding that exact digest."
+}

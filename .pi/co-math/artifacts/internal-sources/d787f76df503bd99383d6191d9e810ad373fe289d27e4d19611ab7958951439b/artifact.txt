@@ -1,0 +1,32 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-206-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-205-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-205-1 · specialist · ARTIFACT cb646bad047e1d71280279bed6f2fb140c41db0c144de85f1862fbd105849ec8
+000004	## Claims
+000005	- [source-backed] Conjecture 4.10 states that both generating sets of Theorem 4.8 for \(J_{v_{r,s,t,n}}\) are minimal. [doi:10.1090/s0002-9947-2010-05163-3, lines 938-946]
+000006	- [source-backed] Question 5.1 asks for a minimal generating set for \(I_w\) in type \(A_{n-1}\), including specified \(n^2\)-generator subclasses. [doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1156]
+000007	
+000008	## Strategy
+000009	The requested whole-source fixed-literal audit could not run: `source-30` is not a citable indexed file. No external search was initiated.
+000010	
+000011	## Gaps
+000012	No task-owned computed artifact, complete hit table, or verified zero counts exists for the five requested literals. Therefore the requested target is **not established**.
+000013	
+000014	## Next
+000015	A citable/indexed representation of source-30 is required before the exact audit can be performed.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-205-1 · critic · ARTIFACT 87897a3ed015a74e75e55051c5eb182ce43a1a05a9ef2076b33b851cbbbffb0b
+000018	## Critique
+000019	- claim-1: Source-backed and correctly bounded, but it establishes only the content of Conjecture 4.10. It is not evidence for the number or completeness of case-insensitive fixed-literal hits.
+000020	- claim-2: Source-backed and correctly bounded, but likewise does not establish the complete hit table or count for “question.”
+000021	- The strategy does not meet the task criteria. Its assertion that `source-30` is not citable/indexed contradicts the supplied FULL-TEXT SOURCE with content SHA-256 `34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128`.
+000022	- No task-owned computation artifact, occurrence-level hit table, or artifact-backed zero counts were produced. Therefore the requested target is correctly reported as **not established**, but the repair task remains incomplete.
+000023	
+000024	## Repair certificates
+000025	- [computation] Run a case-insensitive, exact fixed-literal audit of persisted `source-30` for exactly `conjecture`, `question`, `problem`, `we ask`, and `remains open`. Persist an occurrence-level table containing term, source line, and matched text, together with per-term totals, explicit verified zero counts, source digest, execution status, and artifact digest.
+000026	- [source-refresh] Using only existing `source-30`, provide bounded exact-line citations for every mathematically substantive hit identified by the artifact; cite numerical counts only to the computation artifact.
+000027	
+000028	## Required revisions
+000029	- Remove the unsupported claim that `source-30` is unavailable for citation.
+000030	- Do not present claims 1–2 as an exhaustive audit.
+000031	- Distinguish the already-recorded `persisted:source-30` provider query from the required statement that no **new** external search was initialized.
+000032	- Retain the explicit conclusion that the requested audit target is not established until the computation artifact and complete table exist.

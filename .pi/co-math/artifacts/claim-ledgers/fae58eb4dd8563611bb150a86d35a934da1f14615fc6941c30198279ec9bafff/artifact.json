@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-269-1",
+	"taskId": "research-plan-task-269",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "From the Smith witnesses in artifact `b5658ec18b84ad470751544a752f238dadd447fb7b1122a89a299a79e024042f`, the quotient has: \\[ \\begin{array}{c|ccccccccccccccccc} d&9&10&11&12&13&14&15&16&17&18&19&20&21&22&23&24&25\\\\\\hline \\operatorname{rank}_{\\mathbb Z}Q_d&1&1&2&2&2&1&1&0&0&0&0&0&0&0&0&0&0\\\\ \\operatorname{Tor}(Q_d)&\\varnothing&\\varnothing&\\varnothing&\\varnothing&\\varnothing& \\varnothing&\\varnothing&\\varnothing&\\varnothing&\\varnothing&\\varnothing& \\varnothing&\\varnothing&\\varnothing&\\varnothing&\\varnothing&\\varnothing \\end{array} \\] [artifact b5658ec18b84ad470751544a752f238dadd447fb7b1122a89a299a79e024042f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Therefore \\[ \\operatorname{Hilb}_{Q}(z) =z^9(1+z+2z^2+2z^3+2z^4+z^5+z^6) =z^9\\binom52_z. \\] [artifact b5658ec18b84ad470751544a752f238dadd447fb7b1122a89a299a79e024042f]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "6b32db388878af61699e5d9cefe30485371fef5465707c56c640000e1a1c5d41"
+}

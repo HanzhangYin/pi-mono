@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-200-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-2 is not an exact transcription: it replaces words from lines 91–93 with an ellipsis. The task explicitly requires transcription of every hit, not an abbreviated quotation.\n- Consequently, the asserted “exact persisted-source audit” is not fully established, although the count, classifications, source identity, and no-new-search handling are otherwise supported.\n\n## Unresolved certificates\n- [source-refresh] Provide the unabridged verbatim transcription of the `[GR02]` hit at lines 91–93 from the already persisted source-30; no external search is needed."
+}

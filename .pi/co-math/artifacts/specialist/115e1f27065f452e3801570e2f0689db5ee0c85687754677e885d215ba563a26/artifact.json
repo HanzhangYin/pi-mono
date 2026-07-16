@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-77-1",
+	"text": "## Claims\n- [source-backed] `README.md` catalogues archived external source files and TeX locators only. [source-4, lines 10-28]\n- [unsupported] The supplied record has no task-owned, line-addressable verbatim excerpt artifact for `research-attempt-research-plan-task-68-1`, no bounded locators for its hypotheses, (1), or fifteen cases of (4), and no inspectable provenance or immutable excerpt digest. The quoted internal artifact ID cannot be treated as such a digest.\n\n## Strategy\nDo not infer or reconstruct the requested excerpt from the unnumbered internal-attempt transcript.\n\n## Gaps\nThe required inspected-source snapshot and task-owned immutable excerpt artifact are absent.\n\n## Next\nThe named source certificate is **not established** from the supplied evidence. No parent-theorem claim is made."
+}

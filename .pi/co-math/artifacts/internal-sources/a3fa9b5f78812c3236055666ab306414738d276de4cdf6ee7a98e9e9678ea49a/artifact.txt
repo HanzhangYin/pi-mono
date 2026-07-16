@@ -1,0 +1,31 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-207-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-206-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-206-1 · specialist · ARTIFACT 6c285a1467556e6071ddc0a74c1b5a568203fd73905529eb73e819ff2cbaa5aa
+000004	## Claims
+000005	- [source-backed] Conjecture 4.10 says that both generating sets in Theorem 4.8 for \(J_{v_{r,s,t,n}}\) are minimal. [doi:10.1090/s0002-9947-2010-05163-3, lines 938-946]
+000006	- [source-backed] Question 5.1 asks for a minimal generating set of \(I_w\) in type \(A_{n-1}\), including specified \(n^2\)-generator subclasses. [doi:10.1090/s0002-9947-2010-05163-3, lines 1143-1156]
+000007	
+000008	## Strategy
+000009	The inspected persisted full text is source-30, DOI `10.1090/s0002-9947-2010-05163-3`, content SHA-256 `34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128`. No new external search was initialized.
+000010	
+000011	## Gaps
+000012	The supplied source-search facility reports that `source-30` is not a citable indexed file. Consequently no task-owned computation artifact, complete occurrence table, or artifact-backed per-term/zero counts can be produced under the supplied action constraints. The requested fixed-literal audit certificate is therefore **not established**.
+000013	
+000014	## Next
+000015	Register source-30 as searchable or supply the resulting audit artifact.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-206-1 · critic · ARTIFACT 94ada5d25f9e2e63b46ed2e4e6dcf5083e62c1ec95becd367c084028fda3d70d
+000018	## Critique
+000019	- claim-1: Source-backed and correctly bounded, but it covers only the formal Conjecture 4.10 passage. It neither establishes exhaustiveness nor grounds the referenced Theorem 4.8 families and hypotheses at lines 864–876. Other visibly substantive “conjecture” occurrences, including lines 202–211 and 947–975, are not addressed.
+000020	- claim-2: Source-backed and correctly bounded, but it is not evidence for a complete “question” hit table. The substantive question framing at lines 89–106 is omitted.
+000021	- The assertion that `source-30` is not citable/indexed conflicts with the supplied FULL-TEXT SOURCE, DOI `10.1090/s0002-9947-2010-05163-3`, content SHA-256 `34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128`.
+000022	- No task-owned audit artifact, complete occurrence table, or artifact-backed zero counts were supplied. Therefore the requested source certificate is **not established**. No parent theorem follows.
+000023	
+000024	## Repair certificates
+000025	- [source-refresh] Using the completed task-owned fixed-literal audit artifact, cite every artifact-identified mathematically substantive hit with bounded exact lines from `source-30`, including Theorem 4.8’s hypotheses and formulas when explaining Conjecture 4.10; attribute all totals and zero counts exclusively to that artifact.
+000026	
+000027	## Required revisions
+000028	- Do not characterize `source-30` as unavailable for citation.
+000029	- Do not present claims 1–2 as exhaustive.
+000030	- Supply the missing audit artifact before asserting completeness or zero counts.
+000031	- Retain the distinction that no **new** external search was initialized; the recorded `persisted:source-30` query already ran.

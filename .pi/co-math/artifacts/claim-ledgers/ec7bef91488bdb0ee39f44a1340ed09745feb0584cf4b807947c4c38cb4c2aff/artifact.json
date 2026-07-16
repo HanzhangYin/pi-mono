@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-75-1",
+	"taskId": "research-plan-task-75",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied internal draft artifact `research-attempt-research-plan-task-68-1` (artifact `a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67`) contains the requested hypotheses, equation (1), and table (4), but supplied evidence gives no physical line locators or task-owned excerpt artifact digest for this repair.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The required source certificate is not established on the supplied evidence.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5491a50e9d678bb649d18b0101f0af602df76abeb46c32d9f2e34f225f688d80"
+}

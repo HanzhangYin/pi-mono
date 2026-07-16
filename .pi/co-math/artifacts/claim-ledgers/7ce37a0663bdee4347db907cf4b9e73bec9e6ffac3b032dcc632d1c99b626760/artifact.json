@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-173-1",
+	"taskId": "research-plan-task-173",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Let \\(\\Lambda=\\bigoplus_\\lambda\\mathbb Zs_\\lambda\\), \\(I_{r,q}:=\\bigoplus_{\\lambda\\nsubseteq q^r}\\mathbb Zs_\\lambda\\), and \\(A_{r,q}:=\\Lambda/I_{r,q}\\). For \\(0\\le i\\le q\\), \\(0\\le j\\le r\\), define \\[ J_{r,q;i,j}:=\\bigoplus_{\\,i^j\\subseteq\\lambda\\subseteq q^r}\\mathbb Z\\bar s_\\lambda\\subseteq A_{r,q}. \\] This is an ideal: in every nonzero Littlewood–Richardson term \\(s_\\lambda s_\\nu=\\sum_\\rho c_{\\lambda\\nu}^\\rho s_\\rho\\), one has \\(\\lambda\\subseteq\\rho\\); hence every surviving \\(\\rho\\) still contains \\(i^j\\). Let \\(\\omega(s_\\lambda)=s_{\\lambda'}\\). Since \\(\\lambda\\subseteq q^r\\iff\\lambda'\\subseteq r^q\\), \\(\\omega(I_{r,q})=I_{q,r}\\), so it induces an integral ring isomorphism \\[ \\bar\\omega_{r,q}:A_{r,q}\\xrightarrow{\\sim}A_{q,r}, \\qquad\\bar s_\\lambda\\mapsto\\bar s_{\\lambda'}. \\] For every \\(\\lambda\\subseteq q^r\\), \\[ i^j\\subseteq\\lambda\\iff j^i\\subseteq\\lambda'. \\] Indeed, for \\(i,j>0\\), the left side says \\(\\lambda_a\\ge i\\) for \\(1\\le a\\le j\\), equivalently \\(\\lambda'_b=\\#\\{a:\\lambda_a\\ge b\\}\\ge j\\) for \\(1\\le b\\le i\\), which is \\(j^i\\subseteq\\lambda'\\). If \\(i=0\\) or \\(j=0\\), both rectangles are empty and the equivalence is vacuous. Thus \\(\\bar\\omega_{r,q}\\) maps the displayed \\(\\mathbb Z\\)-basis of \\(J_{r,q;i,j}\\) bijectively to the displayed \\(\\mathbb Z\\)-basis of \\(J_{q,r;j,i}\\). Therefore \\[ \\boxed{\\bar\\omega_{r,q}(J_{r,q;i,j})=J_{q,r;j,i}}. \\] The missing basiswise interval-ideal certificate is established.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "9ffa78ad76dbbb91d45b20d6ea7f9ef499ee26fa23e77782afaa02b273ab9192"
+}

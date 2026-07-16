@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-238-1",
+	"text": "## Findings\n- claim-1: The requested three-input audit cannot be executed from supplied material: `persisted. source-39` has no resolvable supplied source block or bytes, and no sandbox action is available here.\n## Strategy\nRetain DOI 10.1112/jlms.12832 grounding [lines 219-235]. Do not normalize `persisted. source-39`. A task-owned audit requires an authoritative resolver manifest and executable sandbox action.\n\n## Gaps\nThe exact three-source resolver manifest, raw bytes, digests, code execution, twelve counts, stdout/stderr, exit status, and artifact locator are unavailable. Therefore the requested audit was **not established**.\n\n## Next\nObtain immutable resolution of all three exact identifiers, then execute the specified overlapping UTF-8 count audit."
+}

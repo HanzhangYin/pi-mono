@@ -1,0 +1,30 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-234-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-233-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-233-1 · specialist · ARTIFACT 313cce9d48ed5ac2b990c430a4ff01255baa167b2772ffb03cc79bee0a5ef0b4
+000004	## Claims
+000005	- [unsupported] No executable audit artifact or occurrence counts were supplied for `persisted:source-39`.
+000006	
+000007	## Strategy
+000008	The requested three-source task-owned audit was not executable from the supplied material: no sandbox action/result, source-39 text, output locator, or stable digests were available.
+000009	
+000010	## Gaps
+000011	Missing executable code, stdout/stderr, exit status, outputs locator, digests, and all required term counts.
+000012	
+000013	## Next
+000014	Requested target: **not established**.
+000015	
+000016	INTERNAL ATTEMPT research-attempt-research-plan-task-233-1 · critic · ARTIFACT db7ec9591cc79223aee820dd2cc936a01011976a583d2f49958550d736f4cf07
+000017	## Critique
+000018	- claim-1: Correctly identifies that no task-owned audit artifact or occurrence counts were produced, but it addresses only `persisted:source-39`. The task requires all three exact queries and twelve per-query term counts, plus targeted-query count, executable code, stdout/stderr, exit status, output locator, and stable digests. The supplied provider search is not a substitute for this audit. The requested target was **not established**.
+000019	
+000020	## Repair certificates
+000021	- [computation] Resolve the exact persisted bytes for `persisted:source-39`, `persisted:source-29`, and `persisted:source-30`; run a task-owned script that counts exact literal occurrences of each required term in each source; persist code and complete output; report exit status, locator, and SHA-256 digests for code, inputs, stdout, stderr, and artifact.
+000022	- [source-refresh] Supply a durable resolver manifest mapping each of the three persisted source IDs to its exact byte locator and content SHA-256, especially the presently ungrounded `persisted:source-39` mapping.
+000023	
+000024	## Required revisions
+000025	- Report exactly three targeted queries.
+000026	- Report all twelve source-by-term occurrence counts.
+000027	- State counting semantics, including case sensitivity and text encoding.
+000028	- Include executable code and captured stdout/stderr.
+000029	- Include exit status, immutable output locator, and stable digests.
+000030	- Preserve the conclusion that the requested audit remains unestablished until that computation executes.

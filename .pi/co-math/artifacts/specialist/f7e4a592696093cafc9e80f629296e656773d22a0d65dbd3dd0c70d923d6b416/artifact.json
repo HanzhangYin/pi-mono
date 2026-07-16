@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-158-1",
+	"text": "## Claims\n- [proved] With recorded shape \\([0,1]\\), let \\(M_4=D_4=0_{0\\times1}\\), \\(U_4=I_0\\in\\mathbb Z^{0\\times0}\\), and \\(V_4=[1]\\in\\mathbb Z^{1\\times1}\\). Then\n  \\[\n  U_4M_4V_4=I_0\\,0_{0\\times1}\\,[1]=0_{0\\times1}=D_4.\n  \\]\n  The dimensions are \\((0\\times0)(0\\times1)(1\\times1)=0\\times1\\). Moreover \\(\\det(I_0)=1\\) (empty determinant) and \\(\\det([1])=1\\), so both \\(U_4\\) and \\(V_4\\) are unimodular; \\(V_4^{-1}=[1]\\). Thus the required degree-\\(4\\) explicit witness is established.\n\n## Strategy\nVerify the specified boundary matrices directly, using the unique \\(0\\times1\\) zero matrix and standard empty-determinant convention.\n\n## Gaps\nNone for this boundary certificate. No parent-theorem claim is made.\n\n## Next\nNo further step is required for this certificate."
+}

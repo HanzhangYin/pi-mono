@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-158-1",
+	"taskId": "research-plan-task-158",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "With recorded shape \\([0,1]\\), let \\(M_4=D_4=0_{0\\times1}\\), \\(U_4=I_0\\in\\mathbb Z^{0\\times0}\\), and \\(V_4=[1]\\in\\mathbb Z^{1\\times1}\\). Then \\[ U_4M_4V_4=I_0\\,0_{0\\times1}\\,[1]=0_{0\\times1}=D_4. \\] The dimensions are \\((0\\times0)(0\\times1)(1\\times1)=0\\times1\\). Moreover \\(\\det(I_0)=1\\) (empty determinant) and \\(\\det([1])=1\\), so both \\(U_4\\) and \\(V_4\\) are unimodular; \\(V_4^{-1}=[1]\\). Thus the required degree-\\(4\\) explicit witness is established.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "80afa77b5ed45226fdda8967147d48c4e416913d9642e0d7d3cdb14ad41bcaf0"
+}

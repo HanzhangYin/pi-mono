@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-67-1",
+	"taskId": "research-plan-task-67",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the integral box/Schur/Pieri presentation, for \\(i,j\\ge3\\), \\(p,c\\ge1\\), \\(\\min(p,c)=1\\), the corrected degree-\\(d+3\\) Pieri-row certificate below satisfies \\(R_{\\mathrm{full}}=\\mathcal C R_{\\mathrm{selected}}\\) entrywise in every boundary case.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "7c8c77094bd965e3be4db4901c2ecf41745c1b68cda80c61c6fd00add5907779"
+}

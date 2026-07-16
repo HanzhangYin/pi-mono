@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-47-1",
+	"text": "## Claims\n- [proved] For boundary case \\((p,c)=(1,1)\\), with row order \\((2),(3),(4)\\) and column order \\((x_2,z,y_2)\\), the boundary matrix is\n  \\[\n  B_{1,1}=\n  \\begin{pmatrix}\n  0&1&1\\\\\n  1&1&0\\\\\n  0&1&1\n  \\end{pmatrix}_{(x_2,z,y_2)}.\n  \\]\n  Rows \\((2),(3)\\) restricted to columns \\((z,y_2)\\) are\n  \\[\n  \\begin{pmatrix}1&1\\\\1&0\\end{pmatrix},\n  \\qquad \\det=(1)(0)-(1)(1)=-1\\in\\mathbb Z^\\times.\n  \\]\n  Moreover rows \\((2)\\) and \\((4)\\) are equal, both being \\((0,1,1)\\).\n\n## Strategy\nRead the indicated entries directly from \\(B_{1,1}\\); the displayed \\(2\\times2\\) minor has determinant \\(-1\\), a unit in \\(\\mathbb Z\\).\n\n## Gaps\nNone for this finite matrix certificate.\n\n## Next\nThe requested certificate has been established; no parent-theorem conclusion is asserted."
+}

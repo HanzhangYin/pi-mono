@@ -1,0 +1,71 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-105-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-104-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-104-1 · specialist · ARTIFACT 930714522b74b59cb704db15a77ad3a0ebaf26eb9d58e1f39d78bf7738ea3bd8
+000004	## Claims
+000005	- [proved] For \(p,c\ge1\), hence in particular for \(\min(p,c)=1\),
+000006	\[
+000007	I_{j+c,i+p}\subseteq I_{j+1,i+1}.
+000008	\]
+000009	- [proved] The induced quotient map restricts surjectively as
+000010	\[
+000011	J_{p,c}\twoheadrightarrow J_{1,1},
+000012	\]
+000013	and induces a surjection
+000014	\[
+000015	Q_{p,c}=J_{p,c}/\Lambda_+J_{p,c}\twoheadrightarrow
+000016	J_{1,1}/\Lambda_+J_{1,1}=Q_{1,1}.
+000017	\]
+000018	
+000019	## Strategy
+000020	Let \(B_{r,q}=\{\lambda:\lambda\subseteq q^r\}\). The Schur-basis box definition is
+000021	\[
+000022	I_{r,q}=\bigoplus_{\lambda\notin B_{r,q}}\mathbb Zs_\lambda.
+000023	\]
+000024	Since
+000025	\[
+000026	(i+1)^{j+1}\subseteq(i+p)^{j+c}
+000027	\qquad(p,c\ge1),
+000028	\]
+000029	one has \(B_{j+1,i+1}\subseteq B_{j+c,i+p}\). Taking complements gives
+000030	\[
+000031	\{\lambda:\lambda\not\subseteq(i+p)^{j+c}\}
+000032	 \subseteq
+000033	\{\lambda:\lambda\not\subseteq(i+1)^{j+1}\},
+000034	\]
+000035	which proves the ideal inclusion.
+000036	
+000037	Thus there is a quotient map
+000038	\[
+000039	\pi:\Lambda/I_{j+c,i+p}\twoheadrightarrow\Lambda/I_{j+1,i+1}.
+000040	\]
+000041	Under the Schur-basis definition,
+000042	\[
+000043	J_{p,c}=\bigoplus_{i^j\subseteq\lambda\subseteq(i+p)^{j+c}}
+000044	\mathbb Z\bar s_\lambda ,
+000045	\qquad
+000046	J_{1,1}=\bigoplus_{i^j\subseteq\lambda\subseteq(i+1)^{j+1}}
+000047	\mathbb Z\bar s_\lambda .
+000048	\]
+000049	For a basis element of \(J_{p,c}\), \(\pi(\bar s_\lambda)\) is \(\bar s_\lambda\) if
+000050	\(\lambda\subseteq(i+1)^{j+1}\), and is \(0\) otherwise. Hence its image is exactly \(J_{1,1}\), proving the stated restriction is surjective.
+000051	
+000052	Finally \(\pi\) is \(\Lambda\)-linear, so
+000053	\[
+000054	\pi(\Lambda_+J_{p,c})=\Lambda_+\pi(J_{p,c})
+000055	=\Lambda_+J_{1,1}.
+000056	\]
+000057	Therefore \(\pi|_{J_{p,c}}\) descends to the asserted surjection on \(Q\).
+000058	
+000059	## Gaps
+000060	None, provided \(I_{r,q}\), \(J_{p,c}\), and \(Q_{p,c}\) have the stated Schur-basis and positive-degree-quotient definitions.
+000061	
+000062	## Next
+000063	The requested target is established.
+000064	
+000065	INTERNAL ATTEMPT research-attempt-research-plan-task-104-1 · critic · ARTIFACT c19a1ca9c930398f5847d705a601128871247e87f93f05cb279735e42b516332
+000066	## Critique
+000067	- claim-1: Correct. Inclusion of the smaller rectangle in the larger rectangle reverses inclusion of the corresponding Schur-basis complements, proving the ideal inclusion. The argument actually holds for all \(p,c\ge1\).
+000068	- claim-2: Correct. The quotient map retains precisely the interval basis elements lying in the smaller box and kills the others, so its restriction is surjective. Its \(\Lambda\)-linearity and that surjectivity give the stated equality of positive-degree submodules and hence the surjection on indecomposable quotients.
+000069	
+000070	## Required revisions
+000071	- None. Under the stated Schur-basis definitions of \(I_{r,q}\), \(J_{p,c}\), and \(Q_{p,c}\), the requested target is established.

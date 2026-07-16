@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-22-1",
+	"taskId": "research-plan-task-22",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Let \\(A=\\Lambda/I_{r,q}\\) with \\(q=n-r\\), graded by degree, and write \\(\\bar h_k\\) for the image of \\(h_k\\). Since \\(\\Lambda=\\mathbb Z[h_1,h_2,\\ldots]\\) and \\(\\bar h_k=\\bar s_{(k)}=0\\) for \\(k>q\\), every element of \\(A\\) is a polynomial in \\(\\bar h_1,\\ldots,\\bar h_q\\). Its positive-degree part has no constant monomial, hence lies in \\((\\bar h_1,\\ldots,\\bar h_q)\\). Conversely each \\(\\bar h_k\\) has positive degree, so \\((\\bar h_1,\\ldots,\\bar h_q)\\subseteq A_+\\). Therefore \\[ A_+=(h_1,\\ldots,h_q). \\] (For \\(q=0\\), both sides are \\(0\\).)",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For every ideal \\(J_v\\subseteq A\\), \\[ A_+J_v=(h_1,\\ldots,h_q)J_v=\\sum_{k=1}^{q}h_kJ_v. \\] If \\(J_v\\) is \\(\\mathbb Z\\)-spanned by its Schur classes \\(s_\\mu\\), this subgroup is \\(\\mathbb Z\\)-spanned by the Pieri products \\[ h_k s_\\mu,\\qquad 1\\le k\\le q. \\] By Pieri, \\[ h_k s_\\mu=\\sum_{\\substack{\\nu\\supseteq\\mu\\\\ \\nu/\\mu\\text{ a horizontal }k\\text{-strip}}}s_\\nu, \\] with terms outside the \\(q^r\\)-box equal to \\(0\\) in \\(A\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "25097d948382a6afb8684f0e7d5a66bbc40b09805cb1f44554085260b035cd7e"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-54-1",
+	"text": "## Verdict\nrejected\n\n## Concerns\n- claim-1 concerns the earlier paper and does not satisfy any requested extraction from DOI \\(10.1112/jlms.12832\\).\n- claim-2 is unsupported by citable evidence and confirms that no full-text ingestion occurred.\n- The draft explicitly states that the requested main theorem, coefficient hypotheses, and description of \\(J_v/A_+J_v\\) were not established.\n\n## Unresolved certificates\n- [proof-attempt] Ingest a verifiable full-text copy associated with DOI \\(10.1112/jlms.12832\\) and provide exact indexed passages stating its main theorem, coefficient hypotheses, and every relevant description of \\(J_v/A_+J_v\\)."
+}

@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-134-1",
+	"taskId": "research-plan-task-134",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For lower \\(=(2,2,0,0,0,0,0,0)\\), upper \\(=(4,4,4,4,4,4,4,4)\\), and \\(h\\)-degrees \\(1,2,3,4\\), the required certificate range is \\(4,5,\\ldots,32\\). The recorded computation enumerates only degrees \\(4,\\ldots,25\\), while declaring support range \\(4,\\ldots,32\\) and `enumeratedAllSupportDegrees:false`; hence it contains no ordered bases, complete labelled Pieri rows (zero rows included), ranks, or Smith diagonals for degrees \\(26,27,28,29,30,31,32\\). [artifact 9e5b4b2dd4a1f0c42f4222765f0ba2a0da3446c58ff90226ee2c370f85bb7322, lines 1-27]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Therefore complete labelled rows, ordered bases, and exact Smith forms are missing for degrees \\(26,\\ldots,32\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "bb57d731d154ad3f12155a6621b1a600dcc3ab5c34c4f0d933979f71c1751f42"
+}

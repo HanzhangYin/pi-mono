@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/huPGrmJzHxa4fncpJfWOCr5J+EE</id>
+  <title>arXiv Query: search_query=&amp;id_list=0809.2981&amp;start=0&amp;max_results=10</title>
+  <updated>2026-07-11T13:39:22Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=0809.2981" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>10</opensearch:itemsPerPage>
+  <opensearch:totalResults>1</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/0809.2981v2</id>
+    <title>Presenting the cohomology of a Schubert variety</title>
+    <updated>2009-09-04T21:19:20Z</updated>
+    <link href="https://arxiv.org/abs/0809.2981v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/0809.2981v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>  We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.</summary>
+    <category term="math.CO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.RA" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2008-09-17T19:12:56Z</published>
+    <arxiv:comment>22 pages</arxiv:comment>
+    <arxiv:primary_category term="math.CO"/>
+    <arxiv:journal_ref>Trans. Amer. Math. Soc. 363 (2011), 521-543</arxiv:journal_ref>
+    <author>
+      <name>Victor Reiner</name>
+    </author>
+    <author>
+      <name>Alexander Woo</name>
+    </author>
+    <author>
+      <name>Alexander Yong</name>
+    </author>
+  </entry>
+</feed>

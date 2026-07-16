@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-63-1",
+	"taskId": "research-plan-task-63",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the stipulated integral box/Schur/Pieri presentation, the degree-\\(d+3\\) full Pieri-product row matrix satisfies \\(R_{\\mathrm{full}}=C R_{\\mathrm{selected}}\\) over \\(\\mathbb Z\\) in every regime \\(p=1,c\\ge2\\), \\(p=2,c=1\\), \\(p\\ge3,c=1\\), and \\(p=c=1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The accepted finite artifact `cecc079333282c8f3812ec2900c0dd5a18c1ca309cfd351ff9229f704af94918` reports, for \\(2\\le i,j\\le6\\), \\(1\\le p,c\\le5\\), \\(\\min(p,c)=1\\): 225 parameter tuples, 900 Pieri identities checked, 225 boundary-matrix checks, exit status \\(0\\), and `RESULT: PASS`. This is finite validation only. [artifact cecc079333282c8f3812ec2900c0dd5a18c1ca309cfd351ff9229f704af94918]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "422f88aa7c2c85817bc678c3c852fd581302e14771fdf54abaea26734fde679f"
+}

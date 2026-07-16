@@ -1,0 +1,239 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-191-1",
+	"taskId": "research-plan-task-191",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Section 4 begins “Conclusion of the proof”; it contains Definition 4.1, Lemmas 4.2–4.3, then Theorems 4.4–4.5. [doi:10.1112/jlms.12832, lines 737-789]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 737,
+							"end": 789
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "737: \\section{Conclusion of the proof} \\label{sec:conclusion}\n738: \\begin{definition}\n739: Let $W$ be the subspace\n740: \\[W= \\mathrm{Span}_{\\mathbb{Z}}\\left\\{\\linear_{\\varphi}(\\rho)\\mid \\rho\\in\\decomp_{\\varphi} \\text{ is wide} \\right\\}\\]\n741: \\end{definition}\n742: Recall the linear isomorphism $T:V\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ defined by $T(A_{\\lambda,\\theta}) = \\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta}$.\n743: \\begin{lemma}\n744: \\label{lem:tall-dependent-on-wide}\n745: Let $\\varphi=(n,r,i,j,a,b,N)$ be valid with $N\\leq \\min(j,n-r-i)$. Then\n746: $\\linear_{\\varphi}(\\nu)\\in W$\n747: for any tall $\\nu\\in \\decomp_{\\varphi}$.\n748: \\end{lemma}\n749: \\begin{proof}\n750: It is enough to show the analogous statement for tensors:\n751: \\[\\mathrm{CP}(\\overline{s}_{\\nu_B}\\otimes \\overline{s}_{\\nu_R})\\in \\mathrm{Span}_{\\mathbb{Z}}\\left\\{\\mathrm{CP}(\\overline{s}_{\\rho_B}\\otimes \\overline{s}_{\\rho_R})\\mid \\rho\\in\\decomp_{\\varphi} \\text{ is wide} \\right\\} = T(W).\\]\n752: From $\\varphi$ and $\\nu$, suppose Algorithm~1 produced $\\xi^{(0)},\\ldots,\\xi^{(K)}= \\mathrm{Reduce}_{\\varphi}(\\nu)$. Then\n753: \\begin{align*}\n754: \\mathrm{CP}(\\overline{s}_{\\nu_B}\\otimes \\overline{s}_{\\nu_R})&=\\xi^{(0)}\\\\\n755: &=\\xi^{(K)} -\\sum_{m=1}^K (\\xi^{(m)}-\\xi^{(m-1)})\n756: \\end{align*}\n757: By Proposition \\ref{prop:hopf-identity-application},\n758: \\[\\xi^{(K)}= (-1)^{|\\nu_B|+1}(1\\otimes \\overline{s}_{(\\nu_B)'}).\\]\n759: We have $\\nu_B'\\subseteq (b^a)'=a^b$. Since $a+i\\leq n-r$ and $b\\leq j$, it follows that $\\xi^{(K)}\\in T(W)$.\n760: It remains to show that each term $(\\xi^{(m)}-\\xi^{(m-1)})\\in T(W)$. By definition,\n761: \\[\\xi^{(m)}-\\xi^{(m-1)} = -\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})) \\]\n762: for some $\\gamma\\in \\mathbb{Z}$ and partitions $\\lambda,\\mu^{(1)},\\ldots,\\mu^{(k)}$.\n763: One observes from Algorithm~1 that \\[|\\lambda|+|\\mu^{(1)}|+\\cdots+|\\mu^{(k)}|=N.\\]\n764: Since we are assuming $N\\leq \\min(j,n-r-i)$,\n765: \\[ \\prod_{p=1}^k \\overline{s}_{\\mu^{(p)}}\\in \\mathrm{Span}_\\mathbb{Z}\\left\\{\\overline{s}_\\theta\\mid \\theta\\subseteq (n-r-i)^j\\right\\},\\]\n766: say\n767: \\[\\prod_{p=1}^k \\overline{s}_{\\mu^{(p)}} = \\sum_{\\substack{\\theta\\subseteq (n-r-i)^j \\\\|\\theta|=N-|\\lambda|}} d_{\\theta}\\overline{s}_{\\theta}. \\]\n768: Then if we expand, we obtain\n769: \\begin{align*}\n770: \\xi^{(m)}-\\xi^{(m-1)}\n771: &=-\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))\\\\\n772: &=-\\gamma\\mathrm{CP}\\biggr(\\overline{s}_{\\lambda}\\otimes \\sum_{\\substack{\\theta\\subseteq (n-r-i)^j \\\\|\\theta|=N-|\\lambda|}} d_{\\theta}\\overline{s}_{\\theta} \\biggr)\\\\\n773: &=-\\gamma \\sum_{\\substack{\\theta\\subseteq (n-r-i)^j \\\\|\\theta|=N-|\\lambda|}} d_{\\theta}\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta}).\n774: \\end{align*}\n775: Since $\\lambda\\subseteq \\nu_B \\subseteq b^a)$, each term $\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta})$ is of the form $\\mathrm{CP}(\\overline{s}_{\\rho_B}\\otimes \\overline{s}_{\\rho_R})$ with $\\rho\\in\\decomp_{\\varphi}$ wide, it follows that $\\xi^{(m)}-\\xi^{(m-1)} \\in T(W)$.\n776: \\end{proof}\n777: \\begin{lemma}\n778: \\label{lem:restricting-equations}\n779: Suppose $\\varphi=(n,r,i,j,a,b,N)$ be valid. Set $\\widehat{\\varphi}=(\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N)$ where $\\widehat{n}=4^qn$, $\\widehat{r}=2^q r$, and $\\widehat{j}=2^q j$ for $q\\in {\\mathbb N}$. Fix any $\\nu\\in \\decomp_{\\varphi}$, and let $\\widehat{\\nu}\\in\\decomp_{\\widehat{\\varphi}}$ be the partition with\n780: \\[\\widehat{\\nu}_B=\\nu_B \\quad\\mbox{and}\\quad \\widehat{\\nu}_R=\\nu_R.\\]\n781: Then setting the variables\n782: \\[\\{A_{\\lambda,\\theta} \\mid \\lambda\\nsubseteq b^a \\mbox{ or } \\theta\\nsubseteq (n-r-i)^j \\}\\]\n783: to zero in $\\linear_{\\widehat{\\varphi}}(\\widehat{\\nu})$ yields exactly $\\linear_{\\varphi}(\\nu)$.\n784: \\end{lemma}\n785: \\begin{proof}\n786: It suffices to note that\n787: \\[c_{(i^j,\\lambda),\\theta}^{\\nu}= c_{(i^{\\widehat{j}}\\lambda),\\theta}^{\\widehat{\\nu}}\\]\n788: by Theorem \\ref{thm:pictures}, since the skew shapes $\\nu/(i^j,\\lambda)$ and $\\widehat{\\nu}/(i^{\\widehat{j}}\\lambda)$ are (essentially) the same.\n789: \\end{proof}",
+					"excerptSha256": "1722d98137ac2b239df54ac5c881413fca0ded86f636b178228a642656596788",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 737-789]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "With valid \\(\\varphi=(n,r,i,j,a,b,N)\\), the source’s equation (8) is \\[ \\left\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N}} \\sum_{\\substack{\\theta\\subseteq(n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu}A_{\\lambda,\\theta} =\\chi(\\nu) \\ \\middle|\\ \\nu\\in\\operatorname{Dec}_{\\varphi} \\right\\}, \\tag{8} \\] where \\[ \\chi(\\nu)= \\begin{cases} f_{\\nu_B},&\\nu\\text{ is tall},\\\\ 0,&\\nu\\text{ is wide}. \\end{cases} \\] Here “valid” means \\(n,r,i,j,a,b,N\\ge1\\), \\(r<n\\), \\(a+j\\le r\\), \\(a+i\\le n-r\\), \\(b\\le i,j\\), \\(N\\le ab\\); \\(\\operatorname{Dec}_\\varphi\\) consists of allowable \\(\\nu\\) with \\(\\nu_{j+1}\\le b\\) and \\(\\ell(\\nu)\\le j+a\\), and “tall” means \\(\\nu_1=i\\), otherwise “wide.” The notation \\(\\nu_B\\) is the component of the source’s Figure-1 decomposition. [doi:10.1112/jlms.12832, lines 300-340]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 300,
+							"end": 340
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "300: The following definition records the assumptions on the parameters used in the preceding considerations.\n301: \\begin{definition}\n302: Call an integer tuple $\\varphi=(n,r,i,j,a,b,N)$ \\emph{valid} if $n,r,i,j,a,b,N\\geq 1$ with\n303: \\[r<n,\\quad a+j\\leq r,\\quad a+i\\leq n-r,\\quad b\\leq i,j,\\quad\\mbox{and}\\quad N\\leq ab. \\]\n304: \\end{definition}\n305: Due to vanishing of Littlewood--Richardson coefficients, not all partitions $\\nu\\subseteq (n-r)^r$ contribute meaningfully to (\\ref{eqn:eqs}).\n306: \\begin{definition}\n307: Call a partition $\\nu$ with $i^j\\subseteq\\nu\\subseteq (n-r)^r$ and $|\\nu|=ij+N$ \\emph{allowable}.\n308: \\end{definition}\n309: When $\\nu$ is not allowable, both $\\chi(\\nu)$ and all the Littlewood--Richardson coefficients $c_{(i^j,\\lambda),\\theta}^{\\nu}$ vanish. In this case both sides of the corresponding equation in (\\ref{eqn:eqs}) are zero, so we can assume that $\\nu$ is always allowable in~(\\ref{eqn:eqs}). We will actually show that the equations (\\ref{eqn:eqs}) are inconsistent by focusing on a smaller subset of them.\n310: \\begin{definition}\n311: Call an allowable partition $\\nu$ \\emph{decomposable} if $\\nu_{j+1}\\leq b$ (taking $\\nu_{j+1}=0$ if $\\ell(\\nu)= j$), and $\\ell(\\nu)\\leq j+a$. Write $\\decomp_{\\varphi}$ for the set of decomposable partitions $\\nu$. We will decompose any $\\nu\\in\\decomp_{\\varphi}$ into 3 smaller partitions via Figure \\ref{fig:decomposition}.\n312: \\end{definition}\n313: We will similarly say that an equation in (\\ref{eqn:eqs}) is \\emph{decomposable} if the partition $\\nu$ it corresponds to is decomposable.\n314: \\begin{figure}[ht]\n315: \\begin{center}\n316: \\includegraphics{Images/nu_decomposition_scaled.pdf}\n317: \\end{center}\n318: \\caption{}\n319: \\label{fig:decomposition}\n320: \\end{figure}\n321: We divide the decomposable partitions into two groups.\n322: \\begin{definition}\n323: We say a decomposable partition $\\nu$ is \\emph{tall} if $\\nu_1=i$ (so $\\nu_R$ is empty), and \\emph{wide} otherwise.\n324: \\end{definition}\n325: Similarly, refer to the equation of a tall (resp.\\ wide) partition $\\nu$ as tall (resp.\\ wide).\n326: \\begin{lemma}\n327: \\label{lem:implication-of-syzygy}\n328: Suppose for some valid $\\varphi=(n,r,i,j,a,b,N)$ there is a homogeneous syzygy of degree $N$ in $\\overline{\\Lambda}$ of the form\n329: \\[\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}}\\overline{s}_{(i^j,\\lambda)}f_{\\lambda}=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}f_{\\lambda}\\overline{s}_{(i^j,\\lambda)}\\]\n330: with the left-hand side nonzero.\n331: Then the decomposable equations\n332: \\begin{equation}\n333: \\label{eqn:decomposable}\n334: \\biggr\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu} \\, A_{\\lambda,\\theta}=\\chi(\\nu)\\,\\biggr| \\,\\nu\\in \\decomp_{\\varphi} \\biggr\\}\n335: \\end{equation}\n336: are consistent, where $\\chi(\\nu)\\in\\mathbb{Z}$ is defined for $\\nu\\in \\decomp_{\\varphi}$ by\n337: \\[\\chi(\\nu)=\\begin{cases}\n338: f_{\\nu_B} &\\mbox{ if $\\nu$ is tall,}\\\\\n339: 0 &\\mbox{ if $\\nu$ is wide.}\n340: \\end{cases} \\]",
+					"excerptSha256": "bbfe20bfa31f4f2962fe1213d35839844990578816c80ead9e472c63a5a2d5c9",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 300-340]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Equation (9), after \\(\\Delta(s_\\nu)=\\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu}(s_\\lambda\\otimes s_\\mu)\\), defines \\[ \\mathrm{CP}(\\overline s_\\lambda\\otimes\\overline s_\\mu)= \\begin{cases} \\overline{\\Delta(s_\\lambda)}-(\\overline s_\\lambda\\otimes1), &\\overline s_\\mu=1,\\\\ \\overline{\\Delta(s_\\lambda)}(1\\otimes\\overline s_\\mu), &\\overline s_\\mu\\ne1, \\end{cases} \\tag{9} \\] extended linearly on \\(\\overline\\Lambda\\otimes\\overline\\Lambda\\). [doi:10.1112/jlms.12832, lines 373-397]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 373,
+							"end": 397
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "373: \\section{The Hopf Algebra of symmetric functions}\\label{sec:Hopf}\n374: Fix a valid tuple $\\varphi=(n,r,i,j,a,b,N)$. View the linear forms $\\linear_{\\varphi}(\\nu)$ as vectors in the ambient vector space $V$ with basis\n375: $\\left\\{A_{\\lambda,\\theta} \\right\\}_{\\lambda,\\theta}$, where $\\lambda,\\theta\\subseteq (n-r)^r$.\n376: Let $T$ be the linear isomorphism $T:V\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ defined by\n377: \\[T(A_{\\lambda,\\theta}) = \\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta}.\\]\n378: We use this isomorphism to give a useful perspective on the vectors $\\linear_{\\varphi}(\\nu)\\in V$ via\n379: the (ring) product structure on $\\overline{\\Lambda}\\otimes\\overline{\\Lambda}$ and\n380: the coproduct map\n381: \\[\\Delta:\\Lambda\\to \\Lambda\\otimes\\Lambda.\\]\n382: Recall the coproduct $\\Delta$ on symmetric functions acts on Schur functions by\n383: \\[\\Delta(s_{\\nu}) = \\sum_{\\lambda,\\mu} c_{\\lambda,\\mu}^\\nu (s_\\lambda\\otimes s_{\\mu}).\\]\n384: Since the projection $\\Lambda\\to\\overline{\\Lambda}$ naturally induces a projection\n385: \\[\\Lambda\\otimes \\Lambda \\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}, \\]\n386: we will also denote the latter with overlines.\n387: \\begin{definition}\n388: \\label{def:cp}\n389: We define a linear endomorphism $\\mathrm{CP}:\\overline{\\Lambda}\\otimes \\overline{\\Lambda}\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ as follows.\n390: For a simple tensor $\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu\\in \\overline{\\Lambda}\\otimes\\overline{\\Lambda}$, define\n391: \\begin{align}\n392: \\mathrm{CP}(\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu) = \\begin{cases}\n393: \\overline{\\Delta(s_{\\lambda})} - (\\overline{s}_{\\lambda}\\otimes 1) &\\mbox{ if $\\overline{s}_\\mu= 1$},\\\\\n394: \\overline{\\Delta(s_{\\lambda})}(1\\otimes \\overline{s}_{\\mu}) &\\mbox{ if $\\overline{s}_\\mu\\neq 1$}.\n395: \\end{cases}\n396: \\end{align}\n397: Define $\\mathrm{CP}$ on all of $\\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ by extending linearly.",
+					"excerptSha256": "42eb25035ed1b7f6dfb031256174bb17485b545c26b4cc93516d7590d51277f2",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 373-397]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Equation (10) is the update \\[ \\xi^{(m)}=\\xi^{(m-1)} -\\gamma\\,\\mathrm{CP}\\!\\left( \\overline s_\\lambda\\otimes (\\overline s_{\\mu^{(1)}}\\cdots\\overline s_{\\mu^{(k)}})\\right). \\tag{10} \\] The source then states that its only cancellation is the selected term and its negative in the subtracted \\(\\gamma\\mathrm{CP}(\\cdots)\\), and concludes that update order does not affect the output. [doi:10.1112/jlms.12832, lines 625-632]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 625,
+							"end": 632
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "625: \\begin{proof}It follows from Proposition~\\ref{clm:2} that during the algorithm, the only cancellation that occurs in an update\n626: \\begin{equation}\n627: \\label{eqn:theupdate}\n628: \\xi^{(m)}=\\xi^{(m-1)}-\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))\n629: \\end{equation}\n630: is the cancellation of the term $\\gamma\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})$ in $\\xi^{(m-1)}$, and its negative in $\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))$. Moreover, the algorithm only can\n631: eliminate a term $\\gamma\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})$ with $|\\lambda|>1$ by the update step\n632: (\\ref{eqn:theupdate}). Therefore the order in which we compute the update steps (\\ref{eqn:theupdate}) does not effect the output.\\end{proof}",
+					"excerptSha256": "9b99ec668e8b9c106163da621da8ad0f4b6099a0cc3e5995c476abaf5386f008",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 625-632]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Definition 4.1 sets \\[ W=\\operatorname{Span}_{\\mathbb Z}\\{ \\operatorname{Lin}_\\varphi(\\rho): \\rho\\in\\operatorname{Dec}_{\\varphi}\\text{ is wide}\\}. \\] Lemma 4.2 says that if \\(N\\le\\min(j,n-r-i)\\), then \\(\\operatorname{Lin}_\\varphi(\\nu)\\in W\\) for every tall \\(\\nu\\). Lemma 4.3 supplies the scaled tuple \\(\\widehat\\varphi=(4^qn,2^qr,i,2^qj,a,b,N)\\) and its restriction property. [doi:10.1112/jlms.12832, lines 738-789]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 738,
+							"end": 789
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "738: \\begin{definition}\n739: Let $W$ be the subspace\n740: \\[W= \\mathrm{Span}_{\\mathbb{Z}}\\left\\{\\linear_{\\varphi}(\\rho)\\mid \\rho\\in\\decomp_{\\varphi} \\text{ is wide} \\right\\}\\]\n741: \\end{definition}\n742: Recall the linear isomorphism $T:V\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ defined by $T(A_{\\lambda,\\theta}) = \\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta}$.\n743: \\begin{lemma}\n744: \\label{lem:tall-dependent-on-wide}\n745: Let $\\varphi=(n,r,i,j,a,b,N)$ be valid with $N\\leq \\min(j,n-r-i)$. Then\n746: $\\linear_{\\varphi}(\\nu)\\in W$\n747: for any tall $\\nu\\in \\decomp_{\\varphi}$.\n748: \\end{lemma}\n749: \\begin{proof}\n750: It is enough to show the analogous statement for tensors:\n751: \\[\\mathrm{CP}(\\overline{s}_{\\nu_B}\\otimes \\overline{s}_{\\nu_R})\\in \\mathrm{Span}_{\\mathbb{Z}}\\left\\{\\mathrm{CP}(\\overline{s}_{\\rho_B}\\otimes \\overline{s}_{\\rho_R})\\mid \\rho\\in\\decomp_{\\varphi} \\text{ is wide} \\right\\} = T(W).\\]\n752: From $\\varphi$ and $\\nu$, suppose Algorithm~1 produced $\\xi^{(0)},\\ldots,\\xi^{(K)}= \\mathrm{Reduce}_{\\varphi}(\\nu)$. Then\n753: \\begin{align*}\n754: \\mathrm{CP}(\\overline{s}_{\\nu_B}\\otimes \\overline{s}_{\\nu_R})&=\\xi^{(0)}\\\\\n755: &=\\xi^{(K)} -\\sum_{m=1}^K (\\xi^{(m)}-\\xi^{(m-1)})\n756: \\end{align*}\n757: By Proposition \\ref{prop:hopf-identity-application},\n758: \\[\\xi^{(K)}= (-1)^{|\\nu_B|+1}(1\\otimes \\overline{s}_{(\\nu_B)'}).\\]\n759: We have $\\nu_B'\\subseteq (b^a)'=a^b$. Since $a+i\\leq n-r$ and $b\\leq j$, it follows that $\\xi^{(K)}\\in T(W)$.\n760: It remains to show that each term $(\\xi^{(m)}-\\xi^{(m-1)})\\in T(W)$. By definition,\n761: \\[\\xi^{(m)}-\\xi^{(m-1)} = -\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})) \\]\n762: for some $\\gamma\\in \\mathbb{Z}$ and partitions $\\lambda,\\mu^{(1)},\\ldots,\\mu^{(k)}$.\n763: One observes from Algorithm~1 that \\[|\\lambda|+|\\mu^{(1)}|+\\cdots+|\\mu^{(k)}|=N.\\]\n764: Since we are assuming $N\\leq \\min(j,n-r-i)$,\n765: \\[ \\prod_{p=1}^k \\overline{s}_{\\mu^{(p)}}\\in \\mathrm{Span}_\\mathbb{Z}\\left\\{\\overline{s}_\\theta\\mid \\theta\\subseteq (n-r-i)^j\\right\\},\\]\n766: say\n767: \\[\\prod_{p=1}^k \\overline{s}_{\\mu^{(p)}} = \\sum_{\\substack{\\theta\\subseteq (n-r-i)^j \\\\|\\theta|=N-|\\lambda|}} d_{\\theta}\\overline{s}_{\\theta}. \\]\n768: Then if we expand, we obtain\n769: \\begin{align*}\n770: \\xi^{(m)}-\\xi^{(m-1)}\n771: &=-\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))\\\\\n772: &=-\\gamma\\mathrm{CP}\\biggr(\\overline{s}_{\\lambda}\\otimes \\sum_{\\substack{\\theta\\subseteq (n-r-i)^j \\\\|\\theta|=N-|\\lambda|}} d_{\\theta}\\overline{s}_{\\theta} \\biggr)\\\\\n773: &=-\\gamma \\sum_{\\substack{\\theta\\subseteq (n-r-i)^j \\\\|\\theta|=N-|\\lambda|}} d_{\\theta}\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta}).\n774: \\end{align*}\n775: Since $\\lambda\\subseteq \\nu_B \\subseteq b^a)$, each term $\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes \\overline{s}_{\\theta})$ is of the form $\\mathrm{CP}(\\overline{s}_{\\rho_B}\\otimes \\overline{s}_{\\rho_R})$ with $\\rho\\in\\decomp_{\\varphi}$ wide, it follows that $\\xi^{(m)}-\\xi^{(m-1)} \\in T(W)$.\n776: \\end{proof}\n777: \\begin{lemma}\n778: \\label{lem:restricting-equations}\n779: Suppose $\\varphi=(n,r,i,j,a,b,N)$ be valid. Set $\\widehat{\\varphi}=(\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N)$ where $\\widehat{n}=4^qn$, $\\widehat{r}=2^q r$, and $\\widehat{j}=2^q j$ for $q\\in {\\mathbb N}$. Fix any $\\nu\\in \\decomp_{\\varphi}$, and let $\\widehat{\\nu}\\in\\decomp_{\\widehat{\\varphi}}$ be the partition with\n780: \\[\\widehat{\\nu}_B=\\nu_B \\quad\\mbox{and}\\quad \\widehat{\\nu}_R=\\nu_R.\\]\n781: Then setting the variables\n782: \\[\\{A_{\\lambda,\\theta} \\mid \\lambda\\nsubseteq b^a \\mbox{ or } \\theta\\nsubseteq (n-r-i)^j \\}\\]\n783: to zero in $\\linear_{\\widehat{\\varphi}}(\\widehat{\\nu})$ yields exactly $\\linear_{\\varphi}(\\nu)$.\n784: \\end{lemma}\n785: \\begin{proof}\n786: It suffices to note that\n787: \\[c_{(i^j,\\lambda),\\theta}^{\\nu}= c_{(i^{\\widehat{j}}\\lambda),\\theta}^{\\widehat{\\nu}}\\]\n788: by Theorem \\ref{thm:pictures}, since the skew shapes $\\nu/(i^j,\\lambda)$ and $\\widehat{\\nu}/(i^{\\widehat{j}}\\lambda)$ are (essentially) the same.\n789: \\end{proof}",
+					"excerptSha256": "1269c4b3c5c0124365fc1fa701c83dcd0fe1291ae8357ba96540af49e37dbd77",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 738-789]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "**Theorem 4.4.** For every valid \\(\\varphi\\), the system \\[ \\left\\{\\operatorname{Lin}_\\varphi(\\nu)=d_\\nu \\mid\\nu\\in\\operatorname{Dec}_{\\varphi}\\right\\} \\tag{13} \\] is inconsistent if \\(d_\\nu=0\\) for every wide \\(\\nu\\) and \\(d_\\rho\\ne0\\) for some tall \\(\\rho\\). Its proof first applies Lemma 4.2 when \\(N\\le\\min(j,n-r-i)\\); otherwise it chooses \\(q\\) with \\[ N\\le\\min(2^qj,\\,4^qn-2^qr-i), \\] defines \\(e_\\tau=d_\\nu\\) for \\(\\tau=\\widehat\\nu\\) and \\(e_\\tau=0\\) otherwise, and invokes Lemma 4.3. [doi:10.1112/jlms.12832, lines 790-818]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 790,
+							"end": 818
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "790: \\begin{theorem}\n791: \\label{thm:inconsistent}\n792: For any valid $\\varphi=(n,r,i,j,a,b,N)$, the equations\n793: \\begin{equation}\n794: \\label{eqn:all-equations}\n795: \\left\\{ \\linear_{\\varphi}(\\nu) = d_{\\nu}\\mid \\nu\\in \\decomp_{\\varphi} \\right\\}\n796: \\end{equation}\n797: are inconsistent whenever $d_{\\nu}=0$ for all wide $\\nu$, and $d_{\\rho}\\neq 0$ for some tall $\\rho$.\n798: \\end{theorem}\n799: \\begin{proof}\n800: Suppose first that\n801: \\[N\\leq \\min(j,n-r-i).\\] By Lemma \\ref{lem:tall-dependent-on-wide}, we have $\\linear_{\\varphi}(\\rho) \\in W$.\n802: The restriction $d_\\nu=0$ when $\\nu$ is wide would then force $d_{\\rho}=0$, contradicting the hypothesis. Thus the equations (\\ref{eqn:all-equations}) are inconsistent.\n803: Now suppose that\n804: \\[N>\\min(j,n-r-i).\\]\n805: Choose $q$ so that $N\\leq \\min(2^qj,4^qn-2^qr-i)$. Let\n806: \\[\\widehat{\\varphi} = (\\widehat{n},\\widehat{r},i,\\widehat{j},a,b,N),\\quad \\mbox{where} \\quad \\widehat{n}=4^qn,\\quad \\widehat{r}=2^qr,\\quad\\mbox{and}\\quad \\widehat{j}=2^qj.\\]\n807: For each $\\nu\\in \\decomp_{\\varphi}$, let $\\widehat{\\nu}\\in\\decomp_{\\widehat{\\varphi}}$ be the partition with $\\widehat{\\nu}_B=\\nu_B$ and $\\widehat{\\nu}_R=\\nu_R$. For $\\tau\\in\\decomp_{\\widehat{\\varphi}}$, define\n808: \\[e_{\\tau} = \\begin{cases}\n809: d_\\nu &\\mbox{ if } \\tau=\\widehat{\\nu} \\mbox{ for some } \\nu\\in\\decomp_{\\varphi},\\\\\n810: 0 &\\mbox{ otherwise.}\n811: \\end{cases} \\]\n812: By the previous argument, the equations\n813: \\begin{equation}\n814: \\label{eqn:bigger_m}\n815: \\left\\{ \\linear_{\\widehat{\\varphi}}(\\tau) = e_{\\tau}\\mid \\tau\\in \\decomp_{\\widehat{\\varphi}} \\right\\}\n816: \\end{equation}\n817: are inconsistent. By Lemma \\ref{lem:restricting-equations}, the equations (\\ref{eqn:all-equations}) can be obtained by setting certain variables to zero in (\\ref{eqn:bigger_m}). Setting variables to zero in an inconsistent linear system produces the same.\n818: \\end{proof}",
+					"excerptSha256": "b689ee2314d72fec3bc8e9eb81bcad1ecd347aee2c5caea578d042e0dbf4babd",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 790-818]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-7",
+			"text": "**Theorem 4.5.** For every valid \\(\\varphi\\), no syzygy \\[ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}} \\overline s_{(i^j,\\lambda)}f_\\lambda = \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N}} f_\\lambda\\overline s_{(i^j,\\lambda)} \\] exists with nonzero left side. The given proof cites Lemma 2.5 and Theorem 4.4. [doi:10.1112/jlms.12832, lines 819-826]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 819,
+							"end": 826
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "819: \\begin{theorem}\n820: For any valid $\\varphi=(n,r,i,j,a,b,N)$, there is no syzygy of the form\n821: \\[\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}}\\overline{s}_{(i^j,\\lambda)}f_{\\lambda}=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}f_{\\lambda}\\overline{s}_{(i^j,\\lambda)}\\]\n822: with the left-hand side nonzero.\n823: \\end{theorem}\n824: \\begin{proof}\n825: By Lemma \\ref{lem:implication-of-syzygy}, the existence of such a syzygy would contradict Theorem \\ref{thm:inconsistent}.\n826: \\end{proof}",
+					"excerptSha256": "2f335e06c1946f204938b352945ea7a2a09ea937220769d57dd11bfda66d2fe0",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 819-826]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-8",
+			"text": "The requested target is established as a bounded transcription from the supplied full-text record with SHA-256 `267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd`.",
+			"classification": "source-backed",
+			"status": "invalid",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": [
+				{
+					"code": "missing-exact-locator",
+					"message": "Claim claim-8 is source-backed but has no valid exact source locator."
+				}
+			]
+		}
+	],
+	"sha256": "7cc261d6a86b393a4df51b0b9334ef08c143f7eab1ea65f41c5680769c222e46"
+}

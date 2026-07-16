@@ -1,0 +1,105 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-174-1",
+	"taskId": "research-plan-task-174",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(q=n-r\\), \\(J_v\\subset\\Lambda/I_{r,q}\\) has Schur basis \\(\\{\\bar s_\\lambda:i^j\\subseteq\\lambda\\subseteq q^r\\}\\). [source-2@L1365-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1365,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1365: When $u$ and $v$ are $r$-grassmannian and correspond respectively to\n1366: partitions $\\lambda$ and $\\mu$, the Bruhat order relation $u \\geq v$\n1367: is equivalent to inclusion $\\lambda \\supseteq \\mu$ of their Young\n1368: diagrams, meaning that $\\lambda_i \\geq \\mu_i$ for all $i$.  Thus\n1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "dad3797f551adb4a39d8e9f4871f9b7b6f1bbb109ef3c44fec60a1066e794035",
+					"canonicalCitation": "[source-2@L1365-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Let \\(v=v_{r,s,t,n}\\) satisfy \\(1\\le t\\le r,s\\le n\\) and \\(t>r+s-n\\). Put \\(i=s-t+1\\), \\(j=r-t+1\\), \\(q=n-r\\), and \\[ v^\\vee=v_{q,n-s,q-s+t,n}=v_{q,\\ q-i+j,\\ q-i+1,\\ n}. \\] Then \\(v^\\vee\\) is bigrassmannian: \\(q-i\\ge0\\) follows from \\(t>r+s-n\\); hence \\(1\\le q-i+1\\le q\\), \\(q-i+1\\le q-i+j=n-s\\), and \\[ (q-i+1)-\\bigl(q+(n-s)-n\\bigr)=t>0. \\] Its parameters are \\(i^\\vee=j,\\ j^\\vee=i,\\ a^\\vee=a=\\min(q-i,r-j)\\), and \\(b^\\vee=b=\\min(i,j)\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Writing \\(\\omega(s_\\lambda)=s_{\\lambda'}\\), the integral Schur involution induces \\[ \\bar\\omega:\\Lambda/I_{r,q}\\xrightarrow{\\sim}\\Lambda/I_{q,r}, \\qquad\\bar s_\\lambda\\mapsto\\bar s_{\\lambda'}, \\] because \\(\\lambda\\subseteq q^r\\iff\\lambda'\\subseteq r^q\\). Basiswise, \\[ \\bar\\omega(J_v) =\\bigoplus_{j^i\\subseteq\\nu\\subseteq r^q}\\mathbb Z\\bar s_\\nu =J_{v^\\vee}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The 2024 theorem assumes precisely a bigrassmannian \\(v_{r,s,t,n}\\), defines \\(i,j,a,b\\), works in the integral quotient \\(\\Lambda/I_{r,n-r}\\), and proves minimality of \\(\\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\). [doi:10.1112/jlms.12832, lines 68-110]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "semantic-scholar",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "2209.02011",
+						"url": "https://ar5iv.labs.arxiv.org/html/2209.02011",
+						"lines": {
+							"start": 68,
+							"end": 110
+						},
+						"contentSha256": "6066dee1db75213a13ca9c407c8944c09c7391fb0fb69f1d4a386ed4292fc456"
+					},
+					"excerpt": "68: The bigrassmannian permutations (besides the identity) are indexed by integers r,s,t such that\n69: 1\\leq t\\leq r,s\\leq n and t>r+s-n. Let v_{r,s,t,n}\\in S_{n} be the bigrassmannian permutation uniquely\n70: characterized by having unique descent at r, v^{-1}_{r,s,t,n} having descent at s and v_{r,s,t,n}(t)=s+1.\n71: In one-line notation, one explicitly has\n72: (2)\n73: v_{r,s,t,n}=1,2,\\ldots,t-1,\\ s+1,s+2,\\ldots,s+r-t+1,\\\\\n74: t,t+1,\\ldots,s,\\ s+r-t+2,s+r-t+3,\\ldots,n;\n75: see [ 12 , Lemma 4.1] .\n76: For each basic element of S_{n}, a bigrassmannian permutation\n77: v, define the basic ideal of H^{*}(X) as\n78: J_{v}\\coloneqq\\mathrm{Span}_{\\mathbb{Z}}\\left\\{\\sigma_{u}\\mid u\\geq v\\right\\}.\n79: It is shown in [ 12 ] that I_{w} decomposes into basic ideals. Specifically,\n80: (3)\n81: I_{w}=\\sum_{v\\in{\\mathcal{E}}(w)}J_{v},\n82: where {\\mathcal{E}}(w) is the set of u\\in S_{n} which are minimal in the Bruhat order among those not\n83: below w. The set {\\mathcal{E}}(w) is referred to as the essential set , and consists only of bigrassmannian permutations [ 12 , Theorem 1.1] .\n84: As explained in [ 12 , Section 3] , the projection\n85: X\\to\\mathrm{Gr}_{r,n}\n86: onto the Grassmannian of r-planes in \\mathbb{C}^{n}\n87: induces a split-inclusion H^{*}(\\mathrm{Gr}_{r,n})\\xhookrightarrow{\\iota}H^{*}(X). Consequently (see [ 12 , Proposition 3.1] ), elements of H^{*}(\\mathrm{Gr}_{r,n}) generate J_{v} in H^{*}(X) if and only if they generate the contraction J_{v}\\cap H^{*}(\\mathrm{Gr}_{r,n}) inside H^{*}(\\mathrm{Gr}_{r,n}).\n88: In particular, elements of H^{*}(\\mathrm{Gr}_{r,n}) minimally generate J_{v} in H^{*}(X) if and only if they minimally generate J_{v}\\cap H^{*}(\\mathrm{Gr}_{r,n}) in H^{*}(\\mathrm{Gr}_{r,n}). This allows one to study the generation of J_{v} inside H^{*}(\\mathrm{Gr}_{r,n}) instead of H^{*}(X) without loss of generality, enabling the use of symmetric function theory.\n89: Let \\Lambda=\\Lambda(x_{1},x_{2},\\ldots) be the ring of symmetric functions with integral coefficients. This space has a {\\mathbb{Z}}-linear basis consisting of Schur functions s_{\\lambda},\n90: where \\lambda is an integer partition. Consider the ideal\n91: I_{r,n-r}=\\mathrm{Span}_{\\mathbb{Z}}\\left\\{s_{\\lambda}\\mid\\lambda\\nsubseteq(n-r)^{r}\\right\\}\n92: of \\Lambda. Then one has the following standard presentation of the cohomology of Grassmannians:\n93: H^{*}(\\mathrm{Gr}_{r,n})\\cong\\Lambda/I_{r,n-r}.\n94: We will use an overline to denote the projection \\Lambda\\to\\Lambda/I_{r,n-r}. Specifically, we will write \\overline{\\Lambda} as a shorthand for \\Lambda/I_{r,n-r}. We will also distinguish between s_{\\lambda}\\in\\Lambda, the usual Schur function, and \\overline{s}_{\\lambda} for its image in \\overline{\\Lambda}.\n95: We resolve the minimality conjecture [ 12 , Conjecture 4.10] about the basic ideals J_{v}:\n96: Theorem 1.2 .\n97: Given a bigrassmannian permutation v=v_{r,s,t,n}\\in S_{n} let\n98: \\displaystyle i\n99: \\displaystyle\\coloneqq s-t+1,\n100: \\displaystyle j\n101: \\displaystyle\\coloneqq r-t+1,\n102: \\displaystyle a\n103: \\displaystyle\\coloneqq\\min(n-r-i,r-j),\n104: \\displaystyle b\n105: \\displaystyle\\coloneqq\\min(i,j).\n106: Then the basic ideal J_{v}, thought of as an ideal of H^{*}(\\mathrm{Gr}_{r,n})\\cong\\Lambda/I_{r,n-r}, is minimally generated by\n107: (4)\n108: \\{\\overline{s}_{\\mu}\\mid i^{j}\\subseteq\\mu\\subseteq(i^{j},b^{a})\\}.\n109: That ( 4 ) generates J_{v} is [ 12 , Theorem 4.8] . The conjectural part, which we prove,\n110: is the minimality claim, that is, no generator can be removed without changing the ideal.",
+					"excerptSha256": "9f76e42bb32d034c8f08cbd2d23f51c3394382361d161dc7f19f6305f518bdfc",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 68-110]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Applying Theorem 1.2 to \\(v^\\vee\\) gives minimality of \\[ \\{\\bar s_\\nu:j^i\\subseteq\\nu\\subseteq(j^i,b^a)\\}\\subset J_{v^\\vee}. \\] Pullback under \\(\\bar\\omega^{-1}\\) is the minimally generating family \\[ \\boxed{\\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}} \\subset J_v, \\] since \\((j^i,b^a)'=((i+a)^b,i^{j-b})\\). Thus the transposed family is minimal, including degenerate \\(a=0\\) cases (with zero-length blocks omitted).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "No independent critic or skeptic review record was supplied; therefore no post-review horizontal continuation can be certified.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "21ddfe7ed04aa515222543ee3a2bf0d80fd90084248db1f8f51e170c0a8f2a43"
+}

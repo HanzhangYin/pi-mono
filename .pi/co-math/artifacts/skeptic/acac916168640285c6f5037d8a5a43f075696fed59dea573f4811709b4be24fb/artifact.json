@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-78-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- `claim-1` is unsupported because artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4` is not inspectable in the supplied evidence.\n- The single locator `artifact.txt@L1-L216` does not provide verifiable component-level locators for provenance, hypotheses, equation (1), all fifteen table-(4) cases, and the digest declaration.\n- Consequently, verbatim accuracy, provenance to `research-attempt-research-plan-task-68-1`, and immutability cannot be independently checked.\n\n## Unresolved certificates\n- [proof-attempt] Provide the inspectable immutable artifact, with exact bounded subrange locators for provenance, opening hypotheses, equation (1), every entry of the fifteen-case table (4), and its immutable digest declaration."
+}

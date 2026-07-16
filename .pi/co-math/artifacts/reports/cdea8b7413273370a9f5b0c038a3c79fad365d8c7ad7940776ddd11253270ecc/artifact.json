@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-323-1",
+	"text": "## Findings\n- claim-1: Source-2 uses \\(h_0=1\\), proves specified negative-index terms vanish, and invokes expansion along a duplicated column, but only in an \\((i,k,\\mu)\\)-lemma. [source-2@L1731-L1742|claim=formal-document]\n- claim-2: No supplied persisted task-313 record contains the requested \\(\\rho,a,b,j,q,r\\) ranges, both indexed shapes, congruence modulus, exact identity, and prescribed ordering.\n## Strategy\nReviewed supplied persisted-state material. No task-313 statement or bounded excerpt is present.\n\n## Gaps\nThe requested target is **not established**. Missing: task-313’s durable record, locator, digest, exact identity, parameter ranges, indexed shapes, modulus, and prescribed ordering. Adjacent source-2 material cannot substitute.\n\n## Next\nRetrieve the persisted task-313 record and preserve its exact bounded excerpt with immutable identifier, locator, and digest."
+}

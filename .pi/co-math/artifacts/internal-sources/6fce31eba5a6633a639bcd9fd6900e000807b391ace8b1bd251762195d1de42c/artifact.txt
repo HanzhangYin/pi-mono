@@ -1,0 +1,29 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-219-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-217-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-217-1 · specialist · ARTIFACT 45b83f6c8e9f92c2ae0dac8c61fac8944eea424619a3acd2e649335b1c0cfe43
+000004	## Claims
+000005	- [computed] Two task-owned sandbox executions for the specified \((2,2,4,4)\) computation timed out (exit status \(124\)); neither produced matrices, Smith data, or minors. [artifact a0468ee387c57b44f37f131d0980e1487ec29d0998bbd1e2865c94761575bc6f; artifact 4cf117f029f16b069773ab564b589e10252c84158d61713f28167fb34b06dec7]
+000006	- [unsupported] Complete integral Pieri matrices, Smith forms, quotient ranks, torsion factors, and complementary unimodular minors for \([2,2,0,0,0,0]\subseteq\lambda\subseteq(6^6)\), degrees \(4,\ldots,36\), and \(h\)-degrees \(1,\ldots,6\) remain unavailable.
+000007	
+000008	## Strategy
+000009	The required successful witness-preserving computation artifact is absent. The only supplied task-owned executions both have stable digests above and exit status \(124\); no executable code, captured successful output, or complete degreewise tables were supplied.
+000010	
+000011	## Gaps
+000012	The requested capability certificate was **not established**. In particular, no successful artifact provides the required ordered bases, labelled rows, matrices, Smith diagonals, quotient decompositions, or unimodular-minor witnesses.
+000013	
+000014	## Next
+000015	No further computation can be requested under the exhausted action budget.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-217-1 · critic · ARTIFACT 6a0599be3828f86a75515acd5ebec881cf622f823e6a157e506eab24891f477e
+000018	## Critique
+000019	- claim-1: The cited executions ended with status \(124\), so they do not establish any requested matrix, Smith-form, quotient, torsion, or minor result. Moreover, the supplied evidence does not expose their executable code, exact inputs, or captured outputs for inspection.
+000020	- claim-2: This correctly reports the missing evidence, but it is a non-result. The requested \((2,2,4,4)\) capability certificate was **not established**.
+000021	
+000022	## Repair certificates
+000023	- [computation] Execute a witness-preserving integral partition-Pieri computation with exactly `lower=[2,2,0,0,0,0]`, `upper=[6,6,6,6,6,6]`, `degrees=[4,...,36]`, and `hDegrees=[1,...,6]`. For every degree, emit the ordered Schur basis, all labelled Pieri rows, full integer matrix, exact Smith diagonal, quotient free rank, torsion factors, and an explicitly indexed complementary square minor of determinant \(\pm1\), including empty witnesses. Persist executable code, exact inputs, complete stdout/stderr, exit status \(0\), and stable artifact and content digests.
+000024	
+000025	## Required revisions
+000026	- Replace the timeout-only evidence with the successful task-owned artifact above.
+000027	- State the Pieri convention and all row, column, and complementary-basis orderings.
+000028	- Verify degreewise consistency among matrix rank, Smith form, quotient decomposition, and minor size.
+000029	- Conclude only whether this specific \((2,2,4,4)\) computation certificate is established.

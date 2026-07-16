@@ -1,0 +1,17 @@
+{
+	"attemptId": "research-attempt-research-plan-task-15-1",
+	"taskId": "research-plan-task-15",
+	"summary": "Enumerate the first frontier cases r=5 or n-r=6 (excluding the already reported r<=4 and n-r<=5 box), derive all admissible (n,r,s,t) and associated (i,j,a,b,N), and construct integral presentations of Q=J_v/Λ_+J_v from Schur/Littlewood–Richardson multiplication in Λ/I_{r,n-r}; compute Smith normal forms and compare μ_Z(Q) to N.",
+	"script": "# No computation script supplied: the required Schur/Littlewood–Richardson implementation and precise admissibility bounds for v_{r,s,t,n} must first be extracted from the source.",
+	"scriptSha256": "cfae50c7e03b5fc0a91e4b06d7096b2cf73bb643408f2cefb597b900cd8e5e92",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-15.py",
+		"exitCode": 0,
+		"stdout": "",
+		"stderr": "",
+		"durationMs": 28,
+		"scriptFileName": "attempt-research-plan-task-15.py",
+		"stdoutFileName": "stdout.txt",
+		"stderrFileName": "stderr.txt"
+	}
+}

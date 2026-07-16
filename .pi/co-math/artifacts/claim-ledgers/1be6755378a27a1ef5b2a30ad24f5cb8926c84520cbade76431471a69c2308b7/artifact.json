@@ -1,0 +1,104 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-30-1",
+	"taskId": "research-plan-task-30",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The reported computational range is \\(r\\le4,\\ n-r\\le5\\); thus \\((r,q,i,j)=(3,6,2,2)\\) lies outside it. [source-6@L46-L54|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 46,
+						"end": 54
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "46: ## 2. Evidence reported by the authors\n47: \n48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]\n53: \n54: **Primary-source location:** lines 1501–1502.",
+					"excerptSha256": "9fe1db2374940bdad6459339c8767cafd54e7f1ea4a5ba5b4bb8710ff9de4109",
+					"canonicalCitation": "[source-6@L46-L54|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(\\mathfrak S_v=s_{i^j}\\), \\(a=\\min(q-i,r-j)\\), \\(b=\\min(i,j)\\), and each proposed family has \\(\\binom{a+b}{a}\\) elements. [source-6@L18-L39|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 18,
+						"end": 39
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.\n34: \\]\n35: \n36: Each contains\n37: \n38: \\[\n39: \\binom{a+b}{a}",
+					"excerptSha256": "1583b2e3f3b197ecc6545f389eef0c7da964e41a07744dc836c3cb2023d13af0",
+					"canonicalCitation": "[source-6@L18-L39|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Here \\(a=1,b=2,N=3\\). The truncated presentation has \\(65\\) Schur columns, \\(270\\) Pieri rows, and \\(1370\\) direct-LR rows. The families are \\(F_1=(22,32,33)\\) and \\(F_2=(22,221,222)\\). For each \\(F_\\ell\\), a \\(62\\times62\\) complementary-column Pieri minor has determinant \\(1\\), and every direct-LR row lies in the selected Pieri lattice; direct Pieri/LR single-row mismatches were \\(0\\). [artifact 0b91fcbde84aa9c5a7c35b2827ba19d3c880d0cf53deaea5fad487906d234105]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Exact selected unit-pivot relations (each displayed expression is \\(0\\)); the lists are common to \\(F_1,F_2\\) except at degree \\(6\\): \\[ \\begin{array}{c|l} 5&(22;1):221+32\\\\ 6&(22;2):222+321+42;\\ (221;1):42\\\\ 7&(22;3):322+421+52;\\ (221;2):52;\\ (32;2):331+43;\\ (222;1):421;\\ (321;1):43\\\\ 8&(22;4):422+521+62;\\ (221;3):62;\\ (32;3):332+431+53;\\ (222;2):521;\\ (321;2):53;\\ (42;2):431+44;\\ (322;1):44\\\\ 9&(22;5):522+621;\\ (32;4):432+531+63;\\ (222;3):621;\\ (321;3):63;\\ (33;3):333;\\ (42;3):441+54;\\ (322;2):531;\\ (421;2):54\\\\ 10&(22;6):622;\\ (32;5):532+631;\\ (33;4):433;\\ (42;4):442+541+64;\\ (322;3):631;\\ (421;3):64;\\ (52;3):541+55;\\ (422;2):55\\\\ 11&(32;6):632;\\ (33;5):533;\\ (42;5):542+641;\\ (43;4):443;\\ (52;4):551+65;\\ (422;3):641;\\ (521;3):65\\\\ 12&(33;6):633;\\ (42;6):642;\\ (43;5):543;\\ (52;5):552+651;\\ (44;4):444;\\ (62;4):651+66;\\ (522;3):66\\\\ 13&(43;6):643;\\ (52;6):652;\\ (44;5):544;\\ (53;5):553;\\ (62;5):661\\\\ 14&(44;6):644;\\ (53;6):653;\\ (62;6):662;\\ (54;5):554\\\\ 15&(54;6):654;\\ (63;6):663;\\ (55;5):555\\\\ 16&(55;6):655;\\ (64;6):664\\\\ 17&(65;6):665\\\\ 18&(66;6):666 \\end{array} \\] At degree \\(6\\), the third relation is \\((32;1):321+33=0\\) for \\(F_1\\), and \\((32;1):-222+33=0\\) for \\(F_2\\). [artifact 0b91fcbde84aa9c5a7c35b2827ba19d3c880d0cf53deaea5fad487906d234105]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Conditional on the computed row-containment assertions, the LR relation lattice equals the selected Pieri lattice in either presentation. The unimodular complementary minor makes the quotient free on the respective three free columns, so its Smith form is \\(\\operatorname{diag}(1^{62},0^3)\\) and \\(J_v/A_+J_v\\cong\\mathbb Z^3\\), with basis \\(F_1\\) or \\(F_2\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-6",
+			"text": "The artifact records a “direct-LR” computation but does not document source code or individual LR-to-Pieri integral combinations; implementation independence and the requested independent review remain unaudited.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "b63800d71822419a3e680ffbc874da2734687ffdda33ba133f889f38c22128e7"
+}

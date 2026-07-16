@@ -1,0 +1,57 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-103-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-101-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-101-1 · specialist · ARTIFACT 434b52d790f93e44b58f8bcd888527567fd795302f0a237965cd2766da493038
+000004	## Claims
+000005	- [proved] From the accepted integral interval/Pieri presentation, the requested target is established for \(p=c=1\) and \(0\le k\le b:=\min(i,j)\): \(M_{d+k}\) has basis \(P_{x,k-x}\) \((0\le x\le k)\), and all positive-degree multiplication relations in degree \(d+k\) are exactly \(\sum_{x=0}^{k-1}\mathbb Z(C_x+C_{x+1})\), where \(C_x=P_{x,k-x}\).
+000006	
+000007	## Strategy
+000008	Put \(d=ij\), \(q=i+1\), \(r=j+1\), and
+000009	\[
+000010	P_{x,y}=s_{((i+1)^x,i^{j-x},y)}.
+000011	\]
+000012	Every partition in \((i+1)^{j+1}\) containing \(i^j\), of size \(d+k\), uniquely has \(x\) top rows enlarged and final-row length \(k-x\). Since \(k\le\min(i,j)\),
+000013	\[
+000014	M_{d+k}=\bigoplus_{x=0}^{k}\mathbb ZP_{x,k-x}.
+000015	\]
+000016	
+000017	For \(1\le t\le k\) and \(0\le x\le k-t\), Pieri gives, after restriction to the interval,
+000018	\[
+000019	h_tP_{x,k-t-x}
+000020	 =P_{x,k-x}+P_{x+1,k-x-1}
+000021	 =C_x+C_{x+1}.
+000022	\]
+000023	Indeed, an allowed horizontal \(t\)-strip can enlarge either no top row or exactly one top row: enlarging two top rows repeats column \(i+1\). These are precisely the two displayed interval partitions.
+000024	
+000025	Since \(\Lambda_+\) is generated as an ideal by \(h_1,h_2,\ldots\), every positive-degree relation in degree \(d+k\) is a sum of such \(h_t\)-rows, hence lies in
+000026	\[
+000027	L_k:=\sum_{x=0}^{k-1}\mathbb Z(C_x+C_{x+1}).
+000028	\]
+000029	Conversely, the \(t=1\) rows are
+000030	\[
+000031	h_1P_{x,k-1-x}=C_x+C_{x+1}\qquad(0\le x<k),
+000032	\]
+000033	so every generator of \(L_k\) is a positive-degree multiplication relation. Therefore the relation lattice equals \(L_k\).
+000034	
+000035	For \(k=0\), \(M_d=\mathbb Zs_{i^j}\) and the relation lattice is \(0\).
+000036	
+000037	## Gaps
+000038	The argument uses the accepted integral interval/Schur/Pieri presentation. It makes no assertion for \(k>b\), where the displayed unrestricted indexing \(0\le x\le k\) no longer describes the interval.
+000039	
+000040	## Next
+000041	None.
+000042	
+000043	INTERNAL ATTEMPT research-attempt-research-plan-task-101-1 · critic · ARTIFACT a8b82e097747175ed02e61af8b4878f02ee874c4c1a707d5999cfebbc2ca919f
+000044	## Critique
+000045	- claim-1: The argument correctly proves the stated basis and relation lattice for \(0\le k\le b=\min(i,j)\), conditional on the accepted interval/Schur/Pieri presentation. The Pieri identity has exactly the two asserted in-box terms, and the \(t=1\) rows generate the lattice. It should explicitly write
+000046	  \[
+000047	  (A_+M)_{d+k}=\sum_{t=1}^{k}h_tM_{d+k-t},
+000048	  \]
+000049	  using \(A_+=(h_1,h_2,\ldots)\), to justify that these are all multiplication relations. More importantly, the unqualified “each degree \(d+k\)” target is not established beyond \(k=b\). Thus the target is established only under the bounded interpretation \(0\le k\le b\), not literally in all degrees.
+000050	
+000051	## Repair certificates
+000052	- [proof-attempt] If all degrees are intended, classify the admissible indices \(x\) for every \(0\le k\le i+j+1\), include boundary one-term Pieri rows when \(P_{x,k-x}\) is absent, and prove the resulting complete relation-lattice equality.
+000053	
+000054	## Required revisions
+000055	- State the exact range of \(k\).
+000056	- Identify the relation subgroup explicitly as \((A_+M)_{d+k}\) and prove its reduction to the \(h_t\)-rows.
+000057	- Explicitly conclude whether only the bounded target or the literal all-degree target is claimed.

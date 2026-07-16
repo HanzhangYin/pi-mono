@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-305-1",
+	"taskId": "research-plan-task-305",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "In degrees \\(6,7,8,9,10\\), claim-1 reports quotient free ranks \\(1,1,2,1,1\\), respectively, and no torsion. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Quotient rank and torsion do not determine ordered \\(G_L\\)-to-\\(G_R\\) transition matrices.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "78313f5abe537343570ff118f8f4712c52d3f439c7983b4ad34a376f7a7a3ef8"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-320-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None. Claim-1 follows by exact counting of pairs \\(b\\ge x\\ge y\\ge0\\) with \\(x+y=N\\). Claim-2 follows directly from the accepted integral graded basis. Torsion-freeness is explicit, and no signed transition identity is asserted."
+}

@@ -1,0 +1,27 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-151-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-150-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-150-1 · specialist · ARTIFACT 997b982b25af1b92582a703599e3b7a6c4768319b9e3afe82e2984b27b84d6e6
+000004	{"action":"run_math_primitive","primitive":"partition-pieri","summary":"Task-owned exact computation for the \(i=j=p=2,c=6\) interval: enumerate complete degreewise Pieri presentation rows, compute exact Smith data, and extract/sum quotient ranks.","input":{"lower":[2,2,0,0,0,0,0,0],"upper":[4,4,4,4,4,4,4,4],"degrees":[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32],"hDegrees":[1,2,3,4]}}
+000005	## Claims
+000006	- [unsupported] No sandbox execution result or new task-owned artifact was returned for the requested computation; the capability certificate is not established.
+000007	- [unsupported] Therefore neither \(Q\cong\mathbb Z^6\) nor the \(i=j=p=2,c=6\) minimality corollary is established in this repair.
+000008	
+000009	## Strategy
+000010	Submitted the exact bounded partition–Pieri primitive with lower \([2,2,0,0,0,0,0,0]\), upper \([4,4,4,4,4,4,4,4]\), degrees \(4,\ldots,32\), and \(h\)-degrees \(1,2,3,4\).
+000011	
+000012	## Gaps
+000013	Missing captured output, exit status, and task-owned artifact digest.
+000014	
+000015	## Next
+000016	Re-execute the submitted primitive and persist its artifact before drawing the requested conclusions.
+000017	
+000018	INTERNAL ATTEMPT research-attempt-research-plan-task-150-1 · critic · ARTIFACT 9231faf374f4f1d7fed7a0809f8db36a698c7fb024eca157eff64ed17c76b762
+000019	## Critique
+000020	- claim-1: Correct. The submitted action contains executable code and explicit inputs but no executed sandbox result, captured stdout/stderr, exit status, or new task-owned artifact digest. Therefore the required computation certificate is not established.
+000021	- claim-2: Correct as a statement about this repair. Without successful execution, the asserted degreewise ranks, torsion-freeness, \(Q\cong\mathbb Z^6\), and the resulting case-specific minimality corollary cannot be concluded here. This does not refute earlier mathematical evidence.
+000022	
+000023	## Repair certificates
+000024	- [computation] Execute verbatim the supplied self-contained script with `lower=[2,2,0,0,0,0,0,0]`, `upper=[4,4,4,4,4,4,4,4]`, `degrees=[4,...,32]`, and `hDegrees=[1,2,3,4]`. Persist executable code, complete stdout/stderr, exit status \(0\), script and output SHA-256 digests, and a new task-owned artifact digest. The execution must verify quotient ranks \(1,1,2,1,1\) in degrees \(4,\ldots,8\), zero in degrees \(9,\ldots,32\), no torsion, and total rank \(6\).
+000025	
+000026	## Required revisions
+000027	- Identify the resulting task-owned artifact explicitly. Only after successful execution may the replacement infer \(Q\cong\mathbb Z^6\) and apply accepted generation plus the indexed-family Nakayama criterion to prove minimality of the two six-element families for \(i=j=p=2,c=6\). Do not claim any broader theorem.

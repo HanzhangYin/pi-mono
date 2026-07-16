@@ -1,0 +1,202 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-327-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-264-1, research-attempt-research-plan-task-282-1, research-attempt-research-plan-task-284-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-264-1 · specialist · ARTIFACT ea2d70f556f3ff9f62db2ec67bf639656625b9d8d8537b1cc0a96ed7a4b7707a
+000004	## Claims
+000005	- [source-backed] Schur functions are homogeneous by partition weight; \(\Lambda/I_{r,n-r}\) inherits this grading, with multiplication truncated to partitions in \((n-r)^r\). [doi:10.1112/jlms.12832, lines 263-269]
+000006	- [source-backed] \(\omega(s_\lambda)=s_{\lambda'}\) is a ring involution, hence preserves Littlewood–Richardson multiplication under conjugation. [doi:10.1112/jlms.12832, lines 481-485]
+000007	- [computed] For the non-self-conjugate pair
+000008	  \[
+000009	  [222,4^5]\subset\Lambda/I_{5,4},\qquad [33,5^4]\subset\Lambda/I_{4,5},
+000010	  \]
+000011	  complete \(A_+J\)-relation matrices and quotient Smith data in weights \(6,\ldots,20\) agree: free ranks are
+000012	  \[
+000013	  (1,1,2,1,1,0,\ldots,0),
+000014	  \]
+000015	  in weights \(6,\ldots,20\), and all torsion-factor lists are empty. [artifact 5b6e59b74af1b386568e8d3014cdef276ec80f89225cf5ba2367c73fa3b0a993]
+000016	- [proved] Conditional on accepted quotient conjugation and ideal correspondence, partition conjugation induces an integral graded isomorphism
+000017	  \[
+000018	  J_v/A_+J_v\;\cong\;J_{v^\vee}/A^\vee_+J_{v^\vee},
+000019	  \]
+000020	  preserving degreewise integral torsion subgroups and free ranks.
+000021	
+000022	## Strategy
+000023	Put \(q=n-r\),
+000024	\[
+000025	A=\Lambda/I_{r,q},\qquad A^\vee=\Lambda/I_{q,r},
+000026	\qquad
+000027	\Omega(\bar s_\lambda)=\bar s_{\lambda'}.
+000028	\]
+000029	Accepted quotient conjugation gives \(\Omega:A\!\xrightarrow{\sim}\!A^\vee\), and accepted ideal correspondence gives
+000030	\(\Omega(J_v)=J_{v^\vee}\). Since \(|\lambda'|=|\lambda|\),
+000031	\[
+000032	\Omega(A_d)=A^\vee_d,\qquad
+000033	\Omega(A_+)=A^\vee_+,
+000034	\]
+000035	where \(A_+=\bigoplus_{d>0}A_d\) and \(A^\vee_+=\bigoplus_{d>0}A^\vee_d\). Therefore
+000036	\[
+000037	\Omega(A_+J_v)=A^\vee_+J_{v^\vee}.
+000038	\]
+000039	Restricting and passing to quotients yields the displayed integral graded isomorphism. In each weight \(d\), it is an isomorphism of finitely generated abelian groups, so it preserves element orders, torsion subgroups, invariant factors, and free \(\mathbb Z\)-rank. The \(a=0\) singleton-interval boundary is included, since the argument uses no positivity of \(a\).
+000040	
+000041	The required computation capability certificate is supplied by accepted computation dependency artifact `5b6e59b74af1b386568e8d3014cdef276ec80f89225cf5ba2367c73fa3b0a993`: executable-script SHA-256 `a53b2b65248a952119b244db2f383be666904ceb71b2225e71ebd8dcb46cb5a5`; inputs \([222,4^5]\), \(h_1,\ldots,h_4\), and \([33,5^4]\), \(h_1,\ldots,h_5\), in weights \(6,\ldots,20\); captured complete matrices, Smith data, and comparison; exit status \(0\). The artifact ID is its stable digest. This finite computation is a bounded verification only.
+000042	
+000043	## Gaps
+000044	The universal corollary is conditional on the accepted quotient-conjugation and ideal-correspondence premises. The finite computation does not prove those premises or any parent theorem.
+000045	
+000046	## Next
+000047	The standalone corollary is conditionally established, and the requested quotient-level computation capability certificate is established. No parent-theorem claim is made.
+000048	
+000049	INTERNAL ATTEMPT research-attempt-research-plan-task-264-1 · critic · ARTIFACT db94287b666b5f346346abf4c45e6b2daa4c9a905793515850dd0d5c5d59edf5
+000050	## Critique
+000051	- claim-1: Correctly grounded. Partition-weight homogeneity and truncated multiplication establish the quotient grading.
+000052	- claim-2: Correctly grounded. The ring involution preserves partition weight and Littlewood–Richardson multiplication under conjugation.
+000053	- claim-3: Adequately supported as internal computation—not external source evidence—by accepted computation dependency `research-attempt-research-plan-task-261-1`, artifact `5b6e59b74af1b386568e8d3014cdef276ec80f89225cf5ba2367c73fa3b0a993`. That artifact preserves the executable script, exact non-self-conjugate inputs, complete relation matrices and Smith outputs, exit status \(0\), and stable digest. The finite check is correctly not used as a universal proof.
+000054	- claim-4: The conditional proof is correct. Gradedness gives \(\Omega(A_+)=A^\vee_+\), ideal correspondence gives \(\Omega(J_v)=J_{v^\vee}\), and hence \(\Omega(A_+J_v)=A^\vee_+J_{v^\vee}\). The induced degreewise integral isomorphisms preserve torsion subgroups, invariant factors, and free ranks. The \(a=0\) boundary is covered. The right-hand \(A_+\) is correctly interpreted as \(A^\vee_+\).
+000055	
+000056	## Required revisions
+000057	- None for the named certificate. The scoped target and its computation-capability certificate are established conditionally on the accepted quotient-conjugation and ideal-correspondence premises; no parent theorem is claimed.
+000058	
+000059	INTERNAL ATTEMPT research-attempt-research-plan-task-282-1 · specialist · ARTIFACT e7afe0f30e8f4fb094b004d80fcc7ddb572d4208c2e6c56b0673121bcbc66d69
+000060	## Claims
+000061	- [source-backed] For bigrassmannian \(v=v_{r,s,t,n}\), with \(i=s-t+1\), \(j=r-t+1\), \(a=\min(n-r-i,r-j)\), \(b=\min(i,j)\), the lower-adjoined family \(G=\{\bar s_{(i^j,\rho)}:\rho\subseteq b^a\}\) minimally generates \(J_v\subseteq\Lambda/I_{r,n-r}\). [doi:10.1112/jlms.12832, lines 219-235]
+000062	- [proved] Let \(Q=J_v/A_+J_v\) and \(m=\binom{a+b}{a}\). Then \(Q\cong\mathbb Z^m\) if and only if \(\dim_{\mathbb Q}(Q\otimes\mathbb Q)=m\).
+000063	- [proved] Under the equivalent rational-full-rank hypothesis, the images of \(G\) form a homogeneous integral basis of \(Q\), and
+000064	  \[
+000065	  \operatorname{Hilb}_{Q}(z)=z^{ij}\binom{a+b}{a}_{z}.
+000066	  \]
+000067	- [proved] Minimality alone does not imply rational full rank: for \(A=\mathbb Z[x]\), \(J=(2x,x^2)\), the irredundant family \(\{2x,x^2\}\) has \(J/A_+J\cong\mathbb Z\oplus\mathbb Z/2\), of rational rank \(1<2\).
+000068	- [unsupported] A uniform proof that \(\dim_{\mathbb Q}(J_v/A_+J_v)\otimes\mathbb Q=\binom{a+b}{a}\) is not supplied here.
+000069	
+000070	## Strategy
+000071	This establishes the requested theory-to-generalization target as a conditional reduction of the unresolved torsion-freeness roadblock; the unconditional stronger statement is not established.
+000072	
+000073	Let \(F=\bigoplus_{\rho\subseteq b^a}\mathbb Z e_\rho\), mapped onto \(Q\) by
+000074	\(e_\rho\mapsto[\bar s_{(i^j,\rho)}]\). Generation gives a surjection \(F\twoheadrightarrow Q\), and \(\operatorname{rank}F=m\). If \(\dim_{\mathbb Q}Q_{\mathbb Q}=m\), then \(F_{\mathbb Q}\to Q_{\mathbb Q}\) is an isomorphism. Its kernel \(K\) therefore satisfies \(K_{\mathbb Q}=0\). Since \(K\subseteq F\) is torsion-free, \(K=0\). Thus \(F\cong Q\). Applying the accepted indecomposable-basis lemma gives the claimed integral homogeneous basis.
+000075	
+000076	Finally, \(|(i^j,\rho)|=ij+|\rho|\), while partitions \(\rho\subseteq b^a\) have enumerator \(\binom{a+b}{a}_z\), yielding the Hilbert series.
+000077	
+000078	## Gaps
+000079	The exact missing premise is rational full rank of \(Q\), not a separate integral-primitivity assertion: with the known \(m\)-element generating surjection, rational full rank already forces integral freeness.
+000080	
+000081	No conclusion is made for the right-adjoined family. The supplied theorem proves the lower-adjoined family; its discussion of the transposed family only indicates a possible transposition of arguments. [doi:10.1112/jlms.12832, lines 827-840]
+000082	
+000083	## Next
+000084	For one fixed parameter tuple, the smallest discriminating computation is rational only: in degrees \(ij,\ldots,ij+ab\), compute
+000085	\[
+000086	\dim_{\mathbb Q}J_{v,d}/(A_+J_v)_d
+000087	\]
+000088	from the complete multiplication-relation lattice and compare it with
+000089	\([z^{d-ij}]\binom{a+b}{a}_z\). Equality in every such degree decides the rational-full-rank premise for that tuple, but cannot prove the all-parameter statement.
+000090	
+000091	INTERNAL ATTEMPT research-attempt-research-plan-task-282-1 · critic · ARTIFACT 8a206524b29c5020fab1feec7c6dd40c547eeb2933da06e2fa65f3aee990a07a
+000092	## Critique
+000093	- claim-1: Correctly grounded by the cited theorem, including the parameter formulas, coefficient ring, and lower-adjoined family.
+000094	- claim-2: The reduction is correct. The \(m\)-element generating family gives a surjection \(F=\mathbb Z^m\twoheadrightarrow Q\). If \(\dim_{\mathbb Q}Q_{\mathbb Q}=m\), then \((\ker(F\to Q))\otimes\mathbb Q=0\); since the kernel is a torsion-free subgroup of \(F\), it vanishes. Minimality is not needed for this argument.
+000095	- claim-3: Correct under claim-2’s hypothesis. Homogeneity gives the stated degrees, and partitions in \(b^a\) have Gaussian-binomial enumerator. However, the conditional formulation is unnecessarily weak: the supplied no-syzygy theorem appears to prove the required integral independence uniformly.
+000096	- claim-4: Correct. Here \(xJ=(2x^2,x^3)\), so \(J/xJ\cong\mathbb Z\{2x\}\oplus(\mathbb Z/2)\{x^2\}\).
+000097	- claim-5: Not adequately justified as an unresolved premise. For the valid parameters specified at [doi:10.1112/jlms.12832, lines 276-303], the theorem at [doi:10.1112/jlms.12832, lines 819-825] forbids exactly the homogeneous syzygies arising from a nonzero relation among the generator residues in \(Q\). Thus a uniform rational-full-rank proof appears available from the supplied source and should be extracted before proposing further computation.
+000098	- The specialist establishes a valid conditional reduction, but does not establish the unconditional general target suggested by the available no-syzygy theorem. No conclusion for the right-adjoined family is warranted.
+000099	
+000100	## Repair certificates
+000101	- [proof-attempt] For \(a\ge1\), verify that the bigrassmannian parameters satisfy the validity inequalities in [doi:10.1112/jlms.12832, lines 276-303]. Given a homogeneous kernel relation in degree \(ij+N\),
+000102	  \[
+000103	  \sum_{|\rho|=N}c_\rho\,\bar s_{(i^j,\rho)}\in A_+J_v,
+000104	  \]
+000105	  use generation by \(G\) and homogeneity to rewrite its right side as
+000106	  \[
+000107	  \sum_{|\lambda|<N}f_\lambda\bar s_{(i^j,\lambda)},\qquad
+000108	  \deg f_\lambda=N-|\lambda|>0.
+000109	  \]
+000110	  If some \(c_\rho\neq0\), the left side is nonzero in the Schur basis, contradicting [doi:10.1112/jlms.12832, lines 819-825]. Treat \(N=0\) and \(a=0\) directly. This proves \(F\cong Q\), hence
+000111	  \[
+000112	  Q\cong\mathbb Z^{\binom{a+b}{a}},\qquad
+000113	  \operatorname{Hilb}_Q(z)=z^{ij}\binom{a+b}{a}_z.
+000114	  \]
+000115	
+000116	## Required revisions
+000117	- Replace the unsupported “missing rational-full-rank premise” and proposed finite computation with the no-syzygy-to-independence proof above, or identify a precise obstruction preventing that theorem from applying.
+000118	- State explicitly whether the unconditional lower-adjoined target is established; do not report only the conditional reduction as though it resolved that target.
+000119	- Retain the caveat that no right-adjoined-family conclusion follows.
+000120	
+000121	INTERNAL ATTEMPT research-attempt-research-plan-task-284-1 · specialist · ARTIFACT 7341631740280da53906f9a979342f6836771649454542c638476e4faef7dc4a
+000122	## Claims
+000123	- [source-backed] The basic ideal is \(J_v=\operatorname{Span}_{\mathbb Z}\{\sigma_u:u\ge v\}\); Grassmannian cohomology is \(\Lambda/I_{r,n-r}\) with Schur classes indexed by partitions in \((n-r)^r\). [doi:10.1112/jlms.12832, lines 197-218]
+000124	- [source-backed] For \(v_{r,s,t,n}\), \(i=s-t+1\), \(j=r-t+1\), and the lower-adjoined Schur family generates \(J_v\). [doi:10.1112/jlms.12832, lines 220-235]
+000125	- [source-backed] In \(\Lambda/I_{r,q}\), multiplication is truncated Littlewood–Richardson multiplication over partitions in \(q^r\). [doi:10.1112/jlms.12832, lines 263-269]
+000126	- [proved] For the new specialization
+000127	  \[
+000128	  (i,j,p,c)=(2,3,3,2),\quad q=i+p=5,\quad r=j+c=5,
+000129	  \]
+000130	  hence \(n=r+q=10\), \(t=r-j+1=3\), \(s=i+t-1=4\), and \(v=v_{5,4,3,10}\) is admissible.
+000131	- [proved] With \(A=\Lambda/I_{5,5}\), the exact Schur-basis interval ideal is
+000132	  \[
+000133	  J=J_v=\bigoplus_{\substack{(2,2,2)\subseteq\lambda\subseteq(5,5,5,5,5)}}\mathbb Z\,\bar s_\lambda .
+000134	  \]
+000135	- [proved] For this specialization,
+000136	  \[
+000137	  A_+=(\bar h_1,\bar h_2,\bar h_3,\bar h_4,\bar h_5).
+000138	  \]
+000139	- [proved] In every degree \(d\), the complete lattice \((A_+J)_d\) is the \(\mathbb Z\)-span of precisely the Pieri rows
+000140	  \[
+000141	  \bar h_t\bar s_\lambda
+000142	  =\sum_{\substack{\lambda\subseteq\mu\subseteq5^5\\
+000143	                   \mu/\lambda\ {\rm horizontal}\ t\text{-strip}}}\bar s_\mu ,
+000144	  \quad
+000145	  1\le t\le5,\quad
+000146	  (2,2,2)\subseteq\lambda\subseteq5^5,\quad |\lambda|=d-t.
+000147	  \]
+000148	
+000149	## Strategy
+000150	Here \(v=v_{5,4,3,10}\) has one-line notation
+000151	\[
+000152	v=1,2,5,6,7,3,4,8,9,10.
+000153	\]
+000154	Its Grassmannian partition at descent \(r=5\) is
+000155	\[
+000156	\bigl(v(5)-5,v(4)-4,v(3)-3,v(2)-2,v(1)-1\bigr)=(2,2,2,0,0).
+000157	\]
+000158	For Grassmannian permutations, Bruhat order is partition containment. Therefore the Grassmannian classes in \(J_v\) are exactly those indexed by
+000159	\[
+000160	\mathcal I=\{\lambda:5\ge\lambda _1\ge\cdots\ge\lambda _5\ge0,\ 
+000161	\lambda _1,\lambda _2,\lambda _3\ge2\},
+000162	\]
+000163	which proves the displayed interval basis. Littlewood–Richardson containment shows this span is an ideal.
+000164	
+000165	Write \(h_t=s_{(t)}\). Jacobi–Trudi gives \(\Lambda=\mathbb Z[h_1,h_2,\ldots]\). In \(A=\Lambda/I_{5,5}\), \(\bar h_t=0\) for \(t>5\), since \((t)\nsubseteq5^5\). Thus \(A\) is generated by \(\bar h_1,\ldots,\bar h_5\). Its unit is \(\bar s_\varnothing=1\), so every positive-degree polynomial has zero constant term and lies in \((\bar h_1,\ldots,\bar h_5)\); the reverse containment is immediate. Hence
+000166	\[
+000167	A_+=(\bar h_1,\ldots,\bar h_5).
+000168	\]
+000169	
+000170	Consequently
+000171	\[
+000172	A_+J=\sum_{t=1}^{5}\bar h_tJ,
+000173	\qquad
+000174	(A_+J)_d=\sum_{t=1}^{5}\bar h_tJ_{d-t}.
+000175	\]
+000176	For each \(\lambda\in\mathcal I\), the Littlewood–Richardson tableau argument with content \((t)\) gives the Pieri formula above: the coefficient is \(1\) exactly for horizontal \(t\)-strips and \(0\) otherwise. Thus the listed rows span exactly \((A_+J)_d\), not merely a sublattice.
+000177	
+000178	Boundary conventions are explicit: \(\mathcal I_e=\varnothing\) for \(e<6\) or \(e>25\); no row occurs when \(\mathcal I_{d-t}=\varnothing\). A listed row with no permitted \(\mu\subseteq5^5\) is the zero row and does not change the lattice. For \(d<6\) and \(d>25\), both \(J_d\) and \((A_+J)_d\) vanish.
+000179	
+000180	## Gaps
+000181	None for this structural certificate. It does not compute Smith data or assert a parent minimality theorem.
+000182	
+000183	## Next
+000184	This certificate is established for the stated new specialization only.
+000185	
+000186	INTERNAL ATTEMPT research-attempt-research-plan-task-284-1 · critic · ARTIFACT 6fcc94274963915744626202ce92227b37bc029f571b73d07850753a333e7825
+000187	## Critique
+000188	- claim-1: Adequately grounded. The cited passage supplies the basic ideal, Grassmannian quotient, and integral Schur basis.
+000189	- claim-2: Adequately grounded for generation, but it does not by itself establish the asserted interval basis.
+000190	- claim-3: Adequately grounded and sufficient for the truncated Pieri formula.
+000191	- claim-4: The numerical identities are correct, but \(p\) and \(c\) are never defined as \(p=q-i\) and \(c=r-j\). The complete admissibility check \(1\le t\le r,s\le n\) and \(t>r+s-n\) is also only asserted.
+000192	- claim-5: This is the decisive gap. The strategy invokes, without proof or exact grounding, both the identification of the Grassmannian Schur basis with fixed-descent Schubert classes and the equivalence between Bruhat order and partition containment. It also does not explicitly define the Grassmannian ideal as the contraction of the full-flag \(J_v\). Thus the direct-sum interval equality is not yet checkable from the supplied argument.
+000193	- claim-6: Correct once \(A=\Lambda/I_{5,5}\) is fixed. The homogeneous quotient and unit argument proves \(A_+=(\bar h_1,\ldots,\bar h_5)\).
+000194	- claim-7: Correct conditional on claims 5 and 6. Since \(A_+=(\bar h_1,\ldots,\bar h_5)\), ideality gives \(A_+J=\sum_{t=1}^5\bar h_tJ\), and the Schur basis plus Pieri gives exactly the stated degreewise row lattice, including zero boundary rows.
+000195	
+000196	## Repair certificates
+000197	- [proof-attempt] Define \(q=n-r\), \(p=q-i\), \(c=r-j\), and the Grassmannian contraction \(J\). Then explicitly prove—using the fixed-descent permutation \(u_\lambda\) and the Bruhat rank criterion—that \(u_\lambda\ge v_{5,4,3,10}\) iff \(\lambda\supseteq(2,2,2)\). This must establish the integral direct-sum interval basis and display every admissibility inequality.
+000198	
+000199	## Required revisions
+000200	- Replace the unsupported Bruhat/partition-containment assertion with the requested proof or an exact theorem-level source excerpt.
+000201	- State the definitions of \(p,c,q,J\) and all boundary conventions before using them.
+000202	- Conclude that the scoped certificate is not yet established as a standalone proof; no parent-theorem conclusion is warranted.

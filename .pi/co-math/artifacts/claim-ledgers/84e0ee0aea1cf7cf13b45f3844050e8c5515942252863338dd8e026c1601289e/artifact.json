@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-78-1",
+	"taskId": "research-plan-task-78",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested source certificate is present in task-owned immutable snapshot `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, whose bounded locator is `artifacts/internal-sources/873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4/artifact.txt@L1-L216`. Its provenance identifies the inspected item as `research-attempt-research-plan-task-68-1`, with embedded attempt artifact `a9a23cc19066d783e0dd3ceeaf7177e7676f1c1af49d060e8ac00df787207c67`. The snapshot’s verbatim excerpt gives the hypotheses \\[ q=i+p,\\quad r=j+c,\\quad d=ij,\\quad i,j\\ge2,\\quad p,c\\ge1,\\quad\\min(p,c)=1, \\] \\[ e_t=[p\\ge t],\\quad f_t=[c\\ge t],\\quad\\kappa=[j\\ge3],\\quad\\eta=[i\\ge3], \\] conditional on the integral \\(q^r\\)-box Schur basis and integral Pieri rule, with out-of-box classes zero. It defines the column order \\((A,B,C,D,E,F,G,H,I,J)\\) and respective presence conditions \\[ p\\ge3,\\ p\\ge2,\\ j\\ge3,\\ p\\ge2,\\ {\\rm always},\\ {\\rm always},\\ c\\ge2,\\ i\\ge3,\\ c\\ge2,\\ c\\ge3. \\] Its equation (1) is \\[ R_{\\rm full}= \\begin{pmatrix} e_3&0&0&e_2&0&1&0&\\eta&0&0\\\\ e_3&e_2&0&e_2&1&1&0&0&0&0\\\\ 0&0&0&e_2&0&1&f_2&\\eta&f_2&0\\\\ e_3&e_2&0&e_2&0&0&0&0&0&0\\\\ 0&e_2&\\kappa&0&1&0&0&0&0&0\\\\ 0&0&0&e_2&1&1&f_2&0&0&0\\\\ 0&0&0&0&0&1&0&\\eta&f_2&0\\\\ 0&0&0&0&0&0&f_2&0&f_2&f_3 \\end{pmatrix}. \\] Its table (4), with determinants in the available-column order inherited from \\((A,\\ldots,J)\\), contains exactly these fifteen cases: \\[ \\begin{array}{c|c|c|c} (p,c)&(\\kappa,\\eta)=(0,1)&(1,0)&(0,0)\\\\ \\hline (1,1)&(r_1,r_2,r_5),-1&(r_1,r_2,r_5),-1&(r_1,r_5),-1\\\\ (1,2)&(r_1,r_2,r_5,r_7,r_8),-1&(r_1,r_2,r_5,r_6,r_8),-1&(r_1,r_5,r_7,r_8),1\\\\ (1,\\ge3)&(r_1,r_2,r_5,r_6,r_7,r_8),1&(r_1,r_2,r_5,r_6,r_7,r_8),-1&(r_1,r_5,r_6,r_7,r_8),-1\\\\ (2,1)&(r_1,r_4,r_5,r_6,r_7),-1&(r_1,r_4,r_5,r_6,r_7),1&(r_1,r_4,r_5,r_7),-1\\\\ (\\ge3,1)&(r_1,r_3,r_4,r_5,r_6,r_7),-1&(r_1,r_3,r_4,r_5,r_6,r_7),1&(r_3,r_4,r_5,r_6,r_7),1 \\end{array} \\] [artifact `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`, `artifact.txt@L1-L216`]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "3ff54f7f773a9efce57aa2337a3f31686a921c729d5f205639a3bac056922b91"
+}

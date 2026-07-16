@@ -1,0 +1,29 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-167-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-166-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-166-1 · specialist · ARTIFACT 05591540b4c68b4f3d2f4ec02894ed45de21ef2b6c6665f051f11ade24ce3ac6
+000004	## Claims
+000005	- [computed] Persist a task-owned certificate reproducing the supplied arXiv provider-record identifier and exact title/summary fields for arXiv:0809.2981v2; no network or file access. Task-owned sandbox artifact `f1ea7b8a6c15d6654b7e1bd1673dd88e63c0753a417251ed8a5fd4e756dc86f9` executed with exit status 0. Its persisted executable script has SHA-256 `8e4005ae6e647b137b4b95785d676b2521f17b7a45c208b24edff99f30500887`. Captured stdout preview: `{'provider': 'arXiv', 'stableExternalIdentifier': 'arXiv:0809.2981v2', 'providerRecordIdField': 'http://arxiv.org/abs/0809.2981v2', 'titleField': 'Presenting the cohomology of a Schubert variety', 'summaryField': "We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A."}`. Full captured output is immutable at `artifacts/computations/f1ea7b8a6c15d6654b7e1bd1673dd88e63c0753a417251ed8a5fd4e756dc86f9/artifact.json` in JSON fields `fullOutput.stdout.content` (SHA-256 `37b87a2ed89802dfec0060303bae2a662bfd0e3ec250172b8028b9ff17b6a422`) and `fullOutput.stderr.content` (SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`). [artifact f1ea7b8a6c15d6654b7e1bd1673dd88e63c0753a417251ed8a5fd4e756dc86f9]
+000006	- [unsupported] This bounded computation does not by itself establish any unchecked all-parameter or parent-theorem claim.
+000007	
+000008	## Strategy
+000009	Execute exactly one successful task-owned sandbox computation and preserve its script, digest, inputs, outputs, and exit status for independent review.
+000010	
+000011	## Gaps
+000012	Only the explicit inputs reported by the artifact were checked; no finite computation is promoted to a universal proof.
+000013	
+000014	## Next
+000015	Independently review the persisted computation artifact against this task's bounded acceptance criteria.
+000016	
+000017	INTERNAL ATTEMPT research-attempt-research-plan-task-166-1 · critic · ARTIFACT 39ad464ea17b0d890d96fb8fd34d617ac769c1b92aa62089b43ec2ba58251d20
+000018	## Critique
+000019	- claim-1: The exit-\(0\) artifact validates only internally hardcoded literals. It does not capture or cite an external arXiv provider record, so the identifier, title, and summary lack external provenance. Therefore it does not establish the requested validated source-grounded claim.
+000020	- claim-2: Correctly avoids the parent theorem, but does not cure the missing provider grounding. The capability certificate remains **not established**.
+000021	
+000022	## Repair certificates
+000023	- [source-refresh] Persist a bounded capture of the arXiv provider record for `arXiv:0809.2981v2`, with a durable locator showing the record identifier and the exact title or abstract field supporting one explicitly stated claim.
+000024	- [computation] Produce a task-owned artifact that machine-compares the captured provider field against the reported claim, recording inputs, output, exit status, and digests.
+000025	
+000026	## Required revisions
+000027	- Replace the hardcoded reproduction with evidence extracted from an actual selected external provider record.
+000028	- Identify the provider, stable external identifier, exact supporting field, durable source locator, validated claim, and task-owned artifact explicitly.
+000029	- Conclude only whether this capability certificate is established; make no parent-theorem claim.

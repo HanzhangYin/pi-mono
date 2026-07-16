@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-54-1",
+	"taskId": "research-plan-task-54",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied citable material identifies arXiv:0809.2981v2 as the earlier paper, *Presenting the cohomology of a Schubert variety*, published in 2011. [source-5@L11-L22|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-5"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-5",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 11,
+						"end": 22
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/arxiv-metadata.xml",
+					"sourceFileSha256": "a7c250a03574b7b0daefcf97e2c1245d0fed93738e2e11faa3579f03751cadbc",
+					"regionKind": "ordinary-document",
+					"excerpt": "11:     <id>http://arxiv.org/abs/0809.2981v2</id>\n12:     <title>Presenting the cohomology of a Schubert variety</title>\n13:     <updated>2009-09-04T21:19:20Z</updated>\n14:     <link href=\"https://arxiv.org/abs/0809.2981v2\" rel=\"alternate\" type=\"text/html\"/>\n15:     <link href=\"https://arxiv.org/pdf/0809.2981v2\" rel=\"related\" type=\"application/pdf\" title=\"pdf\"/>\n16:     <summary>  We extend the short presentation due to [Borel '53] of the cohomology ring of a generalized flag manifold to a relatively short presentation of the cohomology of any of its Schubert varieties. Our result is stated in a root-system uniform manner by introducing the essential set of a Coxeter group element, generalizing and giving a new characterization of [Fulton '92]'s definition for permutations. Further refinements are obtained in type A.</summary>\n17:     <category term=\"math.CO\" scheme=\"http://arxiv.org/schemas/atom\"/>\n18:     <category term=\"math.RA\" scheme=\"http://arxiv.org/schemas/atom\"/>\n19:     <published>2008-09-17T19:12:56Z</published>\n20:     <arxiv:comment>22 pages</arxiv:comment>\n21:     <arxiv:primary_category term=\"math.CO\"/>\n22:     <arxiv:journal_ref>Trans. Amer. Math. Soc. 363 (2011), 521-543</arxiv:journal_ref>",
+					"excerptSha256": "51f7e9d75cb91747775e0d7080245576c857b8474bdc1ee36697ebd9a41b09b2",
+					"canonicalCitation": "[source-5@L11-L22|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "No supplied citable source is a full-text copy of the later paper associated with DOI \\(10.1112/jlms.12832\\).",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "60419272552e6293aafc2856a793dc194803ffb68a5da611623006af036d90c0"
+}

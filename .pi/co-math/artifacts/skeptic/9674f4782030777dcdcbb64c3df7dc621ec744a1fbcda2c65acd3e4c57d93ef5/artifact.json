@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-161-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 correctly reports missing inputs, but no bounded ranges from source-30 or source-29 were available or inspected; therefore completeness and status comparison cannot be verified.\n- claim-2 is validated but concerns source-6, so it cannot substitute for the requested source-30 extraction or source-29 status evidence.\n- The draft explicitly and correctly states that the requested target is **not established**.\n\n## Unresolved certificates\n- [source-refresh] Supply citable source-30 excerpts covering every explicitly labelled Conjecture, Question, and Problem, together with sufficient source mapping to establish exhaustiveness.\n- [source-refresh] Supply citable source-29 excerpts giving the status of each extracted item, including explicit evidence when source-29 provides no status."
+}

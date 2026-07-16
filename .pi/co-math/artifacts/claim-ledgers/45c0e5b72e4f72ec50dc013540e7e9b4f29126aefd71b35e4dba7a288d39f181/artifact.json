@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-271-1",
+	"taskId": "research-plan-task-271",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(\\rho=\\varnothing,(1),(2),(1,1),(3),(2,1),(3,1),(2,2),(3,2)\\), the required integral identities follow from the Pieri expansions listed in Strategy.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The remaining \\(\\rho=(3,3)\\) identity has not been derived here; hence the requested all-\\(\\rho\\) certificate is not established.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e709fc0c201bf9c671538f67630a539d2fd20a08900e38346e6e0019bf1d8e06"
+}

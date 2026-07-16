@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-294-1",
+	"taskId": "research-plan-task-294",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested certificate is not established: the supplied material does not specify the target artifact’s \\(C_d,L_d,R_d,T_d\\), selection conventions, determinant witnesses, or prescribed-transition identities needed for exact reconstruction and comparison.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "8c8af529ccb91ac2bc82af5ed9d5d91e9341b1b641950bb4ca057e6af806a8c3"
+}

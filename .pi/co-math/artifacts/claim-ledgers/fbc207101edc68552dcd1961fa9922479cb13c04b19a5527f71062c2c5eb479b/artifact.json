@@ -1,0 +1,75 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-242-1",
+	"taskId": "research-plan-task-242",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "\\(\\Lambda/I_{6,5}\\) has Schur basis \\(\\{\\bar s_\\lambda:\\lambda\\subseteq5^6\\}\\), and multiplication is LR multiplication with terms outside \\(5^6\\) discarded. [doi:10.1112/jlms.12832, lines 213-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "With \\(A_+:=\\bigoplus_{e>0}A_e\\) and \\(\\bar h_t=\\bar s_{(t)}\\), one has \\(A_+=(\\bar h_1,\\ldots,\\bar h_5)\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\[ C_d=\\{\\mu:22\\subseteq\\mu\\subseteq5^6,\\ |\\mu|=d\\},\\qquad R_d=\\{(t,\\lambda):1\\le t\\le5,\\ 22\\subseteq\\lambda\\subseteq5^6,\\ |\\lambda|=d-t\\}. \\] The row indexed by \\((t,\\lambda)\\in R_d\\), in the basis \\(C_d\\), is \\[ \\bar h_t\\bar s_\\lambda =\\sum_{\\substack{\\mu\\in C_d\\\\\\mu/\\lambda\\text{ horizontal }t\\text{-strip}}}\\bar s_\\mu, \\] and the lattice spanned by all these rows is exactly \\((A_+J)_d\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "\\(R_d=\\varnothing\\) for \\(d\\le4\\) (hence for \\(d<4\\)) and for \\(d>35\\). For every \\(31\\le d\\le35\\), \\(R_d\\ne\\varnothing\\), since \\((d-30,5^6)\\in R_d\\), but every indexed row is the zero vector because \\(C_d=\\varnothing\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The supplied record identifies artifact `a3ad933b835c991bc8edccec918dce17c0e4594e4d1d4281e32946dd7e508ece` only as having been executed in degrees \\(4,\\ldots,30\\); it supplies neither its degree-\\(31,\\ldots,35\\) matrices nor its executable row-label data. Thus literal all-degree equality with that physical artifact’s indexed rows is not evidenced. [artifact 7407218a74525cf0e95adab0a2768940ab22d2e9faa3a3ddb10e5189643c306c, L1-L89]",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "6aaec6a26f52da554965f854bd9aace1d277516b62a6df173a41e8794b5bf849"
+}

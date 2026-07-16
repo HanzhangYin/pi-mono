@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-228-1",
+	"taskId": "research-plan-task-228",
+	"summary": "Task-owned bounded audit of the parameter-conjugation formulas and all enumerated bigrassmannian, box, family-shape, and valid-tuple inequalities for 2<=n<=12, including the a=0 boundary; this finite audit supplements (and does not replace) the symbolic certificate.",
+	"script": "from itertools import product\nimport hashlib\n\nMAX_N = 12\nchecked = 0\npositive_a = 0\nboundary_a0 = 0\n\ndef req(x, msg):\n    if not x:\n        raise AssertionError(msg)\n\nfor n in range(2, MAX_N + 1):\n  for r in range(1, n + 1):\n    for s in range(1, n + 1):\n      for t in range(1, min(r,s) + 1):\n        if not (t > r + s - n):\n          continue\n        q = n-r\n        rv, sv, tv = q, n-s, q-s+t\n        # original and transformed bigrassmannian conditions\n        req(1 <= t <= r and t <= s <= n, 'original')\n        req(t > r+s-n, 'original strict')\n        req(1 <= tv <= rv and tv <= sv <= n, ('conjugate',n,r,s,t))\n        req(tv > rv+sv-n, ('conjugate strict',n,r,s,t))\n        i, j = s-t+1, r-t+1\n        a, b = min(q-i, r-j), min(i,j)\n        iv, jv = sv-tv+1, rv-tv+1\n        av, bv = min(n-rv-iv, rv-jv), min(iv,jv)\n        req((iv,jv,av,bv)==(j,i,a,b), ('parameters',n,r,s,t))\n        # four named shapes: (width,height), core containment, ambient box\n        shapes = [\n          ('orig-core', i,j, i,j, q,r),\n          ('orig-lower', i, j+a, i,j, q,r),\n          ('orig-right', i+a, j, i,j, q,r),\n          ('conj-core', j,i, j,i, r,q),\n          ('conj-lower', j, i+a, j,i, r,q),\n          ('conj-right', j+a, i, j,i, r,q),\n        ]\n        for name,w,h,cw,ch,W,H in shapes:\n          req(w <= W and h <= H, (name,n,r,s,t))\n          req(cw <= w and ch <= h, ('core',name,n,r,s,t))\n        if a >= 1:\n          positive_a += 1\n          for N in range(1,a*b+1):\n            for tup in [(n,r,i,j,a,b,N),(n,rv,iv,jv,av,bv,N)]:\n              nn,rr,ii,jj,aa,bb,NN=tup\n              req(all(z >= 1 for z in tup), ('positive',tup))\n              req(rr < nn and aa+jj <= rr and aa+ii <= nn-rr and bb <= ii and bb <= jj and NN <= aa*bb, ('valid',tup))\n        else:\n          boundary_a0 += 1\n          req(a == 0 and ((i==q) or (j==r)), ('a0',n,r,s,t))\n          req((i,j+a)==(i,j) and (i+a,j)==(i,j), ('orig singleton',n,r,s,t))\n          req((j,i+a)==(j,i) and (j+a,i)==(j,i), ('conj singleton',n,r,s,t))\n          req(not any(1 <= N <= a*b for N in range(1,2)), ('no N',n,r,s,t))\n        checked += 1\nprint('INPUT max_n=%d' % MAX_N)\nprint('CHECKED bigrassmannian_tuples=%d positive_a=%d a0_boundary=%d' % (checked,positive_a,boundary_a0))\nprint('RESULT PASS all asserted inequalities and boundary identities hold in this finite range')",
+	"scriptSha256": "7652bda02a7e7899ba48976f1e936807c09934c5b9755bdbf3fd5e4c32d1b554",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-228.py",
+		"exitCode": 0,
+		"stdout": "INPUT max_n=12\nCHECKED bigrassmannian_tuples=1001 positive_a=495 a0_boundary=506\nRESULT PASS all asserted inequalities and boundary identities hold in this finite range\n",
+		"stderr": "",
+		"durationMs": 45,
+		"scriptFileName": "attempt-research-plan-task-228.py",
+		"stdoutFileName": "attempt-research-plan-task-228.7652bda02a7e.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-228.7652bda02a7e.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-228.7652bda02a7e.stdout.txt",
+			"sha256": "7e7fd95e579c7c5d70d2584742008c2c4f8696633e8a21941971c5d10445020a",
+			"content": "INPUT max_n=12\nCHECKED bigrassmannian_tuples=1001 positive_a=495 a0_boundary=506\nRESULT PASS all asserted inequalities and boundary identities hold in this finite range\n"
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-228.7652bda02a7e.stderr.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		}
+	}
+}

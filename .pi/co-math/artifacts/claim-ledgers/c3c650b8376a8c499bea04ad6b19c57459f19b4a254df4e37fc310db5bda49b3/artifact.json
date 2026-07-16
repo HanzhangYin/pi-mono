@@ -1,0 +1,74 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-20-1",
+	"taskId": "research-plan-task-20",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The authors reported computational verification for bigrassmannian cases with \\(r\\le4\\) and \\(n-r\\le5\\). [source-6@L48-L52|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 48,
+						"end": 52
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]",
+					"excerptSha256": "0bb7c4e903b37316600de2101b9b64ea88b418c7a138beb7372a1751002697ed",
+					"canonicalCitation": "[source-6@L48-L52|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The requested regressions hold by vertical Pieri: \\[ s_{(1,1)}s_{(1)}=s_{(2,1)}+s_{(1,1,1)},\\qquad s_{(1,1)}s_{(2)}=s_{(3,1)}+s_{(2,1,1)}. \\] Hence \\(c_{(1,1),(1)}^{(3)}=0\\) and \\(c_{(1,1),(2)}^{(2,2)}=0\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Using the accepted LR presentation of \\(Q=J_v/\\Lambda_+J_v\\), a right-to-left row-reading LR-tableau enumerator and integral SNF calculation returned torsion-free quotients \\(Q\\cong\\mathbb Z^d\\) for all 90 rectangular instances in \\(\\{r\\le5,q=n-r\\le6\\}\\setminus\\{r\\le4,q\\le5\\}\\). In each row below, entries are \\(d\\), with columns \\(i=1,\\ldots,q-1\\) and rows \\(j=1,\\ldots,r-1\\): \\[ \\begin{array}{c|c|c} (r,q)&j& (d_i)_i\\\\ \\hline (2,6)&1&(2,2,2,2,2)\\\\ \\hline (3,6)&1&(3,3,3,3,2)\\\\ &2&(2,3,3,3,3)\\\\ \\hline (4,6)&1&(4,4,4,3,2)\\\\ &2&(3,6,6,6,3)\\\\ &3&(2,3,4,4,4)\\\\ \\hline (5,2)&1,2,3,4&(2)\\\\ \\hline (5,3)&1&(3,2)\\\\ &2&(3,3)\\\\ &3&(3,3)\\\\ &4&(2,3)\\\\ \\hline (5,4)&1&(4,3,2)\\\\ &2&(4,6,3)\\\\ &3&(3,6,4)\\\\ &4&(2,3,4)\\\\ \\hline (5,5)&1&(5,4,3,2)\\\\ &2&(4,10,6,3)\\\\ &3&(3,6,10,4)\\\\ &4&(2,3,4,5)\\\\ \\hline (5,6)&1&(5,5,4,3,2)\\\\ &2&(4,10,10,6,3)\\\\ &3&(3,6,10,10,4)\\\\ &4&(2,3,4,5,5) \\end{array} \\] Every displayed \\(d\\) equals \\[ \\binom{\\min(q-i,r-j)+\\min(i,j)}{\\min(q-i,r-j)}. \\] [artifact ce9dca58d3924029b4839d830f43cfe6514239f9a1025dc2f51a2e1c9bb3fedb]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "For any tabulated instance, the accepted \\(N=d\\)-element Schur generating families are irredundant: their images span \\(Q\\cong\\mathbb Z^N\\), whereas \\(N-1\\) elements cannot span \\(\\mathbb Z^N\\); graded Nakayama then implies that no generator can be deleted.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The retained sandbox artifact does not document a second independently implemented LR/SNF computation, nor Pieri-based verification of all 90 SNF outputs. Thus the requested independent reproduction of every finite result remains unverified.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "aff03dfad62af6a5fd1a4fae7fd0470842b83f3ac0ea85562e08ebd69dcccabf"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-226-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The conjugation, interval-ideal, \\(A_+J\\), and family-bijection arguments are sound.\n- The requested target is not fully established because not every admissibility inequality is explicitly checked. In particular, the transformed bigrassmannian check omits \\(\\widetilde t\\le\\widetilde s\\) and \\(q\\le n\\). The invoked valid-tuple conditions also omit \\(r<n\\), positivity, and \\(1\\le N\\le ab\\).\n\n## Unresolved certificates\n- [proof-attempt] Enumerate and verify separately all original and conjugated bigrassmannian inequalities, all box/family-containment inequalities, and—if valid tuples remain invoked—the full positivity and \\(N\\)-range conditions, including the \\(a=0\\) boundary distinction."
+}

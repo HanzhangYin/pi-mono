@@ -1,0 +1,201 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-190-1",
+	"taskId": "research-plan-task-190",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Native arXiv source identity: Avery St. Dizier and Alexander Yong, *Presenting the cohomology of a Schubert variety: Proof of the minimality conjecture*, arXiv:2209.02011v2, DOI 10.1112/jlms.12832. The source title, authors, and abstract are present. [doi:10.1112/jlms.12832, lines 114-131]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 114,
+							"end": 131
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "114: \\begin{document}\n115: \\pagestyle{plain}\n116: \\title{Presenting the cohomology of a Schubert variety:\\\\ Proof of the minimality conjecture}\n117: \\author{Avery St.~Dizier}\n118: \\address{Dept.~of Mathematics, Michigan State University, East Lansing, MI 48824, USA}\n119: \\email{stdizier@msu.edu}\n120: \\author{Alexander Yong}\n121: \\address{Dept.~of Mathematics, U.~Illinois at Urbana-Champaign, Urbana, IL 61801, USA}\n122: \\email{ayong@illinois.edu}\n123: \\date{August 31, 2023}\n124: \\begin{abstract}\n125: A minimal presentation of the cohomology ring of the flag manifold $GL_n/B$ was given in [A.~Borel, 1953]. This presentation was extended\n126: by [E.~Akyildiz--A.~Lascoux--P.~Pragacz, 1992] to a non-minimal one for all Schubert varieties. Work of [V.~Gasharov--V.~Reiner, 2002] gave a short, \\emph{i.e.} polynomial-size,\n127: presentation for a subclass of Schubert varieties that includes the smooth ones. In [V.~Reiner--A.~Woo--A.~Yong, 2011], a general shortening was found; it implies an exponential upper bound of $2^n$ on the number of generators required. That work states\n128: a minimality\n129: conjecture whose significance would be an exponential lower bound of $\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}$ on the number\n130: of generators needed in worst case, giving the first obstructions to short presentations. We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.\n131: \\end{abstract}",
+					"excerptSha256": "f9dddbcc36580389aa2d4c22601194ac01cdf56c04328431afcb23138a935c6b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 114-131]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Definition 2.1 defines a valid tuple \\(\\varphi=(n,r,i,j,a,b,N)\\) by \\(n,r,i,j,a,b,N\\ge1\\), \\(r<n\\), \\(a+j\\le r\\), \\(a+i\\le n-r\\), \\(b\\le i,j\\), and \\(N\\le ab\\). [doi:10.1112/jlms.12832, lines 300-304]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 300,
+							"end": 304
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "300: The following definition records the assumptions on the parameters used in the preceding considerations.\n301: \\begin{definition}\n302: Call an integer tuple $\\varphi=(n,r,i,j,a,b,N)$ \\emph{valid} if $n,r,i,j,a,b,N\\geq 1$ with\n303: \\[r<n,\\quad a+j\\leq r,\\quad a+i\\leq n-r,\\quad b\\leq i,j,\\quad\\mbox{and}\\quad N\\leq ab. \\]\n304: \\end{definition}",
+					"excerptSha256": "45d7e130876ad0ce9de69dcc082dec781ce02e68d63d2b8c9bc6254367ff96a6",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 300-304]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Equations (8)–(10) in the native source are respectively the definition of \\(\\mathrm{CP}\\), the algorithm update \\(\\xi^{(m)}=\\xi^{(m-1)}-\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes\\prod_p\\overline{s}_{\\mu^{(p)}})\\), and the system \\(\\{\\linear_\\varphi(\\nu)=d_\\nu\\mid\\nu\\in\\decomp_\\varphi\\}\\). [doi:10.1112/jlms.12832, lines 387-397] [doi:10.1112/jlms.12832, lines 625-632] [doi:10.1112/jlms.12832, lines 790-798]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 387,
+							"end": 397
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "387: \\begin{definition}\n388: \\label{def:cp}\n389: We define a linear endomorphism $\\mathrm{CP}:\\overline{\\Lambda}\\otimes \\overline{\\Lambda}\\to \\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ as follows.\n390: For a simple tensor $\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu\\in \\overline{\\Lambda}\\otimes\\overline{\\Lambda}$, define\n391: \\begin{align}\n392: \\mathrm{CP}(\\overline{s}_\\lambda\\otimes \\overline{s}_\\mu) = \\begin{cases}\n393: \\overline{\\Delta(s_{\\lambda})} - (\\overline{s}_{\\lambda}\\otimes 1) &\\mbox{ if $\\overline{s}_\\mu= 1$},\\\\\n394: \\overline{\\Delta(s_{\\lambda})}(1\\otimes \\overline{s}_{\\mu}) &\\mbox{ if $\\overline{s}_\\mu\\neq 1$}.\n395: \\end{cases}\n396: \\end{align}\n397: Define $\\mathrm{CP}$ on all of $\\overline{\\Lambda}\\otimes \\overline{\\Lambda}$ by extending linearly.",
+					"excerptSha256": "26fced89ae359a33706a06424b08d3b196087bc3d255b2483756dee94022c004",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 387-397]"
+				},
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 625,
+							"end": 632
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "625: \\begin{proof}It follows from Proposition~\\ref{clm:2} that during the algorithm, the only cancellation that occurs in an update\n626: \\begin{equation}\n627: \\label{eqn:theupdate}\n628: \\xi^{(m)}=\\xi^{(m-1)}-\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))\n629: \\end{equation}\n630: is the cancellation of the term $\\gamma\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})$ in $\\xi^{(m-1)}$, and its negative in $\\gamma\\mathrm{CP}(\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}}))$. Moreover, the algorithm only can\n631: eliminate a term $\\gamma\\overline{s}_{\\lambda}\\otimes (\\overline{s}_{\\mu^{(1)}}\\cdots \\overline{s}_{\\mu^{(k)}})$ with $|\\lambda|>1$ by the update step\n632: (\\ref{eqn:theupdate}). Therefore the order in which we compute the update steps (\\ref{eqn:theupdate}) does not effect the output.\\end{proof}",
+					"excerptSha256": "9b99ec668e8b9c106163da621da8ad0f4b6099a0cc3e5995c476abaf5386f008",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 625-632]"
+				},
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 790,
+							"end": 798
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "790: \\begin{theorem}\n791: \\label{thm:inconsistent}\n792: For any valid $\\varphi=(n,r,i,j,a,b,N)$, the equations\n793: \\begin{equation}\n794: \\label{eqn:all-equations}\n795: \\left\\{ \\linear_{\\varphi}(\\nu) = d_{\\nu}\\mid \\nu\\in \\decomp_{\\varphi} \\right\\}\n796: \\end{equation}\n797: are inconsistent whenever $d_{\\nu}=0$ for all wide $\\nu$, and $d_{\\rho}\\neq 0$ for some tall $\\rho$.\n798: \\end{theorem}",
+					"excerptSha256": "386d21434896afc8a93774cbf722c858820061e9a2984919b460d56704fa991f",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 790-798]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Lemma 2.5 states that a nonzero homogeneous syzygy yields consistency of the decomposable equations, with right side \\(f_{\\nu_B}\\) for tall \\(\\nu\\) and \\(0\\) for wide \\(\\nu\\). [doi:10.1112/jlms.12832, lines 326-344]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 326,
+							"end": 344
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "326: \\begin{lemma}\n327: \\label{lem:implication-of-syzygy}\n328: Suppose for some valid $\\varphi=(n,r,i,j,a,b,N)$ there is a homogeneous syzygy of degree $N$ in $\\overline{\\Lambda}$ of the form\n329: \\[\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|=N}}\\overline{s}_{(i^j,\\lambda)}f_{\\lambda}=\\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}f_{\\lambda}\\overline{s}_{(i^j,\\lambda)}\\]\n330: with the left-hand side nonzero.\n331: Then the decomposable equations\n332: \\begin{equation}\n333: \\label{eqn:decomposable}\n334: \\biggr\\{ \\sum_{\\substack{\\lambda\\subseteq b^a\\\\|\\lambda|<N }}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{(i^j,\\lambda),\\theta}^{\\nu} \\, A_{\\lambda,\\theta}=\\chi(\\nu)\\,\\biggr| \\,\\nu\\in \\decomp_{\\varphi} \\biggr\\}\n335: \\end{equation}\n336: are consistent, where $\\chi(\\nu)\\in\\mathbb{Z}$ is defined for $\\nu\\in \\decomp_{\\varphi}$ by\n337: \\[\\chi(\\nu)=\\begin{cases}\n338: f_{\\nu_B} &\\mbox{ if $\\nu$ is tall,}\\\\\n339: 0 &\\mbox{ if $\\nu$ is wide.}\n340: \\end{cases} \\]\n341: \\end{lemma}\n342: \\begin{proof}\n343: The above considerations show that the lemma is true if we replace (\\ref{eqn:decomposable}) with the superset (\\ref{eqn:eqs}). Clearly, removing equations from a consistent linear system yields a consistent linear system.\n344: \\end{proof}",
+					"excerptSha256": "8c973fd5c9d62f56506bb8d28fd9840af1d82c772decc9d22953c0fc3da871f8",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 326-344]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The formal item numbered 4.4 is a **Proposition**, not a theorem: for tall nonempty \\(\\nu\\), \\(\\mathrm{Reduce}_{\\varphi}(\\nu)=(-1)^{|\\nu_B|+1}(1\\otimes\\overline{s}_{(\\nu_B)'})\\). The formal item numbered 4.5 is a **Lemma**, not a theorem: \\(\\sum_{\\lambda,\\mu}(-1)^{|\\lambda|}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda'}s_\\mu=0\\) for \\(\\nu\\ne\\varnothing\\). [doi:10.1112/jlms.12832, lines 667-705]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 667,
+							"end": 705
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "667: \\begin{proposition}\n668: \\label{prop:hopf-identity-application}\n669: Let $\\nu\\in \\decomp_{\\varphi}$ be tall with $\\nu_B\\neq \\emptyset$.\n670: Then\n671: \\[\\mathrm{Reduce}_{\\varphi}(\\nu) =\n672: (-1)^{|\\nu_B|+1}(1\\otimes \\overline{s}_{(\\nu_B)'}). \\]\n673: \\end{proposition}\n674: \\begin{proof}\n675: We proceed by induction on $N=|\\nu_B|$. The base case is $|\\nu_B|=1$. In this case, Algorithm~1 outputs $\\xi^{(0)}=\\mathrm{CP}(\\overline{s}_1\\otimes 1)$, so\n676: \\[\\mathrm{Reduce}_{\\varphi}(\\nu)=\\xi^{(0)}=\\mathrm{CP}(\\overline{s}_1\\otimes 1) = \\sum_{|\\theta|=1} c_{(0),\\theta}^{(1)} (1\\otimes \\overline{s}_{\\theta}) = 1\\otimes \\overline{s}_1.\\]\n677: Suppose $|\\nu_B|=k>1$. Construct the tensor $\\xi^{(0)}$ from $\\nu$, so\n678: \\begin{align*}\n679: \\xi^{(0)}&=\\mathrm{CP}(\\overline{s}_{\\nu_B}\\otimes 1)\\\\\n680: &=\\sum_{\\lambda\\subsetneq \\nu_B}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{\\lambda,\\theta}^{\\nu_B} (\\overline{s}_\\lambda\\otimes \\overline{s}_{\\theta}).\n681: \\end{align*}\n682: Since there are finitely many nonzero terms occurring in the double sum, let us list them out explicitly as\n683: \\[\n684: \\xi^{(0)}= (1\\otimes \\overline{s}_{\\nu_B})+\\sum_{p=1}^L c_{\\lambda^p,\\theta^p}^{\\nu_B}(\\overline{s}_{\\lambda^p}\\otimes \\overline{s}_{\\theta^p}),\n685: \\]\n686: where $1\\leq |\\lambda^p|<k$ for each $p$. Set $\\varphi^{p} = (n,r,i,j,a,b,|\\lambda^p|)$ for each $p$.\n687: From Proposition \\ref{clm:3}, it follows that $\\mathrm{Reduce}_{\\varphi}$ satisfies the ``depth-first search'' recurrence\n688: \\[\\mathrm{Reduce}_{\\varphi}(\\nu) = (1\\otimes \\overline{s}_{\\nu_B}) - \\sum_{p=1}^L c_{\\lambda^p,\\theta^p}^{\\nu_B} \\mathrm{Reduce}_{\\varphi}(i^j,\\lambda^p)(1\\otimes \\overline{s}_{\\theta^p}).\\]\n689: By the induction assumption,\n690: \\[\\mathrm{Reduce}_{\\varphi^{p}}(i^j,\\lambda^p)(1\\otimes \\overline{s}_{\\theta^p}) = (-1)^{|\\lambda^p|+1}(1\\otimes \\overline{s}_{(\\lambda^p)'}\\overline{s}_{\\theta^p}) \\text{ for each }1\\leq p\\leq L. \\]\n691: Thus,\n692: \\begin{align*}\n693: \\mathrm{Reduce}_{\\varphi}(\\nu) &= (1\\otimes \\overline{s}_{\\nu_B}) + \\sum_{p=1}^L c_{\\lambda^p,\\theta^p}^{\\nu_B} (-1)^{|\\lambda^p|}(1\\otimes \\overline{s}_{(\\lambda^p)'}\\overline{s}_{\\theta^p})\\\\\n694: &=(1\\otimes \\overline{s}_{\\nu_B}) +\\sum_{\\substack{|\\lambda|\\geq 1\\\\ \\lambda\\subsetneq \\nu_B}}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{\\lambda,\\theta}^{\\nu_B} (-1)^{|\\lambda|}(1\\otimes \\overline{s}_{\\lambda'}\\overline{s}_{\\theta})\\\\\n695: &=\\sum_{\\lambda\\subsetneq \\nu_B}\\sum_{\\substack{\\theta\\subseteq (n-r)^r\\\\|\\theta|=N-|\\lambda|}} c_{\\lambda,\\theta}^{\\nu_B} (-1)^{|\\lambda|}(1\\otimes \\overline{s}_{\\lambda'}\\overline{s}_{\\theta}).\n696: \\end{align*}\n697: The lemma then follows if one can prove that\n698: \\[\\sum_{\\lambda,\\theta}(-1)^{|\\lambda|}c_{\\lambda,\\theta}^{\\nu_B}\\overline{s}_{\\lambda'}\\overline{s}_{\\theta}=0.\\]\n699: In Lemma \\ref{lem:hopf-identity} below, we prove an analogous identity holds in $\\Lambda$.\n700: Projecting from $\\Lambda$ down to $\\overline{\\Lambda}$ via the (linear) quotient map $s_\\lambda\\mapsto \\overline{s}_{\\lambda}$ completes the proof.\n701: \\end{proof}\n702: \\begin{lemma}\n703: \\label{lem:hopf-identity}\n704: For any partitions $\\lambda,\\mu$ and any partition $\\nu\\neq \\emptyset$,\n705: \\[\\sum_{\\lambda,\\mu}(-1)^{|\\lambda|}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda'}s_{\\mu}=0.\\]",
+					"excerptSha256": "35d6c5c590d50982836a72e5335a88e21c47dd602537c9575aa8f7b9391da121",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 667-705]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "942131a529a65ba2913ebad75b61bda14368cd311bdd46246dbc97777f1b5df6"
+}

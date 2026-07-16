@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-37-1",
+	"taskId": "research-plan-task-37",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Verification failed closed: task-35 certificate `.pi/co-math/attempt-research-plan-task-35.stdout.txt` was unavailable, so neither JSON parsing nor any requested comparison/certificate check was performed. [artifact 818d1e8d3d53e405c9a43b57b22885a08eb6b3a03f8f9b29fe4d0b9df4a63da8]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "27cd18a626b39d72ade13e665bd6d24f1f64a52fc3ace4cfdcea17b51cdc5654"
+}

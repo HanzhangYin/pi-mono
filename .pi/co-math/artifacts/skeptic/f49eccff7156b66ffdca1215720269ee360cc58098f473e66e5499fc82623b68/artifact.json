@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-214-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 correctly establishes that source-30 gives the numerical equality only conditionally on Conjecture 4.10.\n- claim-2 correctly proves, in the same integral graded ring \\(A_m\\), that \\(J_{v_m}=I_{w_m}\\), hence their homogeneous generator numbers agree.\n- claim-3 identifies the decisive failure: no supplied internal theorem with a durable locator establishes\n  \\[\n  \\mu_{A_m}(J_{v_m})=\\binom{2m}{m}\\qquad(m\\ge1).\n  \\]\n  Therefore the requested certificate is not established.\n\n## Unresolved certificates\n- [source-refresh] Supply the exact accepted internal theorem, all hypotheses, and immutable locator proving \\(\\mu_{A_m}(J_{v_m})=\\binom{2m}{m}\\) for every \\(m\\ge1\\) in \\(A_m=H^\\star(GL_{4m}/B,\\mathbb Z)\\)."
+}

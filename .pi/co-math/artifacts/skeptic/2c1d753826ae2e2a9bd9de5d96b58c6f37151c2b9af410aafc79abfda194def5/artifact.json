@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-81-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 records only a limitation of the supplied record. Artifact `a739eee4c9253c3d38fbd3463d22edf21f622707d712ea269bbe57cf21fccab8` is a transcript of prior attempts, not the target byte stream or retrieval bundle.\n- No raw bytes, detached manifest, stable source locators, bounded exact excerpts, metadata, provenance, digest-declaration classification, or executable SHA-256 verification are supplied. The named source certificate is therefore not established.\n\n## Unresolved certificates\n- [proof-attempt] Supply the stable retrieval bundle containing the unmodified target bytes, detached manifest with every requested field and inclusive locator, and an executable verifier checking SHA-256 equals `873944a96c51698c4709cfae352b418368ad36f36ea8b3d0f1b12b648b2441d4`."
+}

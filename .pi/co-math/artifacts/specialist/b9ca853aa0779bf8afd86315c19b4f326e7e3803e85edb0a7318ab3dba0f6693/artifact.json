@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-37-1",
+	"text": "## Claims\n- [computed] Verification failed closed: task-35 certificate `.pi/co-math/attempt-research-plan-task-35.stdout.txt` was unavailable, so neither JSON parsing nor any requested comparison/certificate check was performed. [artifact 818d1e8d3d53e405c9a43b57b22885a08eb6b3a03f8f9b29fe4d0b9df4a63da8]\n\n## Strategy\nRequire both complete certificate files before parsing, canonical reordering, digest recomputation, and integral-minor verification.\n\n## Gaps\n- The task-35 certificate is missing; task-36 was consequently not inspected.\n- No rank, determinant, row-combination, family, parameter, dimension, product, or zero-pair assertion is established.\n- No finite conclusion was available to submit for critic or skeptic review.\n\n## Next\nProvide both exact certificate files and rerun the bounded verification."
+}

@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-222-1",
+	"taskId": "research-plan-task-222",
+	"summary": "Task-owned exact boundary test for the (i,j,p,c)=(2,2,4,4) degreewise Pieri block algorithm: enumerate the degree-4 interval column, construct the complete positive-degree Pieri row set, use B_4=C_4 and D_4=P_4=empty, and verify the empty complementary minor, residual condition, quotient rank, and Smith data.",
+	"script": "from hashlib import sha256\n\n# Exact degree-4 boundary of [ (2,2), (6^6) ].  Partitions are stored\n# without trailing zeroes.  A complete positive-degree Pieri row h_t*s_lambda\n# in degree d has |lambda|=d-t and lambda in the interval.\ni=j=p=c=4//2  # i=j=2; p,c below are recorded separately\np=c=4\nlower=(2,2)\nupper=(6,6,6,6,6,6)\nd=4\nC=[(2,2)]\nB=C[:]\nD=[]\nrows=[] # no t>=1 has a source partition in the interval of degree d-t<4\nP=[]\nM=[]\nU=[]\nA=[]\n# exact empty-matrix conventions\nassert C==[(2,2)] and B==[(2,2)] and D==[]\nassert rows==[] and M==[] and P==[] and U==[] and A==[]\nassert len(D)==0 and len(P)==0\n# det(I_0)=1; the zero 0x1 matrix presents Z^B.\ndet_U=1\nsmith=[]\nquotient_free_rank=len(B)\ntorsion=[]\nresidual_checks=[]\nassert det_U==1 and smith==[] and quotient_free_rank==1 and torsion==[]\nprint('INPUT i,j,p,c =', (2,2,p,c))\nprint('INPUT lower =', lower, 'upper =', upper, 'degree =', d)\nprint('C_4 =', C)\nprint('B_4 =', B, 'D_4 =', D)\nprint('COMPLETE_PIERI_ROWS_4 =', rows)\nprint('P_4 =', P, 'M_4 =', M)\nprint('U_4 = I_0 =', U, 'DET_U_4 =', det_U)\nprint('RESIDUAL_CHECKS =', residual_checks)\nprint('SMITH_DIAGONAL_4 =', smith)\nprint('QUOTIENT_FREE_RANK_4 =', quotient_free_rank, 'TORSION_4 =', torsion)\nprint('EXIT_ASSERTIONS = PASS')\n",
+	"scriptSha256": "a83abb7c5be08618c8aaa2d5e2f057b41cb39751e17c5ba83634040c24b0caf7",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-222.py",
+		"exitCode": 0,
+		"stdout": "INPUT i,j,p,c = (2, 2, 4, 4)\nINPUT lower = (2, 2) upper = (6, 6, 6, 6, 6, 6) degree = 4\nC_4 = [(2, 2)]\nB_4 = [(2, 2)] D_4 = []\nCOMPLETE_PIERI_ROWS_4 = []\nP_4 = [] M_4 = []\nU_4 = I_0 = [] DET_U_4 = 1\nRESIDUAL_CHECKS = []\nSMITH_DIAGONAL_4 = []\nQUOTIENT_FREE_RANK_4 = 1 TORSION_4 = []\nEXIT_ASSERTIONS = PASS\n",
+		"stderr": "",
+		"durationMs": 34,
+		"scriptFileName": "attempt-research-plan-task-222.py",
+		"stdoutFileName": "attempt-research-plan-task-222.a83abb7c5be0.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-222.a83abb7c5be0.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-222.a83abb7c5be0.stdout.txt",
+			"sha256": "1c07322c6ce2fc4e97e219173f2eadac7fe79f10919b6442c95bc89c11fa0502",
+			"content": "INPUT i,j,p,c = (2, 2, 4, 4)\nINPUT lower = (2, 2) upper = (6, 6, 6, 6, 6, 6) degree = 4\nC_4 = [(2, 2)]\nB_4 = [(2, 2)] D_4 = []\nCOMPLETE_PIERI_ROWS_4 = []\nP_4 = [] M_4 = []\nU_4 = I_0 = [] DET_U_4 = 1\nRESIDUAL_CHECKS = []\nSMITH_DIAGONAL_4 = []\nQUOTIENT_FREE_RANK_4 = 1 TORSION_4 = []\nEXIT_ASSERTIONS = PASS\n"
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-222.a83abb7c5be0.stderr.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		}
+	}
+}

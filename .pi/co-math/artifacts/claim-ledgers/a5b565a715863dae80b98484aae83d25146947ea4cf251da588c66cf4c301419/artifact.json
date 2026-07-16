@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-83-1",
+	"taskId": "research-plan-task-83",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on task 67’s five boundary-aware matrices, unimodular complementary minors retaining \\(H=s_{(i^j,3)}\\) exist in every regime \\(i,j\\ge3\\), \\(p,c\\ge1\\), \\(\\min(p,c)=1\\). Thus no first failure occurs.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "15fc737cc240b8ac038a9bd00ddf5b23cae82146ad4b0affe65efa749f8b0366"
+}

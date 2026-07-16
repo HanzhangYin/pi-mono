@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-65-1",
+	"taskId": "research-plan-task-65",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the stipulated integral box/Schur/Pieri presentation, the requested exact row-matrix certificates \\(R_{\\mathrm{full}}=CR_{\\mathrm{selected}}\\) are established in all regimes \\(p=q-i\\ge1,\\ c=r-j\\ge1,\\ \\min(p,c)=1\\), with \\(i,j\\ge2\\). The matrices and all boundary deletions are given below.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "In the regime \\(c=1,\\ p\\ge3\\), the certificate gives the requested check \\[ h_2y_1=h_1u+h_1z+h_1y_2-h_2x_1. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The ambient integral box/Schur/Pieri presentation is assumed here, not independently established in this certificate.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5f0122958dd84ea2a0cda702c065b5a48b8a7dfb153934e59622301f22ac65ed"
+}

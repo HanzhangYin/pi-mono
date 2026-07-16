@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-48-1",
+	"taskId": "research-plan-task-48",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "In the bounded \\(a=1,b=2\\) box/Pieri setting defined below, the Schur columns and all generators of the Pieri-row lattice are complete in degrees \\(d+1\\) and \\(d+2\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(p=c=1\\), the degree-\\(d+2\\) row matrix, with rows \\((2),(3),(4)\\) and columns \\((x_2,z,y_2)\\), is \\[ \\begin{pmatrix}0&1&1\\\\1&1&0\\\\0&1&1\\end{pmatrix}. \\] Its rows \\((2),(3)\\) on columns \\((z,y_2)\\) form \\[ \\begin{pmatrix}1&1\\\\1&0\\end{pmatrix},\\qquad\\det=-1. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "2649228997d9a355b619e9f189fe50baf152b4f6be8ede43c9707e5ead79d510"
+}

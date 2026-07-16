@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-237-1",
+	"text": "## Claims\n- [source-backed] Workspace provider record DOI `10.1112/jlms.12832` has abstract field: “We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.” [doi:10.1112/jlms.12832, lines 124-131]\n\n## Strategy\nThe requested durable byte streams and an executable resolver/sandbox action were not available here. Therefore no audit, counts, manifest, digests, code output, or task-owned artifact was produced.\n\n## Gaps\nThe exact persisted-source audit is **not established**. In particular, all twelve counts and the required task-owned computation artifact are unavailable.\n\n## Next\nUnavailable without a sandbox execution mechanism resolving `persisted:source-39`, `persisted:source-29`, and `persisted:source-30`."
+}

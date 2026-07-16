@@ -1,0 +1,79 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-310-1",
+	"taskId": "research-plan-task-310",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "\\(\\Lambda/I_{r,q}\\) has the integral Schur basis indexed by \\(\\lambda\\subseteq q^r\\). [doi:10.1112/jlms.12832, lines 213-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The antipode identity is \\(S(s_\\lambda)=(-1)^{|\\lambda|}s_{\\lambda'}\\), yielding \\(\\sum_{\\alpha,\\beta}(-1)^{|\\alpha|}c_{\\alpha,\\beta}^{\\rho}s_{\\alpha'}s_\\beta=0\\) for \\(\\rho\\ne\\varnothing\\). [doi:10.1112/jlms.12832, lines 702-735]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 702,
+							"end": 735
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "702: \\begin{lemma}\n703: \\label{lem:hopf-identity}\n704: For any partitions $\\lambda,\\mu$ and any partition $\\nu\\neq \\emptyset$,\n705: \\[\\sum_{\\lambda,\\mu}(-1)^{|\\lambda|}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda'}s_{\\mu}=0.\\]\n706: \\end{lemma}\n707: \\begin{proof}\n708: Recall the Hopf algebra structure on $\\Lambda$ over $\\mathbb{Z}$. This includes\n709: \\begin{itemize}\n710: \\item the usual multiplication map $\\nabla:\\Lambda\\otimes \\Lambda\\to \\Lambda$ with\n711: \\[\\nabla(s_{\\lambda}\\otimes s_{\\mu}) = s_{\\lambda}s_{\\mu};\\]\n712: \\item the coproduct described previously, with $\\Delta:\\Lambda\\to\\Lambda\\otimes\\Lambda$ with\n713: \\[\\Delta(s_\\nu) = \\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu}s_{\\lambda}\\otimes s_{\\nu}; \\]\n714: \\item the unit $\\eta:\\mathbb{Z}\\to \\Lambda$, the ring homomorphism with $1\\mapsto 1$;\n715: \\item the counit $\\epsilon:\\Lambda\\to\\mathbb{Z}$ taking $f\\in \\lambda$ to its constant term $f(0,0,\\ldots)$;\n716: \\item the antipode $S:\\Lambda\\to\\Lambda$ with\n717: \\[S(s_{\\lambda})=(-1)^{|\\lambda|}s_{\\lambda'}.\\]\n718: \\end{itemize}\n719: The antipode $S$ is characterized by the commutative diagram shown in Figure \\ref{fig:diag}.\n720: \\begin{figure}[ht]\n721: \\[\n722: \\begin{tikzcd}[row sep=3.6em,column sep=1em]\n723: & \\Lambda\\otimes \\Lambda \\arrow[rr,\"S\\otimes\\mathrm{id}\"] && \\Lambda\\otimes \\Lambda \\arrow[dr,\"\\nabla\"] \\\\\n724: \\Lambda \\arrow[ur,\"\\Delta\"] \\arrow[rr,\"\\varepsilon\"] \\arrow[dr,\"\\Delta\"'] && \\mathbb{Z} \\arrow[rr,\"\\eta\"] && \\Lambda \\\\\n725: & \\Lambda\\otimes \\Lambda \\arrow[rr,\"\\mathrm{id}\\otimes S\"'] && \\Lambda\\otimes \\Lambda \\arrow[ur,\"\\nabla\"']\n726: \\end{tikzcd}\n727: \\]\n728: \\caption{The Hopf algebra stucture on $\\Lambda$}\n729: \\label{fig:diag}\n730: \\end{figure}\n731: On a Schur function $s_{\\nu}$, we compute\n732: \\begin{align*}\n733: \\eta\\circ\\epsilon(s_{\\nu}) &= \\eta(0) = 0,\\quad\\mbox{and}\\\\\n734: \\nabla\\circ(S\\otimes \\mathrm{id})\\circ\\Delta(s_{\\nu})&=\\nabla\\left( \\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu}S(s_{\\lambda})\\otimes s_{\\nu}\\right) = \\sum_{\\lambda,\\mu}c_{\\lambda,\\mu}^{\\nu} (-1)^{|\\lambda|}s_{\\lambda'}s_\\mu. \\qedhere\n735: \\end{align*}",
+					"excerptSha256": "ea9834165bc95ab3df2b6b8de74087ce240329f366bb76596783bb2440bea64b",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 702-735]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Assume \\(a+j\\le r,\\ a+i\\le q,\\ b\\le i,j\\). For every \\(\\rho\\subseteq b^a\\), \\[ [\\bar s_{(i^j,\\rho)}] =(-1)^{|\\rho|} [\\bar s_{(i+\\rho'_1,\\ldots,i+\\rho'_b,i^{j-b})}] \\quad\\text{in }Q=J_v/A_+J_v. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "b48d81d180f53c945fdbeaaafc6f893c720abd9ba278c6c79fd559bc3b71505d"
+}

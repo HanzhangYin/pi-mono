@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-50-1",
+	"taskId": "research-plan-task-50",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Conditional on the accepted integral box/Schur/Pieri presentation, for \\(c=r-j=1\\), \\(p=q-i\\ge2\\), and \\(\\min(i,j)=2\\), with \\(d=ij\\), \\[ Q_d\\oplus Q_{d+1}\\oplus Q_{d+2} \\cong\\mathbb Z\\bar x_0\\oplus\\mathbb Z\\bar x_1\\oplus\\mathbb Z\\bar x_2, \\] where \\[ x_0=s_{i^j},\\quad x_1=s_{(i+1,i^{j-1})},\\quad x_2=s_{((i+1)^2,i^{j-2})}. \\] Moreover \\(\\bar y_1=-\\bar x_1\\) and \\(\\bar y_2=\\bar x_2\\), for \\[ y_1=s_{(i^j,1)},\\qquad y_2=s_{(i^j,2)}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The requested opposite-boundary truncated certificate is established: retaining \\(x_2\\), the complementary minor on columns \\((u,z,y_2)\\) has determinant \\(1\\), where \\[ u=s_{(i+2,i^{j-1})},\\qquad z=s_{(i+1,i^{j-1},1)}. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "b16e9a9b1488778c846b7104172fdbf78e6ba2559a783d370f914cf582865934"
+}

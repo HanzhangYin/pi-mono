@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-151-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 through claim-3 support the requested conclusion via accepted artifact `162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126`.\n- claim-4 contradicts that conclusion by saying the capability certificate is not established. Its asserted primitive failure is also unsupported: the supplied record reports no returned execution result, not a captured failed execution.\n\n## Unresolved certificates\n- [computation] Provide one consistent replacement: identify the accepted artifact dependency and conclude that it establishes ranks \\(1,1,2,1,1,0,\\ldots,0\\), no torsion, total rank \\(6\\), and the case-specific minimality corollary. Remove the unsupported failure assertion, or supply its captured execution record."
+}

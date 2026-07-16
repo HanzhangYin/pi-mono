@@ -1,0 +1,77 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-108-1",
+	"taskId": "research-plan-task-108",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The source conjectures minimality of both generating sets for \\(J_{v_{r,s,t,n}}\\), and reports verification only for \\(r\\le4,\\ n-r\\le5\\). [source-2@L1495-L1502|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1495,
+						"end": 1502
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1495: \\begin{conjecture}\n1496: \\label{minimality-conjecture}\n1497: The two generating sets for the ideal $J_{v_{r,s,t,n}}$ given in Theorem~\\ref{J-generators}\n1498: are both minimal. \n1499: \\end{conjecture}\n1500: \n1501: Via computer, we have verified this conjecture for all bigrassmannian permutations\n1502: where $r\\leq 4$ and $n-r\\leq 5$.",
+					"excerptSha256": "0fe2067e6b8b4a232d7ff6ddf1a9049dbf9c0afe480cb7f9a97f8c83819d7797",
+					"canonicalCitation": "[source-2@L1495-L1502|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(n=4m\\), \\(r=n-r=2m\\), and \\(i=j=m\\), the source states that \\(a=b=m\\) and, conditional on that conjecture, \\(J_{v_{r,s,t,n}}\\) requires \\(\\binom{2m}{m}\\) generators. [source-2@L1508-L1515|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1508,
+						"end": 1515
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1508: For a positive integer $m$, let $n=4m$, and consider in\n1509: $W=S_n=S_{4m}$ the bigrassmannian $v_{r,s,t,n}$ that corresponds\n1510: to $r=n-r=2m$ and $i=j=m$.  Then $a=b=m$, and $J_{v_{r,s,t,n}}(=I_{w_{r,s,t,n}})$ requires \n1511: \\begin{equation}\n1512: \\label{eqn:badlowerbnd}\n1513: \\binom{2m}{m} \\sim \\frac{4^m}{\\sqrt{\\pi m}} = \\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}\n1514: \\end{equation}\n1515: generators according to Conjecture~\\ref{minimality-conjecture}. ",
+					"excerptSha256": "011903266e4b673a3c6752b9b32c9a14d16cd26acbf60223817c7ad1af756c89",
+					"canonicalCitation": "[source-2@L1508-L1515|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "**New conditional consequence.** Assuming the cited minimality conjecture, this family satisfies the explicit nonasymptotic bound \\[ g(J_{v_{2m,s,t,4m}})\\ge \\frac{2^{\\,n/2}}{\\sqrt n}\\qquad(n=4m,\\ m\\ge1), \\] where \\(g(J)\\) is the minimum cardinality of a generating set.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "83cb8cd2de94ae4a7785dad17f01b27a01f202d469f274a15f8eeb615062216f"
+}

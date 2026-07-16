@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-236-1",
+	"text": "## Findings\n## Strategy\nNo sandbox action was available to execute the required byte-stream audit.\n\n## Gaps\nThe exact persisted-source audit is **not established**. Missing: resolver manifest, twelve counts, code, stdout/stderr, exit status, locator, and SHA-256 digests.\n\n## Next\nExecute the specified standalone audit when sandbox execution is available."
+}

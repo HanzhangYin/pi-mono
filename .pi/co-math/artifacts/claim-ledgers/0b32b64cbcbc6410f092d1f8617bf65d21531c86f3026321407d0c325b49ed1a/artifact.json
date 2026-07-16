@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-165-1",
+	"taskId": "research-plan-task-165",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The requested source-refresh certificate is not established: source-30 is reported non-citable, and no citable source-29 text or bounded passages were supplied.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Consequently, exhaustive labelled-item coverage in source-30 and itemwise source-29 status excerpts cannot be certified without substituting other sources.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "8dce1866b89b6fc675704075b2b2201d5ea94973bf4542d02cdf984eafd0e0d1"
+}

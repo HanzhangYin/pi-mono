@@ -1,0 +1,58 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-289-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-288-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-288-1 · specialist · ARTIFACT 59baf1f7a2898704e9818747f1958ecc1c4eea5a873793d72ad0d3ab7c22cd5a
+000004	## Claims
+000005	- [computed] From artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602`, \(Q_d\) is torsion-free of ranks \(1,1,2,1,1\) in degrees \(6,7,8,9,10\), respectively. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]
+000006	- [computed] With quotient bases
+000007	  \[
+000008	  B_6=(222),\ B_7=(2221),\ B_8=(2222,22211),\
+000009	  B_9=(22221),\ B_{10}=(22222),
+000010	  \]
+000011	  the coordinates of \(G_L\) are the identity degreewise, while those of \(G_R\) are
+000012	  \[
+000013	  [222]_{B_6}=(1),\quad [322]_{B_7}=(-1),
+000014	  \]
+000015	  \[
+000016	  ([422]_{B_8},[332]_{B_8})=
+000017	  \begin{pmatrix}0&1\\1&0\end{pmatrix},
+000018	  \quad [432]_{B_9}=(-1),\quad[442]_{B_{10}}=(1).
+000019	  \]
+000020	  [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]
+000021	- [computed] Thus the degreewise transition matrices \(T_d\), defined by \([G_R]_Q=[G_L]_Q\,T_d\), are
+000022	  \[
+000023	  T_6=(1),\quad T_7=(-1),\quad
+000024	  T_8=\begin{pmatrix}0&1\\1&0\end{pmatrix},\quad
+000025	  T_9=(-1),\quad T_{10}=(1),
+000026	  \]
+000027	  each unimodular. [artifact 621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602]
+000028	
+000029	## Strategy
+000030	Extract the quotient-coordinate data degreewise from the accepted finite Pieri/Smith computation. The requested target is established for this computed specialization.
+000031	
+000032	## Gaps
+000033	This finite computation does not prove a statement for other parameter choices.
+000034	
+000035	## Next
+000036	None.
+000037	
+000038	INTERNAL ATTEMPT research-attempt-research-plan-task-288-1 · critic · ARTIFACT 0b66a42f8ff33df4e996ef0e2b21fa516652f8f6f0589589e5a970fad4456b45
+000039	## Critique
+000040	- claim-1: This agrees with the accepted degree summaries for artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602`.
+000041	- claim-2: Unsupported as presented. The supplied artifact summary establishes Smith ranks and torsion, but no displayed quotient map or Smith-witness reduction proves that the listed \(B_d\) are quotient bases or gives the asserted coordinates, especially in degrees \(9\) and \(10\).
+000042	- claim-3: Conditional on claim-2, the matrices and unimodularity are correct:
+000043	  \[
+000044	  \det(T_6,T_7,T_8,T_9,T_{10})=(1,-1,-1,-1,1).
+000045	  \]
+000046	  Because claim-2 lacks a machine-checkable extraction certificate, the requested target is **not established** by the specialist output.
+000047	
+000048	## Repair certificates
+000049	- [computation] From artifact `621a26ec7b4419d76351b43e22fff9df644945c6458e2a531d2542a0819b6602`, output for every \(6\le d\le10\): the relation matrix \(M_d\), Smith witnesses \(U_dM_dV_d=D_d\), the quotient map \(C_d\), and selection matrices \(L_d,R_d\) for the ordered degree-\(d\) portions of \(G_L,G_R\). Verify exactly
+000050	  \[
+000051	  C_dM_d^{T}=0,\qquad C_dL_d=I,\qquad C_dR_d=T_d,
+000052	  \]
+000053	  with Smith diagonal containing only \(1\)'s in the relation rank. Include executable code, captured output, exit status, and artifact digest.
+000054	
+000055	## Required revisions
+000056	- Supply the missing quotient-coordinate witness rather than only asserting extraction from the artifact.
+000057	- State the ordering conventions for ambient Schur columns and both degreewise families.
+000058	- Retain the finite-case limitation; no general conclusion follows from this computation.

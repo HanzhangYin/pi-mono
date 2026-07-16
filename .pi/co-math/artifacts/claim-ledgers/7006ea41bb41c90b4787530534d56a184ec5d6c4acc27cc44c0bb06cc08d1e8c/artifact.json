@@ -1,0 +1,48 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-229-1",
+	"taskId": "research-plan-task-229",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(v_{r,s,t,n}\\), \\(1\\le t\\le r,s\\le n\\), \\(t>r+s-n\\), and \\(i=s-t+1,\\ j=r-t+1,\\ a=\\min(n-r-i,r-j),\\ b=\\min(i,j)\\); a valid \\((n,r,i,j,a,b,N)\\) has all coordinates positive and satisfies \\(r<n,\\ a+j\\le r,\\ a+i\\le n-r,\\ b\\le i,j,\\ N\\le ab\\). [doi:10.1112/jlms.12832, lines 187-235]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 187,
+							"end": 235
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "187: The bigrassmannian permutations (besides the identity) are indexed by integers $r,s,t$ such that\n188: $1\\leq t\\leq r,s\\leq n$ and $t>r+s-n$. Let $v_{r,s,t,n}\\in S_n$ be the bigrassmannian permutation uniquely\n189: characterized by having unique descent at $r$, $v^{-1}_{r,s,t,n}$ having descent at $s$ and $v_{r,s,t,n}(t)=s+1$.\n190: In one-line notation, one explicitly has\n191: \\begin{multline}\\nonumber\n192: v_{r,s,t,n}=1,2,\\ldots,t-1,\\ s+1,s+2,\\ldots,s+r-t+1,\\\\\n193: t,t+1,\\ldots,s, \\\n194: s+r-t+2,s+r-t+3,\\ldots,n;\n195: \\end{multline}\n196: see \\cite[Lemma~4.1]{RWY}.\n197: For each basic element of $S_n$, a bigrassmannian permutation\n198: $v$, define the \\emph{basic ideal} of $H^*(X)$ as\n199: \\[J_v\\coloneqq \\mathrm{Span}_\\mathbb{Z}\\left\\{\\sigma_u\\mid u\\geq v\\right\\}.\\]\n200: It is shown in \\cite{RWY} that $I_w$ decomposes into basic ideals. Specifically,\n201: \\begin{equation}\n202: \\label{eqn:thedecompabc}\n203: I_w=\\sum_{v\\in {\\mathcal E}(w)} J_v,\n204: \\end{equation}\n205: where ${\\mathcal E}(w)$ is the set of $u \\in S_n$ which are minimal in the Bruhat order among those not\n206: below $w$. The set ${\\mathcal E}(w)$ is referred to as the \\emph{essential set}, and consists only of bigrassmannian permutations \\cite[Theorem 1.1]{RWY}.\n207: As explained in \\cite[Section~3]{RWY}, the projection\n208: \\[X\\to \\mathrm{Gr}_{r,n}\\]\n209: onto the Grassmannian of $r$-planes in $\\mathbb{C}^n$\n210: induces a split-inclusion $H^*(\\mathrm{Gr}_{r,n})\\xhookrightarrow{\\iota} H^*(X)$. Consequently (see \\cite[Proposition 3.1]{RWY}), elements of $H^*(\\mathrm{Gr}_{r,n})$ generate $J_v$ in $H^*(X)$ if and only if they generate the contraction $J_v\\cap H^*(\\mathrm{Gr}_{r,n})$ inside $H^*(\\mathrm{Gr}_{r,n})$.\n211: In particular, elements of $H^*(\\mathrm{Gr}_{r,n})$ \\emph{minimally} generate $J_v$ in $H^*(X)$ if and only if they \\emph{minimally} generate $J_v\\cap H^*(\\mathrm{Gr}_{r,n})$ in $H^*(\\mathrm{Gr}_{r,n})$. This allows one to study the generation of $J_v$ inside $H^*(\\mathrm{Gr}_{r,n})$ instead of $H^*(X)$ without loss of generality, enabling the use of symmetric function theory.\n212: %It is established in \\cite[Section~3]{RWY} (see specifically Proposition~3.1 and Theorem~3.2) that, without loss, the ideals $J_v$ of $H^*(X)$ can be considered instead in the cohomology ring $H^*(\\mathrm{Gr}_{r,n})$ of the Grassmannian of $r$-planes in $\\mathbb{C}^n$. This allows one to study $J_v$ by working with symmetric functions.\n213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.\n219: We resolve the minimality conjecture \\cite[Conjecture~4.10]{RWY} about the basic ideals $J_v$:\n220: \\begin{theorem}\\label{thm:main}\n221: Given a bigrassmannian permutation $v=v_{r,s,t,n}\\in S_n$ let\n222: \\begin{align*}\n223: i&\\coloneqq s-t+1,\\\\\n224: j&\\coloneqq r-t+1,\\\\\n225: a&\\coloneqq \\min(n-r-i,r-j),\\\\\n226: b&\\coloneqq \\min(i,j).\n227: \\end{align*}\n228: Then the basic ideal $J_v$, thought of as an ideal of $H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}$, is minimally generated by\n229: \\begin{equation}\n230: \\label{eqn:minimallist}\n231: \\{\\overline{s}_{\\mu} \\mid i^j\\subseteq \\mu \\subseteq (i^j,b^a)\\}.\n232: \\end{equation}\n233: \\end{theorem}\n234: That (\\ref{eqn:minimallist}) generates $J_v$ is \\cite[Theorem 4.8]{RWY}. The conjectural part, which we prove,\n235: is the minimality claim, that is, no generator can be removed without changing the ideal.",
+					"excerptSha256": "85df580d4b0e0d9ec582edc6824ce811c360cf517cd176b640f01c6a63823c45",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 187-235]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The original and parameter-conjugated cores and both upper shapes satisfy all stated partition, containment, ambient-box, positivity, and valid-tuple conditions; the \\(a=0\\) boundary has singleton families and admits no valid \\(N\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "057e81c68bdde5d3f08628c900e5e618563ef73f970f9891314ddff5f1f0731a"
+}

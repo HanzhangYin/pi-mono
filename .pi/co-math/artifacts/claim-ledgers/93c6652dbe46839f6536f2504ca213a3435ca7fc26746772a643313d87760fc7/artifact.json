@@ -1,0 +1,73 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-97-1",
+	"taskId": "research-plan-task-97",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Let \\(N\\ge0\\), \\(R:\\mathbb Z^s\\to\\mathbb Z^m\\), and \\(Q=\\operatorname{coker}R\\). Put \\(t=\\operatorname{rank}_{\\mathbb Q}R\\). Smith normal form gives \\(U\\in\\mathrm{GL}_m(\\mathbb Z)\\), \\(V\\in\\mathrm{GL}_s(\\mathbb Z)\\), with \\(\\det U,\\det V=\\pm1\\), such that \\[ URV=\\operatorname{diag}(d_1,\\ldots,d_t,0,\\ldots,0),\\qquad 1\\le d_1\\mid\\cdots\\mid d_t . \\] Therefore \\[ Q\\cong\\bigoplus_{\\nu=1}^{t}\\mathbb Z/d_\\nu\\mathbb Z\\ \\oplus\\ \\mathbb Z^{m-t}. \\] Hence \\[ Q\\cong\\mathbb Z^N \\iff t=m-N\\ \\text{and}\\ d_\\nu=1\\ (1\\le\\nu\\le t). \\] Indeed, under these conditions \\(\\mathbb Z/d_\\nu\\mathbb Z=0\\), giving \\(Q\\cong\\mathbb Z^{m-t}=\\mathbb Z^N\\). Conversely, a factor \\(d_\\nu>1\\) supplies nonzero torsion, impossible in \\(\\mathbb Z^N\\), and the free rank is \\(m-t=N\\). Boundary cases are included: if \\(t=0\\), the invariant-factor condition is vacuous and \\(Q\\cong\\mathbb Z^m\\); if \\(m=0\\), then \\(Q=0=\\mathbb Z^0\\); if \\(N=0\\), the criterion requires \\(t=m\\) and all \\(d_\\nu=1\\), equivalently \\(Q=0\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "With \\(q=n-r\\), the source identifies \\(A:=\\Lambda/I_{r,q}\\) as a quotient whose surviving Schur classes are those indexed by \\(\\lambda\\subseteq q^r\\), and states that \\[ J_v\\subseteq A \\quad\\text{is generated as an ideal by}\\quad \\{s_\\mu:i^j\\subseteq\\mu\\subseteq q^r\\}. \\] [source-2@L1310-L1324|claim=formal-document] [source-2@L1365-L1375|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1310,
+						"end": 1324
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1310: In order both to suppress the variable set $x_1,\\ldots,x_r$ from the\n1311: notation and to make more convenient use of symmetric function\n1312: identities, we will work within a quotient of the {\\it ring of\n1313:   symmetric functions} with integral coefficients\n1314: $$\n1315: \\Lambda=\\Lambda_\\ZZ(x_1,x_2,\\ldots);\n1316: $$\n1317: see \\cite[Chapter 1]{Macdonald-symm-fns}, \\cite[Chapter 7]{Stanley-EC2}.\n1318: The $\\ZZ$-basis for $\\Lambda$ given by the Schur functions $s_\\lambda$ \n1319: has the property that the $\\ZZ$-submodule $I_{r,n-r}$ spanned by all $s_\\lambda$\n1320: with  $\\lambda \\not\\subseteq (n-r)^r$ forms an ideal, and the\n1321: map sending $s_\\lambda$ to $s_\\lambda(x_1,\\ldots,x_r)$ induces an isomorphism\n1322: $$\n1323: \\Lambda/I_{r,n-r} \\quad \\overset{\\sim}{\\longrightarrow} \\quad \\ZZ[\\xx]^{W_J}/\\ZZ[\\xx]^W_+ \\ZZ[\\xx]^{W_J} \n1324:                      \\quad \\left( \\cong H^\\star(G/P_J,\\ZZ) \\right) ",
+					"excerptSha256": "05dd0c99bc2c85997c5bf50f3971d4f91841663c603ab1cb2aa46b722cb79365",
+					"canonicalCitation": "[source-2@L1310-L1324|claim=formal-document]"
+				},
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1365,
+						"end": 1375
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1365: When $u$ and $v$ are $r$-grassmannian and correspond respectively to\n1366: partitions $\\lambda$ and $\\mu$, the Bruhat order relation $u \\geq v$\n1367: is equivalent to inclusion $\\lambda \\supseteq \\mu$ of their Young\n1368: diagrams, meaning that $\\lambda_i \\geq \\mu_i$ for all $i$.  Thus\n1369: Theorem~\\ref{general-J-generators} says that $J_{v_{r,s,t,n}}$ is\n1370: generated as an ideal of $\\Lambda/I_{r,n-r}$ by\n1371: \\begin{equation}\n1372: \\label{step0-generators}\n1373: \\{\\schubp_u: \\Des(u) = \\{(r,r+1)\\}, \\,\\, u \\geq v_{r,s,t,n}\\}\n1374: =\\{ s_{\\mu}: i^j \\subseteq \\mu \\subseteq (n-r)^r \\}.\n1375: \\end{equation}",
+					"excerptSha256": "dad3797f551adb4a39d8e9f4871f9b7b6f1bbb109ef3c44fec60a1066e794035",
+					"canonicalCitation": "[source-2@L1365-L1375|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Assume \\(1\\le i\\le q\\), \\(1\\le j\\le r\\), set \\(d_0=ij\\), \\(D=rq\\), and define, for each integer \\(d\\), \\[ B_d:=\\{\\lambda:\\ i^j\\subseteq\\lambda\\subseteq q^r,\\ |\\lambda|=d\\}, \\qquad m_d:=|B_d|. \\] The degree-\\(d\\) part of \\(J_v\\) is \\[ (J_v)_d=\\bigoplus_{\\lambda\\in B_d}\\mathbb Zs_\\lambda. \\] Explicitly, the displayed generators give the inclusion from right to left. Conversely, the Littlewood--Richardson expansion \\[ s_\\alpha s_\\mu=\\sum_{\\lambda}c_{\\alpha\\mu}^{\\lambda}s_\\lambda \\] has \\(c_{\\alpha\\mu}^{\\lambda}=0\\) unless \\(\\mu\\subseteq\\lambda\\); thus multiplication of a class containing \\(i^j\\) produces only classes containing \\(i^j\\), with classes outside \\(q^r\\) zero in \\(A\\). The Schur classes in \\(q^r\\) are linearly independent, so the sum is direct. Let \\[ T_d:=\\{(k,\\alpha,\\mu):1\\le k\\le d-d_0,\\ \\alpha\\subseteq q^r,\\ |\\alpha|=k,\\ \\mu\\in B_{d-k}\\}, \\qquad s_d:=|T_d|. \\] Define the integer matrix \\[ R_d:\\mathbb Z^{s_d}\\longrightarrow\\mathbb Z^{m_d} \\] using the bases \\(T_d\\) and \\(B_d\\), respectively, by \\[ (R_d)_{\\lambda,(k,\\alpha,\\mu)}=c_{\\alpha\\mu}^{\\lambda} \\qquad(\\lambda\\in B_d). \\] Thus its column indexed by \\((k,\\alpha,\\mu)\\) is the Schur-coordinate vector of \\(s_\\alpha s_\\mu\\). Since the image of \\(\\Lambda_+\\) in \\(A\\) is \\(A_+\\), \\[ (\\Lambda_+J_v)_d=(A_+J_v)_d=\\operatorname{im}R_d, \\qquad (J_v/\\Lambda_+J_v)_d\\cong\\operatorname{coker}R_d. \\] Consequently, for prescribed \\(N_d\\ge0\\), \\[ (J_v/\\Lambda_+J_v)_d\\cong\\mathbb Z^{N_d} \\iff \\operatorname{rank}R_d=m_d-N_d \\ \\text{and every nonzero Smith factor of }R_d\\text{ is }1. \\] For \\(d<d_0\\) or \\(d>D\\), \\(B_d=T_d=\\varnothing\\), so \\(m_d=s_d=0\\), \\(R_d:0\\to0\\), and the quotient degree is \\(0\\). At \\(d=d_0\\), \\(B_{d_0}=\\{i^j\\}\\), \\(T_{d_0}=\\varnothing\\), and \\(R_{d_0}:0\\to\\mathbb Z\\), so the quotient degree is canonically \\(\\mathbb Z[s_{i^j}]\\). Globally, with \\[ R:=\\bigoplus_{d=d_0}^{D}R_d,\\qquad m:=\\sum_{d=d_0}^{D}m_d,\\qquad N:=\\sum_{d=d_0}^{D}N_d, \\] one has \\[ J_v/\\Lambda_+J_v\\cong\\operatorname{coker}R. \\] Thus the preceding rank-plus-Smith criterion applies to this finite block-diagonal presentation. No ranks or Smith factors for general parameters are asserted here.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "e9c9ffafe54347f0134917ab1392ae04aae8ed5e5b288ecc909ff9a81bc16a03"
+}

@@ -1,0 +1,40 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-156-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-155-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-155-1 · specialist · ARTIFACT 2a3b4be1f4ea14393cb30015d68f23c9e88ffee33bdf1bf772b7fd45245343d6
+000004	{"action":"run_math_primitive","primitive":"partition-pieri","summary":"For \(i=j=p=2,c=4\), compute the complete bounded integral Pieri matrices for the interval \([2,2,0,0,0,0]\subseteq\lambda\subseteq[4,4,4,4,4,4]\), in every support degree, retaining explicit unimodular Smith witnesses \(U_dM_dV_d=D_d\), including the \(0\\times1\) degree-4 boundary.","input":{"lower":[2,2,0,0,0,0],"upper":[4,4,4,4,4,4],"degrees":[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],"hDegrees":[1,2,3,4],"requireSmithWitnesses":true}}
+000005	## Claims
+000006	- [unsupported] The supplied accepted-task record contains no artifact for task 124 that preserves unimodular witnesses \(U_dM_dV_d=D_d\) for \(4\le d\le24\).
+000007	- [unsupported] Therefore the requested \(c=4\) quotient and minimality certificate is not established from the supplied evidence.
+000008	
+000009	## Strategy
+000010	A witness-preserving partition–Pieri computation for lower \((2,2,0,0,0,0)\), upper \((4,4,4,4,4,4)\), degrees \(4,\ldots,24\), and \(h\)-degrees \(1,\ldots,4\) is required.
+000011	
+000012	## Gaps
+000013	Artifact `5a31479b564ba38536226e09952b20aa3e0d9afebe1918a192a5f501a8c0e38b` does not provide or verify \(U_d,V_d\), unimodularity, or \(U_dM_dV_d=D_d\); hence its empty torsion lists cannot be used here. No replacement computation artifact was returned.
+000014	
+000015	## Next
+000016	Obtain a task-owned witness-preserving computation artifact, then derive \(J/A_+J\cong\mathbb Z^6\) and apply the accepted generation/Nakayama argument only for \(c=4\).
+000017	
+000018	INTERNAL ATTEMPT research-attempt-research-plan-task-155-1 · critic · ARTIFACT 4b3e65864c0e7e6d8bf31380e0e42792a55ead75b654b9036b2b37a910f96a51
+000019	## Critique
+000020	- claim-1: Substantively correct for the supplied evidence. Artifact `5a31479b564ba38536226e09952b20aa3e0d9afebe1918a192a5f501a8c0e38b` preserves code, explicit inputs, captured output, exit status \(0\), and digests, but it neither preserves nor verifies unimodular matrices \(U_d,V_d\) satisfying \(U_dM_dV_d=D_d\). Its asserted Smith diagonals, determinantal divisors, and empty torsion lists therefore do not establish the requested exact Smith certificate. The proposed `run_math_primitive` action was not executed and produced no replacement artifact.
+000021	- claim-2: Correct. The requested target remains unestablished: the available rank pattern \(1,1,2,1,1,0,\ldots,0\) would imply \(\mathbb Z^6\) only after the Smith and torsion data are certified, and the specialist output does not prove the \(c=4\) minimality corollary.
+000022	
+000023	## Repair certificates
+000024	- [computation] Execute `partition-pieri` with `lower=[2,2,0,0,0,0]`, `upper=[4,4,4,4,4,4]`, `degrees=[4,...,24]`, `hDegrees=[1,2,3,4]`, and `requireSmithWitnesses=true`. Persist code, inputs, stdout, stderr, exit status, and stable digests. For every \(d\), preserve \(M_d,U_d,V_d,D_d\) and verify \(U_dM_dV_d=D_d\) and \(\det U_d,\det V_d\in\{\pm1\}\). Explicitly include \(M_4=D_4=0_{0\times1}\), \(U_4=I_0\), and \(V_4=[1]\).
+000025	- [proof-attempt] From the verified Smith data, establish degreewise free ranks \(1,1,2,1,1,0,\ldots,0\) in degrees \(4,\ldots,24\), with no torsion, and hence
+000026	  \[
+000027	  J_{2,4}/A_+J_{2,4}\cong\mathbb Z^{1+1+2+1+1}=\mathbb Z^6.
+000028	  \]
+000029	  Then apply accepted generation and indexed-family Nakayama to
+000030	  \[
+000031	  \{\bar s_{22},\bar s_{32},\bar s_{42},\bar s_{33},\bar s_{43},\bar s_{44}\},
+000032	  \quad
+000033	  \{\bar s_{22},\bar s_{221},\bar s_{222},\bar s_{2211},\bar s_{2221},\bar s_{2222}\}.
+000034	  \]
+000035	  Each gives a surjection \(\mathbb Z^6\to J_{2,4}/A_+J_{2,4}\cong\mathbb Z^6\), hence an isomorphism; therefore neither family has a proper generating subfamily.
+000036	
+000037	## Required revisions
+000038	- Supply the missing witness-preserving task-owned artifact; do not reuse the uncertified Smith assertions from `5a31479b564ba38536226e09952b20aa3e0d9afebe1918a192a5f501a8c0e38b`.
+000039	- State explicitly whether the replacement establishes \(J_{2,4}/A_+J_{2,4}\cong\mathbb Z^6\) and the two-family \(c=4\) minimality corollary.
+000040	- Conclude only this bounded \(c=4\) certificate, not the parent theorem.

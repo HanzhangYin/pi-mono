@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-172-1",
+	"taskId": "research-plan-task-172",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The recorded two families are \\(\\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}\\) and \\(\\{\\bar s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\\), where \\(a=\\min(q-i,r-j)\\) and \\(b=\\min(i,j)\\), with \\(q=n-r\\). [source-6@L18-L42|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 18,
+						"end": 42
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.\n34: \\]\n35: \n36: Each contains\n37: \n38: \\[\n39: \\binom{a+b}{a}\n40: \\]\n41: \n42: generators. “Minimal” means that no proper subset still generates \\(J_v\\).",
+					"excerptSha256": "68270007b81a74d751930001415a3eba95c060259f1379cc19f52ff72f6dc67d",
+					"canonicalCitation": "[source-6@L18-L42|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The requested standalone integral transpose-reduction lemma is established: it identifies the theorem-displayed first family at \\((r,q;i,j)\\) with the Remark 4.7 second family at \\((q,r;j,i)\\), descends to Grassmannian quotients, and preserves minimality.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5372daa66f7a43206a90b177208391cb50dc8a7c1dcabd1ef5b7bd0bcfd29a7d"
+}

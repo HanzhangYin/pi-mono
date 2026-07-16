@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-325-1",
+	"taskId": "research-plan-task-325",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied internal snapshot is a draft-artifact snapshot, not a verbatim persisted task-313 statement; it supplies no bounded excerpt certifying the required identity, parameter ranges, shapes, modulus, conventions, or ordering. [artifact 645fe6f78a205f41d7b48b40116ea95bb1076558b298e93c4799d20dfa986433, lines 1-30]",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "699b66c8c4533f3fbe59986aea92aa23fda8a1ae91b893f0586b76d827c56bc6"
+}

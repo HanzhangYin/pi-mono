@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-101-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 establishes the basis and relation lattice only for \\(0\\le k\\le b=\\min(i,j)\\). The requested literal “each degree \\(d+k\\)” target is therefore not established.\n- The draft itself acknowledges that degrees \\(k>b\\), including possible boundary one-term Pieri rows, remain untreated.\n\n## Unresolved certificates\n- [proof-attempt] Classify the interval Schur basis and complete positive-degree multiplication lattice for every remaining \\(k>b\\), or prove from the accepted presentation that those degrees are outside the target or vanish."
+}

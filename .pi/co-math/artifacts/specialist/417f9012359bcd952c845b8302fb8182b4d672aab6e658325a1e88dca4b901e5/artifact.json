@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-72-1",
+	"text": "## Claims\n- [unsupported] The supplied record contains no fifteen-case table with the required conditions, column orders, selected rows, or matrices; hence the requested literal products cannot be reconstructed without invention.\n\n## Strategy\nThe available degree-\\(d+3\\) five-case certificate does not determine the missing fifteen-case data.\n\n## Gaps\nThe exact table from `research-attempt-research-plan-task-68-1` is absent. In particular, all fifteen \\(R_{\\mathrm{selected}}\\), \\(\\mathcal C\\), and \\(R_{\\mathrm{full}}\\) are unavailable.\n\n## Next\nThis certificate is not established. Provide the complete table (4) from `research-attempt-research-plan-task-68-1`."
+}

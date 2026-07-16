@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-44-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 provides only metadata and an abstract; it does not supply theorem-level text or hypotheses.\n- claims-2 and claim-3 concern the earlier paper. Their definition of \\(J_v\\) and characteristic-zero field cannot be transferred to the later paper.\n- claim-4 confirms that every central requested item remains unresolved: exact definition, theorem locator, coefficient ring, and comparison map.\n- claim-5 correctly limits what follows from the abstract, but does not satisfy the retrieval goal.\n- No exact formula, direction, domain, or codomain is provided for the map relating the later paper’s \\(J_v\\) to \\(\\Lambda/I_{r,n-r}\\).\n- Indexed primary-text excerpts from the later paper are required before the task can meet its theorem-level acceptance criteria."
+}

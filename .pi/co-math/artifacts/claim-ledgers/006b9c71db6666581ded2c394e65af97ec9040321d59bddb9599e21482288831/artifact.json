@@ -1,0 +1,26 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-319-1",
+	"taskId": "research-plan-task-319",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "No displayed signed-conjugation identity, nor definitions of its \\(\\rho,a,b,j\\) ranges and target congruence, are present in the supplied task material.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The requested exact target is **not established**: without the identity itself, a bordered Jacobi–Trudi construction cannot prove or disprove it without substituting an inferred adjacent statement.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "26769d38aae0dc2d70248e6ae5eedcbae63dc81ab1aebcb5dfb4dfd400c0ebdc"
+}

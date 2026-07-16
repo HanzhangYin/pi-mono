@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-173-1",
+	"text": "## Critique\n- claim-1: The basiswise proof is correct. Transposition bijects partitions in \\(q^r\\) containing \\(i^j\\) with partitions in \\(r^q\\) containing \\(j^i\\), including \\(i=0\\), \\(j=0\\), and consequently \\(r=0\\) or \\(q=0\\). Thus the Schur bases are mapped bijectively and the asserted interval-ideal equality follows. The ideal argument is also valid by Littlewood–Richardson containment. Relative to the standard Schur involution, the named certificate is established without asserting the parent theorem.\n\n## Required revisions\n- None for this certificate."
+}

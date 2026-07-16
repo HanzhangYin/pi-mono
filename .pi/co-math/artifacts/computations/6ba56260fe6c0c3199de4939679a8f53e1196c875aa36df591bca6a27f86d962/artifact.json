@@ -1,0 +1,29 @@
+{
+	"attemptId": "research-attempt-research-plan-task-303-1",
+	"taskId": "research-plan-task-303",
+	"summary": "Compute exact degreewise quotient coordinates of the lower- and right-adjoined six-element families for (i,j,p,c)=(2,3,3,2), from complete bounded Pieri relation matrices, and certify the resulting transition blocks by determinants and Smith diagonals.",
+	"script": "import itertools\nfrom fractions import Fraction\nimport sympy as S\nfrom sympy.matrices.normalforms import smith_normal_form\n\nlo=(2,2,2,0,0); hi=(5,5,5,5,5)\ndef wt(x): return sum(x)\ndef parts(d, n=5, mx=5):\n    out=[]\n    def rec(pre, last, rem):\n        if len(pre)==n:\n            if rem==0: out.append(tuple(pre))\n            return\n        for z in range(min(last,rem),-1,-1): rec(pre+[z],z,rem-z)\n    rec([],mx,d)\n    return [x for x in out if all(x[k]>=lo[k] and x[k]<=hi[k] for k in range(n))]\ndef horiz(lam,mu):\n    # lam/mu interlacing criterion for a horizontal strip\n    return all(lam[k]<=mu[k] for k in range(5)) and all(lam[k]>=mu[k+1] for k in range(4))\ndef matrix(d):\n    cols=parts(d); rows=[]; labels=[]\n    for t in range(1,6):\n      for lam in parts(d-t):\n        rows.append([int(horiz(lam,mu)) for mu in cols]); labels.append((t,lam))\n    return S.Matrix(rows),cols,labels\nGL=[(2,2,2),(2,2,2,1),(2,2,2,2),(2,2,2,1,1),(2,2,2,2,1),(2,2,2,2,2)]\nGR=[(2,2,2),(3,2,2),(4,2,2),(3,3,2),(4,3,2),(4,4,2)]\n# degree sort and coordinate against GL elements of that degree\nblocks=[]\nfor d in range(6,11):\n M,cols,labels=matrix(d)\n gl=[x for x in GL if wt(x)==d]\n gr=[x for x in GR if wt(x)==d]\n gi=[cols.index(x+(0,)*(5-len(x))) for x in gl]\n ri=[cols.index(x+(0,)*(5-len(x))) for x in gr]\n B=M.T.row_join(S.Matrix.hstack(*[S.eye(len(cols)).col(i) for i in gi]))\n C=[]; witnesses=[]\n for q in ri:\n    sol,par=B.gauss_jordan_solve(S.eye(len(cols)).col(q))\n    assert len(par)==0\n    x=list(sol)\n    rel=x[:M.rows]; a=x[M.rows:]\n    assert all(z.q==1 for z in a) and all(z.q==1 for z in rel)\n    C.append(list(a)); witnesses.append([(labels[k],int(rel[k])) for k in range(len(rel)) if rel[k]])\n T=S.Matrix.hstack(*[S.Matrix(c) for c in C])\n det=T.det() if T.rows==T.cols else None\n D=smith_normal_form(T,domain=S.ZZ)\n blocks.append((d,gl,gr,T,det,D,witnesses))\nfor d,gl,gr,T,det,D,w in blocks:\n print('degree',d)\n print('GL',gl,'GR',gr)\n print('transition rows=GL, cols=GR',T.tolist())\n print('det',det,'smith',D.tolist())\n print('relation-witnesses',w)\n# global order requested in natural rho/alpha order stated above\n# Assemble transition in order GL and GR listed, grouped degrees\nTbig=S.zeros(6)\nfor d,gl,gr,T,det,D,w in blocks:\n for a,g in enumerate(gl):\n  for b,r in enumerate(gr):\n   Tbig[GL.index(g),GR.index(r)]=T[a,b]\nprint('global',Tbig.tolist())\nprint('globaldet',Tbig.det(),'globalsmith',smith_normal_form(Tbig,domain=S.ZZ).tolist())\n# dominance comparison: partitions ordered by inclusion/dominance; test unitriangular under both natural degree orders\nprint('diagonal', [Tbig[k,k] for k in range(6)])\nprint('is_upper_unitriangular', all(Tbig[i,i]==1 for i in range(6)) and all(Tbig[i,j]==0 for i in range(6) for j in range(i)))\nprint('is_lower_unitriangular', all(Tbig[i,i]==1 for i in range(6)) and all(Tbig[i,j]==0 for i in range(6) for j in range(i+1,6)))\n",
+	"scriptSha256": "973587293a9e545bf468456a7c5d92552b96facc31cc62399f58e72c0eba0a57",
+	"result": {
+		"command": "bwrap python3 attempt-research-plan-task-303.py",
+		"exitCode": 1,
+		"stdout": "",
+		"stderr": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-303.py\", line 3, in <module>\n    import sympy as S\nModuleNotFoundError: No module named 'sympy'\n",
+		"durationMs": 124,
+		"scriptFileName": "attempt-research-plan-task-303.py",
+		"stdoutFileName": "attempt-research-plan-task-303.973587293a9e.stdout.txt",
+		"stderrFileName": "attempt-research-plan-task-303.973587293a9e.stderr.txt"
+	},
+	"fullOutput": {
+		"stdout": {
+			"fileName": "attempt-research-plan-task-303.973587293a9e.stdout.txt",
+			"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"content": ""
+		},
+		"stderr": {
+			"fileName": "attempt-research-plan-task-303.973587293a9e.stderr.txt",
+			"sha256": "3c5301938a77cde3d5b6ee46991d4357cef010539e2e7540608059914d01aa92",
+			"content": "Traceback (most recent call last):\n  File \"/home/hermes/developer/pi-mono-comath/.pi/co-math/attempt-research-plan-task-303.py\", line 3, in <module>\n    import sympy as S\nModuleNotFoundError: No module named 'sympy'\n"
+		}
+	}
+}

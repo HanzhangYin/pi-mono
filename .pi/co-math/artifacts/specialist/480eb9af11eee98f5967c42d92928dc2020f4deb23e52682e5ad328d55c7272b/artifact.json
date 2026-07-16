@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-141-1",
+	"text": "## Claims\n- [computed] The bounded certificate is established: artifact `162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126` (exit \\(0\\)) computes exactly `lower=[2,2,0,0,0,0,0,0]`, `upper=[4,4,4,4,4,4,4,4]`, degrees \\(4,\\ldots,32\\), and \\(h\\)-degrees \\(1,\\ldots,4\\), retaining ordered bases, all labelled Pieri rows including zero rows, exact Smith diagonals, quotient free ranks, and torsion factors degreewise. It verifies \\(U_dM_dV_d=D_d\\) with unimodular witnesses, including \\(M_4=0_{0\\times1}\\). [artifact 162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126]\n\n## Strategy\nRevalidate solely through the accepted child-repair computation artifact, whose inputs and degree range exactly match this certificate.\n\n## Gaps\nThis finite computation does not establish the parent theorem or any all-parameter claim.\n\n## Next\nNone within this certificate."
+}

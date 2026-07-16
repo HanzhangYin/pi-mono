@@ -1,0 +1,44 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-179-1",
+	"taskId": "research-plan-task-179",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The accepted \\(i=j=p=2,c=7\\) computation gives \\(Q=J_{2,7}/A_+J_{2,7}\\) free of rank \\(1,1,2,1,1\\) in degrees \\(4,5,6,7,8\\), respectively, and zero thereafter, with no torsion. [artifact 0cb4505255df5a5b7c63937fc09205c75c5d4ffbbabb4a1f810117f6514d0918]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "With ordered quotient basis \\[ B=(\\bar s_{22},\\bar s_{32},\\bar s_{42},\\bar s_{33},\\bar s_{43},\\bar s_{44}), \\] the first family \\((s_{22},s_{32},s_{42},s_{33},s_{43},s_{44})\\) has coordinate matrix \\(I_6\\), of determinant \\(1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The Pieri relations give \\[ \\bar s_{221}=-\\bar s_{32},\\quad \\bar s_{222}=\\bar s_{33},\\quad \\bar s_{2211}=\\bar s_{42},\\quad \\bar s_{2221}=-\\bar s_{43},\\quad \\bar s_{2222}=\\bar s_{44}. \\] Hence the second family \\((s_{22},s_{221},s_{222},s_{2211},s_{2221},s_{2222})\\) has coordinate matrix \\[ C=\\begin{pmatrix} 1&0&0&0&0&0\\\\ 0&-1&0&0&0&0\\\\ 0&0&0&1&0&0\\\\ 0&0&1&0&0&0\\\\ 0&0&0&0&-1&0\\\\ 0&0&0&0&0&1 \\end{pmatrix}, \\qquad \\det C=-1. \\] Thus it is unimodular.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested target is established: both six-element families map to \\(\\mathbb Z\\)-bases of \\(J_{2,7}/A_+J_{2,7}\\). No broader claim is made.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "652f91ed78a1cffc0649d2c45d065ce5cc786bd751aa35a600d5e9c500449e95"
+}

@@ -1,0 +1,35 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-90-1",
+	"taskId": "research-plan-task-90",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Task-owned sandbox artifact `f51497de15c833c3f86592fdac0096043cd74ff697bbc1b651f1df03ece3e947` executed with exit status \\(0\\) on \\((i,j)=(3,3),(3,4),(4,3)\\); it reports 11 interval columns, 30 product rows, 30 named Pieri-row checks, the three selected matrices, determinants \\(1,1,1\\), and `RESULT: PASS`. [artifact f51497de15c833c3f86592fdac0096043cd74ff697bbc1b651f1df03ece3e947]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Earlier task-owned executions failed: `2c711800b417a2d91e97093bd52d6aeb7a94d5d808be56c090385e52b6dd352b`, `93553a48f4f017af0f4cb655f25ce24fbbfb24ed48de25464e75fa25d26ff53c`, `1bf77fce7c761804e8fe49957fdb6c02285e78f169f42a2bc99c6539adb1ee68`, and `32bea1608d85e44b125e958141e3e358438f521bd5bcdf62f54453097e44c4f1`, each with exit status \\(1\\); they supply no positive check.",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "The supplied successful-result record contains captured inputs and outputs but no executable script text or script digest. Therefore the requested executable-code component cannot be independently confirmed from the supplied evidence.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "d22bb096c77967a8f6c5200eb8bbc5d197824f655fd743129f03acb1e244493c"
+}

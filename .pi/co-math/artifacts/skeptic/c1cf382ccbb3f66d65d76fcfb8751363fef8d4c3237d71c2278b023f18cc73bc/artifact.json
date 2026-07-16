@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-133-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- `claim-1` computes only degrees \\(4,\\ldots,25\\), while the task requires \\(4,\\ldots,32\\). The artifact explicitly reports `enumeratedAllSupportDegrees:false` with support range \\([4,32]\\).\n- Complete labelled rows, ordered bases, and exact Smith forms are therefore missing for degrees \\(26,\\ldots,32\\).\n- `claim-2` correctly limits the conclusion, but does not complete the requested computation. The requested target was explicitly **not established**.\n\n## Unresolved certificates\n- [computation] Execute the exact computation for `lower=[2,2,0,0,0,0,0,0]`, `upper=[4,4,4,4,4,4,4,4]`, `degrees=[4,...,32]`, and `hDegrees=[1,2,3,4]`, retaining every ordered basis, every labelled row including zero rows, and every exact Smith diagonal."
+}

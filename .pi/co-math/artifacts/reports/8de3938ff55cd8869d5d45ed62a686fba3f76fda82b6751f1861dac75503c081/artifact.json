@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-114-1",
+	"text": "## Findings\n- claim-1: No successful task-owned computation artifact for the specified five-row interval is supplied; all three supplied executions exited nonzero.\n## Strategy\nNo successful task-owned \\(4^5\\) computation record is available. The supplied \\(4^4\\) artifact concerns a different interval and cannot be reused.\n\n## Gaps\nMissing: successful execution output, exit status \\(0\\), artifact digest, all degreewise ordered bases and Pieri rows, and Smith/torsion data for degrees \\(4,\\ldots,20\\). Vanishing outside \\([4,20]\\) is also not computationally witnessed here.\n\n## Next\nExecute the specified `partition-pieri` primitive for \\([2,2,0,0,0]\\subseteq\\lambda\\subseteq[4,4,4,4,4]\\), preserve its complete output and stable artifact digest, then independently verify the reported degreewise data. This bounded certificate is not established from the supplied evidence."
+}

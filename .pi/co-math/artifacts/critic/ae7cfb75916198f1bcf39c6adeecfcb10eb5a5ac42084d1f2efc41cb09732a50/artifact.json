@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-296-1",
+	"text": "## Critique\n- claim-1: Adequately grounded. The quotient has the integral Schur basis indexed by partitions inside \\((n-r)^r\\), and the cited range states generation by \\(G_L\\).\n- claim-2: The strategy reaches every requested criterion. It defines the graded free group and graded integral surjection, reduces each homogeneous kernel element to a syzygy with \\(|\\lambda|<N\\), proves the left side nonzero using distinct in-box Schur basis elements, and applies accepted task 292 coefficientwise to force every \\(c_\\beta=0\\). The \\(N=0\\) and \\(a=0\\) cases are handled separately and correctly. Thus the requested graded-kernel certificate is established, conditional on accepted task 292. No adjacent or broader claim is substituted.\n\n## Required revisions\n- None."
+}

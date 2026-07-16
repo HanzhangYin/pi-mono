@@ -1,0 +1,32 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-235-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-234-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-234-1 · specialist · ARTIFACT 1842bac06bb7f4d1c84fcf33b677c079a1fa69e99d8ca91712fb539e7d82467c
+000004	## Claims
+000005	- [source-backed] The workspace provider’s record for DOI `10.1112/jlms.12832` has abstract text: “We prove the minimality conjecture. Our proof uses the Hopf algebra structure of the ring of symmetric functions.” [doi:10.1112/jlms.12832, lines 124-131]
+000006	
+000007	## Strategy
+000008	Requested queries: `persisted:source-39`, `persisted:source-29`, `persisted:source-30`; required terms: `Smith normal form`, `determinantal divisors`, `unimodular minors`, `Pieri matrices`.
+000009	
+000010	No task-owned executable audit action, resolver manifest for `persisted:source-39`, artifact, code, stdout, stderr, exit status, output locator, or SHA-256 digests was supplied. Thus execution count is 0; the requested targeted-query count is 3; all 12 per-query term counts are unavailable.
+000011	
+000012	The requested capability certificate is **not established**. No parent-theorem claim is made.
+000013	
+000014	## Gaps
+000015	Missing exact persisted-byte mappings, especially for `persisted:source-39`, and a successful task-owned computation artifact containing the required audit outputs and digests.
+000016	
+000017	## Next
+000018	Unavailable without an executable sandbox action and persisted-source resolver evidence.
+000019	
+000020	INTERNAL ATTEMPT research-attempt-research-plan-task-234-1 · critic · ARTIFACT 5dec3b04e108fdbcab818324a6d873529642c18b9518c7d094a582cbb0c3266b
+000021	## Critique
+000022	- claim-1: Validated and adequately grounded by the workspace provider, stable DOI `10.1112/jlms.12832`, and exact abstract field at [doi:10.1112/jlms.12832, lines 124-131]. This satisfies the external-provider grounding requirement but does not establish the requested query audit. No task-owned audit execution occurred: all twelve occurrence counts, executable code, stdout/stderr, exit status, output locator, and audit digests remain unavailable. Artifact `f33e1162ee768e78d6547b9c505d1e843d70cdfc3d7dfb23d2abd96b88ab46c7` persists the failure record, not the required audit evidence. The targeted-query count is three; the requested capability certificate is **not established**. The external provider search did execute, but it is not a substitute for the exact persisted-source audit.
+000023	
+000024	## Repair certificates
+000025	- [computation] Execute a task-owned script over exactly `["persisted:source-39","persisted:source-29","persisted:source-30"]` and count exact literal occurrences of all four required terms in each resolved byte stream. Persist the code, input manifest, twelve counts, targeted-query count \(3\), complete stdout/stderr, exit status, output locator, and SHA-256 digests for code, inputs, outputs, and artifact.
+000026	- [source-refresh] Persist a resolver manifest mapping each requested persisted source ID—especially `persisted:source-39`—to an exact byte locator and content SHA-256.
+000027	
+000028	## Required revisions
+000029	- Declare encoding and case-sensitivity/counting semantics.
+000030	- Report failed resolution or zero counts explicitly rather than inferring results.
+000031	- Identify the completed audit artifact as task-owned.
+000032	- Conclude only whether this audit certificate is established; do not claim the parent theorem.

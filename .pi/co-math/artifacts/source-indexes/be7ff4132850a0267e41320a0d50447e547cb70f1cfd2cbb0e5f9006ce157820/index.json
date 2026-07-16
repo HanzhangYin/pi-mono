@@ -1,0 +1,308 @@
+{
+	"version": 1,
+	"policyVersion": 1,
+	"sourceId": "source-438aebebc92ace80",
+	"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+	"sourceManifestSha256": "9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+	"snapshotRoot": "/home/hermes/developer/pi-mono-comath/.pi/co-math/artifacts/sources/source-438aebebc92ace80/9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+	"files": [
+		{
+			"relativePath": "README.md",
+			"sha256": "95a2a721a44e15cf55d808f67f831b3417a7a46cbde302a2085074f2e8bc3cac",
+			"sizeBytes": 1803,
+			"kind": "markdown",
+			"regions": [
+				{
+					"kind": "ordinary-document",
+					"lines": {
+						"start": 1,
+						"end": 32
+					}
+				}
+			],
+			"sections": [],
+			"includeEdges": [],
+			"discoveredEnvironmentNames": [],
+			"warnings": [],
+			"lineCount": 32,
+			"hasFinalNewline": true
+		},
+		{
+			"relativePath": "conjectures.md",
+			"sha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+			"sizeBytes": 3358,
+			"kind": "markdown",
+			"regions": [
+				{
+					"kind": "ordinary-document",
+					"lines": {
+						"start": 1,
+						"end": 110
+					}
+				}
+			],
+			"sections": [],
+			"includeEdges": [],
+			"discoveredEnvironmentNames": [],
+			"warnings": [],
+			"lineCount": 110,
+			"hasFinalNewline": true
+		},
+		{
+			"relativePath": "sources/0809.2981v2.pdf",
+			"sha256": "ee27978cb63b0337a449977333bed16e289f2ea6789ef9b96e906b3bfbddeaea",
+			"sizeBytes": 310405,
+			"kind": "unsupported-binary",
+			"regions": [],
+			"sections": [],
+			"includeEdges": [],
+			"discoveredEnvironmentNames": [],
+			"warnings": []
+		},
+		{
+			"relativePath": "sources/0809.2981v2.tex",
+			"sha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+			"sizeBytes": 99057,
+			"kind": "tex",
+			"regions": [
+				{
+					"kind": "preamble",
+					"lines": {
+						"start": 1,
+						"end": 70
+					},
+					"documentId": "document-1"
+				},
+				{
+					"kind": "formal-document",
+					"lines": {
+						"start": 71,
+						"end": 2100
+					},
+					"documentId": "document-1"
+				},
+				{
+					"kind": "supplemental-after-end",
+					"lines": {
+						"start": 2101,
+						"end": 2378
+					},
+					"documentId": "document-1"
+				}
+			],
+			"sections": [
+				{
+					"kind": "section",
+					"title": "Introduction",
+					"lines": {
+						"start": 115,
+						"end": 115
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "Proof of Theorem~\\ref{general-bound",
+					"lines": {
+						"start": 368,
+						"end": 368
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "Reducing presentations in $H^{\\star",
+					"lines": {
+						"start": 719,
+						"end": 719
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "Refinements in Type $A$",
+					"lines": {
+						"start": 918,
+						"end": 918
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "Schubert conditions and bigrassmannians",
+					"lines": {
+						"start": 933,
+						"end": 933
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "Bigrassmannians and essential Schubert conditions",
+					"lines": {
+						"start": 1107,
+						"end": 1107
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "Grassmannians and symmetric functions",
+					"lines": {
+						"start": 1232,
+						"end": 1232
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "A shorter presentation in type $A$",
+					"lines": {
+						"start": 1336,
+						"end": 1336
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "A minimality conjecture",
+					"lines": {
+						"start": 1489,
+						"end": 1489
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "Some symmetric function identities",
+					"lines": {
+						"start": 1605,
+						"end": 1605
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "subsection",
+					"title": "Proof of Theorem~\\ref{J-generators",
+					"lines": {
+						"start": 1756,
+						"end": 1756
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "A question",
+					"lines": {
+						"start": 1898,
+						"end": 1898
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "Acknowledgements",
+					"lines": {
+						"start": 1937,
+						"end": 1937
+					},
+					"regionKind": "formal-document",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "Incomplete proof of Conjecture~\\ref{minimality-conjecture",
+					"lines": {
+						"start": 2103,
+						"end": 2103
+					},
+					"regionKind": "supplemental-after-end",
+					"documentId": "document-1"
+				},
+				{
+					"kind": "section",
+					"title": "Vic's thoughts on proving Conjecture~\\ref{minimality-conjecture",
+					"lines": {
+						"start": 2160,
+						"end": 2160
+					},
+					"regionKind": "supplemental-after-end",
+					"documentId": "document-1"
+				}
+			],
+			"includeEdges": [],
+			"discoveredEnvironmentNames": [
+				"conjecture",
+				"corollary",
+				"definition",
+				"example",
+				"examples",
+				"lemma",
+				"proposition",
+				"question",
+				"remark",
+				"theorem"
+			],
+			"warnings": [],
+			"lineCount": 2378,
+			"hasFinalNewline": true
+		},
+		{
+			"relativePath": "sources/CITATION.bib",
+			"sha256": "af0922154ab3a5dacc6e121f76238302c91c19861b28f3c359c86cda06b4853c",
+			"sizeBytes": 763,
+			"kind": "unsupported-binary",
+			"regions": [],
+			"sections": [],
+			"includeEdges": [],
+			"discoveredEnvironmentNames": [],
+			"warnings": []
+		},
+		{
+			"relativePath": "sources/arxiv-metadata.xml",
+			"sha256": "a7c250a03574b7b0daefcf97e2c1245d0fed93738e2e11faa3579f03751cadbc",
+			"sizeBytes": 2073,
+			"kind": "xml",
+			"regions": [
+				{
+					"kind": "ordinary-document",
+					"lines": {
+						"start": 1,
+						"end": 33
+					}
+				}
+			],
+			"sections": [],
+			"includeEdges": [],
+			"discoveredEnvironmentNames": [],
+			"warnings": [],
+			"lineCount": 33,
+			"hasFinalNewline": true
+		}
+	],
+	"documents": [
+		{
+			"id": "document-1",
+			"entryRelativePath": "sources/0809.2981v2.tex",
+			"status": "complete",
+			"beginDocumentLine": 71,
+			"endDocumentLine": 2100,
+			"includedRelativePaths": [],
+			"warnings": []
+		}
+	],
+	"warnings": [],
+	"indexSha256": "be7ff4132850a0267e41320a0d50447e547cb70f1cfd2cbb0e5f9006ce157820"
+}

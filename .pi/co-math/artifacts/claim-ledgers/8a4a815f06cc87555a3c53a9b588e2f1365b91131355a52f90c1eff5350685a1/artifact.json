@@ -1,0 +1,128 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-316-1",
+	"taskId": "research-plan-task-316",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "Source-2 states \\(s_\\lambda=\\det(h_{\\lambda_i-i+j})_{i,j=1}^{\\ell(\\lambda)}\\), with \\(h_r=s_{(r)}\\) for \\(r\\ge0\\) and \\(h_r=0\\) for \\(r<0\\). [source-2@L1688-L1695|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1688,
+						"end": 1695
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1688: We also need the {\\bf Jacobi-Trudi identity}: \n1689: \\begin{equation}\n1690: \\label{Jacobi-Trudi}\n1691: s_\\lambda = \\det( h_{\\lambda_i - i + j}  )_{i,j=1,2,\\ldots,\\ell(\\lambda)}\n1692: \\end{equation}\n1693: with the usual convention that $h_r := s_{(r)}$ for $r \\geq 0$ and\n1694: $h_r = 0$ for $r < 0$.  This has the following consequence, also\n1695: to be used in the proof of Theorem~\\ref{J-generators} below.",
+					"excerptSha256": "65506072b8d63f0d837d018df7a10d73c58f178cf841e096df839df9c35bb316",
+					"canonicalCitation": "[source-2@L1688-L1695|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "The available determinant lemma assumes \\(i<k\\) and a partition \\(\\mu\\) satisfying \\(\\mu_k>i\\ge\\mu_{k+1}\\), sets \\(\\ell=\\ell(\\mu)\\), and states \\[ s_\\mu=\\sum_{m=1}^{k}(-1)^{k-m}h_{\\mu_m+k-i-m}s_{\\mu^{(m)}}, \\] where \\(1\\le m\\le k\\) and \\[ \\mu^{(m)}=(\\mu_1,\\ldots,\\mu_{m-1},\\widehat{\\mu_m}, \\mu_{m+1}-1,\\ldots,\\mu_k-1,i,\\mu_{k+1},\\ldots,\\mu_\\ell). \\] [source-2@L1697-L1719|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1697,
+						"end": 1719
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1697: \\begin{lemma}\n1698: \\label{Woo-2nd-lemma}\n1699: Let $i < k$, and assume $\\mu$ is a partition with\n1700: $\n1701: \\mu_k > i \\geq \\mu_{k+1},\n1702: $\n1703: so that the $(i+1)^{st}$ column of the Young diagram for $\\mu$ has length $k > i$.\n1704: Then\n1705: $$\n1706: s_\\mu = \\sum_{m=1}^k (-1)^{k-m} \\,\\, h_{\\mu_m+k-i-m} \\,\\, s_{\\mu^{(m)}},\n1707: $$\n1708: where for $m=1,2,\\ldots,k$ one defines\n1709: $$\n1710: \\mu^{(m)}:=(\\mu_1,\\mu_2,\\ldots,\\mu_{m-1},\\widehat{\\mu_m}, \\mu_{m+1}-1,\\mu_{m+2}-1,\n1711:                \\ldots,\\mu_k-1,i,\\mu_{k+1},\\mu_{k+2},\\ldots,\\mu_{\\ell}),\n1712: $$\n1713: where $\\ell:=\\ell(\\mu)$ and $\\widehat{\\mu_m}$ refers to the deletion of\n1714: the entry $\\mu_m$.\n1715: %\n1716: %In particular, for each $m=1,2,\\ldots,k$ in the sum, the\n1717: %factor $h_{\\mu_m+k-i-m}$ has positive degree (since $\\mu_m \\geq i+1$), \n1718: %and each $\\lambda^{(m)}$ also has $\\lambda^{(m)}_j \\geq i$.\n1719: \\end{lemma}",
+					"excerptSha256": "cc9ba03b172004a71eb303d885c7a0070f422d69a39e0fc8c4c143a320e1a86d",
+					"canonicalCitation": "[source-2@L1697-L1719|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Its bordered matrix is ordered by inserting the row \\[ (h_{i-k+1},h_{i-k+2},\\ldots,h_{i-k+\\ell}) \\] between original Jacobi–Trudi rows \\(k\\) and \\(k+1\\), then appending column \\(\\ell+1\\), a duplicate of original column \\(k-i\\). Thus rows are \\(1,\\ldots,k,\\mathrm{new},k+1,\\ldots,\\ell\\), and columns are \\(1,\\ldots,\\ell,\\mathrm{duplicate}\\). [source-2@L1721-L1730|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1721,
+						"end": 1730
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1721: Start with the $\\ell \\times \\ell$\n1722: Jacobi-Trudi matrix for $\\mu$.  From this create an $(\\ell+1) \\times \\ell$ matrix by inserting a \n1723: new row between its row $k$ and row $k+1$, having entries \n1724: $$\n1725: (h_{i-k+1},h_{i-k+2},\\ldots,h_{i-k+\\ell}).\n1726: $$  \n1727: Then from this $(\\ell+1) \\times \\ell$ matrix, create a singular $(\\ell+1) \\times (\\ell+1)$ matrix \n1728: by introducing an $(\\ell+1)^{st}$ column that\n1729: duplicates the $(k-i)^{th}$ column.  This last duplicated column is\n1730: $$",
+					"excerptSha256": "1667f4b328155c872f1d2cfe6857197ad6944be1887e690a59de3893dfde2600",
+					"canonicalCitation": "[source-2@L1721-L1730|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The appended column is \\[ (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},1,0,\\ldots,0)^T; \\] this uses \\(h_0=1\\) and \\(h_{\\mu_m+k-i-m}=0\\) for \\(m\\ge k+1\\). The source says its zero determinant, expanded along that duplicate column, yields the displayed identity. [source-2@L1731-L1742|claim=formal-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-2"
+			],
+			"sourceScope": "formal-document",
+			"groundings": [
+				{
+					"sourceId": "source-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 1731,
+						"end": 1742
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "sources/0809.2981v2.tex",
+					"sourceFileSha256": "9ddef409b3aa44eb1d31f101f3d22b364fdb5b52c404bc06529a2e3f6441bb02",
+					"regionKind": "formal-document",
+					"excerpt": "1731: \\begin{array}{lccrll}\n1732: \\ \\ \\ \\ (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},\n1733:    &h_{i-k + (k-i)},&h_{\\mu_{k+1}-i-1},&\\ldots, &h_{\\mu_{\\ell}+k-i-\\ell}&)^T \\\\\n1734: = (h_{\\mu_1+k-i-1},\\ldots,h_{\\mu_k-i},\n1735:    &1,            &0,              &\\ldots,&0&)^T.\n1736: \\end{array}\n1737: $$\n1738: Here we have used the facts that $h_0=1$ and that $h_{\\mu_m+k-i-m}=0$ \n1739: for $m \\geq k+1$ because $\\mu_m \\leq \\mu_{k+1} \\leq i$ implies \n1740: $\\mu_m+k-i-m=(\\mu_m-i)+(k-m)<0$.\n1741: One then checks that cofactor expanding the (zero) determinant of this \n1742: $(\\ell+1) \\times (\\ell+1)$ matrix along this duplicated column gives the asserted identity.",
+					"excerptSha256": "928f217e6b99189c1871fc1a1295f62f826e4e080e72e5f8cff901c06a0fa093",
+					"canonicalCitation": "[source-2@L1731-L1742|claim=formal-document]"
+				}
+			],
+			"validationFailures": []
+		}
+	],
+	"sha256": "dbcb66b891b9908506ca4b937ea862b897402d65c9b860420a5df1f9d53b38dc"
+}

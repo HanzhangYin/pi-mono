@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-37-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 correctly fails closed, but it does not satisfy the requested verification: neither required JSON certificate was available or parsed.\n- No canonical row/column comparison, product and zero-pair comparison, family/parameter/dimension check, or digest recomputation was performed.\n- No rank-7 unimodular-minor certificates or integral row-combination verifications were supplied.\n- The cited artifact is classified as unsupported and cannot establish file unavailability or any finite conclusion.\n- No independently grounded critic review is present. The finite case \\((3,3,2,2)\\) therefore remains unresolved pending both complete certificates."
+}

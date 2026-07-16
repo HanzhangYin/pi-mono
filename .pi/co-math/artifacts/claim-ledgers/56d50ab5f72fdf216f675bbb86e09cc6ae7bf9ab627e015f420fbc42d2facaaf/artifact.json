@@ -1,0 +1,95 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-17-1",
+	"taskId": "research-plan-task-17",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The reported computational verification range is \\(r\\le4\\) and \\(n-r\\le5\\). [source-6@L46-L54|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 46,
+						"end": 54
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "46: ## 2. Evidence reported by the authors\n47: \n48: The authors state that they verified the conjecture computationally for all bigrassmannian permutations satisfying\n49: \n50: \\[\n51: r\\leq 4,\\qquad n-r\\leq 5.\n52: \\]\n53: \n54: **Primary-source location:** lines 1501–1502.",
+					"excerptSha256": "9fe1db2374940bdad6459339c8767cafd54e7f1ea4a5ba5b4bb8710ff9de4109",
+					"canonicalCitation": "[source-6@L46-L54|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For \\(\\mathfrak S_v=s_{i^j}\\), the parameters are \\(a=\\min(n-r-i,r-j)\\), \\(b=\\min(i,j)\\), and each proposed family has \\(N=\\binom{a+b}{a}\\) generators. [source-6@L18-L42|claim=ordinary-document]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"source-6"
+			],
+			"sourceScope": "ordinary-document",
+			"groundings": [
+				{
+					"sourceId": "source-6",
+					"relation": "supports",
+					"locator": {
+						"kind": "lines",
+						"start": 18,
+						"end": 42
+					},
+					"sourceIndexId": "source-index-be7ff4132850a026",
+					"sourceRevisionId": "source-revision-9f2d90286b159738da58b0fe0bd47f85b5597dcdbd2b987cea65817b43536281",
+					"sourceRelativePath": "conjectures.md",
+					"sourceFileSha256": "6e74e126e04e50f43baed4b768113434e173637272f427fd8a3dcd8f3000ab02",
+					"regionKind": "ordinary-document",
+					"excerpt": "18: Here, if \\(\\mathfrak S_v=s_{i^j}\\), the parameters are\n19: \n20: \\[\n21: a=\\min(n-r-i,r-j),\\qquad b=\\min(i,j).\n22: \\]\n23: \n24: Theorem 5.4 gives the two sets\n25: \n26: \\[\n27: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq((i+a)^b,i^{j-b})\\}\n28: \\]\n29: \n30: and\n31: \n32: \\[\n33: \\{s_\\mu:i^j\\subseteq\\mu\\subseteq(i^j,b^a)\\}.\n34: \\]\n35: \n36: Each contains\n37: \n38: \\[\n39: \\binom{a+b}{a}\n40: \\]\n41: \n42: generators. “Minimal” means that no proper subset still generates \\(J_v\\).",
+					"excerptSha256": "68270007b81a74d751930001415a3eba95c060259f1379cc19f52ff72f6dc67d",
+					"canonicalCitation": "[source-6@L18-L42|claim=ordinary-document]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Put \\(q=n-r\\). For nonempty rectangular data \\(i,j\\ge1\\), \\(N>1\\) holds exactly when \\[ 1\\le i\\le q-1,\\qquad 1\\le j\\le r-1. \\] Indeed, \\(b\\ge1\\), while \\(a\\ge1\\) exactly under these two strict inequalities; then \\(\\binom{a+b}{a}\\ge2\\). If \\(i=q\\) or \\(j=r\\), then \\(a=0\\) and \\(N=1\\).",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "Interpreting “immediately beyond” as enlarging the tested rectangle to \\(r\\le5,\\ q\\le6\\), the admissible new parameter instances with \\(N>1\\) are: \\[ \\begin{array}{c|c|c|c} r&q=n-r& (i,j)&\\#\\\\ \\hline 5&2,3,4,5,6& 1\\le i\\le q-1,\\ 1\\le j\\le4&4(q-1)\\\\ 2,3,4&6& 1\\le i\\le5,\\ 1\\le j\\le r-1&5(r-1) \\end{array} \\] Equivalently, these are \\((r,n)=(5,7),(5,8),(5,9),(5,10),(5,11)\\) and \\((2,8),(3,9),(4,10)\\), with the indicated \\((i,j)\\). The overlap \\((r,q)=(5,6)\\) occurs only in the first row. There are \\(60+30=90\\) such \\((r,q,i,j)\\)-instances.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "The two Schur generating families are minimal for each of these 90 instances; this is not established by their enumeration.",
+			"classification": "conjectural",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "4b921bf703202a84032c178a38ea7d5734d5bf0ef3674a345cc743a142cac1f1"
+}

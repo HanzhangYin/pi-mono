@@ -1,0 +1,44 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-169-1",
+	"taskId": "research-plan-task-169",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied task-owned artifact `9b50b65d790cc1669ec93699a240b042cb7d374e9d17b294698df2312fb9f841` used the exact requested inputs, but exited \\(1\\) with `ZeroDivisionError`; its script SHA-256 is `6413a33d0764b0a49bb6fb7c996e613f416432238267b4d8bd3cf56a458724bc`.",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "A subsequent supplied sandbox execution artifact `03416e75e7292f59b6a9d297ee09fcfee79d43bf0ecbd5e4943dcba2d5a34162` also exited \\(1\\), during JSON serialization of Smith witnesses.",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "No successful task-owned or accepted computation artifact supplies complete matrices and exact Smith witnesses for the requested \\(c=7\\) range.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested \\(i=j=p=2,c=7\\) target is not established.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "4725947e943746781f829d69e9625474bb7c10bb82d7ea1a71bc291421524586"
+}

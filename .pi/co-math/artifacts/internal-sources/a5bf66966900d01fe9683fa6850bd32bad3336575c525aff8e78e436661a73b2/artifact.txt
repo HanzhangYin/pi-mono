@@ -1,0 +1,41 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-130-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-127-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-127-1 · specialist · ARTIFACT 25134bd604ea04cf82068f77eebc9f1f16850f9f2ddc833c50b7fae87fa0e393
+000004	## Claims
+000005	- [source-backed] The 2011 paper treats minimality of the two Theorem 5.4 generating sets as a conjecture, while it separately presents \(J_v/\Lambda_+J_v\cong\mathbb Z^{\binom{a+b}{a}}\) as a stronger suspected statement. [source-6, lines 56-72]
+000006	- [source-backed] The 2024 candidate’s supplied abstract states only: “We prove the minimality conjecture.” [doi:10.1112/jlms.12832]
+000007	- [proved] A free integral indecomposables statement \(J/\Lambda_+J\cong\mathbb Z^N\), with the specified \(N\) generators mapping to a basis, implies their minimality; the converse does not establish torsion-freeness or identify \(J/\Lambda_+J\) as \(\mathbb Z^N\).
+000008	- [unsupported] No bounded 2024 full-text passage with stable theorem locator, hypotheses, or coefficient-ring statement was supplied; therefore applicability of the 2024 theorem to the present integral \(J_{v_{r,s,t,n}}\) is unverified.
+000009	
+000010	## Strategy
+000011	Separate the abstract-level 2024 minimality lead from the stronger quotient assertion, using the elementary quotient implication above.
+000012	
+000013	## Gaps
+000014	The required 2024 full-text source-refresh certificate cannot be executed from the supplied materials: no citable FULL-TEXT SOURCE block for DOI `10.1112/jlms.12832` is available.
+000015	
+000016	## Next
+000017	Requested target established: **no**. The missing bounded 2024 theorem text must supply its exact statement, hypotheses, and locators before the minimality theorem can be source-grounded; it would still not by itself establish the stronger integral indecomposables statement.
+000018	
+000019	INTERNAL ATTEMPT research-attempt-research-plan-task-127-1 · critic · ARTIFACT 85029ef3913ede4596e8129129cdba745d7d5fff87bd60ca5552de9781fcc87c
+000020	## Critique
+000021	- claim-1: Validated project context distinguishes the 2011 minimality conjecture from the stronger integral quotient statement. It does not provide the required 2024 full-text theorem certificate.
+000022	- claim-2: The abstract establishes only that the authors claim to prove “the minimality conjecture.” It does not identify the exact theorem, coefficient ring, parameter hypotheses, ideals, or generating families, so applicability to the current \(J_{v_{r,s,t,n}}\) is unverified.
+000023	- claim-3: Correct only after explicitly invoking that the specified \(N\)-element families already generate \(J\). Then every generating family surjects onto \(J/\Lambda_+J\), while \(\mathbb Z^N\) needs at least \(N\) generators. The converse fails: for \(A=\mathbb Z[x]\), \(A_+=(x)\), and \(J=(2x,x^2)\), the displayed pair is minimal but
+000024	  \[
+000025	  J/A_+J\cong \mathbb Z\oplus\mathbb Z/2,
+000026	  \]
+000027	  not \(\mathbb Z^2\).
+000028	- claim-4: Correct and fatal to acceptance. Provider search ran, but no bounded 2024 full-text theorem passage with stable locators was supplied. Therefore the requested source-refresh target was **not established**. The abstract-level adjacent result cannot substitute for it.
+000029	
+000030	## Repair certificates
+000031	- [proof-attempt] Prove the implication using the known generation of the two \(N\)-element families, and include the explicit graded counterexample \(A=\mathbb Z[x]\), \(J=(2x,x^2)\) showing that minimality does not imply free integral indecomposables.
+000032	- [source-refresh] Retrieve from versioned arXiv full text `2209.02011v2` or the DOI version a bounded passage containing the exact theorem statement, its hypotheses and coefficient ring, together with bounded definition passages identifying the relevant \(J_{v_{r,s,t,n}}\), parameters \(a,b\), and the two generating families; cite stable theorem/page/equation or versioned line locators.
+000033	
+000034	## Required revisions
+000035	- Replace the abstract-only discussion with the required full-text excerpts and a line-by-line applicability check.
+000036	- State separately whether the 2024 theorem proves minimality and whether it proves
+000037	  \[
+000038	  J_{v_{r,s,t,n}}/\Lambda_+J_{v_{r,s,t,n}}
+000039	  \cong\mathbb Z^{\binom{a+b}{a}}.
+000040	  \]
+000041	- Do not infer the stronger integral statement unless the retrieved theorem explicitly establishes torsion-freeness, rank, and the basis images.

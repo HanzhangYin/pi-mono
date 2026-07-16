@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-289-1",
+	"taskId": "research-plan-task-289",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "The supplied material does not contain the required matrices \\(M_d,U_d,V_d,C_d,L_d,R_d\\) for \\(6\\le d\\le10\\); hence the requested certificate cannot be extracted or verified here.",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "53be563da3768e00cd8f40e95f9ffb422725635bb22927e750c7845265b8df85"
+}

@@ -1,0 +1,44 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-324-1",
+	"taskId": "research-plan-task-324",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(c=6\\), accepted artifact `162283c7d25bcc9b6cf77717e180ce1c85e4bdcbe2d0dbabc186aab75e18d126` records \\[ (\\operatorname{rank}Q_d)_{d=4}^{8}=(1,1,2,1,1), \\quad Q_d=0\\ (9\\le d\\le32), \\] with no torsion in every recorded degree.",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Hence \\[ Q\\cong \\mathbb Z^{1+1+2+1+1}=\\mathbb Z^6. \\]",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "Relative to accepted generation of \\[ G_L=\\{\\bar s_\\mu:2^2\\subseteq\\mu\\subseteq2^4\\},\\qquad G_R=\\{\\bar s_\\mu:2^2\\subseteq\\mu\\subseteq4^2\\}, \\] each six-element family maps onto \\(Q\\cong\\mathbb Z^6\\). The accepted indexed-family Nakayama criterion therefore makes each image a \\(\\mathbb Z\\)-basis of \\(Q\\), so neither \\(G_L\\) nor \\(G_R\\) has a removable generator.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The requested \\(i=j=p=2,\\ c=6\\) minimality corollary is established relative to the accepted computation dependency and accepted generation criterion; no parent-theorem claim is made.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "33baa768096848fc6439b69b989a680816893287ca7ce8defac166f992576773"
+}

@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-331-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- The mandatory claim ledger is absent: the draft uses `## Findings` rather than `## Claims`, and its theorem and optional statement lack the required `[proved]` and `[unsupported]` labels.\n- The hypotheses permit \\(a=0\\), but \\(\\rho^\\vee=(b-\\rho_a,\\ldots,b-\\rho_1)\\) is undefined there unless the empty partition is explicitly declared self-complementary.\n- Several dependency IDs are abbreviated (for example, `-301-1`) rather than stated by their complete immutable attempt IDs.\n\n## Unresolved certificates\n- [proof-attempt] Reissue the same theorem boundary without broadening it, using the mandatory `## Claims` ledger and status labels, complete dependency IDs, and the explicit \\(a=0\\) complement convention."
+}

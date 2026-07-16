@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-58-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is not established: the full degree-\\(d+3\\) row lattice is not shown to equal the selected-row lattice, so omitted Pieri rows may impose a residual relation on \\(\\bar x_3\\).\n- claim-2 is unsupported: the report does not transcribe the required complete column/row lists, complementary minors, and integral row-dependency certificates. It also must state \\((A_+J)_d=0\\).\n\n## Unresolved certificates\n- [proof-attempt] For every \\(p=1\\) and \\(c=1\\) boundary regime, provide the complete degree-\\(d,\\ldots,d+3\\) column and Pieri-row matrices, the claimed unimodular complementary minor, and an explicit integral identity \\(R_{\\mathrm{full}}=CR_{\\mathrm{selected}}\\). This must include every omitted row and thereby prove that no residual relation on \\(x_3\\) remains."
+}

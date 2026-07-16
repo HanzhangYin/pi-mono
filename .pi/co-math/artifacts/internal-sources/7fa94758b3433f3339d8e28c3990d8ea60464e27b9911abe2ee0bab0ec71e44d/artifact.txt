@@ -1,0 +1,24 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-237-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-236-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-236-1 · specialist · ARTIFACT e2e77faf449b3c36807543e50d2a5423bafdc8fda51ba3aff57fa2fb6e7cb6bc
+000004	## Claims
+000005	
+000006	## Strategy
+000007	No sandbox action or durable-byte-stream resolver was provided, so no audit was executed.
+000008	
+000009	## Gaps
+000010	The requested target is **not established**: the resolver manifest, twelve counts, code output, exit status, locator, and artifact digests could not be persisted without an executable sandbox action.
+000011	
+000012	## Next
+000013	Unavailable.
+000014	
+000015	INTERNAL ATTEMPT research-attempt-research-plan-task-236-1 · critic · ARTIFACT 8f16e3bd78fc1ac1208c927c82d952f0d57fef2b147d7e1853d6e772859412d0
+000016	## Critique
+000017	- claim-1: Missing. The specialist correctly states that the target is **not established**, but supplies none of the required audit evidence: resolver/input manifest, twelve overlapping counts, targeted-query count \(3\), executable code, stdout/stderr, exit status, artifact locator, or SHA-256 digests. The external-search records do not substitute for auditing the exact durable byte streams.
+000018	
+000019	## Repair certificates
+000020	- [computation] Execute one sandbox audit that resolves exactly `persisted. source-39`, `persisted:source-29`, and `persisted:source-30`; records the resolved input manifest and input SHA-256 digests; and, for each stream, counts overlapping byte occurrences of the UTF-8 encodings of `Smith normal form`, `determinantal divisors`, `unimodular minors`, and `Pieri matrices` using every start position. Persist all twelve labeled counts, `targeted-query count=3`, exact code, complete stdout/stderr, exit status, stable artifact locator, and SHA-256 digests for code, stdout, stderr, and the persisted artifact.
+000021	
+000022	## Required revisions
+000023	- Replace the non-execution report with the task-owned computation artifact above.
+000024	- State explicitly whether this exact persisted-source audit—not any broader literature claim—was established.

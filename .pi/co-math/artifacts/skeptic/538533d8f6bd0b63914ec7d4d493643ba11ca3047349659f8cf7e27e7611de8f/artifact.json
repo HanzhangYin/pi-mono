@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-36-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-8 establishes the decisive failure: the durable task-35 certificate was not read, so its fixed orders and digests were not compared as required.\n- Claims 2–6 match the executed fresh artifact provisionally, including zero/nonzero pairs, Smith diagonals, and both quotient-basis tests. However, nonreuse of task-35 routines cannot be assessed without the task-35 certificate or implementation.\n- The custom Smith computation supplies diagonals but no unimodular transformations or separate exact certificate, limiting independent auditability.\n- claim-7 is appropriately conditional and finite, but it does not complete the changed verification task while the task-35 comparison remains unavailable.\n- No separate critic-review record was supplied."
+}

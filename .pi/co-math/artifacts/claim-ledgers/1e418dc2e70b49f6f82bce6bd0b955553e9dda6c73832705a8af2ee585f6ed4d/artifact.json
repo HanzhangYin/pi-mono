@@ -1,0 +1,75 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-251-1",
+	"taskId": "research-plan-task-251",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "In \\(\\Lambda/I_{r,n-r}\\), Schur classes form a graded basis and multiplication is truncated Littlewood–Richardson multiplication inside \\((n-r)^r\\). [doi:10.1112/jlms.12832, lines 213-218]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-2"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-2",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1112/jlms.12832",
+						"externalId": "10.1112/jlms.12832",
+						"url": "https://export.arxiv.org/src/2209.02011",
+						"lines": {
+							"start": 213,
+							"end": 218
+						},
+						"contentSha256": "267a2f5eeae54137af99793e84d5293ec688e854ffff662ddd3a27b1334e2bbd"
+					},
+					"excerpt": "213: Let $\\Lambda=\\Lambda(x_1,x_2,\\ldots)$ be the ring of symmetric functions with integral coefficients. This space has a ${\\mathbb Z}$-linear basis consisting of \\emph{Schur functions} $s_{\\lambda}$,\n214: where $\\lambda$ is an integer partition. Consider the ideal\n215: \\[I_{r,n-r} = \\mathrm{Span}_\\mathbb{Z}\\left\\{s_\\lambda\\mid \\lambda\\nsubseteq (n-r)^r \\right\\} \\]\n216: of $\\Lambda$. Then one has the following standard presentation of the cohomology of Grassmannians:\n217: \\[H^*(\\mathrm{Gr}_{r,n})\\cong \\Lambda/I_{r,n-r}. \\]\n218: We will use an overline to denote the projection $\\Lambda\\to\\Lambda/I_{r,n-r}$. Specifically, we will write $\\overline{\\Lambda}$ as a shorthand for $\\Lambda/I_{r,n-r}$. We will also distinguish between $s_{\\lambda}\\in \\Lambda$, the usual Schur function, and $\\overline{s}_{\\lambda}$ for its image in $\\overline{\\Lambda}$.",
+					"excerptSha256": "f077ce66b12fb598345769940e3f87138dd2b60861bfcff776fac36b2f19c33d",
+					"canonicalCitation": "[doi:10.1112/jlms.12832, lines 213-218]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "For the accepted case \\(A=\\Lambda/I_{5,4}\\), \\(J=\\bigoplus_{222\\subseteq\\lambda\\subseteq4^5}\\mathbb Z\\bar s_\\lambda\\), and \\(A_+=(h_1,h_2,h_3,h_4)\\), the degree-\\(d\\) relation lattice \\((A_+J)_d\\) is exactly the row span of all Pieri rows \\(h_t\\bar s_\\lambda\\), \\(1\\le t\\le4\\), \\(|\\lambda|=d-t\\), \\(\\lambda\\in[222,4^5]\\), with terms outside \\(4^5\\) zero.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "With partition-weight grading, \\(Q_d=(J/A_+J)_d\\) satisfies \\[ (Q_6,Q_7,Q_8,Q_9,Q_{10})\\cong (\\mathbb Z,\\mathbb Z,\\mathbb Z^2,\\mathbb Z,\\mathbb Z), \\] without torsion.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-4",
+			"text": "The complete Pieri computation has unit Smith diagonals in degrees \\(11,\\ldots,20\\), hence \\(Q_d=0\\) there; \\(J_d=0\\) outside \\(6\\le d\\le20\\). [artifact 7af8794736d117dae1e41cf900ae797f4928431403d66c0204057b898ccb954d]",
+			"classification": "computed",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-5",
+			"text": "Thus \\(Q\\cong\\mathbb Z^6\\). Every homogeneous generating family for \\(J\\) has at least two degree-\\(8\\) members and at least six members in total. There is no torsion obstruction in this case.",
+			"classification": "proved",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "9c4bd5b48919868434c118034d06bb42961698a4cdcc36c0a1334c0d679e598f"
+}

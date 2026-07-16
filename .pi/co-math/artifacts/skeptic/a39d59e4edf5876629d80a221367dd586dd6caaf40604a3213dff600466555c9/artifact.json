@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-252-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 fails the required degree-\\(6\\) boundary witness: the artifact records \\(V_6=[]\\) because its zero-row branch loses the single column, rather than \\(V_6=[1]\\). Hence it does not certify \\(U_6M_6V_6=D_6\\) for \\(M_6=D_6=0_{0\\times1}\\).\n- The report explicitly concludes that the requested certificate is not established. The witnesses for degrees \\(7,\\ldots,20\\) do not repair the missing degree-\\(6\\) case.\n\n## Unresolved certificates\n- [computation] Execute and preserve a corrected witness computation for all \\(6\\le d\\le20\\) that retains matrix column counts when there are no rows, explicitly outputs \\(M_6=D_6=0_{0\\times1}\\), \\(U_6=I_0\\), \\(V_6=[1]\\), and verifies every equality \\(U_dM_dV_d=D_d\\) and every applicable determinant \\(\\det U_d,\\det V_d=\\pm1\\)."
+}

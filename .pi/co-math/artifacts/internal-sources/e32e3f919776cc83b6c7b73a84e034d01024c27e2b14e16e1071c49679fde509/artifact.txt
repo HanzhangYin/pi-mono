@@ -1,0 +1,36 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-137-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-136-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-136-1 · specialist · ARTIFACT dd4006da7ffe4ff3ff90aeed595aa6151b5c21ec80fc34a62d4ed9052020cd8b
+000004	## Claims
+000005	- [unsupported] The requested complete partition-Pieri computation for lower=[2,2,0,0,0,0,0,0], upper=[4,4,4,4,4,4,4,4], degrees=[4,...,32], and hDegrees=[1,2,3,4] was not obtained.
+000006	- [unsupported] No exit-status-0 task-owned artifact containing every ordered basis, every labelled (including zero) row, exact Smith diagonals, ranks, quotient free ranks, torsion lists, and `enumeratedAllSupportDegrees:true` is available.
+000007	- [unsupported] The supplied partition-pieri primitive rejected the requested degree range because it permits only degrees 1 through 25.
+000008	- [unsupported] The attempted custom computation failed with exit status 1 because `sympy` was unavailable; artifact `a2af551f8267a89e7183965f18055785e7fda9dfcef733e26cd8d78f5adcbe8e` is not successful computation evidence.
+000009	
+000010	## Strategy
+000011	The requested primitive could not execute degrees 26 through 32, and the only sandbox attempt did not complete.
+000012	
+000013	## Gaps
+000014	All required data, particularly complete degrees 26 through 32, are missing.
+000015	
+000016	## Next
+000017	The requested target was **not established**.
+000018	
+000019	INTERNAL ATTEMPT research-attempt-research-plan-task-136-1 · critic · ARTIFACT 4c3bf56730676aa2c9863ac6d8cac4cdee69a1542206d82fd22790ae06630c7d
+000020	## Critique
+000021	- claim-1: This unsupported negative assertion does not execute the requested computation or supply any required output. The target is not established.
+000022	- claim-2: This directly identifies the decisive failure: no successful task-owned artifact contains the ordered bases, complete labelled rows, Smith data, and `enumeratedAllSupportDegrees:true`.
+000023	- claim-3: No rejection transcript, action record, primitive version, or parameter-limit documentation is supplied. Even if true, a primitive limitation does not satisfy the task.
+000024	- claim-4: The bare artifact ID does not ground the alleged exit status or missing dependency. In any event, an exit-status-1 attempt is not computation evidence and supplies none of the requested certificate.
+000025	
+000026	The strategy does not reach the acceptance criteria. Degrees \(26,\ldots,32\) and, on the supplied evidence, the entire required successful artifact remain missing. **Requested target established: no.**
+000027	
+000028	## Repair certificates
+000029	- [proof-attempt] Prove that the interval has support exactly in degrees \(4,\ldots,32\), and that for each target degree \(d\), the complete row set is indexed by every pair \((t,\lambda)\) with \(t\in\{1,2,3,4\}\), \(\lambda\) in the interval, and \(|\lambda|=d-t\), using the horizontal-strip Pieri rule—including rows whose bounded targets are all absent.
+000030	- [computation] Execute a dependency-complete exact-integer implementation on exactly the requested parameters; emit every ordered basis and labelled row, including zero rows, together with independently checkable Smith transformation witnesses \(UMV=D\), ranks, quotient free ranks, torsion lists, and `enumeratedAllSupportDegrees:true`; preserve stdout, stderr, executable code, digests, and exit status \(0\).
+000031	- [source-refresh] Supply the immutable sandbox action record for `a2af551f8267a89e7183965f18055785e7fda9dfcef733e26cd8d78f5adcbe8e`, including exact inputs, exit status, stdout/stderr, and digests, plus the primitive’s recorded rejection of degrees \(26,\ldots,32\).
+000032	
+000033	## Required revisions
+000034	- Replace unsupported availability and failure assertions with grounded execution records.
+000035	- Do not present a failed attempt or degrees \(4,\ldots,25\) as an adjacent substitute.
+000036	- Supply one successful complete artifact covering exactly degrees \(4,\ldots,32\).

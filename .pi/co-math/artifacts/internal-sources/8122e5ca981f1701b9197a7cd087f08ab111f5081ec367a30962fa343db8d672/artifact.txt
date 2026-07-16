@@ -1,0 +1,57 @@
+000001	TASK ATTEMPT: research-attempt-research-plan-task-86-1
+000002	SOURCE ATTEMPTS: research-attempt-research-plan-task-84-1
+000003	INTERNAL ATTEMPT research-attempt-research-plan-task-84-1 · specialist · ARTIFACT 7053b082fa1d80ec94b463709bc7ac8884336ed7e163acbf5b04e99e1966fa3e
+000004	## Claims
+000005	- [proved] Conditional on the integral \(q^r\)-box Schur basis and integral Pieri rule, for \(p=c=1\), \(q=i+1\), \(r=j+1\), \(d=ij\), and \(0\le k\le b:=\min(i,j)\), the degree-\(d+k\) columns are exactly
+000006	  \[
+000007	  P_{x,k-x}:=s_{((i+1)^x,i^{\,j-x},\,k-x)},\qquad 0\le x\le k,
+000008	  \]
+000009	  with a zero final part omitted. The requested target is established under these presentation hypotheses.
+000010	
+000011	## Strategy
+000012	Let \(\mu\subseteq(i+1)^{j+1}\) contain \(i^j\) and have \(|\mu|=d+k\). Its first \(j\) rows have lengths \(i\) or \(i+1\); partition order forces the \(i+1\)'s to occupy precisely the first \(x\) rows. Its only possible additional row has length \(y\). Hence
+000013	\[
+000014	\mu=((i+1)^x,i^{j-x},y)=P_{x,y},\qquad x+y=k.
+000015	\]
+000016	Conversely, for \(0\le x\le k\), \(x\le k\le j\) and \(k-x\le k\le i\), so \(P_{x,k-x}\) is in the box. This proves completeness.
+000017	
+000018	Order these columns by
+000019	\[
+000020	C_x:=P_{x,k-x}\qquad(0\le x\le k).
+000021	\]
+000022	For \(0\le x\le k-1\), Pieri gives
+000023	\[
+000024	h_1P_{x,k-1-x}=P_{x+1,k-1-x}+P_{x,k-x}
+000025	=C_{x+1}+C_x.
+000026	\]
+000027	Both summands remain in the box because \(x+1\le k\le j\) and \(k-x\le i\). Thus the \(h_1\)-row lattice is the unsigned path-incidence lattice
+000028	\[
+000029	L_k=\sum_{x=0}^{k-1}\mathbb Z(C_x+C_{x+1}).
+000030	\]
+000031	
+000032	Retaining \(C_0\), delete its column. The row matrix on \((C_1,\ldots,C_k)\) is lower unitriangular, hence has determinant \(1\). Retaining \(C_k\), delete its column; on \((C_0,\ldots,C_{k-1})\) the matrix is upper unitriangular, again of determinant \(1\). Therefore either endpoint is retained by a unimodular complement. For \(k=0\), the row lattice is \(0\) and the empty complementary minor has determinant \(1\).
+000033	
+000034	## Gaps
+000035	The argument assumes the stipulated integral box/Schur/Pieri presentation; that presentation is not independently proved here.
+000036	
+000037	## Next
+000038	No broader quotient, all-degree, or minimality claim is made.
+000039	
+000040	INTERNAL ATTEMPT research-attempt-research-plan-task-84-1 · critic · ARTIFACT edad9ea230e38b02fb683a6f36837062a1756eed39857979791f77c1e64963ae
+000041	## Critique
+000042	- claim-1: The partition enumeration and unitriangular minors are mathematically correct once the relevant presentation is assumed. However, the argument silently identifies “degree-\(d+k\) columns” with Schur classes \(s_\mu\) satisfying \(i^j\subseteq\mu\subseteq(i+1)^{j+1}\). An integral box Schur basis alone does not supply this column-indexing statement or establish that all \(h_1\)-rows arise by multiplying every degree-\(d+k-1\) column. These presentation facts must be explicitly assumed, derived, or grounded. The Pieri argument should also explicitly exclude every other addable box. Thus the strategy proves the requested combinatorial result conditionally, but the requested target is not established unconditionally or from the stated hypotheses alone.
+000043	
+000044	## Repair certificates
+000045	- [proof-attempt] Prove or explicitly invoke the presentation statement
+000046	  \[
+000047	  M_{d+k}=\bigoplus_{\substack{i^j\subseteq\mu\subseteq(i+1)^{j+1}\\|\mu|=d+k}}\mathbb Zs_\mu
+000048	  \]
+000049	  and that its complete \(h_1\)-row set is \(\{h_1s_\lambda:|\lambda|=d+k-1\}\). Then show that the only in-box additions to \(P_{x,k-1-x}\) are \(P_{x+1,k-1-x}\) and \(P_{x,k-x}\).
+000050	- [computation] Supply an executable partition-enumeration checker which, for specified \(i,j\), tests every \(0\le k\le\min(i,j)\), verifies the complete column and one-box-extension lists, and computes both complementary determinants as \(1\). This is finite corroboration only.
+000051	- [source-refresh] Supply a stable source excerpt grounding the exact presentation facts that columns are indexed by the interval \(i^j\subseteq\mu\subseteq q^r\) and that the complete \(h_1\)-rows are the corresponding Pieri multiplication rows.
+000052	
+000053	## Required revisions
+000054	- State the column-indexing and row-completeness hypotheses explicitly.
+000055	- Add the exclusion argument for all other Pieri additions.
+000056	- State the row lattice and both endpoint minors explicitly in the formal claim, not only in the strategy.
+000057	- Report the conclusion as conditional unless the missing presentation facts are proved or grounded.

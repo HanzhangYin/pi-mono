@@ -1,0 +1,79 @@
+{
+	"version": 1,
+	"attemptId": "research-attempt-research-plan-task-215-1",
+	"taskId": "research-plan-task-215",
+	"claims": [
+		{
+			"id": "claim-1",
+			"text": "For \\(m\\ge1\\), source-30 takes \\(n=4m\\), \\(r=s=2m\\), \\(i=j=m\\), hence \\(a=b=m\\), but states \\(\\binom{2m}{m}\\) only “according to Conjecture 4.10.” [doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]",
+			"classification": "source-backed",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 938,
+							"end": 955
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "938: 4.5. A minimality conjecture\n939: As we shall see in a moment,\n940: our generators for I_{w} are not minimal. However,\n941: we believe the following holds:\n942: Conjecture 4.10 .\n943: The two generating sets for the ideal J_{v_{r,s,t,n}} given in Theorem 4.8\n944: are both minimal.\n945: Via computer, we have verified this conjecture for all bigrassmannian permutations\n946: where r\\leq 4 and n-r\\leq 5.\n947: In fact, Conjecture 4.10 indicates obstructions to short presentations of\n948: H^{\\star}(X_{w}) in general. We now give\n949: a family of ideals that would require a large number of generators if the conjecture is true.\n950: For a positive integer m, let n=4m, and consider in\n951: W=S_{n}=S_{4m} the bigrassmannian v_{r,s,t,n} that corresponds\n952: to r=n-r=2m and i=j=m. Then a=b=m, and J_{v_{r,s,t,n}}(=I_{w_{r,s,t,n}}) requires\n953: (4.9)\n954: \\binom{2m}{m}\\sim\\frac{4^{m}}{\\sqrt{\\pi m}}=\\frac{\\sqrt{2}^{n+2}}{\\sqrt{\\pi n}}\n955: generators according to Conjecture 4.10 .",
+					"excerptSha256": "30163d69bf1f57d525eb7cee4df6bc038724e9b4aa9e38d920a636413b2d6c0e",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 938-955]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-2",
+			"text": "Let \\(A_m=H^\\star(GL_{4m}/B,\\mathbb Z)\\), \\(v_m=v_{2m,2m,m+1,4m}\\), and let \\(w_m=w_{2m,2m,m+1,4m}\\). Then \\[ J_{v_m}^{A_m}=I_{w_m}^{A_m},\\qquad \\mu_{A_m}(J_{v_m}^{A_m})=\\mu_{A_m}(I_{w_m}^{A_m}). \\] Indeed \\(m+1\\le2m\\) and \\(m+1>0=2m+2m-4m\\), so \\(v_m\\) is an admissible bigrassmannian. The dissector property gives \\[ S_{4m}=\\{u:u\\ge v_m\\}\\sqcup\\{u:u\\le w_m\\}, \\] hence \\(u\\ge v_m\\iff u\\not\\le w_m\\). Since integral Schubert classes are a homogeneous \\(\\mathbb Z\\)-basis of \\(A_m\\), the defining spans of \\(J_{v_m}^{A_m}\\) and \\(I_{w_m}^{A_m}\\) are literally equal. Thus their homogeneous generating sets, and therefore their minimum cardinalities \\(\\mu_{A_m}\\), coincide. [doi:10.1090/s0002-9947-2010-05163-3, lines 61-66]",
+			"classification": "proved",
+			"status": "validated",
+			"sourceIds": [
+				"literature-candidate-1"
+			],
+			"groundings": [
+				{
+					"sourceId": "literature-candidate-1",
+					"relation": "supports",
+					"locator": {
+						"kind": "external-record",
+						"provider": "crossref",
+						"doi": "10.1090/s0002-9947-2010-05163-3",
+						"externalId": "10.1090/s0002-9947-2010-05163-3",
+						"url": "https://ar5iv.labs.arxiv.org/html/0809.2981",
+						"lines": {
+							"start": 61,
+							"end": 66
+						},
+						"contentSha256": "34367d52e8304bb02e179463391e5b0ef662a3f45aa2baea7b589247dd392128"
+					},
+					"excerpt": "61: CW-decomposition for G/B in which all cells have even real\n62: dimension. Hence the fundamental homology classes [X_{w}] of their\n63: closures X_{w}:=\\overline{X_{w}^{\\circ}}, the Schubert varieties ,\n64: form a {\\mathbb{Z}}-basis for the integral homology H_{\\star}(G/B), and their\n65: (Kronecker) duals \\sigma_{w}:=[X_{w}]^{\\star} form the dual {\\mathbb{Z}}-basis for\n66: the integral cohomology H^{\\star}(G/B).",
+					"excerptSha256": "5c298c8b05434909cc22a7c4cb6f6086a5762b35e30e51f0720937bcab26a05d",
+					"canonicalCitation": "[doi:10.1090/s0002-9947-2010-05163-3, lines 61-66]"
+				}
+			],
+			"validationFailures": []
+		},
+		{
+			"id": "claim-3",
+			"text": "No supplied internal theorem with a durable locator asserts \\[ \\mu_{A_m}(J_{v_m}^{A_m})=\\binom{2m}{m}\\quad(m\\ge1). \\] The available source instead makes that equality conditional on Conjecture 4.10. [artifact 195d651f74f369c392a9d9789becba3f3b5fd7ec8f2a6876a4cbf230fd4ead91, lines 1-65]",
+			"classification": "unsupported",
+			"status": "unsupported",
+			"sourceIds": [],
+			"groundings": [],
+			"validationFailures": []
+		}
+	],
+	"sha256": "5d588962f06c13e636147ddb98a1a7429097a3e2f34dae8256e69b6ec7480e31"
+}

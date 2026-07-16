@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-179-1",
+	"text": "## Verdict\nneeds-revision\n\n## Concerns\n- claim-1 is supported by the accepted artifact summary.\n- claim-2 is unsupported: the rank data do not establish that the specified \\(B\\) is a quotient basis.\n- claim-3 gives plausible matrices and determinants but supplies no Pieri rows, row combinations, Smith witnesses, or complementary minors proving the five quotient relations.\n- Consequently claim-4 does not yet establish the requested target.\n\n## Unresolved certificates\n- [computation] Provide an exact replay for degrees \\(4,\\ldots,8\\) listing ordered Schur bases and Pieri matrices, together with explicit row combinations or Smith/complementary-minor witnesses proving that \\(B\\) is a quotient basis and deriving all five stated relations; then verify the coordinate matrices \\(I_6,C\\) and determinants \\(1,-1\\)."
+}

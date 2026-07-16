@@ -1,0 +1,4 @@
+{
+	"attemptId": "research-attempt-research-plan-task-159-1",
+	"text": "## Verdict\naccepted\n\n## Concerns\n- None for the named bounded certificate. Artifact `baf9447fe15327ded6640cbb3b0b3c7b43b62cdb3fb6fa1afcb78fe218ca5d97` supplies the requested witness data, including the explicit \\(0\\times1\\) degree-\\(4\\) boundary. No parent-theorem conclusion follows."
+}
