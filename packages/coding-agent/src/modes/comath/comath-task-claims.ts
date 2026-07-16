@@ -32,6 +32,8 @@ export interface ValidatedGroundingRecord {
 				doi?: string;
 				externalId?: string;
 				url?: string;
+				lines?: { start: number; end: number };
+				contentSha256?: string;
 		  };
 	sourceIndexId?: string;
 	sourceRevisionId?: string;
@@ -74,6 +76,7 @@ interface ParsedClaim {
 interface ParsedExternalCitation {
 	kind: "doi" | "arxiv" | "url";
 	value: string;
+	lines?: { start: number; end: number };
 	canonicalCitation: string;
 }
 
@@ -211,16 +214,31 @@ export async function validateTaskClaims(
 
 function parseExternalCitations(text: string): ParsedExternalCitation[] {
 	const citations: ParsedExternalCitation[] = [];
-	for (const match of text.matchAll(/\[(doi|arxiv|url)\s*:\s*([^\]\s]+)\]/gi)) {
+	for (const match of text.matchAll(/\[(doi|arxiv|url)\s*:\s*([^\],\s]+)([^\]]*)\]/gi)) {
 		const kind = match[1]?.toLowerCase();
 		const rawValue = match[2]?.trim();
 		if ((kind !== "doi" && kind !== "arxiv" && kind !== "url") || !rawValue) continue;
 		const value = kind === "doi" ? normalizeDoi(rawValue) : rawValue;
-		citations.push({ kind, value, canonicalCitation: `[${kind}:${value}]` });
+		const ranges = [...(match[3] ?? "").matchAll(/lines?\s+(\d+)\s*-\s*(\d+)/gi)].map((range) => ({
+			start: Number(range[1]),
+			end: Number(range[2]),
+		}));
+		if (ranges.length === 0) {
+			citations.push({ kind, value, canonicalCitation: `[${kind}:${value}]` });
+			continue;
+		}
+		for (const lines of ranges) {
+			citations.push({
+				kind,
+				value,
+				lines,
+				canonicalCitation: `[${kind}:${value}, lines ${lines.start}-${lines.end}]`,
+			});
+		}
 	}
 	const seen = new Set<string>();
 	return citations.filter((citation) => {
-		const key = `${citation.kind}:${citation.value.toLowerCase()}`;
+		const key = `${citation.kind}:${citation.value.toLowerCase()}:${citation.lines?.start ?? ""}-${citation.lines?.end ?? ""}`;
 		if (seen.has(key)) return false;
 		seen.add(key);
 		return true;
@@ -247,6 +265,45 @@ function resolveExternalCitation(
 		};
 	}
 	const sourceId = `literature-candidate-${(candidateIndex ?? 0) + 1}`;
+	let excerpt = `${candidate.title}\n${candidate.summary}`;
+	if (citation.lines) {
+		if (
+			citation.lines.start < 1 ||
+			citation.lines.end < citation.lines.start ||
+			citation.lines.end - citation.lines.start + 1 > 200
+		) {
+			return {
+				failure: failure(
+					"invalid-range",
+					`External citation ${citation.canonicalCitation} has an invalid or over-200-line range.`,
+					sourceId,
+					citation.lines,
+				),
+			};
+		}
+		if (!candidate.extractedText || !candidate.sourceFileSha256) {
+			return {
+				failure: failure(
+					"missing-exact-locator",
+					`External citation ${citation.canonicalCitation} requests full-text lines from a metadata-only candidate.`,
+					sourceId,
+					citation.lines,
+				),
+			};
+		}
+		const passage = extractExternalIndexedPassage(candidate.extractedText, citation.lines);
+		if (!passage) {
+			return {
+				failure: failure(
+					"invalid-range",
+					`External citation ${citation.canonicalCitation} is outside the supplied indexed full text.`,
+					sourceId,
+					citation.lines,
+				),
+			};
+		}
+		excerpt = passage;
+	}
 	return {
 		grounding: {
 			sourceId,
@@ -257,12 +314,32 @@ function resolveExternalCitation(
 				...(candidate.doi ? { doi: normalizeDoi(candidate.doi) } : {}),
 				...(candidate.externalId ? { externalId: candidate.externalId } : {}),
 				...(candidate.url ? { url: candidate.url } : {}),
+				...(citation.lines ? { lines: citation.lines } : {}),
+				...(citation.lines && candidate.sourceFileSha256 ? { contentSha256: candidate.sourceFileSha256 } : {}),
 			},
-			excerpt: `${candidate.title}\n${candidate.summary}`,
-			excerptSha256: createHash("sha256").update(`${candidate.title}\n${candidate.summary}`).digest("hex"),
+			excerpt,
+			excerptSha256: createHash("sha256").update(excerpt).digest("hex"),
 			canonicalCitation: citation.canonicalCitation,
 		},
 	};
+}
+
+function extractExternalIndexedPassage(
+	extractedText: string,
+	lines: { start: number; end: number },
+): string | undefined {
+	const indexed = new Map<number, string>();
+	for (const line of extractedText.split("\n")) {
+		const match = /^(\d+):\s?(.*)$/.exec(line);
+		if (match?.[1] && match[2] !== undefined) indexed.set(Number(match[1]), match[2]);
+	}
+	const passage: string[] = [];
+	for (let line = lines.start; line <= lines.end; line += 1) {
+		const text = indexed.get(line);
+		if (text === undefined) return undefined;
+		passage.push(`${line}: ${text}`);
+	}
+	return passage.join("\n");
 }
 
 export function buildValidatedClaimLedger(

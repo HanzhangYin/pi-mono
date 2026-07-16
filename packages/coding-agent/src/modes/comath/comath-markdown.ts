@@ -106,13 +106,9 @@ export function extractCoMathJsonObject(text: string): Record<string, unknown> |
 		if (end === undefined) {
 			continue;
 		}
-		try {
-			const parsed: unknown = JSON.parse(withoutFences.slice(start, end + 1));
-			if (typeof parsed === "object" && parsed !== null) {
-				return parsed as Record<string, unknown>;
-			}
-		} catch {
-			// Keep scanning: a prose brace before the real JSON object should not poison parsing.
+		const parsed = parseCoMathJsonCandidate(withoutFences.slice(start, end + 1));
+		if (typeof parsed === "object" && parsed !== null) {
+			return parsed as Record<string, unknown>;
 		}
 	}
 	return undefined;
@@ -212,23 +208,39 @@ function isScratchpadLine(line: string): boolean {
 
 function isToolProtocolLine(line: string): boolean {
 	return (
-		/^\{[\s\S]*"action"\s*:\s*"(?:run_computation|record_claim|finish)"/.test(line) ||
+		/^\{[\s\S]*"action"\s*:\s*"(?:inspect_source|search_source|run_computation|run_math_primitive|record_claim|finish)"/.test(
+			line,
+		) ||
 		/^\s*[{}]\s*,?\s*$/.test(line) ||
 		/^\s*"(?:action|summary|script|claim|classification|category|claimCategory|rationale|report)"\s*:/.test(line)
 	);
 }
 
 function isCoMathActionJsonObject(candidate: string): boolean {
+	const parsed = parseCoMathJsonCandidate(candidate);
+	return (
+		typeof parsed === "object" &&
+		parsed !== null &&
+		"action" in parsed &&
+		typeof (parsed as { action?: unknown }).action === "string" &&
+		/^(?:inspect_source|search_source|run_computation|run_math_primitive|record_claim|finish)$/.test(
+			(parsed as { action: string }).action,
+		)
+	);
+}
+
+function parseCoMathJsonCandidate(candidate: string): unknown {
 	try {
-		const parsed: unknown = JSON.parse(candidate);
-		return (
-			typeof parsed === "object" &&
-			parsed !== null &&
-			"action" in parsed &&
-			typeof (parsed as { action?: unknown }).action === "string" &&
-			/^(?:run_computation|record_claim|finish)$/.test((parsed as { action: string }).action)
-		);
+		return JSON.parse(candidate);
 	} catch {
-		return false;
+		// Models frequently put LaTeX such as `\(` or `\lambda` into otherwise valid action JSON.
+		// Repair only backslashes that cannot begin a JSON escape; structural JSON remains strict.
+		const repaired = candidate.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, "\\\\");
+		if (repaired === candidate) return undefined;
+		try {
+			return JSON.parse(repaired);
+		} catch {
+			return undefined;
+		}
 	}
 }

@@ -1,3 +1,4 @@
+import { parseCriticRepairDirective } from "./comath-critic-repair-policy.ts";
 import type {
 	CoMathActor,
 	CoMathCanonicalProjection,
@@ -5,6 +6,7 @@ import type {
 	ResearchAttemptFailure,
 	ResearchExecutionRecord,
 	ResearchPlanTaskRecord,
+	ResearchReviewFindingRecord,
 	ResearchTaskAttemptRecord,
 	ResearchTaskAttemptStageRecord,
 	ResearchTaskAttemptStatus,
@@ -123,6 +125,7 @@ export function resumeTaskAttempt(state: CoMathProjectState, attemptId: string, 
 	if (!attempt) throw new Error(`Unknown research task attempt: ${attemptId}`);
 	if (attempt.status !== "paused") throw new Error(`Research attempt ${attemptId} is not paused.`);
 	const task = getTask(state, attempt.taskId);
+	const repairedKind = parseCriticRepairDirective(task.goal)?.kind;
 	return {
 		...state,
 		researchTaskAttempts: state.researchTaskAttempts.map((candidate) => {
@@ -139,7 +142,13 @@ export function resumeTaskAttempt(state: CoMathProjectState, attemptId: string, 
 				completedAt: _completedAt,
 				...cleanTask
 			} = candidate;
-			return { ...cleanTask, status: "running", startedAt: candidate.startedAt ?? now, updatedAt: now };
+			return {
+				...cleanTask,
+				...(repairedKind ? { kind: repairedKind } : {}),
+				status: "running",
+				startedAt: candidate.startedAt ?? now,
+				updatedAt: now,
+			};
 		}),
 		updatedAt: now,
 	};
@@ -153,6 +162,86 @@ export function initializeTaskEngine(state: CoMathProjectState, now: string): Co
 		researchTaskAttempts: state.researchTaskAttempts ?? [],
 		researchExecutions: state.researchExecutions ?? [],
 		canonicalProjection: state.canonicalProjection ?? emptyCanonicalProjection(now),
+		updatedAt: now,
+	};
+}
+
+/** Pause durable task-engine work that lost its in-process execution owner. */
+export function pauseInterruptedResearchExecutions(state: CoMathProjectState, now: string): CoMathProjectState {
+	const runningExecutions = state.researchExecutions.filter((execution) => execution.status === "running");
+	if (runningExecutions.length === 0) return state;
+	const executionIds = new Set(runningExecutions.map((execution) => execution.id));
+	const attemptIds = new Set(runningExecutions.flatMap((execution) => execution.attemptIds));
+	const interruptedAttempts = state.researchTaskAttempts.filter(
+		(attempt) => attemptIds.has(attempt.id) && (attempt.status === "queued" || attempt.status === "running"),
+	);
+	let next = state;
+	for (const attempt of interruptedAttempts) {
+		next = withAttempt(next, attempt.id, (candidate) => ({
+			...candidate,
+			modelCalls: candidate.modelCalls.map((call) =>
+				call.status === "started"
+					? {
+							...call,
+							status: "failed",
+							completedAt: now,
+							error: "The owning research execution was interrupted before this model call completed.",
+						}
+					: call,
+			),
+			updatedAt: now,
+		}));
+		next = pauseAttempt(
+			next,
+			attempt.id,
+			{
+				stage: attempt.currentStage,
+				code: "interrupted-execution",
+				message: "The research execution stopped before this stage completed; resume the same attempt.",
+				claimIds: [],
+				retryable: true,
+			},
+			now,
+		);
+	}
+	const affectedPlanIds = new Set(
+		runningExecutions.flatMap((execution) =>
+			execution.taskIds.flatMap((taskId) => {
+				const task = next.researchPlanTasks.find((candidate) => candidate.id === taskId);
+				return task ? [task.planId] : [];
+			}),
+		),
+	);
+	return {
+		...next,
+		researchExecutions: next.researchExecutions.map((execution) =>
+			executionIds.has(execution.id)
+				? {
+						...execution,
+						status: "paused",
+						failure: {
+							stage:
+								interruptedAttempts.find((attempt) => execution.attemptIds.includes(attempt.id))
+									?.currentStage ?? "evidence-preparation",
+							code: "interrupted-execution",
+							message: "The research execution stopped before completion; resume it to continue durable work.",
+							claimIds: [],
+							retryable: true,
+						},
+						updatedAt: now,
+					}
+				: execution,
+		),
+		researchPlans: next.researchPlans.map((plan) =>
+			affectedPlanIds.has(plan.id)
+				? {
+						...plan,
+						status: "paused",
+						pauseReason: "A research execution was interrupted and can be resumed from its durable stage.",
+						updatedAt: now,
+					}
+				: plan,
+		),
 		updatedAt: now,
 	};
 }
@@ -243,6 +332,7 @@ export function createTaskAttempt(
 		stages: createResearchTaskAttemptStages(),
 		computationArtifactIds: [],
 		modelCalls: [],
+		reviewFindings: [],
 		startedAt: input.now,
 		updatedAt: input.now,
 	};
@@ -375,6 +465,17 @@ export function attachAttemptArtifacts(
 		modelCalls: [...attempt.modelCalls, ...(input.modelCalls ?? [])],
 		updatedAt: input.now,
 	}));
+}
+
+export function attachAttemptReviewFindings(
+	state: CoMathProjectState,
+	input: { attemptId: string; findings: readonly ResearchReviewFindingRecord[]; now: string },
+): CoMathProjectState {
+	return withAttempt(state, input.attemptId, (attempt) => {
+		const existing = new Map((attempt.reviewFindings ?? []).map((finding) => [finding.id, finding]));
+		for (const finding of input.findings) existing.set(finding.id, finding);
+		return { ...attempt, reviewFindings: [...existing.values()], updatedAt: input.now };
+	});
 }
 
 export function updateAttemptModelCall(

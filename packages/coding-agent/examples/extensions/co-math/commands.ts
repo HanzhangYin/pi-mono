@@ -772,6 +772,11 @@ async function initializeProject(pi: ExtensionAPI, ctx: ExtensionCommandContext,
 
 	const now = new Date().toISOString();
 	const statePath = getDefaultStatePath(ctx.cwd);
+	const existing = await loadProjectState(statePath);
+	if (existing) {
+		showCommandMessage(pi, ctx, `Resumed existing co-math project state at ${statePath}`);
+		return;
+	}
 	const state = createEmptyProjectState({
 		projectId: `co-math-${Date.now()}`,
 		title: rootQuestion,

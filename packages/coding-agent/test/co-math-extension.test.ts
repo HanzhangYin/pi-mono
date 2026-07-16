@@ -653,6 +653,27 @@ describe("co-math extension registration", () => {
 		}
 	});
 
+	it("resumes an existing project instead of overwriting durable state", async () => {
+		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-natural-resume-"));
+		try {
+			const { commands, notifications } = createCoMathExtensionFixture();
+			const command = commands.get("co");
+			const ctx = createCommandContext(notifications, tempDir);
+
+			await command?.handler("start a project for original question", ctx);
+			const before = await loadProjectState(getDefaultStatePath(tempDir));
+			await command?.handler("start a project for replacement question", ctx);
+			const after = await loadProjectState(getDefaultStatePath(tempDir));
+
+			expect(after?.projectId).toBe(before?.projectId);
+			expect(after?.rootQuestion).toBe("original question");
+			expect(after?.revision).toBe(before?.revision);
+			expect(notifications.at(-1)).toContain("Resumed existing co-math project state");
+		} finally {
+			await rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	it("resolves latest natural-language report, run, and workstream references safely", async () => {
 		const tempDir = await mkdtemp(join(tmpdir(), "pi-comath-natural-latest-"));
 		try {

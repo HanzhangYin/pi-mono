@@ -71,6 +71,7 @@ import type {
 	ResearchPlanTaskRecord,
 	ResearchPlanTaskRequiredCapability,
 	ResearchPlanTaskStatus,
+	ResearchReviewFindingRecord,
 	ResearchRunModelCallRecord,
 	ResearchTaskAttemptRecord,
 	ResearchTaskAttemptStageRecord,
@@ -2118,12 +2119,17 @@ export function addResearchPlanTask(state: CoMathProjectState, input: AddResearc
 	const priorTasks = getResearchPlanTasks(state, plan.id);
 	const sequence = priorTasks.length + 1;
 	const requestedDependencies = input.dependsOnTaskIds;
+	const inferredAcceptedDependencies = inferExplicitAcceptedTaskDependencies(
+		priorTasks,
+		[title, description, input.goal ?? "", ...(input.acceptanceCriteria ?? [])].join("\n"),
+	);
 	const dependsOnTaskIds =
 		requestedDependencies === undefined
-			? priorTasks.at(-1)
-				? [priorTasks.at(-1)!.id]
-				: []
-			: uniqueStrings(requestedDependencies.map((dependencyId) => dependencyId.trim()).filter(Boolean));
+			? uniqueStrings([...(priorTasks.at(-1) ? [priorTasks.at(-1)!.id] : []), ...inferredAcceptedDependencies])
+			: uniqueStrings([
+					...requestedDependencies.map((dependencyId) => dependencyId.trim()).filter(Boolean),
+					...inferredAcceptedDependencies,
+				]);
 	const priorTaskIds = new Set(priorTasks.map((task) => task.id));
 	if (dependsOnTaskIds.some((dependencyId) => !priorTaskIds.has(dependencyId))) {
 		throw new Error("Research plan task dependencies must reference earlier tasks in the same plan.");
@@ -2179,6 +2185,20 @@ export function addResearchPlanTask(state: CoMathProjectState, input: AddResearc
 			relatedIds: [plan.id, ...(task.pathId ? [task.pathId] : [])],
 			now: input.now,
 		},
+	);
+}
+
+function inferExplicitAcceptedTaskDependencies(priorTasks: readonly ResearchPlanTaskRecord[], text: string): string[] {
+	const acceptedBySequence = new Map(
+		priorTasks
+			.filter((task) => task.status === "completed" && task.reviewOutcome === "accepted")
+			.map((task) => [task.sequence, task.id]),
+	);
+	return uniqueStrings(
+		[...text.matchAll(/\baccepted\s+(?:research-plan-)?task(?:\s+|[-#])(\d+)\b/gi)]
+			.map((match) => Number(match[1]))
+			.map((sequenceNumber) => acceptedBySequence.get(sequenceNumber))
+			.filter((taskId): taskId is string => taskId !== undefined),
 	);
 }
 
@@ -3831,6 +3851,7 @@ export function getDefaultStatePath(cwd: string): string {
 const STATE_LOCK_TIMEOUT_MS = 5_000;
 const STATE_LOCK_STALE_MS = 30_000;
 const STATE_LOCK_RETRY_MS = 20;
+const STATE_LOCK_OWNER_FILE = "owner.json";
 
 export class CoMathStateConflictError extends Error {
 	readonly expectedRevision: number;
@@ -3899,13 +3920,29 @@ async function acquireStateFileLock(lockPath: string): Promise<void> {
 	while (true) {
 		try {
 			await mkdir(lockPath);
+			try {
+				await writeFile(
+					path.join(lockPath, STATE_LOCK_OWNER_FILE),
+					JSON.stringify({ pid: process.pid, createdAt: Date.now() }),
+					"utf8",
+				);
+			} catch (error) {
+				await rm(lockPath, { recursive: true, force: true }).catch(() => {});
+				throw error;
+			}
 			return;
 		} catch (error) {
 			if (!isErrorCode(error, "EEXIST")) {
 				throw error;
 			}
-			const lockStat = await stat(lockPath).catch(() => undefined);
-			if (lockStat && Date.now() - lockStat.mtimeMs > STATE_LOCK_STALE_MS) {
+			const [lockStat, owner] = await Promise.all([
+				stat(lockPath).catch(() => undefined),
+				readStateLockOwner(lockPath),
+			]);
+			if (
+				(owner && !isProcessAlive(owner.pid)) ||
+				(lockStat && Date.now() - lockStat.mtimeMs > STATE_LOCK_STALE_MS)
+			) {
 				await rm(lockPath, { recursive: true, force: true });
 				continue;
 			}
@@ -3914,6 +3951,28 @@ async function acquireStateFileLock(lockPath: string): Promise<void> {
 			}
 			await new Promise<void>((resolve) => setTimeout(resolve, STATE_LOCK_RETRY_MS));
 		}
+	}
+}
+
+async function readStateLockOwner(lockPath: string): Promise<{ pid: number } | undefined> {
+	try {
+		const owner = JSON.parse(await readFile(path.join(lockPath, STATE_LOCK_OWNER_FILE), "utf8")) as {
+			pid?: unknown;
+		};
+		return typeof owner.pid === "number" && Number.isSafeInteger(owner.pid) && owner.pid > 0
+			? { pid: owner.pid }
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function isProcessAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (error) {
+		return !isErrorCode(error, "ESRCH");
 	}
 }
 
@@ -5145,6 +5204,9 @@ function normalizeResearchTaskAttempt(
 			const normalized = normalizeResearchRunModelCall(call, startedAt);
 			return normalized ? [normalized] : [];
 		}),
+		reviewFindings: getArrayField(value, "reviewFindings").flatMap((finding) =>
+			normalizeResearchReviewFinding(finding),
+		),
 		...(normalizeResearchTaskReviewOutcome(value.reviewOutcome)
 			? { reviewOutcome: normalizeResearchTaskReviewOutcome(value.reviewOutcome) }
 			: {}),
@@ -5157,6 +5219,22 @@ function normalizeResearchTaskAttempt(
 			? { completedAt: getOptionalStringField(value, "completedAt") }
 			: {}),
 	};
+}
+
+function normalizeResearchReviewFinding(value: Record<string, unknown>): ResearchReviewFindingRecord[] {
+	const id = getOptionalStringField(value, "id");
+	const statement = getOptionalStringField(value, "statement");
+	const stage = value.stage;
+	const kind = value.kind;
+	if (
+		!id ||
+		!statement ||
+		(stage !== "critic" && stage !== "capability-validation" && stage !== "skeptic") ||
+		(kind !== "proof-attempt" && kind !== "refutation-attempt" && kind !== "computation" && kind !== "source-refresh")
+	) {
+		return [];
+	}
+	return [{ id, stage, kind, statement, acceptanceCriteria: getStringArrayField(value, "acceptanceCriteria") }];
 }
 
 function normalizeResearchTaskAttemptStage(value: Record<string, unknown>): ResearchTaskAttemptStageRecord[] {

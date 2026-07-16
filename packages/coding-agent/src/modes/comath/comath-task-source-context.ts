@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import type { LiteratureSourceSearchResponse } from "./comath-literature-source.ts";
 import {
@@ -42,6 +42,21 @@ export interface PreparedTaskSourceContext {
 	catalog: ResearchRunSourceCatalog;
 	contexts: Map<string, CoMathCitableSourceContext>;
 	preparedArtifact: CoMathPreparedArtifact;
+}
+
+export interface TaskSourceLiteralSearchResult {
+	sourceId: string;
+	sourceLocator: string;
+	sourceRevisionId?: string;
+	sourceFileSha256: string;
+	extractedTextSha256?: string;
+	caseSensitive: boolean;
+	terms: Array<{
+		term: string;
+		lineHitCount: number;
+		occurrenceCount: number;
+		hits: Array<{ line: number; text: string; occurrences: number }>;
+	}>;
 }
 
 /** Resolve one bounded specialist inspection against the same immutable index used for preparation. */
@@ -96,6 +111,128 @@ export async function inspectTaskSourceLines(
 		`EXCERPT-SHA256 ${resolved.excerptSha256}`,
 		numbered,
 	].join("\n");
+}
+
+/** Produce a bounded, machine-checkable fixed-literal hit table over one immutable indexed source. */
+export async function searchTaskSourceLiterals(
+	state: CoMathProjectState,
+	sourceId: string,
+	terms: readonly string[],
+	caseSensitive: boolean = false,
+): Promise<TaskSourceLiteralSearchResult> {
+	const normalizedTerms = [...new Set(terms.map((term) => term.trim()))];
+	if (
+		normalizedTerms.length === 0 ||
+		normalizedTerms.length > 20 ||
+		normalizedTerms.some((term) => term.length === 0 || term.length > 160)
+	) {
+		throw new Error("Source literal search requires 1-20 non-empty terms of at most 160 characters each.");
+	}
+	const source = state.literatureSources.find(
+		(candidate) =>
+			candidate.id === sourceId && candidate.citationEligibility === "citable" && candidate.sourceFileSha256,
+	);
+	if (!source?.sourceFileSha256) {
+		throw new Error(`Source ${sourceId} is not a citable hashed source.`);
+	}
+	if (!source.sourceIndexId || !source.sourceRelativePath) {
+		if (!source.extractedText) throw new Error(`Source ${sourceId} has no searchable full text.`);
+		const numberedLines = source.extractedText
+			.replace(/\r\n/g, "\n")
+			.replace(/\r/g, "\n")
+			.split("\n")
+			.flatMap((line) => {
+				const match = /^(\d+):\s?(.*)$/.exec(line);
+				return match?.[1] !== undefined && match[2] !== undefined
+					? [{ line: Number(match[1]), text: match[2] }]
+					: [];
+			});
+		if (numberedLines.length === 0) {
+			throw new Error(`Source ${sourceId} has no searchable numbered full-text passages.`);
+		}
+		return buildLiteralSearchResult({
+			sourceId,
+			sourceLocator: source.url ?? source.externalId ?? source.id,
+			sourceFileSha256: source.sourceFileSha256,
+			extractedTextSha256: createHash("sha256").update(source.extractedText).digest("hex"),
+			caseSensitive,
+			terms: normalizedTerms,
+			lines: numberedLines,
+		});
+	}
+	const record = state.sourceIndexes.find(
+		(candidate) => candidate.id === source.sourceIndexId && candidate.status === "ready",
+	);
+	if (!record) throw new Error(`Source index ${source.sourceIndexId} is not ready.`);
+	const index = await loadCoMathSourceIndex(record.indexPath, record.indexSha256);
+	const indexedFile = index.files.find((candidate) => candidate.relativePath === source.sourceRelativePath);
+	if (!indexedFile?.lineCount) throw new Error(`Source ${sourceId} is not a non-empty line-indexed file.`);
+	if (indexedFile.sha256 !== source.sourceFileSha256) {
+		throw new Error(`Source ${sourceId} digest does not match its active index.`);
+	}
+	const snapshot = await loadCoMathSourceSnapshot(path.join(index.snapshotRoot, "manifest.json"));
+	const snapshotFile = snapshot.files.find((candidate) => candidate.relativePath === source.sourceRelativePath);
+	if (!snapshotFile || snapshotFile.sha256 !== source.sourceFileSha256) {
+		throw new Error(`Source ${sourceId} digest does not match its immutable snapshot.`);
+	}
+	const text = await readFile(snapshotFile.snapshotAbsolutePath, "utf8");
+	const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+	if (text.endsWith("\n")) lines.pop();
+	return buildLiteralSearchResult({
+		sourceId,
+		sourceLocator: source.sourceRelativePath,
+		sourceRevisionId: record.sourceRevisionId,
+		sourceFileSha256: source.sourceFileSha256,
+		caseSensitive,
+		terms: normalizedTerms,
+		lines: lines.map((line, index) => ({ line: index + 1, text: line })),
+	});
+}
+
+function buildLiteralSearchResult(input: {
+	sourceId: string;
+	sourceLocator: string;
+	sourceRevisionId?: string;
+	sourceFileSha256: string;
+	extractedTextSha256?: string;
+	caseSensitive: boolean;
+	terms: readonly string[];
+	lines: ReadonlyArray<{ line: number; text: string }>;
+}): TaskSourceLiteralSearchResult {
+	let totalLineHits = 0;
+	const results = input.terms.map((term) => {
+		const needle = input.caseSensitive ? term : term.toLowerCase();
+		const hits: Array<{ line: number; text: string; occurrences: number }> = [];
+		let occurrenceCount = 0;
+		for (const line of input.lines) {
+			const haystack = input.caseSensitive ? line.text : line.text.toLowerCase();
+			let occurrences = 0;
+			for (
+				let offset = haystack.indexOf(needle);
+				offset !== -1;
+				offset = haystack.indexOf(needle, offset + needle.length)
+			) {
+				occurrences += 1;
+			}
+			if (occurrences === 0) continue;
+			occurrenceCount += occurrences;
+			hits.push({ line: line.line, text: line.text, occurrences });
+		}
+		totalLineHits += hits.length;
+		return { term, lineHitCount: hits.length, occurrenceCount, hits };
+	});
+	if (totalLineHits > 500) {
+		throw new Error("Source literal search exceeded 500 matching lines; use narrower terms.");
+	}
+	return {
+		sourceId: input.sourceId,
+		sourceLocator: input.sourceLocator,
+		...(input.sourceRevisionId ? { sourceRevisionId: input.sourceRevisionId } : {}),
+		sourceFileSha256: input.sourceFileSha256,
+		...(input.extractedTextSha256 ? { extractedTextSha256: input.extractedTextSha256 } : {}),
+		caseSensitive: input.caseSensitive,
+		terms: results,
+	};
 }
 
 /** Build source context directly from immutable snapshot/index artifacts, never state excerpts. */
@@ -213,27 +350,39 @@ export async function prepareTaskSourceContext(
 }
 
 export function formatExternalLiteratureSearch(search: LiteratureSourceSearchResponse): string {
+	const seenFullTextHashes = new Set<string>();
+	const candidates = search.sources.map((source, index) => {
+		const fullTextHash = source.extractedText
+			? (source.sourceFileSha256 ?? createHash("sha256").update(source.extractedText).digest("hex"))
+			: undefined;
+		const includeFullText = Boolean(source.extractedText && fullTextHash && !seenFullTextHashes.has(fullTextHash));
+		if (fullTextHash) seenFullTextHashes.add(fullTextHash);
+		return [
+			`CANDIDATE literature-candidate-${index + 1}`,
+			`TITLE ${source.title}`,
+			...(source.authors?.length ? [`AUTHORS ${source.authors.join(", ")}`] : []),
+			...(source.year ? [`YEAR ${source.year}`] : []),
+			...(source.doi ? [`DOI ${source.doi}`] : []),
+			...(source.externalId ? [`EXTERNAL-ID ${source.externalId}`] : []),
+			...(source.url ? [`URL ${source.url}`] : []),
+			`SUMMARY ${source.summary}`,
+			...(includeFullText && source.extractedText
+				? [source.extractedText]
+				: fullTextHash
+					? [`FULL-TEXT DUPLICATE content-sha256=${fullTextHash}; use the identical block supplied above.`]
+					: []),
+		].join("\n");
+	});
 	return [
 		"EXTERNAL LITERATURE SEARCH",
-		"This is provider metadata and abstract-level candidate material, not indexed primary theorem text.",
+		"A candidate without a FULL-TEXT SOURCE block is metadata or abstract material only. A FULL-TEXT SOURCE block is hashed retrieved text and is citable only through its supplied numbered passages.",
 		`QUERIES ${search.queries.join(" | ") || "(none)"}`,
 		...search.providers.map(
 			(provider) =>
 				`PROVIDER ${provider.provider} | ${provider.status} | candidates=${provider.candidateCount}${provider.error ? ` | error=${provider.error}` : ""}`,
 		),
-		...search.sources.map((source, index) =>
-			[
-				`CANDIDATE literature-candidate-${index + 1}`,
-				`TITLE ${source.title}`,
-				...(source.authors?.length ? [`AUTHORS ${source.authors.join(", ")}`] : []),
-				...(source.year ? [`YEAR ${source.year}`] : []),
-				...(source.doi ? [`DOI ${source.doi}`] : []),
-				...(source.externalId ? [`EXTERNAL-ID ${source.externalId}`] : []),
-				...(source.url ? [`URL ${source.url}`] : []),
-				`SUMMARY ${source.summary}`,
-			].join("\n"),
-		),
-		"Do not claim that a candidate theorem applies unless exact retrieved theorem text and its hypotheses are supplied. Record metadata-only leads as inconclusive.",
+		...candidates,
+		"For theorem-level claims cite an exact supplied range, for example [doi:10.x/example, lines 80-96] or [arxiv:2401.01234, lines 80-96]. Record candidates without full text as inconclusive for theorem-level claims.",
 	].join("\n\n");
 }
 

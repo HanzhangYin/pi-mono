@@ -8,8 +8,18 @@ import {
 	formatProductReport,
 	friendlyReviewStatus,
 } from "../src/modes/comath/comath-backend-output.ts";
-import { runResearchCoordinatorSynthesis } from "../src/modes/comath/comath-coordinator-synthesis.ts";
-import { CoMathHarness } from "../src/modes/comath/comath-harness.ts";
+import {
+	buildCoordinatorContext,
+	collectCoordinatorInputIds,
+	runResearchCoordinatorSynthesis,
+} from "../src/modes/comath/comath-coordinator-synthesis.ts";
+import {
+	acceptanceCriteriaForResearchDirective,
+	CoMathHarness,
+	rankCoordinatorMovesForAutonomousExecution,
+	researchTaskKindForPath,
+	retryablePausedResearchTask,
+} from "../src/modes/comath/comath-harness.ts";
 import { formatProductProgress } from "../src/modes/comath/comath-progress.ts";
 import {
 	isLikelyMathResearchQuestion,
@@ -18,7 +28,12 @@ import {
 	isResearchCoordinatorPrompt,
 	parseNaturalResearchQuestion,
 } from "../src/modes/comath/comath-prompts.ts";
-import type { CoMathProjectState, LiteratureClaimSupport } from "../src/modes/comath/schema.ts";
+import type {
+	CoMathProjectState,
+	LiteratureClaimSupport,
+	ResearchPlanTaskRecord,
+	ResearchTaskAttemptRecord,
+} from "../src/modes/comath/schema.ts";
 import {
 	addClaim,
 	addMarginNote,
@@ -139,6 +154,268 @@ describe("co-math paper alignment checkpoint", () => {
 		// Unsupported claim is surfaced as a roadblock, never promoted into "what we know".
 		expect(roadblocks).toContain("A direct proof of the twin prime conjecture");
 		expect(whatWeKnow).not.toContain("A direct proof of the twin prime conjecture");
+	});
+
+	it("gives the coordinator canonical accepted task context without treating it as external evidence", () => {
+		const state = buildCoordinatorStateWithClaims();
+		state.researchTaskAttempts = [
+			{
+				id: "attempt-computation-1",
+				taskId: "task-computation-1",
+				planId: "plan-1",
+				attemptNumber: 1,
+				status: "accepted",
+				currentStage: "finalization",
+				stages: [],
+				computationArtifactIds: ["content-computation-1"],
+				modelCalls: [],
+				reviewFindings: [],
+				reportArtifactId: "report-computation-1",
+				startedAt: NOW,
+				updatedAt: NOW,
+				completedAt: NOW,
+			},
+		];
+		const context = buildCoordinatorContext(
+			state,
+			"ACCEPTED ATTEMPT task-8-1\nThe graded Nakayama reduction is accepted.",
+			"NON-ACCEPTED ATTEMPT task-13-1\nCRITIC: prove the presentation before computing.",
+		);
+		expect(context).toContain("ACCEPTED ATTEMPT task-8-1");
+		expect(context).toContain("internal project context; not external literature or citable evidence");
+		expect(context).toContain("Task-engine plan state:\n(none)");
+		expect(context).toContain("Recent non-accepted task reviews");
+		expect(context).toContain("prove the presentation before computing");
+		expect(context).toContain("Task-owned computation outputs:");
+		expect(context).toContain("Content output ids: content-computation-1");
+		expect(context).toContain("Reviewed report output: report-computation-1");
+		expect(collectCoordinatorInputIds(state).inputComputationalArtifactIds).toContain("content-computation-1");
+	});
+
+	it("keeps accepted work visible when coordinator model synthesis falls back", async () => {
+		const { report } = await runResearchCoordinatorSynthesis({
+			state: buildCoordinatorStateWithClaims(),
+			now: NOW,
+			acceptedProjectContext: [
+				"ACCEPTED TASK INDEX (durable; do not repeat these objectives):",
+				"- accepted-8: Indexed graded Nakayama reduction",
+				"- accepted-27: Uniform b=1 theorem",
+				"",
+				"RECENT ACCEPTED ATTEMPT DETAILS:",
+				"ACCEPTED ATTEMPT accepted-27",
+			].join("\n"),
+		});
+		expect(report.whatWeKnow.join("\n")).toContain("Uniform b=1 theorem");
+		expect(report.whatWeKnow.join("\n")).not.toContain("No completed research report");
+		expect(report.recommendedNextMoves[0]?.title).toContain("Find source support");
+		expect(report.recommendedNextMoves[0]?.prompt).toContain("external mathematical literature and arXiv");
+	});
+
+	it("ranks concrete autonomous moves above tautological path continuations", () => {
+		const moves = rankCoordinatorMovesForAutonomousExecution({
+			suggestedPathId: "path-2",
+			recommendedNextMoves: [
+				{
+					title: "After proving the presentation, run the full computation",
+					pathId: "path-2",
+					rationale: "This move has an unmet prerequisite and is not immediately executable.",
+					prompt: "run the full boundary computation",
+					priority: "high",
+				},
+				{
+					title: "Continue Path 2",
+					pathId: "path-2",
+					rationale: "The coordinator selected this as the suggested next step.",
+					prompt: "continue path 2",
+					priority: "high",
+				},
+				{
+					title: "Compute the first unresolved boundary",
+					pathId: "path-4",
+					rationale: "Construct an exact integral presentation and compute its Smith normal form.",
+					prompt: "continue path 4",
+					priority: "medium",
+				},
+			],
+		});
+		expect(moves[0]?.title).toBe("Compute the first unresolved boundary");
+	});
+
+	it("ranks executable certificates above meta-planning follow-on instructions", () => {
+		const moves = rankCoordinatorMovesForAutonomousExecution({
+			suggestedPathId: "path-4",
+			recommendedNextMoves: [
+				{
+					title: "Keep the opposite boundary case as a separate follow-on task",
+					pathId: "path-4",
+					rationale: "Keep globalization as future work; do not infer the parent theorem.",
+					priority: "high",
+				},
+				{
+					title: "Produce one missing one-sided boundary certificate",
+					pathId: "path-1",
+					rationale: "Display the complete matrix and exhibit a unimodular complementary minor.",
+					priority: "medium",
+				},
+			],
+		});
+		expect(moves[0]?.title).toBe("Produce one missing one-sided boundary certificate");
+	});
+
+	it("keeps strategy pivots ahead of obsolete exhaustive repairs while preferring pivot corrections", () => {
+		const exhaustive = {
+			title: "Repair all ten explicit matrix certificates",
+			pathId: "path-1",
+			rationale: "Enumerate every missing row identity from the abandoned route.",
+			prompt: "CRITIC-DRIVEN REPAIR: compute all ten missing certificate matrices.",
+			priority: "high" as const,
+		};
+		const pivot = {
+			title: "Pivot from certificate enumeration to a structural lemma",
+			pathId: "path-1",
+			rationale: "Repeated derivations failed independent review.",
+			prompt: "STRATEGY PIVOT AFTER EXPENSIVE COMPUTATION\nProve one smaller reusable lemma.",
+			priority: "high" as const,
+		};
+		const correction = {
+			title: "Produce a corrected strategy-pivot certificate",
+			pathId: "path-1",
+			rationale: "Repair one bounded error in the new symbolic route.",
+			prompt: "Correct the strategy-pivot partition table and restate its bounded conclusion.",
+			priority: "medium" as const,
+		};
+		const withoutCorrection = rankCoordinatorMovesForAutonomousExecution({
+			suggestedPathId: "path-1",
+			recommendedNextMoves: [exhaustive, pivot],
+		});
+		expect(withoutCorrection[0]?.title).toBe(pivot.title);
+		const withCorrection = rankCoordinatorMovesForAutonomousExecution({
+			suggestedPathId: "path-1",
+			recommendedNextMoves: [exhaustive, pivot, correction],
+		});
+		expect(withCorrection[0]?.title).toBe(correction.title);
+	});
+
+	it("infers autonomous task capability from the concrete directive before the broad path label", () => {
+		const path = { title: "Reformulation", objective: "Find a cleaner equivalent statement." };
+		expect(researchTaskKindForPath(path, "Run sandboxed Smith-normal-form computations.")).toBe("computation");
+		expect(researchTaskKindForPath(path, "Run a standalone SNF task.")).toBe("computation");
+		expect(researchTaskKindForPath(path, "Enumerate the first nondegenerate cases.")).toBe("computation");
+		expect(researchTaskKindForPath(path, "Retrieve a full-text paper by DOI and inspect its theorem.")).toBe(
+			"literature-search",
+		);
+		expect(researchTaskKindForPath(path, "Extract indexed passages from the registered source.")).toBe(
+			"source-refresh",
+		);
+		expect(researchTaskKindForPath(path, "Prove the exact integral presentation and its relation lattice.")).toBe(
+			"proof-attempt",
+		);
+	});
+
+	it("selects the latest retryable paused task before new autonomous work", () => {
+		const state = buildCoordinatorStateWithClaims();
+		const pausedTask = (
+			sequence: number,
+			retryable: boolean,
+			description = "Produce one bounded certificate.",
+		): {
+			attempt: ResearchTaskAttemptRecord;
+			task: ResearchPlanTaskRecord;
+		} => {
+			const taskId = `task-${sequence}`;
+			const attemptId = `attempt-${sequence}`;
+			return {
+				task: {
+					id: taskId,
+					planId: "plan-1",
+					kind: "proof-attempt",
+					status: "blocked",
+					sequence,
+					title: `Task ${sequence}`,
+					description,
+					goal: description,
+					acceptanceCriteria: ["Produce the certificate."],
+					dependsOnTaskIds: [],
+					requiredCapabilities: ["independent-review"],
+					attemptIds: [attemptId],
+					latestAttemptId: attemptId,
+					sourceIds: [],
+					claimSupportIds: [],
+					computationalArtifactIds: [],
+					evidenceEntryIds: [],
+					reviewOutcome: "unreviewed",
+					createdAt: NOW,
+					updatedAt: NOW,
+				},
+				attempt: {
+					id: attemptId,
+					taskId,
+					planId: "plan-1",
+					attemptNumber: 1,
+					status: "paused",
+					currentStage: "specialist",
+					stages: [],
+					computationArtifactIds: [],
+					modelCalls: [],
+					failure: {
+						stage: "specialist",
+						code: "specialist-failed",
+						message: "Transient provider failure.",
+						claimIds: [],
+						retryable,
+					},
+					startedAt: NOW,
+					updatedAt: NOW,
+				},
+			};
+		};
+		const retryable = pausedTask(10, true);
+		const nonretryable = pausedTask(11, false);
+		const unavailable = pausedTask(12, true, "Ingest a verifiable full-text paper and extract theorem passages.");
+		const resolved = pausedTask(
+			13,
+			true,
+			"CRITIC-DRIVEN REPAIR\nSOURCE ATTEMPT: attempt-8\nTASK KIND: proof-attempt\nCERTIFICATE:\nThe requested quotient-conjugation target was established; no repair certificate is required.\nACCEPTANCE CRITERIA:\n- Preserve the established result.\nNON-GOALS:\n- Do not broaden the task.",
+		);
+		const stale = pausedTask(8, true);
+		const acceptedFrontier: ResearchPlanTaskRecord = {
+			...retryable.task,
+			id: "task-9",
+			sequence: 9,
+			status: "completed",
+			attemptIds: ["accepted-attempt-9"],
+			latestAttemptId: "accepted-attempt-9",
+			acceptedAttemptId: "accepted-attempt-9",
+			reviewOutcome: "accepted",
+		};
+		state.researchPlanTasks = [
+			stale.task,
+			acceptedFrontier,
+			resolved.task,
+			retryable.task,
+			nonretryable.task,
+			unavailable.task,
+		];
+		state.researchTaskAttempts = [
+			stale.attempt,
+			resolved.attempt,
+			retryable.attempt,
+			nonretryable.attempt,
+			unavailable.attempt,
+		];
+
+		expect(retryablePausedResearchTask(state)?.id).toBe(retryable.task.id);
+	});
+
+	it("turns a concrete coordinator directive into exact durable acceptance criteria", () => {
+		const criteria = acceptanceCriteriaForResearchDirective(
+			"Display the opposite-boundary matrix and exhibit a unimodular complementary minor.",
+		);
+		expect(criteria[0]).toContain("Display the opposite-boundary matrix");
+		expect(criteria[1]).toContain("do not substitute an adjacent result");
+		expect(acceptanceCriteriaForResearchDirective(undefined)).toEqual([
+			"Produce a bounded, independently reviewed research attempt.",
+		]);
 	});
 
 	it("recovers stale validation role runs without reviving retired research execution", async () => {

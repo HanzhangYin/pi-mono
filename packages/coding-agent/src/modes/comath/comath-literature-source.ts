@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { extractMathExpressions, significantContentTokens } from "./comath-text-similarity.ts";
 import type {
 	CoMathSourceCitationEligibility,
@@ -13,6 +15,11 @@ const DEFAULT_PROVIDER_LIMIT = 5;
 const DEFAULT_PROVIDER_TIMEOUT_MS = 8_000;
 const DEFAULT_REVIEW_LIMIT = 8;
 const MAX_PROVIDER_QUERIES = 2;
+const MAX_FULL_TEXT_CANDIDATES = 3;
+const MAX_FULL_TEXT_ROUTES_PER_SOURCE = 4;
+const MIN_FULL_TEXT_CHARACTERS = 2_000;
+const MAX_FULL_TEXT_CHARACTERS = 120_000;
+const MAX_CATALOG_SUMMARY_CHARACTERS = 4_000;
 
 const GENERIC_RELEVANCE_TOKENS = new Set([
 	"conjecture",
@@ -110,6 +117,19 @@ export type LiteratureSourceLookupResult = LiteratureSourceResult[] | Literature
 
 export interface LiteratureSourceLookup {
 	search(query: LiteratureSourceQuery): Promise<LiteratureSourceLookupResult>;
+}
+
+export interface LiteratureFullTextOptions {
+	timeoutMs?: number;
+	fetchFn?: (url: string, timeoutMs: number) => Promise<Response>;
+}
+
+export function prepareLiteratureSourceForCatalog(source: LiteratureSourceResult): LiteratureSourceResult {
+	return {
+		...source,
+		summary: source.summary.slice(0, MAX_CATALOG_SUMMARY_CHARACTERS),
+		...(source.extractedText ? { extractedText: source.extractedText.slice(0, MAX_FULL_TEXT_CHARACTERS) } : {}),
+	};
 }
 
 interface ProviderSearchOutput {
@@ -270,16 +290,213 @@ class CompositeLiteratureSourceLookup implements LiteratureSourceLookup {
 			...(output.error ? { error: output.error } : {}),
 		}));
 		const candidateSources = providerOutputs.flatMap((output) => output.sources);
+		const rankedSources = rankLiteratureSources(uniqueLiteratureSources(candidateSources), query);
+		const enrichedSources = await enrichLiteratureSourcesWithFullText(rankedSources, { timeoutMs });
 		return {
-			sources: rankLiteratureSources(uniqueLiteratureSources(candidateSources), query).slice(
-				0,
-				Math.max(1, query.maxSources || DEFAULT_REVIEW_LIMIT),
-			),
+			sources: enrichedSources.slice(0, Math.max(1, query.maxSources || DEFAULT_REVIEW_LIMIT)),
 			providers: providerRecords,
 			queries,
 			candidateCount: candidateSources.length,
 		};
 	}
+}
+
+export async function enrichLiteratureSourcesWithFullText(
+	sources: readonly LiteratureSourceResult[],
+	options: LiteratureFullTextOptions = {},
+): Promise<LiteratureSourceResult[]> {
+	const timeoutMs = Math.max(1, options.timeoutMs ?? DEFAULT_PROVIDER_TIMEOUT_MS);
+	const fetchFn = options.fetchFn ?? fetchWithTimeout;
+	const enriched = [...sources];
+	const candidateCount = Math.min(MAX_FULL_TEXT_CANDIDATES, enriched.length);
+	for (let index = 0; index < candidateCount; index += 1) {
+		const source = enriched[index];
+		if (!source || isSubstantiveFullText(source.extractedText, source.title)) {
+			continue;
+		}
+		const equivalentSources = enriched.filter((candidate) => publicationTitlesMatch(source.title, candidate.title));
+		const replacement = await retrieveFullText(source, equivalentSources, fetchFn, timeoutMs);
+		if (replacement) {
+			enriched[index] = replacement;
+		}
+	}
+	return enriched;
+}
+
+async function retrieveFullText(
+	source: LiteratureSourceResult,
+	equivalentSources: readonly LiteratureSourceResult[],
+	fetchFn: (url: string, timeoutMs: number) => Promise<Response>,
+	timeoutMs: number,
+): Promise<LiteratureSourceResult | undefined> {
+	for (const url of buildFullTextRoutes(source, equivalentSources).slice(0, MAX_FULL_TEXT_ROUTES_PER_SOURCE)) {
+		try {
+			const response = await fetchFn(url, timeoutMs);
+			if (!response.ok) {
+				continue;
+			}
+			const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+			if (contentType.includes("application/pdf")) {
+				continue;
+			}
+			const rawBytes = new Uint8Array(await response.arrayBuffer());
+			const raw = new TextDecoder().decode(rawBytes);
+			const text =
+				url.includes("export.arxiv.org/e-print/") || /(?:gzip|x-tar)/.test(contentType)
+					? extractArxivSourceText(rawBytes)
+					: contentType.includes("html") || /^\s*</.test(raw)
+						? extractHtmlText(raw)
+						: normalizePlainText(raw);
+			if (!isSubstantiveFullText(text, source.title)) {
+				continue;
+			}
+			const retrievalUrl = response.url || url;
+			const sha256 = createHash("sha256").update(rawBytes).digest("hex");
+			return {
+				...source,
+				url: retrievalUrl,
+				sourceFileSha256: sha256,
+				extractedText: formatIndexedFullText(text, retrievalUrl, sha256),
+			};
+		} catch {
+			// A failed route falls through to the next bounded route.
+		}
+	}
+	return undefined;
+}
+
+function buildFullTextRoutes(
+	source: LiteratureSourceResult,
+	equivalentSources: readonly LiteratureSourceResult[],
+): string[] {
+	const routes: string[] = [];
+	if (source.doi) {
+		routes.push(`https://doi.org/${encodeURIComponent(normalizeDoi(source.doi))}`);
+	}
+	const arxivIds = equivalentSources
+		.map(extractArxivId)
+		.filter((id): id is string => Boolean(id))
+		.map((id) => id.replace(/v\d+$/i, ""));
+	for (const arxivId of [...new Set(arxivIds)]) {
+		routes.push(`https://arxiv.org/html/${encodeURIComponent(arxivId)}`);
+		routes.push(`https://export.arxiv.org/e-print/${encodeURIComponent(arxivId)}`);
+		routes.push(`https://ar5iv.labs.arxiv.org/html/${encodeURIComponent(arxivId)}`);
+	}
+	for (const candidate of equivalentSources) {
+		if (candidate.url && !candidate.url.toLowerCase().endsWith(".pdf")) {
+			routes.push(candidate.url);
+		}
+	}
+	return [...new Set(routes)];
+}
+
+function publicationTitlesMatch(left: string, right: string): boolean {
+	const normalize = (value: string) =>
+		value
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, " ")
+			.trim();
+	const normalizedLeft = normalize(left);
+	const normalizedRight = normalize(right);
+	return normalizedLeft === normalizedRight;
+}
+
+function extractArxivId(source: LiteratureSourceResult): string | undefined {
+	if (source.provider === "arxiv" && source.externalId) {
+		return source.externalId.replace(/^arxiv:/i, "");
+	}
+	for (const candidate of [source.externalId, source.url, source.id]) {
+		const match = candidate?.match(
+			/(?:arxiv:|arxiv\.org\/(?:abs|html|pdf)\/)([a-z-]+\/\d{7}|\d{4}\.\d{4,5})(?:v\d+)?/i,
+		);
+		if (match?.[1]) {
+			return match[1];
+		}
+	}
+	return undefined;
+}
+
+function extractHtmlText(html: string): string {
+	const withoutNonContent = html
+		.replace(/<(script|style|svg|nav|form)\b[^>]*>[\s\S]*?<\/\1>/gi, "\n")
+		.replace(/<math\b[^>]*\balttext=(?:"([^"]*)"|'([^']*)')[^>]*>[\s\S]*?<\/math>/gi, (_match, double, single) =>
+			decodeHtmlEntities(String(double ?? single ?? "")),
+		)
+		.replace(/<(?:br|hr)\s*\/?\s*>/gi, "\n")
+		.replace(
+			/<\/?(?:article|aside|blockquote|dd|div|dl|dt|figcaption|figure|footer|h[1-6]|header|li|main|ol|p|pre|section|table|tbody|td|th|thead|tr|ul)\b[^>]*>/gi,
+			"\n",
+		)
+		.replace(/<[^>]+>/g, " ");
+	return normalizePlainText(decodeHtmlEntities(withoutNonContent));
+}
+
+function extractArxivSourceText(input: Uint8Array): string {
+	let archive = input;
+	try {
+		if (input[0] === 0x1f && input[1] === 0x8b) archive = gunzipSync(input);
+	} catch {
+		return "";
+	}
+	const decoder = new TextDecoder();
+	const documents: string[] = [];
+	for (let offset = 0; offset + 512 <= archive.length; ) {
+		const header = archive.subarray(offset, offset + 512);
+		if (header.every((byte) => byte === 0)) break;
+		const name = decoder.decode(header.subarray(0, 100)).replace(/\0.*$/, "").trim();
+		const sizeText = decoder.decode(header.subarray(124, 136)).replace(/\0.*$/, "").trim();
+		const size = Number.parseInt(sizeText || "0", 8);
+		if (!Number.isFinite(size) || size < 0 || offset + 512 + size > archive.length) return "";
+		if (/\.(?:tex|ltx)$/i.test(name)) {
+			documents.push(decoder.decode(archive.subarray(offset + 512, offset + 512 + size)));
+		}
+		offset += 512 + Math.ceil(size / 512) * 512;
+	}
+	return normalizePlainText(documents.join("\n"));
+}
+
+function decodeHtmlEntities(value: string): string {
+	return value
+		.replace(/&nbsp;/gi, " ")
+		.replace(/&amp;/gi, "&")
+		.replace(/&lt;/gi, "<")
+		.replace(/&gt;/gi, ">")
+		.replace(/&quot;/gi, '"')
+		.replace(/&#39;|&apos;/gi, "'")
+		.replace(/&#(\d+);/g, (_match, digits: string) => String.fromCodePoint(Number(digits)))
+		.replace(/&#x([\da-f]+);/gi, (_match, digits: string) => String.fromCodePoint(Number.parseInt(digits, 16)));
+}
+
+function normalizePlainText(value: string): string {
+	return value
+		.split(/\r?\n/)
+		.map((line) => line.replace(/\s+/g, " ").trim())
+		.filter(Boolean)
+		.join("\n")
+		.slice(0, MAX_FULL_TEXT_CHARACTERS);
+}
+
+function isSubstantiveFullText(value: string | undefined, title: string): boolean {
+	if (!value || value.length < MIN_FULL_TEXT_CHARACTERS) {
+		return false;
+	}
+	const lower = value.toLowerCase();
+	if (!/\b(theorem|proposition|lemma|corollary)\b/.test(lower) || !/\bproof\b/.test(lower)) {
+		return false;
+	}
+	const titleTokens = [...new Set(title.toLowerCase().match(/[a-z]{4,}/g) ?? [])];
+	if (titleTokens.length === 0) {
+		return true;
+	}
+	return titleTokens.filter((token) => lower.includes(token)).length >= Math.min(2, titleTokens.length);
+}
+
+function formatIndexedFullText(text: string, url: string, sha256: string): string {
+	const numbered = text
+		.split("\n")
+		.map((line, index) => `${index + 1}: ${line}`)
+		.join("\n");
+	return `FULL-TEXT SOURCE\nRetrieval URL: ${url}\nContent SHA-256: ${sha256}\nIndexed passages:\n${numbered}`;
 }
 
 /**

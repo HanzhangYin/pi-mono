@@ -1,15 +1,20 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import type { ComputationalExecutor } from "./comath-computation-executor.ts";
+import type { ComputationalExecutor, ComputationalScriptDraft } from "./comath-computation-executor.ts";
+import { extractStructuredReviewFindings } from "./comath-critic-repair-policy.ts";
 import {
 	createDefaultLiteratureSourceLookup,
+	enrichLiteratureSourcesWithFullText,
 	extractLiteratureSearchHints,
 	type LiteratureSourceLookup,
+	type LiteratureSourceResult,
 	type LiteratureSourceSearchResponse,
 	normalizeLiteratureSourceLookupResult,
+	prepareLiteratureSourceForCatalog,
 } from "./comath-literature-source.ts";
 import { extractCoMathJsonObject } from "./comath-markdown.ts";
+import { buildMathPrimitiveDraft } from "./comath-math-primitives.ts";
 import type { CoMathPreparedArtifact, CoMathStateStore } from "./comath-state-store.ts";
 import {
 	buildValidatedClaimLedger,
@@ -31,9 +36,11 @@ import {
 	inspectTaskSourceLines,
 	prepareTaskSourceContext,
 	type ResearchRunSourceCatalog,
+	searchTaskSourceLiterals,
 } from "./comath-task-source-context.ts";
 import {
 	attachAttemptArtifacts,
+	attachAttemptReviewFindings,
 	attachAttemptToExecution,
 	createTaskAttempt,
 	endAttempt,
@@ -44,12 +51,16 @@ import {
 	updateAttemptModelCall,
 	updateAttemptStage,
 } from "./comath-task-state.ts";
+import { significantContentTokens } from "./comath-text-similarity.ts";
 import type {
 	CoMathProjectState,
+	ResearchAttemptFailure,
 	ResearchPlanTaskRecord,
+	ResearchReviewFindingRecord,
 	ResearchTaskAttemptRecord,
 	ResearchTaskAttemptStatus,
 } from "./schema.ts";
+import { addLiteratureSearchRecord, addLiteratureSourceArtifact } from "./storage.ts";
 
 export interface ExecuteResearchTaskInput {
 	taskId: string;
@@ -68,6 +79,167 @@ export interface CoMathTaskEngineOptions {
 	computationalExecutor: ComputationalExecutor;
 	notify?: (message: string, type?: "info" | "warning" | "error") => void | Promise<void>;
 	literatureSourceLookup?: LiteratureSourceLookup;
+}
+
+const MAX_ACCEPTED_PROJECT_CONTEXT_DETAILS = 8;
+const MAX_ACCEPTED_TASK_INDEX_DESCRIPTION_CHARACTERS = 240;
+
+export function recordExternalLiteratureSources(
+	state: CoMathProjectState,
+	sources: readonly LiteratureSourceResult[],
+	now: string,
+): CoMathProjectState {
+	let next = state;
+	for (const source of sources) {
+		const duplicate = next.literatureSources.find((candidate) => {
+			if (source.doi && candidate.doi === source.doi) return true;
+			if (
+				source.externalId &&
+				candidate.externalId === source.externalId &&
+				candidate.provider === source.provider
+			) {
+				return true;
+			}
+			if (source.url && candidate.url === source.url) return true;
+			if (source.path && candidate.path === source.path) return true;
+			return !source.url && !source.path && candidate.title.toLowerCase() === source.title.toLowerCase();
+		});
+		const extractedText = source.extractedText?.trim();
+		if (duplicate && extractedText && extractedText.length > (duplicate.extractedText?.length ?? 0)) {
+			next = {
+				...next,
+				literatureSources: next.literatureSources.map((candidate) =>
+					candidate.id === duplicate.id
+						? {
+								...candidate,
+								...(source.url ? { url: source.url } : {}),
+								...(source.provider ? { provider: source.provider } : {}),
+								...(source.externalId ? { externalId: source.externalId } : {}),
+								extractedText,
+								citationEligibility: "citable",
+								...(source.sourceFileSha256 ? { sourceFileSha256: source.sourceFileSha256 } : {}),
+								updatedAt: now,
+							}
+						: candidate,
+				),
+				updatedAt: now,
+			};
+			continue;
+		}
+		next = addLiteratureSourceArtifact(next, {
+			kind: source.kind ?? "unknown",
+			title: source.title,
+			...(source.url ? { url: source.url } : {}),
+			...(source.path ? { path: source.path } : {}),
+			...(source.provider ? { provider: source.provider } : {}),
+			...(source.externalId ? { externalId: source.externalId } : {}),
+			...(source.doi ? { doi: source.doi } : {}),
+			...(source.venue ? { venue: source.venue } : {}),
+			...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
+			...(source.citationCount !== undefined ? { citationCount: source.citationCount } : {}),
+			...(source.sourceType ? { sourceType: source.sourceType } : {}),
+			authors: source.authors,
+			...(source.year ? { year: source.year } : {}),
+			summary: source.summary,
+			...(source.extractedText ? { extractedText: source.extractedText } : {}),
+			citationEligibility: source.extractedText ? "citable" : "inventory-only",
+			...(source.sourceFileSha256 ? { sourceFileSha256: source.sourceFileSha256 } : {}),
+			now,
+			actor: "system",
+		});
+	}
+	return next;
+}
+
+export function buildPersistedLiteratureSearchForTask(
+	state: CoMathProjectState,
+	task: ResearchPlanTaskRecord,
+): LiteratureSourceSearchResponse | undefined {
+	const taskText = [task.title, task.description, task.goal ?? "", ...task.acceptanceCriteria].join("\n");
+	const referencedIds = new Set(taskText.match(/\bsource-\d+\b/gi)?.map((id) => id.toLowerCase()) ?? []);
+	const taskTokens = significantContentTokens(taskText);
+	const labelledStatements =
+		taskText
+			.match(/\b(?:theorem|conjecture|question|problem)\s+\d+(?:\.\d+)?\b/gi)
+			?.map((label) => label.toLowerCase()) ?? [];
+	const sources = state.literatureSources
+		.filter(
+			(source) =>
+				source.citationEligibility === "citable" &&
+				Boolean(source.extractedText) &&
+				Boolean(source.sourceFileSha256),
+		)
+		.map((source) => {
+			const exactReference = referencedIds.has(source.id.toLowerCase());
+			const sourceTokens = significantContentTokens(`${source.title}\n${source.summary}`);
+			const sharedTokens = [...taskTokens].filter((token) => sourceTokens.has(token)).length;
+			const extractedText = source.extractedText?.toLowerCase() ?? "";
+			const labelledMatch = labelledStatements.some((label) => extractedText.includes(label));
+			return { source, exactReference, sharedTokens, labelledMatch };
+		})
+		.filter((candidate) =>
+			referencedIds.size > 0 ? candidate.exactReference : candidate.sharedTokens >= 3 || candidate.labelledMatch,
+		)
+		.sort(
+			(left, right) =>
+				Number(right.exactReference) * 1_000 +
+				right.sharedTokens +
+				Number(right.labelledMatch) * 20 -
+				(Number(left.exactReference) * 1_000 + left.sharedTokens + Number(left.labelledMatch) * 20),
+		)
+		.slice(0, 3)
+		.map(
+			({ source }): LiteratureSourceResult => ({
+				id: source.id,
+				title: source.title,
+				kind: source.kind,
+				summary: source.summary,
+				extractedText: source.extractedText,
+				authors: [...source.authors],
+				citationEligibility: source.citationEligibility,
+				sourceFileSha256: source.sourceFileSha256,
+				...(source.url ? { url: source.url } : {}),
+				...(source.path ? { path: source.path } : {}),
+				...(source.provider ? { provider: source.provider } : {}),
+				...(source.externalId ? { externalId: source.externalId } : {}),
+				...(source.doi ? { doi: source.doi } : {}),
+				...(source.venue ? { venue: source.venue } : {}),
+				...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
+				...(source.citationCount !== undefined ? { citationCount: source.citationCount } : {}),
+				...(source.sourceType ? { sourceType: source.sourceType } : {}),
+				...(source.year ? { year: source.year } : {}),
+				...(source.workspaceRole ? { workspaceRole: source.workspaceRole } : {}),
+			}),
+		);
+	if (sources.length === 0) return undefined;
+	const query = `persisted:${sources.map((source) => source.id).join(",")}`;
+	return {
+		sources,
+		providers: [{ provider: "workspace", query, status: "completed", candidateCount: sources.length }],
+		queries: [query],
+		candidateCount: sources.length,
+	};
+}
+
+export function requiresExternalLiteratureLookup(
+	task: ResearchPlanTaskRecord,
+	persisted: LiteratureSourceSearchResponse | undefined,
+): boolean {
+	const taskText = [task.title, task.description, task.goal ?? "", ...task.acceptanceCriteria].join(" ");
+	const requestsReplacementForDefectiveText =
+		/\b(?:uncorrupted|corrupt(?:ed|ion)?|garbled|unreadable|truncated|malformed|damaged|broken extraction|missing equations?|omitted passage)\b/i.test(
+			taskText,
+		);
+	if (task.kind === "source-refresh") {
+		return (
+			requestsReplacementForDefectiveText &&
+			/\b(?:alternate|different|other)\b.{0,80}\b(?:provider|source|copy|version)\b|\b(?:native arxiv|publisher (?:html|pdf|source)|external provider)\b/i.test(
+				taskText,
+			)
+		);
+	}
+	if (task.kind !== "literature-search") return false;
+	return persisted === undefined || requestsReplacementForDefectiveText;
 }
 
 /** The only active producer lifecycle for new task work. */
@@ -113,6 +285,7 @@ export class CoMathTaskEngine {
 		let state = await this.requireState();
 		let attempt = requireAttempt(state, attemptId);
 		const task = requireTask(state, attempt.taskId);
+		const acceptedProjectContext = await this.loadAcceptedProjectContext(state, attemptId);
 		const priorFailures = getPriorTaskAttemptFailures(state, task.id, attemptId);
 		const priorReviewerFeedback = await this.loadPriorReviewerFeedback(state, task.id, attemptId);
 		const retryContext =
@@ -138,14 +311,20 @@ export class CoMathTaskEngine {
 				sourceContexts = await this.loadAttemptSourceContexts(attempt);
 			} else {
 				await this.stageRunning(attemptId, "evidence-preparation");
-				const externalLiteratureSearch =
-					task.kind === "literature-search" ? await this.searchExternalLiterature(state, task) : undefined;
+				const persistedLiterature = buildPersistedLiteratureSearchForTask(state, task);
+				const requiresProviderSearch = requiresExternalLiteratureLookup(task, persistedLiterature);
+				const literatureSearchStartedAt = requiresProviderSearch ? timestamp() : undefined;
+				const externalLiteratureSearch = requiresProviderSearch
+					? await this.searchExternalLiterature(state, task)
+					: persistedLiterature;
+				const literatureSearchCompletedAt = requiresProviderSearch ? timestamp() : undefined;
 				state = await this.requireState();
+				const evidencePreparedAt = timestamp();
 				const sourceContext = await prepareTaskSourceContext(
 					state,
 					task,
 					attemptId,
-					timestamp(),
+					evidencePreparedAt,
 					path.join(path.dirname(this.stateStore.statePath), "artifacts"),
 					priorFailures,
 					priorReviewerFeedback,
@@ -154,19 +333,39 @@ export class CoMathTaskEngine {
 				const committed = await this.stateStore.transactWithArtifacts(
 					{ operation: "task-source-catalog", actor: "system", changedEntityIds: [attemptId, task.id] },
 					[sourceContext.preparedArtifact],
-					(fresh) => ({
-						state: attachAttemptArtifacts(
+					(fresh) => {
+						let next = attachAttemptArtifacts(
 							updateAttemptStage(fresh, {
 								attemptId,
 								stage: "evidence-preparation",
 								status: "completed",
-								now: timestamp(),
+								now: evidencePreparedAt,
 								artifactIds: [sourceContext.preparedArtifact.id],
 							}),
-							{ attemptId, sourceCatalogArtifactId: sourceContext.preparedArtifact.id, now: timestamp() },
-						),
-						result: undefined,
-					}),
+							{ attemptId, sourceCatalogArtifactId: sourceContext.preparedArtifact.id, now: evidencePreparedAt },
+						);
+						if (
+							externalLiteratureSearch &&
+							literatureSearchStartedAt &&
+							literatureSearchCompletedAt &&
+							!next.literatureSearches.some((search) => search.runId === attemptId)
+						) {
+							next = recordExternalLiteratureSources(next, externalLiteratureSearch.sources, evidencePreparedAt);
+							next = addLiteratureSearchRecord(next, {
+								id: `literature-search-${attemptId}`,
+								...(task.pathId ? { pathId: task.pathId } : {}),
+								runId: attemptId,
+								queries: externalLiteratureSearch.queries,
+								providers: externalLiteratureSearch.providers,
+								candidateCount: externalLiteratureSearch.candidateCount,
+								startedAt: literatureSearchStartedAt,
+								completedAt: literatureSearchCompletedAt,
+								now: evidencePreparedAt,
+								actor: "system",
+							});
+						}
+						return { state: next, result: undefined };
+					},
 				);
 				state = committed.state;
 				attempt = requireAttempt(state, attemptId);
@@ -182,7 +381,14 @@ export class CoMathTaskEngine {
 				specialist = await this.loadAttemptStageText(attempt, "specialist");
 			} else {
 				await this.stageRunning(attemptId, "specialist");
-				specialist = await this.runSpecialist(attemptId, task, state, sourceContexts, retryContext);
+				specialist = await this.runSpecialist(
+					attemptId,
+					task,
+					state,
+					sourceContexts,
+					retryContext,
+					acceptedProjectContext,
+				);
 				const artifact = await stageTextArtifact(this.stateStore.statePath, "specialist", attemptId, specialist);
 				const committed = await this.stateStore.transactWithArtifacts(
 					{ operation: "task-specialist", actor: "research", changedEntityIds: [attemptId] },
@@ -254,6 +460,8 @@ export class CoMathTaskEngine {
 			return { attemptId, status: attempt.status };
 		}
 		const computationEvidence = await this.loadAttemptComputationEvidence(attempt);
+		const internalSourceEvidence = await this.loadAttemptInternalSourceEvidence(attempt);
+		const literatureEvidence = sourceContexts.get("external-literature-search")?.context ?? "";
 
 		let critic: string;
 		try {
@@ -268,10 +476,23 @@ export class CoMathTaskEngine {
 					"general",
 					task,
 					state,
-					buildTaskCriticPrompt(task, specialist, claims, computationEvidence),
+					buildTaskCriticPrompt(
+						task,
+						specialist,
+						claims,
+						computationEvidence,
+						acceptedProjectContext,
+						literatureEvidence,
+						internalSourceEvidence,
+					),
 				);
 				const artifact = await stageTextArtifact(this.stateStore.statePath, "critic", attemptId, critic);
-				await this.completeTextStage(attemptId, "critic", artifact);
+				await this.completeTextStage(
+					attemptId,
+					"critic",
+					artifact,
+					extractStructuredReviewFindings(attemptId, "critic", critic),
+				);
 				state = await this.requireState();
 				attempt = requireAttempt(state, attemptId);
 			}
@@ -292,7 +513,14 @@ export class CoMathTaskEngine {
 					"general",
 					task,
 					state,
-					buildTaskSynthesisPrompt(task, claims, critic),
+					buildTaskSynthesisPrompt(
+						task,
+						claims,
+						critic,
+						acceptedProjectContext,
+						literatureEvidence,
+						internalSourceEvidence,
+					),
 				);
 				report = assembleValidatedReport(claims, synthesis);
 			} catch (_error) {
@@ -324,8 +552,9 @@ export class CoMathTaskEngine {
 		}
 
 		if (!stageIsCompleted(attempt, "capability-validation")) {
-			const capabilityFailure = capabilityFailureFor(task, claims, attempt);
+			const capabilityFailure = capabilityFailureFor(state, task, claims, attempt, report);
 			if (capabilityFailure) {
+				const capabilityFinding = capabilityReviewFinding(attemptId, capabilityFailure);
 				const committed = await this.stateStore.transact(
 					{ operation: "task-capability-validation", actor: "system", changedEntityIds: [attemptId, task.id] },
 					(fresh) => {
@@ -337,6 +566,13 @@ export class CoMathTaskEngine {
 							failure: capabilityFailure,
 							now: blockedAt,
 						});
+						if (capabilityFinding) {
+							next = attachAttemptReviewFindings(next, {
+								attemptId,
+								findings: [capabilityFinding],
+								now: blockedAt,
+							});
+						}
 						next = endAttempt(next, attemptId, "needs-revision", blockedAt, capabilityFailure);
 						return { state: next, result: undefined };
 					},
@@ -361,23 +597,46 @@ export class CoMathTaskEngine {
 					"skeptic",
 					task,
 					state,
-					buildTaskSkepticPrompt(task, claims, report, computationEvidence),
+					buildTaskSkepticPrompt(
+						task,
+						claims,
+						report,
+						computationEvidence,
+						acceptedProjectContext,
+						literatureEvidence,
+						internalSourceEvidence,
+					),
 				);
 				verdict = parseSkepticVerdict(skeptic);
 				const artifact = await stageTextArtifact(this.stateStore.statePath, "skeptic", attemptId, skeptic);
-				await this.completeTextStage(attemptId, "skeptic", artifact);
+				await this.completeTextStage(
+					attemptId,
+					"skeptic",
+					artifact,
+					extractStructuredReviewFindings(attemptId, "skeptic", skeptic),
+				);
 			}
 		} catch (error) {
 			return this.pause(attempt, "skeptic", "skeptic-failed", message(error), timestamp());
 		}
-		if (verdict !== "accepted") {
+		const repairCertificateExplicitlyUnestablished =
+			task.goal?.startsWith("CRITIC-DRIVEN REPAIR") === true &&
+			/\b(?:requested |named |source |capability )?certificate (?:is|was|remains) not established\b/i.test(
+				report.replaceAll("*", ""),
+			);
+		if (verdict !== "accepted" || repairCertificateExplicitlyUnestablished) {
+			const finalVerdict = repairCertificateExplicitlyUnestablished ? "needs-revision" : verdict;
 			const committed = await this.stateStore.transact(
 				{ operation: "task-review", actor: "reviewer", changedEntityIds: [attemptId, task.id] },
 				(fresh) => ({
-					state: endAttempt(fresh, attemptId, verdict, timestamp(), {
+					state: endAttempt(fresh, attemptId, finalVerdict, timestamp(), {
 						stage: "skeptic",
-						code: "skeptic-verdict",
-						message: `Independent skeptic verdict: ${verdict}.`,
+						code: repairCertificateExplicitlyUnestablished
+							? "repair-certificate-unestablished"
+							: "skeptic-verdict",
+						message: repairCertificateExplicitlyUnestablished
+							? "The repair synthesis explicitly states that its required certificate is not established."
+							: `Independent skeptic verdict: ${verdict}.`,
 						claimIds: [],
 						retryable: false,
 					}),
@@ -409,6 +668,7 @@ export class CoMathTaskEngine {
 		state: CoMathProjectState,
 		contexts: ReadonlyMap<string, { context: string }>,
 		retryContext?: TaskRetryContext,
+		acceptedProjectContext: string = "",
 	): Promise<string> {
 		const citable = [...contexts.values()].map((context) => context.context).join("\n\n");
 		const inventory = state.literatureSources
@@ -417,15 +677,105 @@ export class CoMathTaskEngine {
 			.join("\n");
 		const currentAttempt = requireAttempt(state, attemptId);
 		const priorActionEvidence = await this.loadAttemptComputationEvidence(currentAttempt, true);
-		const actionResults: string[] = priorActionEvidence
-			? [`PRIOR TASK-OWNED COMPUTATION RESULTS\n${priorActionEvidence}`]
-			: [];
+		const resumedWithSuccessfulComputation = currentAttempt.computationArtifactIds.length > 0;
+		let hasSuccessfulComputation = resumedWithSuccessfulComputation;
+		const referencedAttemptIds = [
+			...new Set(
+				[task.goal, task.description, ...task.acceptanceCriteria]
+					.join("\n")
+					.match(/research-attempt-[A-Za-z0-9_-]+/g) ?? [],
+			),
+		].filter((referencedAttemptId) => referencedAttemptId !== attemptId);
+		const referencedArtifactIds = [
+			...new Set(
+				[task.goal, task.description, ...task.acceptanceCriteria].join("\n").match(/\b[a-f0-9]{64}\b/g) ?? [],
+			),
+		];
+		const internalAttemptEvidence: string[] = [];
+		let remainingInternalAttemptCharacters = 40_000;
+		for (const referencedAttemptId of referencedAttemptIds.slice(0, 3)) {
+			const referencedAttempt = state.researchTaskAttempts.find((candidate) => candidate.id === referencedAttemptId);
+			if (!referencedAttempt) continue;
+			for (const stage of ["specialist", "critic", "synthesis"] as const) {
+				const stageArtifactId = referencedAttempt.stages
+					.find((candidate) => candidate.stage === stage && candidate.status === "completed")
+					?.artifactIds.at(-1);
+				if (!stageArtifactId || remainingInternalAttemptCharacters <= 0) continue;
+				try {
+					const stageText = await this.loadAttemptStageText(referencedAttempt, stage);
+					const rendered =
+						`INTERNAL ATTEMPT ${referencedAttemptId} · ${stage} · ARTIFACT ${stageArtifactId}\n${stageText}`.slice(
+							0,
+							remainingInternalAttemptCharacters,
+						);
+					internalAttemptEvidence.push(rendered);
+					remainingInternalAttemptCharacters -= rendered.length;
+				} catch {}
+			}
+		}
+		const internalSourceRoot = path.join(path.dirname(this.stateStore.statePath), "artifacts", "internal-sources");
+		for (const artifactId of referencedArtifactIds.slice(0, 3)) {
+			if (remainingInternalAttemptCharacters <= 0) break;
+			let serialized: string;
+			try {
+				serialized = await readFile(path.join(internalSourceRoot, artifactId, "artifact.txt"), "utf8");
+			} catch {
+				continue;
+			}
+			if (createHash("sha256").update(serialized).digest("hex") !== artifactId) continue;
+			const rendered =
+				`REFERENCED INTERNAL ARTIFACT ${artifactId}\nLOCATOR artifacts/internal-sources/${artifactId}/artifact.txt\n${serialized}`.slice(
+					0,
+					remainingInternalAttemptCharacters,
+				);
+			internalAttemptEvidence.push(rendered);
+			remainingInternalAttemptCharacters -= rendered.length;
+		}
+		const internalSourceText = internalAttemptEvidence.join("\n\n");
+		let taskOwnedInternalSourceArtifact: CoMathPreparedArtifact | undefined;
+		if (internalSourceText) {
+			const artifact = await stageLineAddressedArtifact(
+				this.stateStore.statePath,
+				"internal-sources",
+				attemptId,
+				referencedAttemptIds.slice(0, 3),
+				internalSourceText,
+			);
+			taskOwnedInternalSourceArtifact = artifact;
+			await this.stateStore.transactWithArtifacts(
+				{ operation: "task-internal-source", actor: "system", changedEntityIds: [attemptId, task.id] },
+				[artifact],
+				(fresh) => ({
+					state: updateAttemptStage(fresh, {
+						attemptId,
+						stage: "specialist",
+						status: "running",
+						now: new Date().toISOString(),
+						artifactIds: [artifact.id],
+					}),
+					result: undefined,
+				}),
+			);
+		}
+		const actionResults: string[] = [
+			...(priorActionEvidence ? [`PRIOR TASK-OWNED COMPUTATION RESULTS\n${priorActionEvidence}`] : []),
+			...(internalAttemptEvidence.length > 0
+				? [
+						`TASK-OWNED INTERNAL SOURCE SNAPSHOT\nARTIFACT ${taskOwnedInternalSourceArtifact?.id}\nLOCATOR artifacts/internal-sources/${taskOwnedInternalSourceArtifact?.id}/artifact.txt@L1-L${internalSourceText.split("\n").length + 2}\nThis is a bounded immutable snapshot of draft artifacts, not accepted project knowledge and not an external citation. Cite its artifact digest and exact line range, independently verify its mathematical content, and preserve every stated gap.\n\n${internalSourceText}`,
+					]
+				: []),
+		];
+		if (resumedWithSuccessfulComputation) {
+			actionResults.push(
+				"RETRY SIDE-EFFECT POLICY\nSuccessful task-owned computation artifacts survived the interrupted specialist call. Do not run another computation in this resumed stage. Return the required Markdown claim contract using the persisted results, and mark any remaining gap unsupported for independent review.",
+			);
+		}
 		let inspectedCharacters = 0;
 		const specialistPurpose =
 			task.kind === "computation" ? "computation" : task.kind === "literature-search" ? "literature" : "general";
 		const specialistPrompt = (): string =>
 			[
-				buildTaskSpecialistPrompt(task, citable, inventory, retryContext),
+				buildTaskSpecialistPrompt(task, citable, inventory, retryContext, acceptedProjectContext),
 				...(actionResults.length > 0 ? ["SPECIALIST ACTION RESULTS", ...actionResults] : []),
 			].join("\n\n");
 		let response = await this.runRole(
@@ -437,34 +787,87 @@ export class CoMathTaskEngine {
 			state,
 			specialistPrompt(),
 		);
-		for (let actionCount = 0; actionCount < 6; actionCount += 1) {
+		const actionBudget = task.kind === "computation" ? 3 : 6;
+		for (let actionCount = 0; actionCount < actionBudget; actionCount += 1) {
 			const action = extractCoMathJsonObject(response);
 			if (!action || typeof action.action !== "string") return response;
-			if (action.action === "run_computation") {
-				if (typeof action.script !== "string" || action.script.length === 0)
+			if (action.action === "run_computation" || action.action === "run_math_primitive") {
+				if (hasSuccessfulComputation) {
+					actionResults.push(
+						"COMPUTATION ACTION REFUSED\nThis task already has a successful task-owned computation. Reuse it and return the Markdown claim contract now; do not repeat side effects.",
+					);
+					return this.runRole(
+						attemptId,
+						"specialist",
+						"specialist",
+						"computation",
+						task,
+						state,
+						`${specialistPrompt()}\n\nACTION BUDGET EXHAUSTED\nReturn the required Markdown claim contract, citing the successful artifact and marking every unchecked statement unsupported.`,
+					);
+				}
+				if (
+					action.action === "run_computation" &&
+					(typeof action.script !== "string" || action.script.length === 0)
+				)
 					throw new Error("Specialist computation action omitted a script.");
-				const result = await this.computationalExecutor.runScript(
-					{
-						fileName: `attempt-${task.id}.py`,
-						language: "python",
-						content: action.script,
-						summary: typeof action.summary === "string" ? action.summary : "Specialist computation.",
-					},
-					{
-						rootQuestion: state.rootQuestion,
-						pathTitle: task.title,
-						pathObjective: task.goal ?? task.description,
-						workingDirectory: path.dirname(this.stateStore.statePath),
-						maxRuntimeMs: 10_000,
-					},
-				);
+				let primitiveDraft: ComputationalScriptDraft | undefined;
+				try {
+					primitiveDraft =
+						action.action === "run_math_primitive"
+							? buildMathPrimitiveDraft(
+									action.primitive,
+									action.input,
+									typeof action.summary === "string" ? action.summary : "Exact mathematical primitive.",
+								)
+							: undefined;
+				} catch (error) {
+					actionResults.push(`MATH PRIMITIVE ACTION ERROR\n${message(error)}`);
+					response = await this.runRole(
+						attemptId,
+						"specialist",
+						"specialist",
+						"computation",
+						task,
+						state,
+						specialistPrompt(),
+					);
+					continue;
+				}
+				const computationDraft = primitiveDraft ?? {
+					fileName: `attempt-${task.id}.py`,
+					language: "python" as const,
+					content: action.script as string,
+					summary: typeof action.summary === "string" ? action.summary : "Specialist computation.",
+				};
+				const computationWorkingDirectory = path.dirname(this.stateStore.statePath);
+				const result = await this.computationalExecutor.runScript(computationDraft, {
+					rootQuestion: state.rootQuestion,
+					pathTitle: task.title,
+					pathObjective: task.goal ?? task.description,
+					workingDirectory: computationWorkingDirectory,
+					maxRuntimeMs: 60_000,
+				});
+				const scriptSha256 = createHash("sha256").update(computationDraft.content).digest("hex");
+				const fullStdout = result.stdoutFileName
+					? await readFile(path.join(computationWorkingDirectory, result.stdoutFileName), "utf8")
+					: result.stdout;
+				const fullStderr = result.stderrFileName
+					? await readFile(path.join(computationWorkingDirectory, result.stderrFileName), "utf8")
+					: result.stderr;
+				const stdoutSha256 = createHash("sha256").update(fullStdout).digest("hex");
+				const stderrSha256 = createHash("sha256").update(fullStderr).digest("hex");
 				const computationArtifact = await stageJsonArtifact(this.stateStore.statePath, "computations", {
 					attemptId,
 					taskId: task.id,
-					summary: typeof action.summary === "string" ? action.summary : "Specialist computation.",
-					script: action.script,
-					scriptSha256: createHash("sha256").update(action.script).digest("hex"),
+					summary: computationDraft.summary,
+					script: computationDraft.content,
+					scriptSha256,
 					result,
+					fullOutput: {
+						stdout: { fileName: result.stdoutFileName, sha256: stdoutSha256, content: fullStdout },
+						stderr: { fileName: result.stderrFileName, sha256: stderrSha256, content: fullStderr },
+					},
 				});
 				await this.stateStore.transactWithArtifacts(
 					{ operation: "task-computation", actor: "research", changedEntityIds: [attemptId, task.id] },
@@ -487,6 +890,7 @@ export class CoMathTaskEngine {
 						return { state: next, result: undefined };
 					},
 				);
+				hasSuccessfulComputation = result.exitCode === 0;
 				actionResults.push(
 					[
 						result.exitCode === 0 ? "SANDBOX RESULT" : "SANDBOX EXECUTION ERROR",
@@ -494,8 +898,45 @@ export class CoMathTaskEngine {
 						`exit=${result.exitCode}`,
 						result.stdout.slice(0, 40_000),
 						result.stderr.slice(0, 10_000),
+						...(result.exitCode === 0
+							? []
+							: [
+									`FAILED SCRIPT SHA-256 ${scriptSha256}`,
+									"FAILED SCRIPT",
+									computationDraft.content.slice(0, 40_000),
+									"COMPUTATION REPAIR POLICY",
+									"Repair this script rather than replacing the computational approach. First isolate and validate the smallest failing boundary case and all matrix dimensions or empty-object conventions implicated by the error; then rerun the complete requested certificate. Preserve already-correct definitions and output ordering. If the same approach cannot be repaired within the remaining action budget, return an explicit unsupported gap instead of inventing output.",
+								]),
 					].join("\n"),
 				);
+				if (hasSuccessfulComputation) {
+					const summary = computationDraft.summary.trim().replace(/\s+/g, " ").replaceAll("`", "'");
+					const stdout = result.stdout.trim().replace(/\s+/g, " ").replaceAll("`", "'").slice(0, 12_000);
+					const artifactLocator = `artifacts/computations/${computationArtifact.id}/artifact.json`;
+					const failedArtifacts = actionResults.flatMap((entry) => {
+						const failed = /^SANDBOX EXECUTION ERROR\nARTIFACT ([a-f0-9]{64})\nexit=(\d+)/.exec(entry);
+						return failed ? [`${failed[1]} (exit ${failed[2]})`] : [];
+					});
+					return [
+						"## Claims",
+						`- [computed] ${summary} Task-owned sandbox artifact \`${computationArtifact.id}\` executed with exit status 0. Its persisted executable script has SHA-256 \`${scriptSha256}\`. Captured stdout preview: \`${stdout || "(empty)"}\`. Full captured output is immutable at \`${artifactLocator}\` in JSON fields \`fullOutput.stdout.content\` (SHA-256 \`${stdoutSha256}\`) and \`fullOutput.stderr.content\` (SHA-256 \`${stderrSha256}\`). [artifact ${computationArtifact.id}]`,
+						...(failedArtifacts.length > 0
+							? [
+									`- [computed] Earlier task-owned sandbox execution failed and supplies no positive evidence: ${failedArtifacts.join(", ")}.`,
+								]
+							: []),
+						"- [unsupported] This bounded computation does not by itself establish any unchecked all-parameter or parent-theorem claim.",
+						"",
+						"## Strategy",
+						"Execute exactly one successful task-owned sandbox computation and preserve its script, digest, inputs, outputs, and exit status for independent review.",
+						"",
+						"## Gaps",
+						"Only the explicit inputs reported by the artifact were checked; no finite computation is promoted to a universal proof.",
+						"",
+						"## Next",
+						"Independently review the persisted computation artifact against this task's bounded acceptance criteria.",
+					].join("\n");
+				}
 				response = await this.runRole(
 					attemptId,
 					"specialist",
@@ -531,6 +972,84 @@ export class CoMathTaskEngine {
 							"SOURCE INSPECTION ERROR",
 							message(error),
 							"Submit a corrected bounded inspect_source action or finish with the Markdown claim contract.",
+						].join("\n"),
+					);
+				}
+				response = await this.runRole(
+					attemptId,
+					"specialist",
+					"specialist",
+					specialistPurpose,
+					task,
+					state,
+					specialistPrompt(),
+				);
+				continue;
+			}
+			if (action.action === "search_source") {
+				try {
+					if (typeof action.sourceId !== "string" || !Array.isArray(action.terms)) {
+						throw new Error("Specialist source search omitted its source id or literal terms.");
+					}
+					if (action.terms.some((term) => typeof term !== "string")) {
+						throw new Error("Specialist source search terms must all be strings.");
+					}
+					if (action.caseSensitive !== undefined && typeof action.caseSensitive !== "boolean") {
+						throw new Error("Specialist source search caseSensitive flag must be boolean.");
+					}
+					const search = await searchTaskSourceLiterals(
+						state,
+						action.sourceId,
+						action.terms as string[],
+						action.caseSensitive === true,
+					);
+					const searchArtifact = await stageJsonArtifact(this.stateStore.statePath, "computations", {
+						attemptId,
+						taskId: task.id,
+						kind: "source-literal-search",
+						summary: typeof action.summary === "string" ? action.summary : "Exact fixed-literal source audit.",
+						result: search,
+					});
+					await this.stateStore.transactWithArtifacts(
+						{ operation: "task-source-search", actor: "research", changedEntityIds: [attemptId, task.id] },
+						[searchArtifact],
+						(fresh) => {
+							const now = new Date().toISOString();
+							let next = updateAttemptStage(fresh, {
+								attemptId,
+								stage: "specialist",
+								status: "running",
+								now,
+								artifactIds: [searchArtifact.id],
+							});
+							next = attachAttemptArtifacts(next, {
+								attemptId,
+								computationArtifactIds: [searchArtifact.id],
+								now,
+							});
+							return { state: next, result: undefined };
+						},
+					);
+					hasSuccessfulComputation = true;
+					const rendered = JSON.stringify(search, null, 2);
+					if (inspectedCharacters + rendered.length > 40_000) {
+						throw new Error("Specialist exceeded the 40,000-character source action result limit.");
+					}
+					inspectedCharacters += rendered.length;
+					actionResults.push(
+						[
+							"SOURCE LITERAL SEARCH RESULT",
+							`ARTIFACT ${searchArtifact.id}`,
+							"Whole-source hit counts, including zero counts, are machine-checkable only as [computed] claims citing this artifact. Cite mathematical content from matching lines separately with ordinary exact source locators.",
+							rendered,
+						].join("\n"),
+					);
+				} catch (error) {
+					actionResults.push(
+						[
+							"SOURCE SEARCH ERROR",
+							message(error),
+							"Submit a corrected bounded search_source action or finish with the Markdown claim contract.",
 						].join("\n"),
 					);
 				}
@@ -679,21 +1198,26 @@ export class CoMathTaskEngine {
 		attemptId: string,
 		stage: ResearchTaskAttemptRecord["currentStage"],
 		artifact: CoMathPreparedArtifact,
+		findings: readonly ResearchReviewFindingRecord[] = [],
 	): Promise<void> {
 		const now = new Date().toISOString();
 		await this.stateStore.transactWithArtifacts(
 			{ operation: `task-${stage}`, actor: "research", changedEntityIds: [attemptId] },
 			[artifact],
-			(fresh) => ({
-				state: updateAttemptStage(fresh, {
+			(fresh) => {
+				const updated = updateAttemptStage(fresh, {
 					attemptId,
 					stage,
 					status: "completed",
 					now,
 					artifactIds: [artifact.id],
-				}),
-				result: undefined,
-			}),
+				});
+				return {
+					state:
+						findings.length > 0 ? attachAttemptReviewFindings(updated, { attemptId, findings, now }) : updated,
+					result: undefined,
+				};
+			},
 		);
 	}
 
@@ -735,6 +1259,83 @@ export class CoMathTaskEngine {
 		return feedback.slice(-4).map((text) => text.slice(0, 4_000));
 	}
 
+	async loadAcceptedProjectContext(state: CoMathProjectState, excludeAttemptId = ""): Promise<string> {
+		const artifactRoot = path.join(path.dirname(this.stateStore.statePath), "artifacts", "reports");
+		const acceptedIndex: string[] = [];
+		const acceptedDetails: string[] = [];
+		for (const attemptId of state.canonicalProjection?.acceptedAttemptIds ?? []) {
+			if (attemptId === excludeAttemptId) continue;
+			const attempt = state.researchTaskAttempts.find(
+				(candidate) => candidate.id === attemptId && candidate.status === "accepted",
+			);
+			if (!attempt?.reportArtifactId) continue;
+			const report = await readTextArtifact(
+				path.join(artifactRoot, attempt.reportArtifactId, "artifact.json"),
+				attempt.reportArtifactId,
+			);
+			if (!report) continue;
+			const task = state.researchPlanTasks.find((candidate) => candidate.id === attempt.taskId);
+			acceptedIndex.push(
+				`- ${attempt.id}: ${task?.title ?? attempt.taskId}${task?.description ? `; ${task.description.slice(0, MAX_ACCEPTED_TASK_INDEX_DESCRIPTION_CHARACTERS)}` : ""}`,
+			);
+			acceptedDetails.push(
+				`ACCEPTED ATTEMPT ${attempt.id}${task ? `\nTASK ${task.title}` : ""}\n${report.slice(0, 8_000)}`,
+			);
+		}
+		if (acceptedIndex.length === 0) return "";
+		return [
+			"ACCEPTED TASK INDEX (durable; do not repeat these objectives):",
+			...acceptedIndex,
+			"",
+			"RECENT ACCEPTED ATTEMPT DETAILS:",
+			...acceptedDetails.slice(-MAX_ACCEPTED_PROJECT_CONTEXT_DETAILS),
+		].join("\n\n");
+	}
+
+	async loadRecentTaskReviewContext(state: CoMathProjectState): Promise<string> {
+		const artifactRoot = path.join(path.dirname(this.stateStore.statePath), "artifacts");
+		const reviewed: string[] = [];
+		for (const attempt of state.researchTaskAttempts.slice(-6)) {
+			if (attempt.status === "accepted" || attempt.status === "queued" || attempt.status === "running") continue;
+			const feedback: string[] = [];
+			for (const stage of attempt.stages) {
+				if (stage.stage !== "critic" && stage.stage !== "skeptic") continue;
+				for (const artifactId of stage.artifactIds.slice(-1)) {
+					const text = await readTextArtifact(path.join(artifactRoot, stage.stage, artifactId, "artifact.json"));
+					if (text) feedback.push(`${stage.stage.toUpperCase()}\n${text.slice(0, 6_000)}`);
+				}
+			}
+			if (feedback.length === 0) continue;
+			const task = state.researchPlanTasks.find((candidate) => candidate.id === attempt.taskId);
+			reviewed.push(
+				`NON-ACCEPTED ATTEMPT ${attempt.id}${task ? `\nTASK ${task.title}: ${task.description}` : ""}\n${feedback.join("\n")}`,
+			);
+		}
+		return reviewed.slice(-3).join("\n\n");
+	}
+
+	async synchronizeHistoricalLiteratureSources(state: CoMathProjectState): Promise<CoMathProjectState> {
+		const sources: LiteratureSourceResult[] = [];
+		for (const attempt of state.researchTaskAttempts) {
+			if (!attempt.sourceCatalogArtifactId) continue;
+			const task = state.researchPlanTasks.find((candidate) => candidate.id === attempt.taskId);
+			if (task?.kind !== "literature-search") continue;
+			try {
+				const catalog = await this.loadAttemptSourceCatalog(attempt);
+				sources.push(...(catalog.externalLiteratureSearch?.sources ?? []));
+			} catch {
+				// Historical corruption cannot block coordinator synthesis or discard other valid catalogs.
+			}
+		}
+		if (sources.length === 0) return state;
+		const now = new Date().toISOString();
+		const committed = await this.stateStore.transact(
+			{ operation: "literature-source-backfill", actor: "system", changedEntityIds: [] },
+			(fresh) => ({ state: recordExternalLiteratureSources(fresh, sources, now), result: undefined }),
+		);
+		return committed.state;
+	}
+
 	private async searchExternalLiterature(
 		state: CoMathProjectState,
 		task: ResearchPlanTaskRecord,
@@ -771,13 +1372,22 @@ export class CoMathTaskEngine {
 				// A corrupt historical artifact cannot contribute search terms; active evidence preparation still validates itself.
 			}
 		}
+		bibliographicHints.push(
+			...extractLiteratureSearchHints(
+				state.literatureSources.flatMap((source) => (source.extractedText ? [source.extractedText] : [])),
+			),
+		);
+		const taskQuestion = task.goal ?? task.description;
 		const rootQuestion =
 			bibliographicHints[0] ??
-			(acceptedClaimTexts.join(" ") || `${task.title}. ${task.goal ?? task.description}`).slice(0, 2_500);
+			(acceptedClaimTexts.join(" ") || `${state.rootQuestion} ${taskQuestion}`).slice(0, 2_500);
+		const researchPath = task.pathId
+			? state.researchPaths.find((candidate) => candidate.id === task.pathId)
+			: undefined;
 		const query = {
 			rootQuestion,
-			pathTitle: task.title,
-			pathObjective: task.goal ?? task.description,
+			pathTitle: researchPath?.title ?? task.title.replace(/^User-directed:\s*/i, ""),
+			pathObjective: taskQuestion,
 			maxSources: 10,
 			maxResultsPerProvider: 5,
 			timeoutMs: 8_000,
@@ -790,11 +1400,24 @@ export class CoMathTaskEngine {
 				.join("; ");
 			throw new Error(`External literature search had no successful provider${failures ? ` (${failures})` : ""}.`);
 		}
+		const discoveredSources = result.sources.slice(0, 10);
+		const persistedIdentityHints: LiteratureSourceResult[] = state.literatureSources.map((source) => ({
+			title: source.title,
+			summary: source.summary,
+			authors: [...source.authors],
+			...(source.kind ? { kind: source.kind } : {}),
+			...(source.url ? { url: source.url } : {}),
+			...(source.provider ? { provider: source.provider } : {}),
+			...(source.externalId ? { externalId: source.externalId } : {}),
+			...(source.doi ? { doi: source.doi } : {}),
+			...(source.extractedText ? { extractedText: source.extractedText } : {}),
+		}));
+		const sourcesWithPersistedRoutes = await enrichLiteratureSourcesWithFullText(
+			[...discoveredSources, ...persistedIdentityHints],
+			{ timeoutMs: query.timeoutMs },
+		);
 		return {
-			sources: result.sources.slice(0, 10).map((source) => {
-				const { extractedText: _extractedText, ...metadata } = source;
-				return { ...metadata, summary: source.summary.slice(0, 4_000) };
-			}),
+			sources: sourcesWithPersistedRoutes.slice(0, discoveredSources.length).map(prepareLiteratureSourceForCatalog),
 			providers: result.providers,
 			queries: result.queries.slice(0, 4),
 			candidateCount: result.candidateCount,
@@ -907,6 +1530,31 @@ export class CoMathTaskEngine {
 		return evidence.join("\n\n");
 	}
 
+	private async loadAttemptInternalSourceEvidence(attempt: ResearchTaskAttemptRecord): Promise<string> {
+		const artifactRoot = path.join(path.dirname(this.stateStore.statePath), "artifacts", "internal-sources");
+		const artifactIds = attempt.stages.find((stage) => stage.stage === "specialist")?.artifactIds ?? [];
+		const evidence: string[] = [];
+		let remaining = 40_000;
+		for (const artifactId of artifactIds) {
+			let serialized: string;
+			try {
+				serialized = await readFile(path.join(artifactRoot, artifactId, "artifact.txt"), "utf8");
+			} catch {
+				continue;
+			}
+			if (createHash("sha256").update(serialized).digest("hex") !== artifactId) continue;
+			const lineCount = serialized.endsWith("\n")
+				? serialized.slice(0, -1).split("\n").length
+				: serialized.split("\n").length;
+			const rendered = `ARTIFACT ${artifactId}\nLOCATOR artifacts/internal-sources/${artifactId}/artifact.txt@L1-L${lineCount}\n${serialized}`;
+			if (remaining <= 0) break;
+			const bounded = rendered.slice(0, remaining);
+			evidence.push(bounded);
+			remaining -= bounded.length;
+		}
+		return evidence.join("\n\n");
+	}
+
 	private async requireState(): Promise<CoMathProjectState> {
 		const state = await this.stateStore.load();
 		if (!state) throw new Error("Co-Math project state is missing.");
@@ -944,10 +1592,33 @@ function claimFailure(claims: readonly ValidatedResearchClaim[], message: string
 }
 
 function capabilityFailureFor(
+	state: CoMathProjectState,
 	task: ResearchPlanTaskRecord,
 	claims: readonly ValidatedResearchClaim[],
 	attempt: ResearchTaskAttemptRecord,
+	report: string,
 ) {
+	const referencedInternalAttemptIds = [
+		...new Set(
+			[task.goal, task.description, ...task.acceptanceCriteria]
+				.join("\n")
+				.match(/research-attempt-[A-Za-z0-9_-]+/g) ?? [],
+		),
+	];
+	const citedInternalAttemptArtifact = referencedInternalAttemptIds.some((referencedAttemptId) => {
+		const referencedAttempt = state.researchTaskAttempts.find((candidate) => candidate.id === referencedAttemptId);
+		return (
+			referencedAttempt?.stages.some((stage) =>
+				stage.artifactIds.some((artifactId) => report.includes(artifactId)),
+			) ?? false
+		);
+	});
+	const citedTaskOwnedInternalSourceArtifact =
+		referencedInternalAttemptIds.length > 0 &&
+		(attempt.stages
+			.find((stage) => stage.stage === "specialist")
+			?.artifactIds.some((artifactId) => report.includes(artifactId)) ??
+			false);
 	if (
 		task.kind === "literature-search" &&
 		!claims.some(
@@ -967,7 +1638,9 @@ function capabilityFailureFor(
 	}
 	if (
 		task.requiredCapabilities.includes("source-grounding") &&
-		!claims.some((claim) => claim.classification === "source-backed" && claim.status === "validated")
+		!claims.some((claim) => claim.classification === "source-backed" && claim.status === "validated") &&
+		!citedInternalAttemptArtifact &&
+		!citedTaskOwnedInternalSourceArtifact
 	) {
 		return {
 			stage: "capability-validation" as const,
@@ -977,16 +1650,91 @@ function capabilityFailureFor(
 			retryable: false,
 		};
 	}
-	if (task.requiredCapabilities.includes("sandboxed-computation") && attempt.computationArtifactIds.length === 0) {
+	if (
+		requiresSandboxedComputationArtifact(task) &&
+		attempt.computationArtifactIds.length === 0 &&
+		!hasAcceptedCitedComputationArtifact(state, report) &&
+		!task.dependsOnTaskIds.some((dependencyId) => {
+			const dependency = state.researchPlanTasks.find((candidate) => candidate.id === dependencyId);
+			if (!dependency) return false;
+			return state.researchTaskAttempts.some(
+				(candidate) =>
+					candidate.taskId === dependency.id &&
+					candidate.status === "accepted" &&
+					candidate.computationArtifactIds.length > 0,
+			);
+		})
+	) {
 		return {
 			stage: "capability-validation" as const,
 			code: "missing-sandboxed-computation",
-			message: "The task requires a task-owned sandbox computation artifact.",
+			message:
+				"The task requires a task-owned sandbox computation artifact, an exact cited artifact from an accepted attempt, or one from an accepted named dependency.",
 			claimIds: [],
 			retryable: false,
 		};
 	}
 	return undefined;
+}
+
+export function requiresSandboxedComputationArtifact(task: CoMathProjectState["researchPlanTasks"][number]): boolean {
+	if (!task.requiredCapabilities.includes("sandboxed-computation")) return false;
+	if (task.kind === "computation") return true;
+	const contract = [task.title, task.description, task.goal, ...task.acceptanceCriteria].join("\n");
+	return (
+		/\b(?:run|execute|executed|executable|script|code|computer(?:-algebra)?|CAS|sandbox(?:ed)?|machine-check(?:ed|able)?|program(?:matic|matically)?|captured outputs?|exit status)\b/i.test(
+			contract,
+		) ||
+		/\b(?:perform|run|execute|use)\s+(?:an?\s+)?(?:exact\s+|finite\s+|symbolic\s+|numerical\s+)?(?:computation|calculation|enumeration|check)\b/i.test(
+			contract,
+		)
+	);
+}
+
+export function hasAcceptedCitedComputationArtifact(state: CoMathProjectState, report: string): boolean {
+	return state.researchTaskAttempts.some(
+		(candidate) =>
+			candidate.status === "accepted" &&
+			candidate.computationArtifactIds.some((artifactId) => report.includes(artifactId)),
+	);
+}
+
+function capabilityReviewFinding(
+	attemptId: string,
+	failure: ResearchAttemptFailure,
+): ResearchReviewFindingRecord | undefined {
+	let kind: ResearchReviewFindingRecord["kind"];
+	let statement: string;
+	if (failure.code === "missing-sandboxed-computation") {
+		kind = "computation";
+		statement =
+			"Provide a task-owned sandbox computation artifact, cite an exact artifact from an accepted attempt, or name an accepted computation dependency; preserve executable code, explicit inputs, captured outputs, exit status, and a stable artifact digest.";
+	} else if (failure.code === "missing-external-literature-grounding") {
+		kind = "source-refresh";
+		statement =
+			"Provide at least one validated claim grounded by a selected external provider record, including the provider, stable external identifier, and exact metadata or abstract field supporting the claim.";
+	} else if (failure.code === "missing-source-grounding") {
+		kind = "source-refresh";
+		statement =
+			"Provide validated exact source grounding for the requested certificate, with an immutable source identifier, stable locator, and bounded excerpt supporting every source-backed claim.";
+	} else {
+		return undefined;
+	}
+	return {
+		id: `review-finding-${createHash("sha256")
+			.update(`${attemptId}\ncapability-validation\n${failure.code}`)
+			.digest("hex")
+			.slice(0, 16)}`,
+		stage: "capability-validation",
+		kind,
+		statement,
+		acceptanceCriteria: [
+			`Establish exactly this missing capability certificate: ${statement}`,
+			"Persist the resulting evidence as a task-owned artifact and identify it explicitly in the result.",
+			"Report failed execution, unavailable evidence, and zero-result checks without replacing them with prose inference.",
+			"Do not claim the parent theorem; conclude only whether this capability certificate has been established.",
+		],
+	};
 }
 
 function parseSkepticVerdict(text: string): "accepted" | "needs-revision" | "rejected" {
@@ -1015,6 +1763,29 @@ async function stageTextArtifact(
 		attemptId,
 		text,
 	});
+}
+
+async function stageLineAddressedArtifact(
+	statePath: string,
+	kind: string,
+	attemptId: string,
+	sourceAttemptIds: readonly string[],
+	text: string,
+): Promise<CoMathPreparedArtifact> {
+	const serialized = `${[
+		`TASK ATTEMPT: ${attemptId}`,
+		`SOURCE ATTEMPTS: ${sourceAttemptIds.join(", ")}`,
+		...text.split("\n"),
+	]
+		.map((line, index) => `${String(index + 1).padStart(6, "0")}\t${line}`)
+		.join("\n")}\n`;
+	const sha256 = createHash("sha256").update(serialized).digest("hex");
+	const root = path.join(path.dirname(statePath), "artifacts");
+	const stagingPath = path.join(root, ".staging", `${kind}-${sha256}`);
+	const finalPath = path.join(root, kind, sha256);
+	await mkdir(stagingPath, { recursive: true });
+	await writeFile(path.join(stagingPath, "artifact.txt"), serialized, { encoding: "utf8", flag: "wx", mode: 0o600 });
+	return { id: sha256, stagingPath, finalPath, contentPath: "artifact.txt", sha256 };
 }
 
 async function stageJsonArtifact(statePath: string, kind: string, value: object): Promise<CoMathPreparedArtifact> {

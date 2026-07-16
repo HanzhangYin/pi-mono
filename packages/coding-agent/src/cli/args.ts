@@ -310,7 +310,7 @@ ${chalk.bold("Options:")}
   --mode <mode>                  Output mode: text (default), json, rpc, or comath
   --comath                       Co-math conversation mode for ordinary prompts
   --comath-steps <n>             Step budget for the autonomous first run on a fresh co-math question
-                                 (default 3, capped at 10; each step is a bounded run plus review)
+                                 (default 10, capped at 10; each step is a bounded run plus review)
   --comath-parallel <n>          Max independent co-math research tasks to run at once
                                  (default 2, capped at 3; durable updates stay serialized)
   --print, -p                    Non-interactive mode: process prompt and exit

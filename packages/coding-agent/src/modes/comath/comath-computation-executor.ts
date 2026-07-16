@@ -1,8 +1,11 @@
 import { spawn } from "node:child_process";
-import { access, mkdir, realpath, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { createWriteStream } from "node:fs";
+import { access, appendFile, mkdir, realpath, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import * as nodePath from "node:path";
 import { performance } from "node:perf_hooks";
+import { finished } from "node:stream/promises";
 
 export interface ComputationalExperimentRequest {
 	rootQuestion: string;
@@ -44,10 +47,8 @@ export interface DefaultComputationalExecutorOptions {
 	sandboxBackend?: "auto" | "bubblewrap" | "sandbox-exec";
 }
 
-const DEFAULT_MAX_RUNTIME_MS = 10_000;
+const DEFAULT_MAX_RUNTIME_MS = 60_000;
 const DEFAULT_MAX_OUTPUT_CHARACTERS = 32_000;
-const STDOUT_FILE_NAME = "stdout.txt";
-const STDERR_FILE_NAME = "stderr.txt";
 
 export function createDefaultComputationalExecutor(
 	options: DefaultComputationalExecutorOptions = {},
@@ -68,22 +69,26 @@ export function createDefaultComputationalExecutor(
 			await mkdir(request.workingDirectory, { recursive: true });
 			await mkdir(nodePath.join(request.workingDirectory, ".tmp"), { recursive: true });
 			const scriptPath = nodePath.join(request.workingDirectory, fileName);
+			const outputStem = fileName.endsWith(".py") ? fileName.slice(0, -3) : fileName;
+			const scriptDigest = createHash("sha256").update(draft.content).digest("hex").slice(0, 12);
+			const stdoutFileName = `${outputStem}.${scriptDigest}.stdout.txt`;
+			const stderrFileName = `${outputStem}.${scriptDigest}.stderr.txt`;
 			await writeFile(scriptPath, draft.content, "utf8");
 			const result = await runPythonScript({
 				pythonCommand,
 				scriptFileName: fileName,
 				workingDirectory: request.workingDirectory,
+				stdoutPath: nodePath.join(request.workingDirectory, stdoutFileName),
+				stderrPath: nodePath.join(request.workingDirectory, stderrFileName),
 				maxRuntimeMs: runtimeMs,
 				maxOutputCharacters,
 				sandboxBackend,
 			});
-			await writeFile(nodePath.join(request.workingDirectory, STDOUT_FILE_NAME), result.stdout, "utf8");
-			await writeFile(nodePath.join(request.workingDirectory, STDERR_FILE_NAME), result.stderr, "utf8");
 			return {
 				...result,
 				scriptFileName: fileName,
-				stdoutFileName: STDOUT_FILE_NAME,
-				stderrFileName: STDERR_FILE_NAME,
+				stdoutFileName,
+				stderrFileName,
 			};
 		},
 	};
@@ -93,6 +98,8 @@ interface RunPythonScriptInput {
 	pythonCommand: string;
 	scriptFileName: string;
 	workingDirectory: string;
+	stdoutPath: string;
+	stderrPath: string;
 	maxRuntimeMs: number;
 	maxOutputCharacters: number;
 	sandboxBackend: "auto" | "bubblewrap" | "sandbox-exec";
@@ -114,6 +121,10 @@ async function runPythonScript(input: RunPythonScriptInput): Promise<Computation
 		let stderr = "";
 		let settled = false;
 		let timedOut = false;
+		const stdoutFile = createWriteStream(input.stdoutPath, { encoding: "utf8" });
+		const stderrFile = createWriteStream(input.stderrPath, { encoding: "utf8" });
+		const stdoutFinished = finished(stdoutFile);
+		const stderrFinished = finished(stderrFile);
 		const child = spawn(launch.command, launch.args, {
 			cwd: launch.workingDirectory,
 			stdio: ["ignore", "pipe", "pipe"],
@@ -125,25 +136,45 @@ async function runPythonScript(input: RunPythonScriptInput): Promise<Computation
 			killProcessTree(child.pid);
 		}, input.maxRuntimeMs);
 
-		const finish = (exitCode: number, extraStderr = "") => {
+		const finish = async (exitCode: number, extraStderr = "") => {
 			if (settled) {
 				return;
 			}
 			settled = true;
 			clearTimeout(timeout);
 			const timeoutMessage = timedOut ? `Timed out after ${input.maxRuntimeMs}ms.` : "";
+			const outputResults = await Promise.allSettled([stdoutFinished, stderrFinished]);
+			const persistenceErrors = outputResults
+				.filter((result): result is PromiseRejectedResult => result.status === "rejected")
+				.map((result) => `Failed to persist computation output: ${String(result.reason)}`);
+			const supplementalStderr = [extraStderr, timeoutMessage, ...persistenceErrors].filter(
+				(part) => part.length > 0,
+			);
+			if (supplementalStderr.length > 0) {
+				try {
+					await appendFile(
+						input.stderrPath,
+						`${stderr.length > 0 ? "\n" : ""}${supplementalStderr.join("\n")}`,
+						"utf8",
+					);
+				} catch (error) {
+					supplementalStderr.push(`Failed to persist runner diagnostics: ${String(error)}`);
+				}
+			}
 			resolve({
 				command: launch.displayCommand,
 				exitCode,
 				stdout,
 				stderr: capOutput(
-					[stderr, extraStderr, timeoutMessage].filter((part) => part.length > 0).join("\n"),
+					[stderr, ...supplementalStderr].filter((part) => part.length > 0).join("\n"),
 					input.maxOutputCharacters,
 				),
 				durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
 			});
 		};
 
+		child.stdout.pipe(stdoutFile);
+		child.stderr.pipe(stderrFile);
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout = capOutput(`${stdout}${chunk.toString("utf8")}`, input.maxOutputCharacters);
 		});
@@ -151,10 +182,10 @@ async function runPythonScript(input: RunPythonScriptInput): Promise<Computation
 			stderr = capOutput(`${stderr}${chunk.toString("utf8")}`, input.maxOutputCharacters);
 		});
 		child.on("error", (error) => {
-			finish(1, error.message);
+			void finish(1, error.message);
 		});
 		child.on("close", (code) => {
-			finish(code ?? (timedOut ? 124 : 1));
+			void finish(code ?? (timedOut ? 124 : 1));
 		});
 	});
 }

@@ -141,10 +141,14 @@ export class CoMathTaskScheduler {
 					continue;
 				}
 				const taskAfterAttempt = afterAttempt?.researchPlanTasks.find((candidate) => candidate.id === task.id);
+				const attemptAfterAttempt = afterAttempt?.researchTaskAttempts.find(
+					(candidate) => candidate.id === result.attemptId,
+				);
 				if (
 					(result.status === "needs-revision" || result.status === "rejected") &&
 					afterAttempt &&
 					taskAfterAttempt &&
+					attemptAfterAttempt?.failure?.retryable !== false &&
 					taskCanStartOrResumeAttempt(afterAttempt, taskAfterAttempt)
 				) {
 					revisionTaskId = task.id;
@@ -260,6 +264,33 @@ function selectRunnableTasks(state: CoMathProjectState, input: ScheduleResearchT
 		.filter((task) => !task.acceptedAttemptId && dependenciesHaveAcceptedAttempts(state, task))
 		.filter((task) => taskCanStartOrResumeAttempt(state, task))
 		.sort((left, right) => {
+			const leftPaused = left.latestAttemptId
+				? state.researchTaskAttempts.find(
+						(attempt) => attempt.id === left.latestAttemptId && attempt.status === "paused",
+					)
+				: undefined;
+			const rightPaused = right.latestAttemptId
+				? state.researchTaskAttempts.find(
+						(attempt) => attempt.id === right.latestAttemptId && attempt.status === "paused",
+					)
+				: undefined;
+			if (leftPaused && !rightPaused) return -1;
+			if (rightPaused && !leftPaused) return 1;
+			if (leftPaused && rightPaused) {
+				const stageOrder = [
+					"evidence-preparation",
+					"specialist",
+					"claim-validation",
+					"critic",
+					"synthesis",
+					"capability-validation",
+					"skeptic",
+					"finalization",
+				] as const;
+				const stageDifference =
+					stageOrder.indexOf(rightPaused.currentStage) - stageOrder.indexOf(leftPaused.currentStage);
+				if (stageDifference !== 0) return stageDifference;
+			}
 			if (left.status === "pending" && right.status !== "pending") return -1;
 			if (right.status === "pending" && left.status !== "pending") return 1;
 			return left.sequence - right.sequence;

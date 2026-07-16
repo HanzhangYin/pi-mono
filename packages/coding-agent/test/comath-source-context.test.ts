@@ -6,7 +6,11 @@ import { resolveCoMathSource } from "../src/modes/comath/comath-source.ts";
 import { formatCoMathSourceContextIndex, loadCoMathSourceContext } from "../src/modes/comath/comath-source-context.ts";
 import { buildCoMathSourceIndex, discardStagedCoMathSourceIndex } from "../src/modes/comath/comath-source-index.ts";
 import { createCoMathSourceSnapshot } from "../src/modes/comath/comath-source-snapshot.ts";
-import { inspectTaskSourceLines, prepareTaskSourceContext } from "../src/modes/comath/comath-task-source-context.ts";
+import {
+	inspectTaskSourceLines,
+	prepareTaskSourceContext,
+	searchTaskSourceLiterals,
+} from "../src/modes/comath/comath-task-source-context.ts";
 import {
 	addCoMathSourceIndex,
 	addLiteratureSourceArtifact,
@@ -284,6 +288,50 @@ describe("co-math source context", () => {
 			await expect(inspectTaskSourceLines(state, "source-6", { start: 1, end: 201 })).rejects.toThrow(
 				"limited to 200 lines",
 			);
+			const searched = await searchTaskSourceLiterals(
+				state,
+				"source-6",
+				["Statement material 1517", "not present anywhere"],
+				false,
+			);
+			expect(searched.sourceFileSha256).toBe(indexedFile.sha256);
+			expect(searched.terms).toEqual([
+				expect.objectContaining({
+					term: "Statement material 1517",
+					lineHitCount: 1,
+					occurrenceCount: 1,
+					hits: [{ line: 1517, text: "Statement material 1517.", occurrences: 1 }],
+				}),
+				expect.objectContaining({
+					term: "not present anywhere",
+					lineHitCount: 0,
+					occurrenceCount: 0,
+					hits: [],
+				}),
+			]);
+			state = addLiteratureSourceArtifact(state, {
+				id: "source-external",
+				kind: "paper",
+				title: "Numbered external source",
+				provider: "arxiv",
+				url: "https://example.test/paper",
+				summary: "Has stable numbered full text.",
+				extractedText: "FULL-TEXT SOURCE\n10: One conjecture.\n11: No unresolved phrase here.",
+				citationEligibility: "citable",
+				sourceFileSha256: "a".repeat(64),
+				now: state.updatedAt,
+				actor: "system",
+			});
+			const externalSearch = await searchTaskSourceLiterals(state, "source-external", [
+				"conjecture",
+				"remains open",
+			]);
+			expect(externalSearch.sourceLocator).toBe("https://example.test/paper");
+			expect(externalSearch.extractedTextSha256).toMatch(/^[a-f0-9]{64}$/);
+			expect(externalSearch.terms).toEqual([
+				expect.objectContaining({ lineHitCount: 1, hits: [{ line: 10, text: "One conjecture.", occurrences: 1 }] }),
+				expect.objectContaining({ lineHitCount: 0, hits: [] }),
+			]);
 
 			await discardStagedCoMathSourceIndex(stagedIndex);
 		} finally {

@@ -23,20 +23,29 @@ import {
 
 const NOW = "2026-07-13T00:00:00.000Z";
 
+type StubOutcome =
+	| ResearchTaskAttemptStatus
+	| {
+			status: ResearchTaskAttemptStatus;
+			failure: NonNullable<Parameters<typeof endAttempt>[4]>;
+	  };
+
 class StubTaskExecutor implements ResearchTaskExecutor {
 	private readonly stateStore: CoMathStateStore;
-	private readonly outcomes: ResearchTaskAttemptStatus[];
+	private readonly outcomes: StubOutcome[];
 	readonly executedTaskIds: string[] = [];
 	readonly resumedAttemptIds: string[] = [];
 
-	constructor(stateStore: CoMathStateStore, outcomes: ResearchTaskAttemptStatus[]) {
+	constructor(stateStore: CoMathStateStore, outcomes: StubOutcome[]) {
 		this.stateStore = stateStore;
 		this.outcomes = [...outcomes];
 	}
 
 	async executeTask(input: ExecuteResearchTaskInput): Promise<ExecuteResearchTaskResult> {
 		this.executedTaskIds.push(input.taskId);
-		const outcome = this.outcomes.shift() ?? "accepted";
+		const nextOutcome = this.outcomes.shift() ?? "accepted";
+		const outcome = typeof nextOutcome === "string" ? nextOutcome : nextOutcome.status;
+		const failure = typeof nextOutcome === "string" ? undefined : nextOutcome.failure;
 		const committed = await this.stateStore.transact(
 			{ operation: "stub-task", actor: "system", changedEntityIds: [input.taskId] },
 			(state) => {
@@ -45,7 +54,7 @@ class StubTaskExecutor implements ResearchTaskExecutor {
 					? attachAttemptToExecution(created.state, input.executionId, created.attempt.id, input.now)
 					: created.state;
 				if (outcome === "accepted" || outcome === "needs-revision" || outcome === "rejected") {
-					next = endAttempt(next, created.attempt.id, outcome, input.now);
+					next = endAttempt(next, created.attempt.id, outcome, input.now, failure);
 				}
 				return { state: next, result: { attemptId: created.attempt.id, status: outcome } };
 			},
@@ -55,13 +64,15 @@ class StubTaskExecutor implements ResearchTaskExecutor {
 
 	async resumeAttempt(attemptId: string, now: string): Promise<ExecuteResearchTaskResult> {
 		this.resumedAttemptIds.push(attemptId);
-		const outcome = this.outcomes.shift() ?? "accepted";
+		const nextOutcome = this.outcomes.shift() ?? "accepted";
+		const outcome = typeof nextOutcome === "string" ? nextOutcome : nextOutcome.status;
+		const failure = typeof nextOutcome === "string" ? undefined : nextOutcome.failure;
 		const committed = await this.stateStore.transact(
 			{ operation: "stub-resume", actor: "system", changedEntityIds: [attemptId] },
 			(state) => {
 				let next = resumeTaskAttempt(state, attemptId, now);
 				if (outcome === "accepted" || outcome === "needs-revision" || outcome === "rejected") {
-					next = endAttempt(next, attemptId, outcome, now);
+					next = endAttempt(next, attemptId, outcome, now, failure);
 				}
 				return { state: next, result: { attemptId, status: outcome } };
 			},
@@ -121,6 +132,31 @@ describe("co-math task scheduler", () => {
 			]);
 			expect(scheduled.execution.status).toBe("completed");
 		});
+	});
+
+	it("does not retry a non-retryable attempt failure", async () => {
+		await withScheduler(
+			[
+				{
+					status: "needs-revision",
+					failure: {
+						stage: "capability-validation",
+						code: "missing-required-capability",
+						message: "The required capability is unavailable.",
+						claimIds: [],
+						retryable: false,
+					},
+				},
+				"accepted",
+			],
+			async ({ scheduler, taskExecutor }) => {
+				const scheduled = await scheduler.schedule({ requestedTaskCount: 2, now: NOW });
+				expect(scheduled.results.map((result) => result.status)).toEqual(["needs-revision"]);
+				expect(taskExecutor.executedTaskIds).toEqual(["task-1"]);
+				expect(scheduled.execution.status).toBe("paused");
+				expect(scheduled.execution.failure?.retryable).toBe(false);
+			},
+		);
 	});
 
 	it("selects a newly unblocked dependent task in the same execution", async () => {
@@ -215,6 +251,42 @@ describe("co-math task scheduler", () => {
 		});
 	});
 
+	it("resumes the most advanced paused attempt before starting fresh work", async () => {
+		await withScheduler(["accepted"], async ({ scheduler, stateStore, taskExecutor }) => {
+			const loaded = await stateStore.load();
+			if (!loaded) throw new Error("Expected state.");
+			let state = addResearchPlanTask(loaded, {
+				id: "task-2",
+				planId: "plan-1",
+				kind: "proof-attempt",
+				title: "Advanced paused task",
+				description: "Resume the critic stage.",
+				dependsOnTaskIds: [],
+				now: NOW,
+				actor: "human",
+			});
+			const created = createTaskAttempt(state, { taskId: "task-2", now: NOW, actor: "human" });
+			state = pauseAttempt(
+				created.state,
+				created.attempt.id,
+				{
+					stage: "critic",
+					code: "interrupted-execution",
+					message: "Critic interrupted.",
+					claimIds: [],
+					retryable: true,
+				},
+				NOW,
+			);
+			await saveProjectState(stateStore.statePath, state);
+
+			const resumed = await scheduler.schedule({ requestedTaskCount: 1, allowBlockedTasks: true, now: NOW });
+			expect(resumed.results).toEqual([{ attemptId: created.attempt.id, status: "accepted" }]);
+			expect(taskExecutor.resumedAttemptIds).toEqual([created.attempt.id]);
+			expect(taskExecutor.executedTaskIds).toEqual([]);
+		});
+	});
+
 	it("pauses the execution when task startup throws", async () => {
 		const directory = await mkdtemp(join(tmpdir(), "comath-task-scheduler-"));
 		try {
@@ -267,7 +339,7 @@ describe("co-math task scheduler", () => {
 });
 
 async function withScheduler(
-	outcomes: ResearchTaskAttemptStatus[],
+	outcomes: StubOutcome[],
 	run: (input: {
 		scheduler: CoMathTaskScheduler;
 		stateStore: CoMathStateStore;

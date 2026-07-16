@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { CoMathAutoPlan } from "./comath-autoplan.ts";
 import { createCoMathAutoPlan } from "./comath-autoplan.ts";
 import {
@@ -11,8 +11,10 @@ import type { ComputationalExecutor } from "./comath-computation-executor.ts";
 import { createDefaultComputationalExecutor } from "./comath-computation-executor.ts";
 import {
 	coordinatorSynthesisInputsMatchState,
+	requestsUnavailableFullText,
 	runResearchCoordinatorSynthesis,
 } from "./comath-coordinator-synthesis.ts";
+import { parseCriticRepairDirective } from "./comath-critic-repair-policy.ts";
 import type { LiteratureSourceLookup, LiteratureSourceResult } from "./comath-literature-source.ts";
 import {
 	formatBackgroundRunStarted,
@@ -68,6 +70,7 @@ import {
 	type ParsedCoMathSourceIntent,
 	type ParsedResearchPlanExecutionPrompt,
 	type ParsedUserProvidedLiteratureSource,
+	parseAutonomousResearchContinuationPrompt,
 	parseCancelResearchBatchPrompt,
 	parseCoMathSourceIntent,
 	parseNaturalResearchQuestion,
@@ -102,17 +105,23 @@ import {
 	loadCoMathSourceSnapshot,
 } from "./comath-source-snapshot.ts";
 import { CoMathStateStore } from "./comath-state-store.ts";
-import { CoMathTaskEngine } from "./comath-task-engine.ts";
+import { CoMathTaskEngine, type ExecuteResearchTaskResult } from "./comath-task-engine.ts";
 import type { ResearchWorkstreamModelExecutor } from "./comath-task-model.ts";
 import { CoMathTaskScheduler } from "./comath-task-scheduler.ts";
-import { type ResearchPlanResumeResult, resumeResearchPlan } from "./comath-task-state.ts";
+import {
+	pauseInterruptedResearchExecutions,
+	type ResearchPlanResumeResult,
+	resumeResearchPlan,
+} from "./comath-task-state.ts";
 import type {
 	CoMathProjectState,
 	LiteratureSourceArtifact,
+	ResearchCoordinatorNextMove,
 	ResearchCoordinatorReportRecord,
 	ResearchPath,
 	ResearchPlanRecord,
 	ResearchPlanTaskKind,
+	ResearchPlanTaskRecord,
 } from "./schema.ts";
 import {
 	addArtifact,
@@ -141,6 +150,7 @@ import {
 export type CoMathHarnessNoticeType = "info" | "warning" | "error";
 export type CoMathHarnessNotify = (message: string, type?: CoMathHarnessNoticeType) => void | Promise<void>;
 type CoMathPendingInitialIntent = { kind: "explore-problem" };
+const MAX_AUTONOMOUS_RESUME_ATTEMPTS = 2;
 export interface CoMathBackendCommandResult {
 	ok: boolean;
 	messages: string[];
@@ -181,7 +191,7 @@ export interface CoMathHarnessOptions {
 	 */
 	onResearchPhaseActivity?: CoMathResearchPhaseActivityNotify;
 	/**
-	 * Step budget for the autonomous first run a fresh math question starts (default 3). Clamped to
+	 * Step budget for the autonomous first run a fresh math question starts (default 10). Clamped to
 	 * 1–10: each step is a full model-backed run plus an independent review, so the cap bounds
 	 * unprompted model spend even with a misconfigured value.
 	 */
@@ -211,6 +221,7 @@ export class CoMathHarness {
 	private readonly onResearchPhaseActivity: CoMathResearchPhaseActivityNotify | undefined;
 	private readonly initialResearchStepCount: number;
 	private pendingInitialIntent: CoMathPendingInitialIntent | undefined;
+	private researchExecutionActive = false;
 
 	constructor(options: CoMathHarnessOptions) {
 		this.source = options.source;
@@ -259,6 +270,31 @@ export class CoMathHarness {
 		}
 	}
 
+	/** Keep bounded task execution visible even while individual task-engine stages are silent. */
+	private async withResearchExecutionActivity<T>(requestedTaskCount: number, work: () => Promise<T>): Promise<T> {
+		const activityId = "research-plan-execution";
+		this.researchExecutionActive = true;
+		try {
+			await this.onResearchPhaseActivity?.({
+				kind: "start",
+				activityId,
+				status: `co-math: working the research plan · up to ${requestedTaskCount} bounded ${requestedTaskCount === 1 ? "task" : "tasks"}`,
+			});
+		} catch {
+			// UI status updates are best-effort and must not affect research execution.
+		}
+		try {
+			return await work();
+		} finally {
+			this.researchExecutionActive = false;
+			try {
+				await this.onResearchPhaseActivity?.({ kind: "end", activityId });
+			} catch {
+				// UI status updates are best-effort and must not affect research execution.
+			}
+		}
+	}
+
 	async handlePrompt(problemText: string): Promise<void> {
 		const problem = problemText.trim();
 		if (!problem) {
@@ -293,6 +329,18 @@ export class CoMathHarness {
 		const sourceIntent = parseCoMathSourceIntent(problem);
 		if (await this.hasExistingState()) {
 			if (sourceIntent) {
+				const remainder = sourceIntent.remainingInstruction.trim();
+				if (
+					this.source &&
+					resolve(this.sourceCwd, sourceIntent.pathInput) === this.source.absolutePath &&
+					(!remainder ||
+						/^(?:start|begin|continue)(?:\s+(?:now|working|investigating|researching))?$/i.test(remainder))
+				) {
+					await this.handleSteeringPrompt(
+						"Continue the existing CoMath project from its persisted state and run the next autonomous research tasks.",
+					);
+					return;
+				}
 				await this.notify(
 					"A CoMath workspace already exists in this directory, so I did not replace it or ingest a new source. Start Pi from a fresh working directory to investigate this source separately.",
 					"warning",
@@ -472,8 +520,12 @@ export class CoMathHarness {
 			await this.notify(
 				`Starting a bounded research execution for ${this.initialResearchStepCount} task${this.initialResearchStepCount === 1 ? "" : "s"}.`,
 			);
-			void this.taskScheduler
-				.schedule({ requestedTaskCount: this.initialResearchStepCount, now: new Date().toISOString() })
+			void this.withResearchExecutionActivity(this.initialResearchStepCount, () =>
+				this.taskScheduler.schedule({
+					requestedTaskCount: this.initialResearchStepCount,
+					now: new Date().toISOString(),
+				}),
+			)
 				.then((result) => this.notifyScheduledExecution(result))
 				.catch((error: unknown) =>
 					this.notify(
@@ -801,7 +853,16 @@ export class CoMathHarness {
 	}
 
 	private async handleSteeringPrompt(prompt: string): Promise<void> {
-		const state = await this.stateStore.load();
+		let state = await this.stateStore.load();
+		if (
+			!this.researchExecutionActive &&
+			state?.researchExecutions.some((execution) => execution.status === "running")
+		) {
+			state = await this.stateStore.commit(
+				(fresh) => pauseInterruptedResearchExecutions(fresh, new Date().toISOString()),
+				state,
+			);
+		}
 		if (parseUserProvidedLiteratureSourcePrompt(prompt) && !state?.researchPaths.length) {
 			await this.notify(
 				'Source context for Path 5 is available after you start a research workspace. Ask a math question first, for example: "Are there infinitely many primes of the form n^2 + 1?"',
@@ -955,13 +1016,14 @@ export class CoMathHarness {
 			}, state);
 			await this.notifyResearchPlanResumeOutcome(committed.state, committed.result);
 			await this.notify(`Resuming research execution ${pausedExecution.id}.`);
-			void this.taskScheduler
-				.schedule({
+			void this.withResearchExecutionActivity(pausedExecution.requestedTaskCount, () =>
+				this.taskScheduler.schedule({
 					executionId: pausedExecution.id,
 					allowBlockedTasks: true,
 					requestedTaskCount: pausedExecution.requestedTaskCount,
 					now,
-				})
+				}),
+			)
 				.then((result) => this.notifyScheduledExecution(result))
 				.catch((error: unknown) =>
 					this.notify(
@@ -1043,6 +1105,22 @@ export class CoMathHarness {
 				return;
 			}
 			await this.notify(formatResearchCoordinatorReport({ state, report }));
+			return;
+		}
+		const autonomousContinuation = parseAutonomousResearchContinuationPrompt(prompt);
+		if (autonomousContinuation) {
+			if (hasLiveResearchExecution(state)) {
+				await this.notify(
+					'A research step sequence is already active. Say "show progress" to inspect it.',
+					"warning",
+				);
+				return;
+			}
+			await this.runAutonomousResearchContinuation(
+				state,
+				autonomousContinuation.requestedStepCount,
+				autonomousContinuation.firstTaskDirective,
+			);
 			return;
 		}
 		if (isResearchCoordinatorPrompt(prompt)) {
@@ -1130,12 +1208,13 @@ export class CoMathHarness {
 			await this.notify(
 				`Starting a bounded research execution for ${batchPrompt.requestedStepCount} task${batchPrompt.requestedStepCount === 1 ? "" : "s"}.`,
 			);
-			void this.taskScheduler
-				.schedule({
+			void this.withResearchExecutionActivity(batchPrompt.requestedStepCount, () =>
+				this.taskScheduler.schedule({
 					requestedTaskCount: batchPrompt.requestedStepCount,
 					...(path ? { pathId: path.id } : {}),
 					now,
-				})
+				}),
+			)
 				.then((result) => this.notifyScheduledExecution(result))
 				.catch((error: unknown) =>
 					this.notify(
@@ -1332,12 +1411,13 @@ export class CoMathHarness {
 			return;
 		}
 		await this.notify(formatResearchPlanExecutionStarted({ plan, tasks, requestedTaskCount: requestedStepCount }));
-		void this.taskScheduler
-			.schedule({
+		void this.withResearchExecutionActivity(requestedStepCount, () =>
+			this.taskScheduler.schedule({
 				requestedTaskCount: requestedStepCount,
 				allowBlockedTasks,
 				now,
-			})
+			}),
+		)
 			.then((result) => this.notifyScheduledExecution(result))
 			.catch((error: unknown) =>
 				this.notify(
@@ -1418,12 +1498,13 @@ export class CoMathHarness {
 		state: CoMathProjectState,
 		path: ResearchPath,
 		directive?: string,
-	): Promise<void> {
+	): Promise<ExecuteResearchTaskResult | undefined> {
 		const now = new Date().toISOString();
 		const created = await this.stateStore.transact(
 			{ operation: "user-directed-task", actor: "human", changedEntityIds: [path.id] },
 			(fresh) => {
 				let base = fresh;
+				const repairContract = parseCriticRepairDirective(directive);
 				let plan = [...base.researchPlans].reverse().find((candidate) => candidate.status !== "cancelled");
 				if (!plan) {
 					base = addResearchPlan(base, {
@@ -1438,12 +1519,15 @@ export class CoMathHarness {
 				if (!plan) throw new Error("Could not create a user-directed research plan.");
 				const next = addResearchPlanTask(base, {
 					planId: plan.id,
-					kind: researchTaskKindForPath(path),
-					title: `User-directed: ${path.title}`,
-					description: directive?.trim() || path.objective,
+					kind: repairContract?.kind ?? researchTaskKindForPath(path, directive),
+					title: repairContract?.title ?? `User-directed: ${path.title}`,
+					description: repairContract?.certificate ?? directive?.trim() ?? path.objective,
 					goal: directive?.trim() || path.objective,
-					acceptanceCriteria: ["Produce a bounded, independently reviewed research attempt."],
-					dependsOnTaskIds: [],
+					acceptanceCriteria:
+						repairContract?.acceptanceCriteria ?? acceptanceCriteriaForResearchDirective(directive),
+					dependsOnTaskIds: repairContract?.integratesAcceptedRepairTaskId
+						? [repairContract.integratesAcceptedRepairTaskId]
+						: [],
 					pathId: path.id,
 					now,
 					actor: "human",
@@ -1455,14 +1539,163 @@ export class CoMathHarness {
 			state,
 		);
 		await this.notify(`Created user-directed task ${created.result} on ${path.title}.`);
-		const scheduled = await this.taskScheduler.schedule({
-			taskIds: [created.result],
-			pathId: path.id,
-			requestedTaskCount: 1,
-			now,
-		});
+		const scheduled = await this.withResearchExecutionActivity(1, () =>
+			this.taskScheduler.schedule({
+				taskIds: [created.result],
+				pathId: path.id,
+				requestedTaskCount: 1,
+				now,
+			}),
+		);
 		const result = scheduled.results[0];
 		if (result) await this.notify(`Task ${created.result} finished with ${result.status}.`);
+		return result;
+	}
+
+	private async resumePausedTask(task: ResearchPlanTaskRecord): Promise<ExecuteResearchTaskResult | undefined> {
+		let result: ExecuteResearchTaskResult | undefined;
+		for (let attempt = 1; attempt <= MAX_AUTONOMOUS_RESUME_ATTEMPTS; attempt += 1) {
+			const scheduled = await this.withResearchExecutionActivity(1, () =>
+				this.taskScheduler.schedule({
+					taskIds: [task.id],
+					allowBlockedTasks: true,
+					requestedTaskCount: 1,
+					now: new Date().toISOString(),
+				}),
+			);
+			result = scheduled.results[0];
+			if (result?.status !== "paused") return result;
+			const latestState = await this.stateStore.load();
+			if (retryablePausedResearchTask(latestState ?? undefined)?.id !== task.id) return result;
+			if (attempt < MAX_AUTONOMOUS_RESUME_ATTEMPTS) {
+				await this.notify(
+					`Retryable transport failure paused ${task.id}; retrying the same persisted stage (${attempt + 1}/${MAX_AUTONOMOUS_RESUME_ATTEMPTS}).`,
+					"warning",
+				);
+				await new Promise((resolve) => setTimeout(resolve, attempt * 1_000));
+			}
+		}
+		return result;
+	}
+
+	private async runAutonomousResearchContinuation(
+		state: CoMathProjectState,
+		requestedStepCount: number,
+		firstTaskDirective?: string,
+	): Promise<void> {
+		const decisions = new Set<string>();
+		let pendingFirstTaskDirective = firstTaskDirective;
+		let consecutiveStepsWithoutAcceptance = 0;
+		let latestState = (await this.stateStore.load()) ?? state;
+		await this.notify(
+			`Starting autonomous research for up to ${requestedStepCount} independently reviewed task${requestedStepCount === 1 ? "" : "s"}.`,
+		);
+		for (let step = 1; step <= requestedStepCount; step += 1) {
+			const pausedTask = retryablePausedResearchTask(latestState);
+			if (pausedTask) {
+				const acceptedBefore = latestState.canonicalProjection?.acceptedAttemptIds.length ?? 0;
+				await this.notify(
+					`Autonomous step ${step}/${requestedStepCount}: resuming retryable paused task ${pausedTask.id} at its persisted stage.`,
+				);
+				const result = await this.resumePausedTask(pausedTask);
+				if (!result || result.status === "paused") {
+					await this.notify(
+						`Autonomous research paused because ${pausedTask.id} could not resume past its persisted stage.`,
+						"warning",
+					);
+					return;
+				}
+				latestState = (await this.stateStore.load()) ?? latestState;
+				const acceptedAfter = latestState.canonicalProjection?.acceptedAttemptIds.length ?? 0;
+				consecutiveStepsWithoutAcceptance =
+					acceptedAfter > acceptedBefore ? 0 : consecutiveStepsWithoutAcceptance + 1;
+				if (consecutiveStepsWithoutAcceptance >= 3) {
+					await this.notify(
+						"Autonomous research stopped after three consecutive tasks without an accepted result. The durable reviews remain available for user direction or changed prerequisites.",
+						"warning",
+					);
+					return;
+				}
+				continue;
+			}
+			let decision: { directive: string; path: ResearchPath } | undefined;
+			if (pendingFirstTaskDirective) {
+				const directive = pendingFirstTaskDirective;
+				const path = chooseNaturalSteeringResearchPath(latestState, directive);
+				if (path) {
+					decision = { directive, path };
+					pendingFirstTaskDirective = undefined;
+				}
+			} else {
+				const report = await this.createResearchCoordinatorReport(latestState);
+				if (!report) return;
+				latestState = (await this.stateStore.load()) ?? latestState;
+				const orderedMoves = rankCoordinatorMovesForAutonomousExecution(report);
+				for (const move of orderedMoves) {
+					if (/^(?:after|once|when|assuming)\b/i.test(move.title.trim())) continue;
+					if (isPlanningOnlyCoordinatorMove(move)) continue;
+					const pathId = move.pathId ?? report.suggestedPathId;
+					const path = pathId
+						? latestState.researchPaths.find((candidate) => candidate.id === pathId)
+						: latestState.researchPaths.find((candidate) => candidate.status === "active");
+					if (!path) continue;
+					const directive = concreteCoordinatorDirectiveForAutonomousExecution(move, path);
+					if (!directive) continue;
+					const key = `${path.id}:${directive}`.toLowerCase().replace(/\s+/g, " ");
+					if (decisions.has(key)) continue;
+					decisions.add(key);
+					decision = { directive, path };
+					break;
+				}
+				if (!decision && report.suggestedPrompt && report.suggestedPathId) {
+					const path = latestState.researchPaths.find((candidate) => candidate.id === report.suggestedPathId);
+					const directive = report.suggestedPrompt.trim();
+					const key = `${path?.id ?? ""}:${directive}`.toLowerCase().replace(/\s+/g, " ");
+					if (
+						path &&
+						directive &&
+						!decisions.has(key) &&
+						hasExecutableResearchActionText(directive) &&
+						!/^(?:continue|run|start|try)\b.*\bpath\s+\d+\b/i.test(directive)
+					) {
+						decisions.add(key);
+						decision = { directive, path };
+					}
+				}
+			}
+			if (!decision) {
+				await this.notify(
+					"Autonomous research stopped because the coordinator did not produce a new concrete research move.",
+					"warning",
+				);
+				return;
+			}
+			await this.notify(
+				`Autonomous step ${step}/${requestedStepCount}: ${decision.path.title}: ${decision.directive}`,
+			);
+			const acceptedBefore = latestState.canonicalProjection?.acceptedAttemptIds.length ?? 0;
+			let result = await this.runPathThroughTaskEngine(latestState, decision.path, decision.directive);
+			if (result?.status === "paused") {
+				latestState = (await this.stateStore.load()) ?? latestState;
+				const pausedTask = retryablePausedResearchTask(latestState);
+				if (pausedTask) result = await this.resumePausedTask(pausedTask);
+			}
+			if (!result || result.status === "paused") {
+				await this.notify("Autonomous research paused because the selected task did not complete.", "warning");
+				return;
+			}
+			latestState = (await this.stateStore.load()) ?? latestState;
+			const acceptedAfter = latestState.canonicalProjection?.acceptedAttemptIds.length ?? 0;
+			consecutiveStepsWithoutAcceptance = acceptedAfter > acceptedBefore ? 0 : consecutiveStepsWithoutAcceptance + 1;
+			if (consecutiveStepsWithoutAcceptance >= 3) {
+				await this.notify(
+					"Autonomous research stopped after three consecutive tasks without an accepted result. The durable reviews remain available for user direction or changed prerequisites.",
+					"warning",
+				);
+				return;
+			}
+		}
+		await this.createResearchCoordinatorReport(latestState);
 	}
 
 	private async notifyResearchPlanResumeOutcome(
@@ -1548,14 +1781,23 @@ export class CoMathHarness {
 			.then(({ state, result }) => ({ state, ...result }));
 	}
 
-	private async createResearchCoordinatorReport(state: CoMathProjectState): Promise<void> {
-		const latestState = (await this.stateStore.load()) ?? state;
+	private async createResearchCoordinatorReport(
+		state: CoMathProjectState,
+	): Promise<ResearchCoordinatorReportRecord | undefined> {
+		const loadedState = (await this.stateStore.load()) ?? state;
+		const latestState = await this.taskEngine.synchronizeHistoricalLiteratureSources(loadedState);
 		const now = new Date().toISOString();
-		const result = await runResearchCoordinatorSynthesis({
-			state: latestState,
-			executor: this.researchModelExecutor,
-			now,
-		});
+		const acceptedProjectContext = await this.taskEngine.loadAcceptedProjectContext(latestState);
+		const recentTaskReviewContext = await this.taskEngine.loadRecentTaskReviewContext(latestState);
+		const result = await this.withPlanningActivity(() =>
+			runResearchCoordinatorSynthesis({
+				state: latestState,
+				executor: this.researchModelExecutor,
+				now,
+				acceptedProjectContext,
+				recentTaskReviewContext,
+			}),
+		);
 		const committed = await this.stateStore.commitWithResult((fresh) => {
 			if (fresh.projectId !== latestState.projectId || !coordinatorSynthesisInputsMatchState(fresh, result.report)) {
 				return { state: fresh, result: undefined };
@@ -1600,6 +1842,7 @@ export class CoMathHarness {
 		} else {
 			await this.notify("The research workspace changed before the coordinator report could be saved.", "warning");
 		}
+		return report;
 	}
 
 	/**
@@ -1686,15 +1929,233 @@ export class CoMathHarness {
 	}
 }
 
-export function researchTaskKindForPath(path: Pick<ResearchPath, "title" | "objective">): ResearchPlanTaskKind {
-	const description = `${path.title} ${path.objective}`.toLowerCase();
-	if (/\b(?:literature|bibliograph|known theorem|prior work|later work|source search)\b/.test(description)) {
+export function retryablePausedResearchTask(state: CoMathProjectState | undefined): ResearchPlanTaskRecord | undefined {
+	if (!state) return undefined;
+	const acceptedFrontier = state.researchPlanTasks.reduce(
+		(maximum, task) => (task.acceptedAttemptId ? Math.max(maximum, task.sequence) : maximum),
+		0,
+	);
+	return [...state.researchPlanTasks].reverse().find((task) => {
+		if (
+			task.status !== "blocked" ||
+			task.acceptedAttemptId ||
+			task.sequence <= acceptedFrontier ||
+			!task.latestAttemptId ||
+			!areResearchPlanTaskDependenciesCompleted(state, task) ||
+			requestsUnavailableFullText(state, task.goal ?? task.description)
+		) {
+			return false;
+		}
+		const attempt = state.researchTaskAttempts.find((candidate) => candidate.id === task.latestAttemptId);
+		return (
+			attempt?.status === "paused" &&
+			attempt.failure?.retryable !== false &&
+			!isSupersededPausedResearchTask(state, task)
+		);
+	});
+}
+
+function isSupersededPausedResearchTask(state: CoMathProjectState, task: ResearchPlanTaskRecord): boolean {
+	const taskText = [task.title, task.description, task.goal, ...task.acceptanceCriteria].filter(Boolean).join("\n");
+	const repair = parseCriticRepairDirective(task.goal);
+	if (
+		repair &&
+		/^(?:no\s+(?:mathematical\s+)?repair\s+is\s+required|the\b.{0,120}\btarget\s+(?:is|was|has been)\s+established\b|none\b|the\s+audit\b.{0,120}\b(?:must|should)\s+stop\b|the\b.{0,120}\btarget\s+(?:is|was|has been)\s+not\s+established\b)/i.test(
+			repair.certificate.trim(),
+		)
+	) {
+		return true;
+	}
+	const sourceComputationTaskId = /\bSOURCE COMPUTATION TASK:\s*(\S+)/.exec(taskText)?.[1];
+	if (sourceComputationTaskId) {
+		if (
+			taskText.includes("STRATEGY PIVOT AFTER EXPENSIVE COMPUTATION") &&
+			state.researchPlanTasks.some((candidate) => {
+				if (
+					candidate.id === task.id ||
+					candidate.reviewOutcome !== "accepted" ||
+					candidate.pathId !== task.pathId
+				) {
+					return false;
+				}
+				const candidateText = [
+					candidate.title,
+					candidate.description,
+					candidate.goal,
+					...candidate.acceptanceCriteria,
+				]
+					.filter(Boolean)
+					.join("\n");
+				return (
+					candidateText.includes("STRATEGY PIVOT AFTER EXPENSIVE COMPUTATION") &&
+					candidateText.includes(`SOURCE COMPUTATION TASK: ${sourceComputationTaskId}`)
+				);
+			})
+		) {
+			return true;
+		}
+		const sourceTask = state.researchPlanTasks.find((candidate) => candidate.id === sourceComputationTaskId);
+		if (sourceTask?.reviewOutcome === "accepted") {
+			const sourceText = [
+				sourceTask.title,
+				sourceTask.description,
+				sourceTask.goal,
+				...sourceTask.acceptanceCriteria,
+			]
+				.filter(Boolean)
+				.join("\n");
+			if (/\b(?:COMPUTATION-TO-THEORY SYNTHESIS|STRATEGY PIVOT AFTER EXPENSIVE COMPUTATION)\b/.test(sourceText)) {
+				return true;
+			}
+		}
+	}
+	if (
+		(!taskText.includes("CRITIC-DRIVEN REPAIR") && !/\bresume (?:only )?(?:the )?retryable task\b/i.test(taskText)) ||
+		!/(?:\bfor every\b|\bfor all\b|\ball \d+\b|\benumerat\w*\b|\bevery .{0,40}witness\b|\bcomplete .{0,40}matri(?:x|ces)\b)/i.test(
+			taskText,
+		)
+	) {
+		return false;
+	}
+	return state.researchPlanTasks.some((candidate) => {
+		if (candidate.id === task.id || candidate.reviewOutcome !== "accepted" || candidate.pathId !== task.pathId) {
+			return false;
+		}
+		const candidateText = [candidate.title, candidate.description, candidate.goal, ...candidate.acceptanceCriteria]
+			.filter(Boolean)
+			.join("\n");
+		return candidateText.includes("STRATEGY PIVOT AFTER EXPENSIVE COMPUTATION");
+	});
+}
+
+export function researchTaskKindForPath(
+	path: Pick<ResearchPath, "title" | "objective">,
+	directive?: string,
+): ResearchPlanTaskKind {
+	const explicitDirective = directive?.trim().toLowerCase();
+	const description = explicitDirective || `${path.title} ${path.objective}`.toLowerCase();
+	const positiveDirective = explicitDirective?.replace(/\b(?:do not|don't|never|without|avoid)\b[^.;]*/g, " ");
+	if (
+		/\b(?:computation-to-theory synthesis|theory-to-generalization|strategy pivot after expensive computation|theorem-boundary consolidation|optional-strengthening workstream)\b/.test(
+			explicitDirective ?? "",
+		)
+	) {
+		return "proof-attempt";
+	}
+	if (
+		/\b(?:audit|inspect|read|extract|index|ground)\w*\b.*\b(?:registered |indexed |provided |local )?(?:source|document|passage|excerpt)s?\b/.test(
+			description,
+		) &&
+		!/\b(?:external|web search|arxiv|doi|crossref|openalex|semantic scholar)\b/.test(description)
+	) {
+		return "source-refresh";
+	}
+	if (
+		(!explicitDirective &&
+			/\b(?:literatures?|bibliograph(?:y|ies|ic|ical)?|known theorems?|prior work|later work|source searches?|web searches?|arxiv|doi|full[- ]texts?|retrieve(?:s|d|ing)? (?:a )?(?:paper|article|source)|ingest(?:s|ed|ing)? (?:a )?(?:paper|article|source))\b/.test(
+				description,
+			)) ||
+		(Boolean(positiveDirective) &&
+			/\b(?:search|find|locat|look up|retriev|obtain|ingest|extract|inspect|audit|read)\w*\b.{0,120}\b(?:literature|bibliograph\w*|prior work|later work|known theorem|paper|article|source|arxiv|doi|full[- ]text)\b/.test(
+				positiveDirective ?? "",
+			))
+	) {
 		return "literature-search";
 	}
-	if (/\b(?:comput|counterexample|enumerat|experiment|finite check|small examples?|test cases?)\b/.test(description)) {
+	if (
+		/\b(?:counterexamples?|enumerat(?:e|es|ed|ing|ion|ions)?|experiment(?:s|al|ally|ation|ations|ed|ing)?|finite (?:checks?|cases?|data)|small examples?|test cases?|sandbox(?:ed)?|scripts?|programs?|machine[- ]check(?:able|ed)?|snf|smith(?:[- ]normal[- ]form)?|invariant factors?)\b/.test(
+			description,
+		) ||
+		/\bcomput(?:e|es|ed|ing|ation|ations|ational)?\b.{0,80}\b(?:examples?|cases?|partitions?|columns?|rows?|matri(?:x|ces)|determinants?|ranks?|smith|snf|invariant factors?|finite|data|values?|witness(?:es)?)\b/.test(
+			description,
+		)
+	) {
 		return "computation";
 	}
 	return "proof-attempt";
+}
+
+export function acceptanceCriteriaForResearchDirective(directive: string | undefined): string[] {
+	const target = directive?.replace(/\s+/g, " ").trim();
+	return target
+		? [
+				`Complete exactly this task: ${target}`,
+				"State explicitly whether the requested target was established, and do not substitute an adjacent result or broader parent claim.",
+			]
+		: ["Produce a bounded, independently reviewed research attempt."];
+}
+
+export function rankCoordinatorMovesForAutonomousExecution(
+	report: Pick<ResearchCoordinatorReportRecord, "recommendedNextMoves" | "suggestedPathId">,
+): ResearchCoordinatorNextMove[] {
+	const priorityScore = { high: 3, medium: 2, low: 1 } as const;
+	const score = (move: ResearchCoordinatorNextMove): number => {
+		const moveText = `${move.title}\n${move.prompt ?? ""}\n${move.rationale}`;
+		const genericPrompt = !move.prompt || /^(?:continue|run|start|try)\b.*\bpath\s+\d+\b/i.test(move.prompt);
+		const genericTitle = /^(?:continue|run|start|try)\b.*\bpath\s+\d+\b/i.test(move.title);
+		const tautologicalRationale = /(?:coordinator selected|suggested next step|continue this path)/i.test(
+			move.rationale,
+		);
+		const conditionalMove = /^(?:after|once|when|assuming)\b/i.test(move.title.trim());
+		const actionableMove = hasExecutableResearchAction(move);
+		const planningOnlyMove = isPlanningOnlyCoordinatorMove(move);
+		const theoremBoundaryControl = /\b(?:THEOREM-BOUNDARY CONSOLIDATION|OPTIONAL-STRENGTHENING WORKSTREAM)\b/i.test(
+			moveText,
+		);
+		const strategyControl =
+			/\b(?:STRATEGY PIVOT AFTER EXPENSIVE COMPUTATION|COMPUTATION-TO-THEORY SYNTHESIS)\b/i.test(moveText);
+		const strategyRepair =
+			!theoremBoundaryControl &&
+			!strategyControl &&
+			/\bstrategy-pivot\b/i.test(moveText) &&
+			/\b(?:repair|correct|certificate|explicitly state)\w*/i.test(moveText);
+		return (
+			(theoremBoundaryControl ? 600 : strategyRepair ? 500 : strategyControl ? 400 : 0) +
+			(genericPrompt ? 0 : 100) +
+			(genericTitle ? 0 : 40) +
+			(tautologicalRationale ? 0 : 30) +
+			(actionableMove ? 80 : 0) +
+			Math.min(20, Math.floor(move.rationale.trim().length / 10)) +
+			(move.pathId === report.suggestedPathId ? 4 : 0) +
+			priorityScore[move.priority] -
+			(conditionalMove ? 200 : 0) -
+			(planningOnlyMove ? 300 : 0)
+		);
+	};
+	return [...report.recommendedNextMoves].sort((left, right) => score(right) - score(left));
+}
+
+function hasExecutableResearchAction(move: ResearchCoordinatorNextMove): boolean {
+	return hasExecutableResearchActionText(`${move.title} ${move.prompt ?? ""} ${move.rationale}`);
+}
+
+function hasExecutableResearchActionText(text: string): boolean {
+	return /\b(?:prove|show|establish|derive|construct|display|exhibit|provide|produce|compute|verify|determine|classify|enumerate|reproduce|search|find|locat\w*|retriev\w*|ingest|extract|inspect|audit|read|test)\b/i.test(
+		text,
+	);
+}
+
+export function concreteCoordinatorDirectiveForAutonomousExecution(
+	move: ResearchCoordinatorNextMove,
+	path: Pick<ResearchPath, "suggestedNextMove">,
+): string | undefined {
+	const movePrompt = move.prompt?.trim();
+	const proposed =
+		movePrompt && !/^(?:continue|run|start|try)\b.*\bpath\s+\d+\b/i.test(movePrompt)
+			? movePrompt
+			: `${move.title}. ${move.rationale}`;
+	if (hasExecutableResearchActionText(proposed)) return proposed;
+	const pathDirective = path.suggestedNextMove.trim();
+	return hasExecutableResearchActionText(pathDirective) ? pathDirective : undefined;
+}
+
+function isPlanningOnlyCoordinatorMove(move: ResearchCoordinatorNextMove): boolean {
+	const text = `${move.title} ${move.prompt ?? ""} ${move.rationale}`;
+	return (
+		/\b(?:keep|leave|reserve|split)\b.*\b(?:separate|follow-on|future|later)\b.*\b(?:tasks?|work|steps?)\b/i.test(
+			text,
+		) && !hasExecutableResearchAction(move)
+	);
 }
 
 function trimTerminalPunctuation(value: string): string {
@@ -1898,7 +2359,14 @@ function isIncompleteExplorationProblem(problem: string): boolean {
 	return /^this\s+(?:problem|conjecture|question):?$/i.test(problem.trim());
 }
 
-function findResearchPath(state: Pick<CoMathProjectState, "researchPaths">, query: string): ResearchPath | undefined {
+export function findResearchPath(
+	state: Pick<CoMathProjectState, "researchPaths">,
+	query: string,
+): ResearchPath | undefined {
+	const explicitPathNumber = /\bpath\s*(\d+)\b/i.exec(query)?.[1];
+	if (explicitPathNumber) {
+		return state.researchPaths[Number.parseInt(explicitPathNumber, 10) - 1];
+	}
 	const numbered = parseResearchPathNumber(query);
 	if (numbered !== undefined) {
 		return state.researchPaths[numbered - 1];
@@ -1926,11 +2394,53 @@ function findResearchPath(state: Pick<CoMathProjectState, "researchPaths">, quer
 }
 
 function chooseNaturalSteeringResearchPath(state: CoMathProjectState, prompt: string): ResearchPath | undefined {
+	const intentPath = researchPathForDirective(state.researchPaths, prompt);
+	if (intentPath) {
+		return intentPath;
+	}
 	const namedPath = findResearchPath(state, prompt);
 	if (namedPath && namedPath.status !== "abandoned") {
 		return namedPath;
 	}
 	return resolveDefaultContinueResearchPath(state).path;
+}
+
+/** Route broad mathematical directives to the matching standard research capability. */
+export function researchPathForDirective(paths: readonly ResearchPath[], prompt: string): ResearchPath | undefined {
+	const normalized = prompt.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+	const intents: ReadonlyArray<{ prompt: RegExp; path: RegExp }> = [
+		{
+			prompt: /\b(?:prove|proof|deduce|derive|rigorous|rigorously|lemma)\b/,
+			path: /\b(?:direct proof|proof strategy)\b/,
+		},
+		{
+			prompt:
+				/\b(?:compute|computation|calculate|enumerate|experiment|counterexample|refute|disprove|test cases?)\b/,
+			path: /\b(?:small examples?|counterexamples?|comput|finite cases?|enumerat|obstruction)\b/,
+		},
+		{
+			prompt: /\b(?:special case|special cases|weaker|restricted case|boundary case)\b/,
+			path: /\b(?:weaker|special cases?)\b/,
+		},
+		{
+			prompt: /\b(?:reformulate|reformulation|equivalent|equivalence|reduction)\b/,
+			path: /\b(?:reformulat\w*|equivalent statements?)\b/,
+		},
+		{
+			prompt: /\b(?:literature|bibliograph|citation|reference|prior work|known theorem)\b/,
+			path: /\b(?:literature|bibliograph|known theorem|prior work|source search)\b/,
+		},
+	];
+	for (const intent of intents) {
+		if (!intent.prompt.test(normalized)) continue;
+		const path = paths.find(
+			(candidate) =>
+				candidate.status !== "abandoned" &&
+				intent.path.test(`${candidate.title} ${candidate.objective}`.toLowerCase()),
+		);
+		if (path) return path;
+	}
+	return undefined;
 }
 
 function chooseInitialResearchPath(
@@ -2007,13 +2517,13 @@ function nextArtifactId(state: Pick<CoMathProjectState, "artifacts">): string {
 /**
  * Default step budget for the autonomous plan run a fresh math question starts. Each step is a
  * full model-backed workstream run plus an independent review, so this bounds unprompted model
- * spend: three steps covers a typical opening arc (a status check, a bounded computation, and a
- * first proof or refutation attempt) before pausing for the user's direction. Only the unprompted
+ * spend while allowing a full critic-driven repair trajectory before pausing for the user's
+ * direction. Only the unprompted
  * first move is sized by this default — the `--comath-steps` flag overrides it (clamped below),
  * explicit prompts pick their own budget ("work the plan for N steps", capped at 5), and
  * "continue" extends work after the pause.
  */
-const INITIAL_RESEARCH_BATCH_STEPS = 3;
+const INITIAL_RESEARCH_BATCH_STEPS = 10;
 const MAX_INITIAL_RESEARCH_BATCH_STEPS = 10;
 
 function clampInitialResearchStepCount(requested: number | undefined): number {
@@ -2053,7 +2563,7 @@ const RESEARCH_PATH_ORDINALS: Record<string, number> = {
  * "continue". Returns `undefined` when the prompt is not a continuation request so normal handling
  * (the research-state summary) takes over.
  */
-function parseResearchPathContinuationPrompt(
+export function parseResearchPathContinuationPrompt(
 	state: CoMathProjectState,
 	prompt: string,
 ): { explicit: boolean; path?: ResearchPath } | undefined {
@@ -2076,6 +2586,9 @@ function parseResearchPathContinuationPrompt(
 			return { explicit: true, path };
 		}
 		return { explicit: true };
+	}
+	if (target.length > 120 || /[.!?\n]/.test(target)) {
+		return undefined;
 	}
 	// A non-numeric target. Keep fuzzy path-name matching for "continue …" only; the beginner verbs
 	// require an explicit numbered/ordinal path so unrelated prompts ("run a quick check") still fall

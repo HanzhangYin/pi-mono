@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+	attachAttemptArtifacts,
+	attachAttemptToExecution,
+	createResearchExecution,
 	createTaskAttempt,
 	dependenciesHaveAcceptedAttempts,
 	endAttempt,
 	initializeTaskEngine,
 	MAX_SUBSTANTIVE_TASK_ATTEMPTS,
 	pauseAttempt,
+	pauseInterruptedResearchExecutions,
 	resumeResearchPlan,
 	resumeTaskAttempt,
 	updateAttemptStage,
@@ -134,6 +138,17 @@ describe("single-task engine state", () => {
 			},
 			NOW,
 		);
+		state.researchPlanTasks[0]!.goal = [
+			"CRITIC-DRIVEN REPAIR",
+			"SOURCE ATTEMPT: attempt-0",
+			"TASK KIND: proof-attempt",
+			"CERTIFICATE:",
+			"Execute an exact task-owned computation and provide every Smith diagonal.",
+			"ACCEPTANCE CRITERIA:",
+			"- Persist the exact computation artifact.",
+			"NON-GOALS:",
+			"- Do not broaden the task.",
+		].join("\n");
 
 		const resumedPlan = resumeResearchPlan(state, "plan-1", NOW);
 		expect(resumedPlan.state.researchPlanTasks[0]).toMatchObject({ status: "pending" });
@@ -154,5 +169,78 @@ describe("single-task engine state", () => {
 		expect(resumedAttempt?.stages.find((stage) => stage.stage === "evidence-preparation")?.status).toBe("completed");
 		expect(resumedAttempt?.stages.find((stage) => stage.stage === "specialist")?.failure).toBeUndefined();
 		expect(state.researchPlanTasks[0]?.status).toBe("running");
+		expect(state.researchPlanTasks[0]?.kind).toBe("computation");
+	});
+
+	it("pauses orphaned running executions without creating a new substantive attempt", () => {
+		let state = initializeTaskEngine(createState(NOW), NOW);
+		state = createResearchPlan(state, NOW);
+		state = createResearchPlanTask(state, { id: "task-1", now: NOW, dependencies: [] });
+		const executionResult = createResearchExecution(state, {
+			taskIds: ["task-1"],
+			requestedTaskCount: 1,
+			now: NOW,
+		});
+		const attemptResult = createTaskAttempt(executionResult.state, {
+			taskId: "task-1",
+			now: NOW,
+			actor: "human",
+		});
+		state = attachAttemptToExecution(
+			attemptResult.state,
+			executionResult.execution.id,
+			attemptResult.attempt.id,
+			NOW,
+		);
+		state = updateAttemptStage(state, {
+			attemptId: attemptResult.attempt.id,
+			stage: "evidence-preparation",
+			status: "completed",
+			now: NOW,
+		});
+		state = updateAttemptStage(state, {
+			attemptId: attemptResult.attempt.id,
+			stage: "specialist",
+			status: "running",
+			now: NOW,
+		});
+		state = attachAttemptArtifacts(state, {
+			attemptId: attemptResult.attempt.id,
+			modelCalls: [
+				{
+					id: "model-call-1",
+					stage: "specialist",
+					at: NOW,
+					status: "started",
+					startedAt: NOW,
+				},
+			],
+			now: NOW,
+		});
+
+		state = pauseInterruptedResearchExecutions(state, "2026-07-13T00:01:00.000Z");
+
+		expect(state.researchTaskAttempts).toHaveLength(1);
+		expect(state.researchTaskAttempts[0]).toMatchObject({
+			id: attemptResult.attempt.id,
+			status: "paused",
+			currentStage: "specialist",
+			failure: { code: "interrupted-execution", retryable: true },
+		});
+		expect(state.researchTaskAttempts[0]?.modelCalls[0]).toMatchObject({
+			id: "model-call-1",
+			status: "failed",
+			completedAt: "2026-07-13T00:01:00.000Z",
+			error: "The owning research execution was interrupted before this model call completed.",
+		});
+		expect(
+			state.researchTaskAttempts[0]?.stages.find((stage) => stage.stage === "evidence-preparation")?.status,
+		).toBe("completed");
+		expect(state.researchPlanTasks[0]).toMatchObject({ status: "blocked", attemptIds: [attemptResult.attempt.id] });
+		expect(state.researchExecutions[0]).toMatchObject({
+			status: "paused",
+			failure: { code: "interrupted-execution", retryable: true },
+		});
+		expect(state.researchPlans[0]).toMatchObject({ status: "paused" });
 	});
 });

@@ -131,4 +131,23 @@ describe("co-math markdown parser", () => {
 			"- Keep the ordinary set {2, 5} in the report.",
 		]);
 	});
+
+	it("repairs raw LaTeX escapes in primitive action JSON", () => {
+		const text = String.raw`{"action":"run_math_primitive","primitive":"partition-pieri","summary":"For \(i=2\), verify \lambda.","input":{"lower":[2,2],"upper":[4,4],"degrees":[4],"hDegrees":[1]}}`;
+
+		expect(extractCoMathJsonObject(text)).toMatchObject({
+			action: "run_math_primitive",
+			primitive: "partition-pieri",
+		});
+		expect(stripCoMathJsonObjects(text)).toBe("");
+	});
+
+	it("recognizes source inspection and literal-search actions as tool protocol", () => {
+		const search =
+			'{"action":"search_source","sourceId":"source-6","terms":["conjecture","remains open"],"caseSensitive":false}';
+		const inspect = '{"action":"inspect_source","sourceId":"source-6","lines":{"start":10,"end":20}}';
+
+		expect(extractCoMathJsonObject(search)).toMatchObject({ action: "search_source", sourceId: "source-6" });
+		expect(stripCoMathJsonObjects(`${search}\n${inspect}`)).toBe("");
+	});
 });

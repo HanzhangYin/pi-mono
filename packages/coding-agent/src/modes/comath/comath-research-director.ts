@@ -422,7 +422,7 @@ export function buildDirectorPlanPrompt(state: CoMathProjectState): string {
 		"- Keep acceptance criteria bounded to the task's named mathematical targets. Never require an exhaustive audit of every theorem, definition, notation item, or file in the project unless the user explicitly requested that audit.",
 		"- A source-refresh should recover the core statements and the definitions actually used by planned downstream tasks. It may record a source omission, ambiguity, or apparent typo as an explicit grounded result; do not require the task to invent or resolve text absent from the source.",
 		"- Make each criterion satisfiable from the requested source ranges plus a small number of bounded source inspections. Do not make acceptance depend on proving that no relevant statement exists elsewhere in the directory.",
-		'- Declare "sandboxed-computation" in requiredCapabilities whenever completing a task requires enumeration, scripts, numerical checks, symbolic calculation, or generator-removal tests, regardless of the task kind.',
+		'- Declare "sandboxed-computation" in requiredCapabilities whenever completing a task requires executing enumeration, scripts, computer algebra, numerical or finite checks, or generator-removal tests, regardless of the task kind. A hand-derived symbolic proof involving formulas, matrices, determinants, or algebraic manipulation does not by itself require sandboxed computation.',
 		"- Put exact local-source inputs in sourceRequests using durable sourceId plus numeric start/end ranges. Never encode executable locators only in description prose.",
 		...(state.literatureSources.some((source) => source.kind === "local-file" && source.provider === "workspace")
 			? [

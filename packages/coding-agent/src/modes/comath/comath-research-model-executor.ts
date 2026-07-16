@@ -18,6 +18,7 @@ export interface CreateDefaultResearchModelExecutorOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000;
+export const COMPUTATION_MAX_OUTPUT_TOKENS = 8192;
 
 /**
  * Production model executor for research workstreams. It uses the active Pi stream function
@@ -49,11 +50,23 @@ export function createDefaultResearchModelExecutor(
 				],
 			};
 			const streamOptions = options.streamOptions?.();
-			const stream = await options.streamFn(model, context, {
+			const effectiveStreamOptions: SimpleStreamOptions = {
 				...streamOptions,
+				...(request.purpose === "computation"
+					? {
+							maxTokens: Math.min(
+								streamOptions?.maxTokens ?? COMPUTATION_MAX_OUTPUT_TOKENS,
+								COMPUTATION_MAX_OUTPUT_TOKENS,
+							),
+							...(streamOptions?.reasoning === "high" || streamOptions?.reasoning === "xhigh"
+								? { reasoning: "medium" as const }
+								: {}),
+						}
+					: {}),
 				signal: options.signal,
 				timeoutMs,
-			});
+			};
+			const stream = await options.streamFn(model, context, effectiveStreamOptions);
 			const message = await stream.result();
 			if (message.stopReason === "error" || message.stopReason === "aborted") {
 				throw new Error(message.errorMessage || `Model-backed research call ${message.stopReason}.`);
@@ -62,7 +75,7 @@ export function createDefaultResearchModelExecutor(
 			if (text.trim().length === 0) {
 				throw new Error("Model-backed research call produced no output.");
 			}
-			return { text, provenance: buildModelCallProvenance(model, message, streamOptions?.reasoning) };
+			return { text, provenance: buildModelCallProvenance(model, message, effectiveStreamOptions.reasoning) };
 		},
 	};
 }

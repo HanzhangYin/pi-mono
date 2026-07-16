@@ -40,10 +40,10 @@ pi comath --comath-parallel 3       # 1–3 tasks at once (also accepts --comath
 
 ### First-run step budget
 
-The autonomous first run takes **3 bounded steps by default** and then pauses for your direction. Each step is a full model-backed run plus an independent review, so the default deliberately bounds unprompted model spend. To change it:
+The autonomous first run takes **10 bounded steps by default** and then pauses for your direction. Bare autonomous continuation requests also default to 10 steps. Each step is a full model-backed run plus an independent review. To lower the budget:
 
 ```bash
-pi comath --comath-steps 8          # bigger first run (also accepts --comath-steps=8)
+pi comath --comath-steps 3          # smaller first run (also accepts --comath-steps=3)
 ```
 
 - The value is clamped to 1–10; missing or non-numeric values are rejected at the command line.
@@ -55,7 +55,7 @@ pi comath --comath-steps 8          # bigger first run (also accepts --comath-st
 Background research is visible in the footer for the whole run, so you can always tell co-math is still working:
 
 - Every phase holds a status: `co-math: planning the next research steps`, `co-math: Path 2 running · specialist`, `co-math: independently reviewing the finished step`, `co-math: updating the plan with what was learned`.
-- Each bounded step holds a backdrop status like `co-math: research step 2 of 3` that resurfaces between finer-grained phases, so the indicator never goes dark mid-step.
+- Each bounded step holds a backdrop status like `co-math: research step 2 of 10` that resurfaces between finer-grained phases, so the indicator never goes dark mid-step.
 - An elapsed-time suffix ticks every few seconds (`… · 1m 35s`), so a long model call is visibly alive rather than a frozen line.
 
 The indicator is purely cosmetic: status updates are best-effort and never affect research execution or durable state.

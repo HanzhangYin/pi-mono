@@ -7,7 +7,10 @@ import {
 	type TextContent,
 } from "@earendil-works/pi-ai";
 import { describe, expect, it } from "vitest";
-import { createDefaultResearchModelExecutor } from "../src/modes/comath/comath-research-model-executor.ts";
+import {
+	COMPUTATION_MAX_OUTPUT_TOKENS,
+	createDefaultResearchModelExecutor,
+} from "../src/modes/comath/comath-research-model-executor.ts";
 import {
 	CO_MATH_SYSTEM_PROMPT,
 	CO_MATH_SYSTEM_PROMPT_POLICY_VERSION,
@@ -226,6 +229,38 @@ describe("default co-math research model executor", () => {
 		}
 
 		expect(observedPolicies).toEqual(Array(7).fill(CO_MATH_SYSTEM_PROMPT));
+	});
+
+	it("caps only computation planning output without raising a stricter caller limit", async () => {
+		const observedMaxTokens: Array<number | undefined> = [];
+		const observedReasoning: Array<string | undefined> = [];
+		const streamFn: StreamFn = (_model, _context, options) => {
+			observedMaxTokens.push(options?.maxTokens);
+			observedReasoning.push(options?.reasoning);
+			const stream = createAssistantMessageEventStream();
+			stream.push({ type: "done", reason: "stop", message: createAssistantMessage("## Findings\n- Output.") });
+			return stream;
+		};
+		const executor = createDefaultResearchModelExecutor({
+			getModel: createModel,
+			streamFn,
+			streamOptions: () => ({ maxTokens: 20_000, reasoning: "high" }),
+		});
+
+		const computationResult = await executor.run({ ...createRequest("Compute."), purpose: "computation" });
+		await executor.run({ ...createRequest("Prove."), purpose: "general" });
+
+		expect(observedMaxTokens).toEqual([COMPUTATION_MAX_OUTPUT_TOKENS, 20_000]);
+		expect(observedReasoning).toEqual(["medium", "high"]);
+		expect(computationResult.provenance?.thinkingLevel).toBe("medium");
+
+		const stricterExecutor = createDefaultResearchModelExecutor({
+			getModel: createModel,
+			streamFn,
+			streamOptions: () => ({ maxTokens: 2048 }),
+		});
+		await stricterExecutor.run({ ...createRequest("Compute briefly."), purpose: "computation" });
+		expect(observedMaxTokens.at(-1)).toBe(2048);
 	});
 
 	it("still reports model identity when the streamed message carries no usage", async () => {

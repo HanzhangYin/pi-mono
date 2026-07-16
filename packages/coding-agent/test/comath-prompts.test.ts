@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseResearchPathContinuationPrompt } from "../src/modes/comath/comath-harness.ts";
 import {
 	isLikelyMathResearchQuestion,
 	isLikelyMathValidationPrompt,
@@ -10,6 +11,7 @@ import {
 	isShowReportForPathPrompt,
 	isShowResearchStatePrompt,
 	normalizeCoMathPrompt,
+	parseAutonomousResearchContinuationPrompt,
 	parseCancelResearchBatchPrompt,
 	parseCoMathSourceIntent,
 	parseNaturalResearchQuestion,
@@ -17,6 +19,7 @@ import {
 	parseUserProvidedLiteratureSourcePrompt,
 	stripCoMathPolitePrefix,
 } from "../src/modes/comath/comath-prompts.ts";
+import { createEmptyProjectState } from "../src/modes/comath/storage.ts";
 
 describe("co-math prompt routing helpers", () => {
 	it("strips stacked polite prefixes and collapses whitespace", () => {
@@ -131,6 +134,57 @@ describe("local source-intake prompts", () => {
 });
 
 describe("bounded research batch prompts", () => {
+	it("does not discard substantive directives that begin with continue", () => {
+		const state = createEmptyProjectState({
+			projectId: "continuation-routing",
+			title: "Continuation routing",
+			rootQuestion: "Investigate the supplied conjecture.",
+			now: "2026-07-14T00:00:00.000Z",
+		});
+		const directive =
+			"Continue with a new non-repeating task. Target exactly the stated finite case and retain its complete certificate.";
+
+		expect(parseResearchPathContinuationPrompt(state, directive)).toBeUndefined();
+		expect(parseResearchPathContinuationPrompt(state, "continue path 2")).toEqual({ explicit: true });
+	});
+
+	it("distinguishes autonomous continuation from fuzzy path continuation", () => {
+		expect(
+			parseAutonomousResearchContinuationPrompt(
+				"Continue the current research autonomously from the canonical accepted results.",
+			),
+		).toEqual({ requestedStepCount: 10 });
+		expect(parseAutonomousResearchContinuationPrompt("resume and choose the next task yourself for 9 tasks")).toEqual(
+			{
+				requestedStepCount: 9,
+			},
+		);
+		expect(parseAutonomousResearchContinuationPrompt("continue autonomously for a long research run")).toEqual({
+			requestedStepCount: 10,
+		});
+		expect(parseAutonomousResearchContinuationPrompt("continue autonomously for 99 tasks")).toEqual({
+			requestedStepCount: 10,
+		});
+		expect(
+			parseAutonomousResearchContinuationPrompt(
+				"Continue the existing project for 10 autonomous research steps. Begin with proving the exact repair certificate. After independent review, continue horizontally on the strongest remaining obstacle.",
+			),
+		).toEqual({
+			requestedStepCount: 10,
+			firstTaskDirective: "proving the exact repair certificate",
+		});
+		expect(
+			parseAutonomousResearchContinuationPrompt(
+				"Resume the current project. Run 10 autonomous tasks. First conduct a fresh adversarial proof audit. Try to falsify every accepted internal premise. Require an explicit repair certificate. If the audit survives, continue with the highest-information consequence.",
+			),
+		).toEqual({
+			requestedStepCount: 10,
+			firstTaskDirective:
+				"conduct a fresh adversarial proof audit. Try to falsify every accepted internal premise. Require an explicit repair certificate",
+		});
+		expect(parseAutonomousResearchContinuationPrompt("continue path 2")).toBeUndefined();
+	});
+
 	it("parses bounded step commands and caps requested steps", () => {
 		expect(parseResearchBatchPrompt("work for 3 steps")).toEqual({ requestedStepCount: 3 });
 		expect(parseResearchBatchPrompt("run 3 research steps")).toEqual({ requestedStepCount: 3 });

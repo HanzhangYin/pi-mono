@@ -53,6 +53,44 @@ describe("co-math task claims", () => {
 		]);
 	});
 
+	it("grounds multiple disjoint line ranges from one external full-text citation", async () => {
+		const state = createEmptyProjectState({
+			projectId: "external-multi-range",
+			title: "External multi-range claim",
+			rootQuestion: "Combine a definition and theorem statement.",
+			now: "2026-07-13T00:00:00.000Z",
+		});
+		const claims = await validateTaskClaims(
+			state,
+			parseTaskClaims(
+				"## Claims\n- [source-backed] The definition on line 1 and theorem on line 3 establish the result. [doi:10.1000/example, lines 1-1; lines 3-3]\n",
+			),
+			{
+				sources: [
+					{
+						title: "Definition and theorem",
+						provider: "crossref",
+						doi: "10.1000/example",
+						summary: "Definition and theorem.",
+						extractedText: "1: Definition.\n2: Context.\n3: Theorem.\n4: Proof.",
+						sourceFileSha256: "a".repeat(64),
+					},
+				],
+				providers: [],
+				queries: [],
+				candidateCount: 1,
+			},
+		);
+
+		expect(claims[0]).toMatchObject({
+			status: "validated",
+			groundings: [
+				{ canonicalCitation: "[doi:10.1000/example, lines 1-1]", excerpt: "1: Definition." },
+				{ canonicalCitation: "[doi:10.1000/example, lines 3-3]", excerpt: "3: Theorem." },
+			],
+		});
+	});
+
 	it("passes proof claims to mathematical review instead of rejecting their classification", async () => {
 		const state = createEmptyProjectState({
 			projectId: "proof-claim",

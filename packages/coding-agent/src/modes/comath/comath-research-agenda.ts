@@ -14,6 +14,7 @@
  * without a model and is directly testable.
  */
 
+import { deriveLiteratureSearchNeed } from "./comath-literature-policy.ts";
 import { DEGRADED_RESEARCH_GAP } from "./comath-research-obligations.ts";
 import { textsNearlyMatch } from "./comath-text-similarity.ts";
 import type {
@@ -49,6 +50,7 @@ export function deriveResearchAgenda(state: CoMathProjectState): ResearchAgendaI
 	const items: ResearchAgendaItem[] = [
 		...deriveRevisionItems(state),
 		...derivePivotItems(state),
+		...deriveLiteratureSearchItems(state),
 		...deriveGapItems(state),
 		...deriveSubclaimItems(state),
 		...deriveLiteratureFallbackItems(state),
@@ -70,6 +72,20 @@ export function deriveResearchAgenda(state: CoMathProjectState): ResearchAgendaI
 		seen.add(key);
 		return true;
 	});
+}
+
+function deriveLiteratureSearchItems(state: CoMathProjectState): ResearchAgendaItem[] {
+	const need = deriveLiteratureSearchNeed(state);
+	return need
+		? [
+				{
+					kind: "literature-search",
+					title: need.title,
+					description: need.description,
+					goal: need.rationale,
+				},
+			]
+		: [];
 }
 
 /** Whether the agenda currently offers real work (something besides wrap-up tasks). */

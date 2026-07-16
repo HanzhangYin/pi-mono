@@ -187,6 +187,7 @@ describe("co-math directory intake", () => {
 			const directorRequests: ResearchWorkstreamModelRequest[] = [];
 			const researchRequests: ResearchWorkstreamModelRequest[] = [];
 			const computationDrafts: ComputationalScriptDraft[] = [];
+			const activity: Array<{ kind: "start" | "end"; activityId: string; status?: string }> = [];
 			const computationalExecutor: ComputationalExecutor = {
 				runScript: async (draft) => {
 					computationDrafts.push(draft);
@@ -269,16 +270,10 @@ describe("co-math directory intake", () => {
 					}
 					return {
 						text: [
-							"## Source-backed status",
-							"- [source-2@L1-L2|claim=ordinary-document] asks whether every finite object satisfies P.",
-							"## Conjectural or heuristic context",
-							"- The source labels the statement as a question.",
-							"## Source-backed distinctions",
-							"- No proof is supplied in the extracted file.",
-							"## Review",
+							"## Claims",
+							"- [unsupported] Whether every finite object satisfies P remains unresolved.",
+							"## Strategy",
 							"- Preserve the statement as unresolved.",
-							"## Unsupported or unresolved",
-							"- The universal quantifier remains unproved.",
 							"## Gaps",
 							"- Definitions of object and P are missing.",
 							"## Next",
@@ -314,6 +309,9 @@ describe("co-math directory intake", () => {
 				researchDirectorExecutor: directorExecutor,
 				literatureSourceLookup: { search: async () => [] },
 				computationalExecutor,
+				onResearchPhaseActivity: (signal) => {
+					activity.push(signal);
+				},
 			});
 
 			await harness.handlePrompt(`Look at the directory: ${sourceRoot} and start`);
@@ -321,7 +319,8 @@ describe("co-math directory intake", () => {
 				statePath,
 				(state) =>
 					state?.researchTaskAttempts[0]?.status === "needs-revision" &&
-					state.researchExecutions[0]?.status === "paused",
+					state.researchExecutions[0]?.status === "paused" &&
+					activity.some((signal) => signal.kind === "end" && signal.activityId === "research-plan-execution"),
 			);
 
 			const state = await loadProjectState(statePath);
@@ -330,7 +329,9 @@ describe("co-math directory intake", () => {
 				currentStage: "capability-validation",
 				status: "needs-revision",
 			});
-			expect(state?.researchExecutions[0]?.attemptIds).toEqual([state?.researchTaskAttempts[0]?.id]);
+			expect(state?.researchExecutions[0]?.attemptIds).toEqual(
+				state?.researchTaskAttempts.map((attempt) => attempt.id),
+			);
 			expect(state?.researchWorkstreamRuns).toEqual([]);
 			expect(state?.roleRuns).toEqual([]);
 			expect(researchRequests.map((request) => request.role)).toEqual(["specialist", "critic", "synthesizer"]);
@@ -339,6 +340,15 @@ describe("co-math directory intake", () => {
 			expect(directorRequests.some((request) => request.purpose === "skeptic")).toBe(false);
 			expect(commands).toHaveLength(1);
 			expect(commands).not.toContain("dispatch-next --background");
+			const executionActivity = activity.filter((signal) => signal.activityId === "research-plan-execution");
+			expect(executionActivity).toEqual([
+				{
+					kind: "start",
+					activityId: "research-plan-execution",
+					status: "co-math: working the research plan · up to 2 bounded tasks",
+				},
+				{ kind: "end", activityId: "research-plan-execution" },
+			]);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -408,6 +418,58 @@ describe("co-math directory intake", () => {
 			expect(state?.artifacts).toEqual([]);
 			expect(commands.some((command) => command.startsWith("init "))).toBe(false);
 			expect(notices.join("\n")).toContain("did not replace it or ingest a new source");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("resumes an existing workspace when the start prompt names its pinned source", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "comath-directory-intake-"));
+		try {
+			const sourceRoot = join(dir, "math-source");
+			const statePath = join(dir, ".pi", "co-math", "state.json");
+			await mkdir(sourceRoot);
+			await writeFile(join(sourceRoot, "problem.md"), "Problem", "utf8");
+			const source = await resolveCoMathSource(sourceRoot, dir);
+			if (!source) throw new Error("Expected the pinned source to resolve.");
+			const initialState = createEmptyProjectState({
+				projectId: "existing-pinned-project",
+				title: "Existing question",
+				rootQuestion: "Existing question",
+				now: "2026-07-12T12:00:00.000Z",
+			});
+			initialState.researchPaths = [
+				{
+					id: "path-1",
+					title: "Direct proof",
+					objective: "Prove the exact statement.",
+					status: "active",
+					latestFindings: [],
+					blockers: [],
+					suggestedNextMove: "Prove one exact lemma.",
+					priority: 1,
+					createdAt: "2026-07-12T12:00:00.000Z",
+					updatedAt: "2026-07-12T12:00:00.000Z",
+				},
+			];
+			await replaceProjectState(statePath, initialState);
+			const notices: string[] = [];
+			const harness = new CoMathHarness({
+				source,
+				sourceCwd: dir,
+				statePath,
+				initialResearchStepCount: 1,
+				notify: (message) => {
+					notices.push(message);
+				},
+				runBackendCommand: async () => OK,
+			});
+
+			await harness.handlePrompt(`Look at the directory: ${sourceRoot} and start`);
+
+			expect(notices.join("\n")).toContain("Starting autonomous research for up to 10 independently reviewed tasks");
+			expect(notices.join("\n")).not.toContain("did not replace it or ingest a new source");
+			expect((await loadProjectState(statePath))?.projectId).toBe("existing-pinned-project");
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}

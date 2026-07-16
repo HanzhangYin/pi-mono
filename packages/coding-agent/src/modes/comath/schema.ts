@@ -768,6 +768,14 @@ export interface ResearchTaskAttemptStageRecord {
 	failure?: ResearchAttemptFailure;
 }
 
+export interface ResearchReviewFindingRecord {
+	id: string;
+	stage: "critic" | "capability-validation" | "skeptic";
+	kind: Extract<ResearchPlanTaskKind, "proof-attempt" | "refutation-attempt" | "computation" | "source-refresh">;
+	statement: string;
+	acceptanceCriteria: string[];
+}
+
 /** Immutable durable execution of one task. New work is represented here, not as a repair task. */
 export interface ResearchTaskAttemptRecord {
 	id: string;
@@ -782,6 +790,8 @@ export interface ResearchTaskAttemptRecord {
 	reportArtifactId?: string;
 	computationArtifactIds: string[];
 	modelCalls: ResearchRunModelCallRecord[];
+	/** Structured actionable certificates extracted once from immutable reviewer artifacts. */
+	reviewFindings?: ResearchReviewFindingRecord[];
 	reviewOutcome?: ResearchTaskReviewOutcome;
 	failure?: ResearchAttemptFailure;
 	startedAt: string;

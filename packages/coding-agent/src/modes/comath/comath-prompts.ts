@@ -122,7 +122,47 @@ export interface ParsedResearchBatchPrompt {
 }
 
 const MAX_RESEARCH_BATCH_STEPS = 5;
+const MAX_AUTONOMOUS_RESEARCH_STEPS = 10;
+const DEFAULT_AUTONOMOUS_RESEARCH_STEPS = 10;
 const DEFAULT_FEW_RESEARCH_BATCH_STEPS = 3;
+
+/**
+ * Parse a request for the harness to choose and execute its own next research moves. This is kept
+ * separate from ordinary `continue path N` routing so prose such as "continue the current research
+ * autonomously" cannot be fuzzily matched to an arbitrary path and lose the user's directive.
+ */
+export function parseAutonomousResearchContinuationPrompt(
+	prompt: string,
+): { requestedStepCount: number; firstTaskDirective?: string } | undefined {
+	const normalizedPrompt = normalizeCoMathPrompt(prompt);
+	const normalized = normalizedPrompt.toLowerCase();
+	if (!/^(?:continue|resume)\b/.test(normalized)) {
+		return undefined;
+	}
+	if (
+		!/(?:\bautonomous(?:ly)?\b|\bchoose\b.+\byourself\b|\bdecide\b.+\bnext\b|\bmake decisions?\b.+\bown\b)/.test(
+			normalized,
+		)
+	) {
+		return undefined;
+	}
+	const stepMatch = /\bfor (\d+) (?:(?:independently )?reviewed |autonomous )?(?:research )?(?:steps?|tasks?)\b/.exec(
+		normalized,
+	);
+	const firstTaskMatch =
+		/\b(?:(?:begin|start)\s+with|first(?:\s+with)?)\s+(.+?)(?=\.\s+(?:after|if|next|once|subsequently)\b|$)/i.exec(
+			normalizedPrompt,
+		);
+	const firstTaskDirective = firstTaskMatch?.[1]?.trim().replace(/[.!?]+$/, "");
+	return {
+		requestedStepCount: parseResearchBatchStepCount(
+			stepMatch?.[1],
+			MAX_AUTONOMOUS_RESEARCH_STEPS,
+			DEFAULT_AUTONOMOUS_RESEARCH_STEPS,
+		),
+		...(firstTaskDirective ? { firstTaskDirective } : {}),
+	};
+}
 
 export function parseResearchBatchPrompt(prompt: string): ParsedResearchBatchPrompt | undefined {
 	const normalized = normalizeCoMathPrompt(prompt).toLowerCase();
@@ -152,15 +192,19 @@ export function parseCancelResearchBatchPrompt(prompt: string): string | undefin
 	return match?.[1]?.trim() || undefined;
 }
 
-function parseResearchBatchStepCount(value: string | undefined): number {
+function parseResearchBatchStepCount(
+	value: string | undefined,
+	maximum: number = MAX_RESEARCH_BATCH_STEPS,
+	fallback: number = DEFAULT_FEW_RESEARCH_BATCH_STEPS,
+): number {
 	if (!value) {
-		return DEFAULT_FEW_RESEARCH_BATCH_STEPS;
+		return fallback;
 	}
 	const parsed = Number.parseInt(value, 10);
 	if (!Number.isFinite(parsed)) {
-		return DEFAULT_FEW_RESEARCH_BATCH_STEPS;
+		return fallback;
 	}
-	return Math.min(MAX_RESEARCH_BATCH_STEPS, Math.max(1, parsed));
+	return Math.min(maximum, Math.max(1, parsed));
 }
 
 /** `make a plan`, `create a research plan`, and polite variants. */
