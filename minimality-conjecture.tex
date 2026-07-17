@@ -1,0 +1,566 @@
+\documentclass[11pt]{amsart}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage[margin=1.1in]{geometry}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Z}{\mathbb Z}
+\newcommand{\cP}{\mathcal P}
+\newcommand{\Gr}{\operatorname{Gr}}
+\newcommand{\Hilb}{\operatorname{Hilb}}
+\newcommand{\GL}{G_{\mathrm L}}
+\newcommand{\GR}{G_{\mathrm R}}
+\newcommand{\ol}[1]{\overline{#1}}
+
+\title{The Bigrassmannian Minimality Conjecture:\\
+A Source-Grounded Closure by Partition Conjugation}
+\author{Co-Math research synthesis}
+\date{July 16, 2026}
+
+\begin{document}
+
+\begin{abstract}
+Reiner, Woo, and Yong conjectured that two explicit Schur-function generating
+families for every type-$A$ bigrassmannian basic ideal are both minimal.  A
+2024 theorem of St.~Dizier and Yong proves minimality for the lower-adjoined
+family and remarks that the other case should follow by transposing the
+argument.  We give the missing explicit transfer.  Partition conjugation
+induces an integral graded isomorphism between complementary Grassmannian
+presentations, carries the right-adjoined family to the published
+lower-adjoined family for a conjugate bigrassmannian parameter tuple, and
+preserves ideal generation and irredundancy.  This proves the original
+two-family conjecture, including the $a=0$ boundary.  We also record the
+accepted integral basis of indecomposables, its Gaussian-binomial Hilbert
+series, auxiliary rank formulas, bounded computation checks, and the precise
+Co-Math evidence and review boundary.  No universal transition matrix between
+the two families is asserted or needed.
+\end{abstract}
+
+\maketitle
+\tableofcontents
+
+\section{Historical statement and status}
+
+Let $X=\operatorname{Fl}_n(\mathbb C)$ be the complete flag variety.  For a
+type-$A_{n-1}$ bigrassmannian permutation $v$, Reiner--Woo--Yong associate a
+basic ideal $J_v\subset H^*(X;\Z)$.  Their Theorem~5.4 gives two finite
+Schur-function generating families.  They state the following conjecture
+\cite{RWY}.
+
+\begin{conjecture}[Reiner--Woo--Yong minimality conjecture]
+For every type-$A$ bigrassmannian $v=v_{r,s,t,n}$, both generating families
+from Theorem~5.4 are minimal: no proper subfamily generates $J_v$.
+\end{conjecture}
+
+The original paper verified the conjecture computationally whenever
+$r\leq4$ and $n-r\leq5$.  It also proposed the stronger structural
+expectation that the module of indecomposables should be free of rank equal to
+the common number of generators.  For the family $n=4m$ and $a=b=m$, the
+conjecture forces at least
+\[
+  \binom{2m}{m}
+  \sim \frac{4^m}{\sqrt{\pi m}}
+  =\frac{\sqrt{2}^{\,n+2}}{\sqrt{\pi n}}
+\]
+generators.  Thus the conjecture supplies an exponential obstruction to
+uniformly short presentations.
+
+St.~Dizier--Yong prove minimality of the lower-adjoined family over $\Z$
+\cite{SDY}.  Their Remark following the proof identifies the other family as
+the transposed family and says that the arguments could be transposed.  The
+purpose of the proof below is to make the simpler functorial conjugation
+transfer completely explicit, including all parameter and boundary checks.
+
+\section{Notation and the two families}
+
+A nonidentity bigrassmannian permutation is indexed by integers satisfying
+\begin{equation}\label{eq:bigrass-hyp}
+  1\leq t\leq r,s\leq n,
+  \qquad t>r+s-n.
+\end{equation}
+Put
+\begin{equation}\label{eq:parameters}
+  q=n-r,
+  \qquad i=s-t+1,
+  \qquad j=r-t+1,
+\end{equation}
+and
+\begin{equation}\label{eq:ab}
+  a=\min(q-i,r-j),
+  \qquad b=\min(i,j).
+\end{equation}
+For a partition $\lambda$, write $\lambda'$ for its conjugate.  The rectangle
+$q^r$ has $r$ rows of length $q$, and $i^j$ has $j$ rows of length $i$.
+
+Let $\Lambda$ be the ring of symmetric functions over $\Z$, with Schur basis
+$\{s_\lambda\}$.  Define
+\[
+  I_{r,q}
+  =\bigoplus_{\lambda\nsubseteq q^r}\Z s_\lambda,
+  \qquad
+  A_{r,q}=\Lambda/I_{r,q}
+  \cong H^*(\Gr(r,n);\Z).
+\]
+An overline denotes projection to $A_{r,q}$.  In the Grassmannian
+presentation, the contracted basic ideal has the integral Schur basis
+\begin{equation}\label{eq:J-basis}
+  J_v
+  =\bigoplus_{i^j\subseteq\lambda\subseteq q^r}
+    \Z\ol{s}_\lambda.
+\end{equation}
+The two generating families are
+\begin{align}
+  \GL(v)
+  &=\left\{
+    \ol{s}_\mu:
+    i^j\subseteq\mu\subseteq(i^j,b^a)
+  \right\},\label{eq:GL}\\
+  \GR(v)
+  &=\left\{
+    \ol{s}_\mu:
+    i^j\subseteq\mu
+    \subseteq((i+a)^b,i^{j-b})
+  \right\}.
+  \label{eq:GR}
+\end{align}
+Both are indexed by partitions in a $b\times a$ rectangle and therefore have
+cardinality $\binom{a+b}{a}$.  We call them lower-adjoined and
+right-adjoined, respectively.
+
+The projection $X\to\Gr(r,n)$ induces a split inclusion on cohomology.  By
+\cite[lines 207--211 in the arXiv source]{SDY}, a subfamily minimally
+generates the Grassmannian contraction if and only if it minimally generates
+the original flag-variety basic ideal.  It is consequently enough to work in
+$A_{r,q}$.
+
+\section{The conjugate parameter tuple}
+
+\begin{lemma}[Admissibility and parameter exchange]\label{lem:parameters}
+Define
+\begin{equation}\label{eq:vee-tuple}
+  (r^\vee,s^\vee,t^\vee,n)
+  =(q,q-i+j,q-i+1,n)
+  =(n-r,n-s,n-r-s+t,n).
+\end{equation}
+Then $v^\vee=v_{r^\vee,s^\vee,t^\vee,n}$ is bigrassmannian and its associated
+parameters satisfy
+\[
+  (i^\vee,j^\vee,a^\vee,b^\vee)=(j,i,a,b).
+\]
+\end{lemma}
+
+\begin{proof}
+First $r,s<n$.  Indeed, if $r=n$, then
+$t>r+s-n=s$, contradicting $t\leq s$; the argument for $s<n$ is symmetric.
+Thus $q=n-r$ and $n-s$ are positive.
+
+The strict integral inequality in \eqref{eq:bigrass-hyp} gives
+$t^\vee=n-r-s+t\geq1$.  Moreover,
+\[
+  t^\vee\leq n-r=r^\vee \quad\Longleftrightarrow\quad t\leq s,
+\]
+and
+\[
+  t^\vee\leq n-s=s^\vee \quad\Longleftrightarrow\quad t\leq r.
+\]
+Finally,
+\[
+ t^\vee-(r^\vee+s^\vee-n)
+ =(n-r-s+t)-(n-r-s)=t>0.
+\]
+Hence the transformed tuple satisfies every bigrassmannian inequality.
+
+Direct substitution gives
+\begin{align*}
+ i^\vee&=s^\vee-t^\vee+1=r-t+1=j,\\
+ j^\vee&=r^\vee-t^\vee+1=s-t+1=i,\\
+ a^\vee
+ &=\min(n-r^\vee-i^\vee,r^\vee-j^\vee)\\
+ &=\min(r-j,q-i)=a,\\
+ b^\vee&=\min(i^\vee,j^\vee)=b.
+\end{align*}
+\end{proof}
+
+The same inequalities also give
+\begin{equation}\label{eq:box-ineq}
+  i\leq q,
+  \quad j\leq r,
+  \quad i+a\leq q,
+  \quad j+a\leq r,
+  \quad b\leq i,j.
+\end{equation}
+Thus all endpoint partitions in \eqref{eq:GL} and \eqref{eq:GR} lie in the
+ambient rectangle, as do their transformed analogues.
+
+\section{Integral partition conjugation}
+
+Let $\omega:\Lambda\to\Lambda$ be the standard involution
+\[
+  \omega(s_\lambda)=s_{\lambda'}.
+\]
+It is a graded ring involution and permutes the integral Schur basis.
+
+\begin{lemma}[Rectangle-ideal descent]\label{lem:omega-quotient}
+For all $r,q\geq1$,
+\[
+  \omega(I_{r,q})=I_{q,r}.
+\]
+Consequently $\omega$ induces a graded integral ring isomorphism
+\begin{equation}\label{eq:omega-quotient}
+  \omega_{r,q}:A_{r,q}\xrightarrow{\sim}A_{q,r},
+  \qquad
+  \ol{s}_\lambda\longmapsto\ol{s}_{\lambda'}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+A partition $\lambda$ lies in $q^r$ precisely when
+$\lambda_1\leq q$ and $\ell(\lambda)\leq r$.  These conditions are equivalent
+to $(\lambda')_1\leq r$ and $\ell(\lambda')\leq q$, namely
+$\lambda'\subseteq r^q$.  Conjugation therefore bijects the Schur basis
+outside $q^r$ with the Schur basis outside $r^q$.  The equality of ideals and
+the claimed quotient isomorphism follow basiswise over $\Z$.
+\end{proof}
+
+\begin{lemma}[Basic ideals and endpoint intervals]\label{lem:omega-families}
+Under \eqref{eq:omega-quotient},
+\[
+  \omega_{r,q}(J_v)=J_{v^\vee},
+  \qquad
+  \omega_{r,q}(\GR(v))=\GL(v^\vee).
+\]
+\end{lemma}
+
+\begin{proof}
+By \eqref{eq:J-basis}, conjugation sends the interval
+$i^j\subseteq\lambda\subseteq q^r$ to
+$j^i\subseteq\lambda'\subseteq r^q$.  Lemma~\ref{lem:parameters} identifies
+the latter interval with the Schur basis of $J_{v^\vee}$.
+
+For the generating families, the endpoint identities are
+\begin{equation}\label{eq:endpoint-conjugation}
+  (i^j)'=j^i,
+  \qquad
+  ((i+a)^b,i^{j-b})'=(j^i,b^a).
+\end{equation}
+Partition conjugation preserves containment, so it bijects the full interval
+defining $\GR(v)$ with the interval defining $\GL(v^\vee)$.
+
+If $a=0$, both upper endpoints equal their cores:
+\[
+  (i^j,b^0)=((i+0)^b,i^{j-b})=i^j,
+\]
+and similarly after exchanging $i$ and $j$.  Thus the argument includes the
+singleton boundary case without an exception.
+\end{proof}
+
+\section{Closure of the original conjecture}
+
+\begin{theorem}[Two-family minimality]\label{thm:minimality}
+For every type-$A$ bigrassmannian $v=v_{r,s,t,n}$, both $\GL(v)$ and $\GR(v)$
+minimally generate the basic ideal $J_v$, integrally.  This holds both in the
+Grassmannian contraction and in the original flag-variety cohomology ring.
+\end{theorem}
+
+\begin{proof}
+St.~Dizier--Yong prove that $\GL(w)$ minimally generates $J_w$ for every
+bigrassmannian $w$ \cite[Theorem~1.2 and its concluding corollary]{SDY}.
+Apply that theorem to $w=v$ to obtain minimality of $\GL(v)$.
+
+Apply it again to the admissible bigrassmannian $v^\vee$ from
+Lemma~\ref{lem:parameters}.  By Lemmas~\ref{lem:omega-quotient} and
+\ref{lem:omega-families}, the inverse image of $J_{v^\vee}$ is $J_v$ and the
+inverse image of $\GL(v^\vee)$ is $\GR(v)$.  A ring isomorphism preserves
+generation.  If a proper subfamily of $\GR(v)$ generated $J_v$, its image
+would be a proper generating subfamily of $\GL(v^\vee)$, contradicting the
+published minimality theorem.  Hence $\GR(v)$ is minimal.
+
+The split-inclusion equivalence cited at the end of Section~2 transfers both
+minimality statements from the Grassmannian contraction to the original
+flag-variety basic ideal.
+\end{proof}
+
+\begin{remark}
+The proof uses no formula expressing one family linearly in terms of the
+other inside a fixed Grassmannian quotient.  It instead moves to the
+complementary Grassmannian quotient by a canonical integral ring isomorphism.
+Thus a universal $\GL$-to-$\GR$ transition identity is neither assumed nor
+proved.
+\end{remark}
+
+\section{The stronger indecomposables theorem}
+
+Let
+\[
+  A_+=\bigoplus_{d>0}(A_{r,q})_d,
+  \qquad Q_v=J_v/A_+J_v.
+\]
+The accepted Co-Math kernel certificate combines the published generation and
+no-syzygy theorem with a full-coordinate integral descent.  It gives the
+following strengthening of Theorem~\ref{thm:minimality}.
+
+\begin{theorem}[Integral indecomposables basis]\label{thm:Q-basis}
+There is a graded integral isomorphism
+\begin{equation}\label{eq:Q-basis}
+  Q_v\cong
+  \bigoplus_{\rho\subseteq b^a}\Z e_\rho,
+  \qquad
+  \deg e_\rho=ij+|\rho|.
+\end{equation}
+The classes of $\GL(v)$ form one such homogeneous basis, and the classes of
+$\GR(v)$ form another.  Consequently
+\begin{equation}\label{eq:Hilbert}
+  \Hilb_{Q_v}(z)
+  =z^{ij}\binom{a+b}{a}_z,
+\end{equation}
+and $Q_v$ is torsion-free.
+\end{theorem}
+
+\begin{proof}[Proof recorded by the accepted certificate chain]
+Index the lower family as
+\[
+  g_\rho=\ol{s}_{(i^j,\rho)},
+  \qquad \rho\subseteq b^a.
+\]
+Published generation gives a graded integral surjection
+\[
+  \bigoplus_{\rho\subseteq b^a}\Z e_\rho\twoheadrightarrow Q_v,
+  \qquad e_\rho\mapsto[g_\rho].
+\]
+A nonzero homogeneous kernel element in excess degree $N>0$ would give a
+relation
+\[
+ \sum_{|\beta|=N}c_\beta g_\beta
+ =\sum_{|\lambda|<N}f_\lambda g_\lambda,
+ \qquad f_\lambda\in(A_{r,q})_{N-|\lambda|}.
+\]
+The left side is nonzero because the shapes $(i^j,\beta)$ are distinct Schur
+basis elements in $q^r$.  This is exactly the homogeneous syzygy excluded by
+the no-syzygy theorem of \cite{SDY}.  The accepted full-coordinate integral
+descent certificate verifies that no coefficient is lost in passing to the
+source linear system.  Thus the kernel vanishes for $N>0$.
+
+For $N=0$, only $g_\varnothing=\ol{s}_{i^j}$ occurs.  Since $J_v$ is
+generated in degrees at least $ij$, $(A_+J_v)_{ij}=0$, so its class is
+nonzero.  If $a=0$, this is the entire argument because the indexing box has
+only the empty partition.  This proves the lower basis statement.
+
+The isomorphism of Lemma~\ref{lem:omega-quotient} maps positive-degree ideals
+to positive-degree ideals and hence induces
+\[
+  J_v/A_+J_v\xrightarrow{\sim}
+  J_{v^\vee}/A_+J_{v^\vee}.
+\]
+Lemma~\ref{lem:omega-families} transfers the lower basis for $v^\vee$ to the
+right basis for $v$.  Formula \eqref{eq:Hilbert} follows by summing
+$z^{ij+|\rho|}$ over partitions in $b^a$.
+\end{proof}
+
+Complementation in the box,
+\[
+  \rho^\vee=(b-\rho_a,\ldots,b-\rho_1),
+\]
+is an involution and $|\rho^\vee|=ab-|\rho|$.  Therefore
+\[
+  \langle e_\rho,e_\sigma\rangle
+  =\delta_{\sigma,\rho^\vee}
+\]
+defines a perfect integral pairing
+\[
+  (Q_v)_d\times(Q_v)_{2ij+ab-d}\longrightarrow\Z.
+\]
+For $a=0$, the empty partition is declared self-complementary.
+
+\section{Rank formulas accepted during the investigation}
+
+Let
+\[
+  R_{a,b}(N)=\#\{\rho\subseteq b^a:|\rho|=N\}.
+\]
+Then Theorem~\ref{thm:Q-basis} gives
+\[
+  \operatorname{rank}(Q_v)_{ij+N}=R_{a,b}(N).
+\]
+If $p_a(m)$ is the number of partitions of $m$ with at most $a$ parts, with
+$p_a(m)=0$ for $m<0$, an accepted inclusion--exclusion certificate gives
+\begin{equation}\label{eq:rank-ie}
+  R_{a,b}(N)
+  =\sum_{S\subseteq\{1,\ldots,a\}}
+    (-1)^{|S|}
+    p_a\!\left(N-|S|b-\sum_{s\in S}s\right).
+\end{equation}
+Box complementation gives the symmetry
+\[
+  R_{a,b}(N)=R_{a,b}(ab-N).
+\]
+
+For the three-row box $b^3$, define $P(t)=0$ for $t<0$.  If
+$t=6u+r\geq0$ with $0\leq r<6$, then
+\[
+P(t)=
+\begin{cases}
+3u^2+3u+1,&r=0,\\
+3u^2+4u+1,&r=1,\\
+3u^2+5u+2,&r=2,\\
+3u^2+6u+3,&r=3,\\
+3u^2+7u+4,&r=4,\\
+3u^2+8u+5,&r=5.
+\end{cases}
+\]
+Here $P(t)$ counts partitions of $t$ with at most three parts.  The accepted
+piecewise quasi-polynomial certificate is
+\[
+R_{3,b}(N)=
+\begin{cases}
+0,&N<0\text{ or }N>3b,\\
+P(N),&0\leq N\leq b,\\
+P(N)-P(N-b-1)-P(N-b-2)-P(N-b-3),
+  &b<N\leq\lfloor3b/2\rfloor,\\
+R_{3,b}(3b-N),&\lfloor3b/2\rfloor<N\leq3b.
+\end{cases}
+\]
+
+\section{Bounded computations and their proper role}
+
+The proof of Theorem~\ref{thm:minimality} is symbolic and does not depend on
+finite experimentation.  Co-Math nevertheless retained two useful audits.
+
+\begin{enumerate}[label=\arabic*.]
+\item The parameter-conjugation checker examined every bigrassmannian tuple
+for $2\leq n\leq12$: $1001$ tuples total, including $495$ with $a>0$ and
+$506$ with $a=0$.  Every asserted inequality, shape containment, conjugation
+identity, and boundary convention passed.  The executable computation
+artifact is
+\texttt{dd8c3f05d598063b3da443dec00d07e26292748e8b66fd64e4cf2300d33856c9}.
+
+\item A separate Smith-normal-form experiment used the interval
+\[
+ [2,2,2,0,0,0]\subseteq\lambda\subseteq[5,5,5,5,5,5]
+\]
+and all complete $h_1,\ldots,h_5$ Pieri rows in degrees $6$ through $30$.
+Verified unimodular witnesses gave quotient ranks
+\[
+ (1,1,2,2,2,1,1)
+\]
+in degrees $6$ through $12$, zero thereafter through degree $30$, and no
+torsion.  The computation artifact is
+\texttt{6e0ed66127f15e5b06fbfd7c2c69c95905c664df4aaf1c92166348e3496fc5a5}.
+\end{enumerate}
+
+These computations are checks and examples only.  Neither was promoted to an
+all-parameter theorem without a symbolic proof.
+
+\section{Co-Math provenance and independent review}
+
+The durable Co-Math state is preserved in the branch
+\texttt{comath/research-exploration-mode} of
+\url{https://github.com/HanzhangYin/pi-mono}, commit
+\texttt{ace829d7}.  Content-addressed artifacts make the source excerpts,
+claims, reports, criticism, and computations immutable.
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Task & Role in the proof & Accepted report or ledger hash\\
+\midrule
+228 & Symbolic admissibility plus bounded audit
+  & \texttt{251e640f38b88d9a5...}\\
+229 & Endpoint shapes, boxes, and $a=0$
+  & \texttt{3046a5a5e812cc7b...}\\
+286 & Right-family indecomposables transfer
+  & \texttt{b644ba099b1ae76f...}\\
+296 & Lower-family graded-kernel certificate
+  & \texttt{4a11210ef593a85f...}\\
+301 & Integral quotient conjugation
+  & \texttt{b9354e944eac34d9...}\\
+326 & Three-row rank quasi-polynomial
+  & \texttt{42c40bf8cea24fa5...}\\
+328 & General inclusion--exclusion rank formula
+  & \texttt{dfcb882173218746...}\\
+334 & Consolidated theorem boundary
+  & \texttt{c131f5897c63b586...}\\
+336 & Source-grounding and missing-review diagnosis
+  & \texttt{334dc58de7359d81...}\\
+337 & Fresh end-to-end adversarial closure audit
+  & \texttt{8f3dfb9330c77bdc...}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For task~337, the specialist artifact is
+\texttt{b722c59f0baf5dd996cc330e4eba9b9a3a477c14adb0cd7fab46a9b1b9f23eee};
+the independent critic is
+\texttt{d6ba1aac1f88f60379f0b472f9e169a8d54471c98a23302e1407c8bb8e5d30e6};
+the final report is
+\texttt{81e32be5ba7bd5dd5cce3f7c73f4cb245c9e4e331398dedef0e231837960a4bd};
+and the independent skeptic verdict is
+\texttt{d7f57938698ec321136dbf52345b00128dd7a07bf7481097aa8c78a991ae3cbb}.
+The critic independently recomputed the admissibility inequalities, endpoint
+conjugation, integral ideal descent, quotient-basis transfer, and
+irredundancy.  The skeptic accepted the theorem with no concerns.
+
+This review standard is analogous to a carefully source-checked mathematical
+argument with independent model criticism.  It is not a proof-assistant
+formalization: the definitions and deductions have not been encoded in Lean,
+Coq, Isabelle, or another kernel-checked formal system.
+
+\section{Claims deliberately left outside the theorem}
+
+The following are not needed for, and are not claimed by, the closure proof.
+\begin{itemize}
+\item No parameter-uniform transition matrix between $\GL(v)$ and $\GR(v)$
+inside the same quotient has been proved.
+\item The universal transition identity explored during the research remains
+a separate theorem candidate or conjecture.
+\item The rejected larger transition computation lacked a certificate that
+its selected relation lattice was the complete relation lattice; it was not
+used.
+\item Minimal generating sets for arbitrary type-$A$ Schubert ideals $I_w$
+remain a broader open problem.
+\item The result is not presently kernel-checked by a proof assistant.
+\end{itemize}
+
+\section{Conclusion}
+
+The original mathematical target is closed without the optional transition
+identity.  The 2024 theorem proves minimality of the lower-adjoined family.
+The explicit admissible parameter involution \eqref{eq:vee-tuple}, together
+with the integral partition-conjugation isomorphism
+\eqref{eq:omega-quotient}, sends the right-adjoined family to a published
+lower-adjoined family and transfers minimality back.  The same map transfers
+the stronger integral indecomposables basis.  All edge cases, especially
+$a=0$, are included.
+
+\begin{thebibliography}{9}
+
+\bibitem{RWY}
+V.~Reiner, A.~Woo, and A.~Yong,
+\emph{Presenting the cohomology of a Schubert variety},
+Trans. Amer. Math. Soc. \textbf{363} (2011), 521--543,
+\href{https://arxiv.org/abs/0809.2981}{arXiv:0809.2981}.
+
+\bibitem{SDY}
+A.~St.~Dizier and A.~Yong,
+\emph{Presenting the cohomology of a Schubert variety: Proof of the
+minimality conjecture},
+J. London Math. Soc. \textbf{109} (2024), no.~1, e12832,
+\href{https://doi.org/10.1112/jlms.12832}{doi:10.1112/jlms.12832},
+\href{https://arxiv.org/abs/2209.02011}{arXiv:2209.02011}.
+
+\end{thebibliography}
+
+\end{document}
